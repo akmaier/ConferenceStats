@@ -1,0 +1,48 @@
+SNP: Structured Neuron-level Pruning to
+Preserve Attention Scores
+Kyunghwan Shim1 , Jaewoong Yun1 , and Shinkook Choi1⋆
+Nota Inc., Korea
+{kyunghwan.shim,jwyun,shinkook.choi}@nota.ai
+1
+
+2
+
+A
+
+Accelerating Transformer models
+
+A.1
+
+Accelerating MSA modules
+
+The implementation of MSA modules varies significantly among developers.
+Some approaches involve implementing each head’s query, key, and value layers
+independently. In contrast, other implementations consolidate all of the head’s
+query, key, and value layers into a single layer, utilizing the reshape operator to
+accelerate the MSA module through parallel computation.
+The MSA module of DeiTs3 is implemented as described in Fig. A (a). All
+linear layers within the MSA module are consolidated into a single linear layer
+with a shape of Rd×H∗(dq +dk +dv ) . The output matrix of the consolidated linear
+layer, with a shape of RN ×H∗(dq +dk +dv ) , is reshaped into RN ×3×H×dq , where
+3 represents three layers: query, key, and value. This reshaped output matrix
+is subsequently divided into individual sets corresponding to each role of linear
+layers (query, key, and value). The conventional self-attention process is then
+conducted using the output of each role in a parallel manner.
+Due to the reshape operator in the MSA implementation mentioned above,
+neuron-level pruning encounters two constraints to accelerate the MSA module:
+– Constraints on Q, K, and V: All query, key, and value layers of selfattention module must have the same dimensions.
+• dq = dk = dv
+– Constraints on multi-head: All heads in the MSA module should have
+the same dimension.
+• d1{q,k,v} = d2{q,k,v} = ... = dH
+{q,k,v}
+Constraints on Q, K, and V The original implementation of the MSA module in DeiTs enforces an equal number of dimensions for all query, key, and value
+layers. However, SNP proposes to remove identical filter indices for the graphically connected query and key layers while independently removing the value
+layer. This necessitates overcoming constraints on Q, K, and V.
+⋆
+3
+
+Corresponding author
+https://github.com/facebookresearch/deit
+
+

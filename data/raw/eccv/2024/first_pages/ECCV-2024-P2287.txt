@@ -1,0 +1,48 @@
+Denoising Vision Transformers
+
+1
+
+Supplementary Material:
+Denoising Vision Transformers
+In the appendix, we provide detailed implementation details in §A, elaborate
+on evaluation protocols and additional results in §B, and discuss the understanding of position embeddings in ViT in §C. Lastly, we discuss the limitations of
+this work and propose a few avenues for future work in §D.
+
+A
+
+Implementation Details
+
+A.1
+
+Denosing with Neural Fields
+
+Recall that we decompose the output feature map from a pre-trained ViT into
+three components: y ⇡ F(A)+G +h(y), where F is a feature semantic field, G is
+an artifact field, and h is a residual predictor. We describe their implementation
+details below.
+Neural field F. To facilitate eﬃcient learning, we use InstantNGP [23], a type
+of compact and fast coordinate network, parameterized by learnable multi-level
+hash grids H and a lightweight MLP (·), to learn F. It takes as input a normalized 2D coordinate (i, j), within the range of [0, 1], and outputs its corresponding
+feature vector, i.e., F(i, j) = (H(i, j)). We refer readers to [23] for a more detailed understanding of the learnable hash grids. In our implementation, we use
+a hash encoding resolution that spans from 24 to 210 with 16 levels. Each hash
+entry has a channel size of 8. The maximum number of hash entries of each resolution is 220 . For the lightweight MLP, we use a two-layer Linear-ReLu-Linear
+structure. The hidden dimension of this MLP is half the size of the output feature dimension, which corresponds to the feature dimension of the ViT being
+studied (e.g., 768 for a ViT-base and 1024 for a ViT-large).
+Artifact field G. For all experiments, we use a 2D learnable feature map of size
+C ⇥ K ⇥ K to learn the input-independent noise, where C corresponds to the
+feature dimension of the studied ViT, and K is the spatial size. We compute K
+by (H P )/S +1, where H is the height&width of input images (which we resize
+to be square), P is the patch size, and S is the stride size used in the model. To
+accommodate ViTs with diﬀerent patch sizes, we set H to 518 for those trained
+with a patch size of 14, and 512 for ViTs with a patch size of 16, resulting in K
+values of 37 and 32, respectively. Note that this feature map, G, can be bilinearly
+interpolated to fit any arbitrary image resolution. We specifically choose these
+K values to minimize the need for run-time interpolation during training, thus
+improving denoising eﬃciency.
+Residual predictor h. The residual predictor is structured as a 3-layer MLP
+with ReLU activation after the hidden layers. The hidden dimension is set to be
+one-quarter of the channel dimension of the ViT being studied.
+Optimization. In our implementation, we extract N = 768 views (crops) from
+each image, applying random augmentations, which include random flipping
+
+

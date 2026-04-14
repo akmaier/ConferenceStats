@@ -1,0 +1,54 @@
+18
+
+7
+
+F. Di Sario et al.
+
+Additional Details
+
+Our MoE is reducible to a Sparsely-Gated Mixture of Experts with full capacity.
+Since the number of points sampled is reasonable, we did not find necessary to
+impose a limit to the capacity factor of each model. We also introduce differentresolution experts in the MoE, promoting the routing of tokens towards lowerresolution experts. Regarding DVGO and TensoRF, we utilized models at various
+grid resolutions, while keeping all other hyperparameters consistent with the
+original implementations. The selected resolutions are 1603 , 2003 , 2563 , 3203 , and
+3843 . For Instant-NGP, we trained models while varying the L parameter across
+the following values: 6, 8, 10, 16, and 24. Experts within the MoE are arranged
+in increasing resolution order.
+7.1
+
+∥w∥0 Computation
+
+We define ∥w∥0 as the count of non-null parameters in the Mixture of Experts.
+As our MoE operates as a Sparsely-Gated MoE, only a subset of the Neural
+Radiance Fields models are effectively employed during rendering. Moreover,
+our resolution-based routing mechanism has the potential to significantly reduce
+this parameter.
+To compute the parameters, we freeze the MoE and render all the images in
+the test set. Subsequently, we calculate the loss in the usual manner and compute
+gradients with respect to the MoE’s parameters. ||w||0 then represents the count
+of parameters with non-null gradients:
+  \|w\|_0 := \|\frac {\partial L_{\text {nerf}}}{\partial W_{\text {MoE}} \neq 0 } \|_0 
+
+(14)
+
+This can be associated with gradient-magnitude pruning. We leave this idea as
+a future project.
+7.2
+
+Instant-NGP Implementation
+
+The implementation for Instant-NGP closely resembles that proposed in Figure 2, albeit with a slight modification: the gate comprises a tiny Instant-NGP
+model. This gate model consists of a multi-resolution hash grid with L = 6,
+which computes per-point features. These features are then linearly interpolated
+with the 8 nearest voxels, similar to DVGO and TensoRF, before being concatenated together. Following this concatenation, they undergo transformation into
+probabilities using the same methodology as in the main method. Additionally,
+the MLP remains shallow, comprising 2 layers with 64 neurons each, activated
+by ReLU functions.
+7.3
+
+Ensembling NeRFs’ Outputs
+
+To validate our Mixture of Experts, we conducted a comparison with an ensemble
+of Neural Radiance Fields, where the output is determined by averaging the
+
+

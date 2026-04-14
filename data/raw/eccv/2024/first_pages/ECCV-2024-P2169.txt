@@ -1,0 +1,51 @@
+20
+
+H. Luo et al.
+
+A
+
+Experiments Details
+
+In this section, we describe the details of the implementations (Appendix A.1),
+the hyperparameters (Appendix A.2), and the task settings (Appendix A.3).
+A.1
+
+Implementations
+
+We build our framework based on PyTorch [46] and use the implementations of
+Transformer tricks from the codebase x-transformers5 . We pre-train a VQGAN
+with the images extracted from BAIR and downstream tasks based on the released code6 . We use 8×A100 Nvidia GPU and 64 CPU cores for the pre-training
+run, while using one single A100 Nvidia GPU and 16 CPU cores for each training
+run. 10 hours are required to pre-train PVDR. For the online stage, 12 hours
+are required to train on each Meta-World [88] task, and 18 hours are required
+to train on each RLBench [29] task. The details of the implementations are as
+follows.
+PVDR Structure. We implement all modules in PVDR as Transformer-based
+structures. Overall, the structures of the modules in PVDR, including a visual
+dynamics encoder, a visual dynamics prior, a visual dynamics decoder, an action
+alignment module, and a critic network, are shown in Figure 8. These modules
+use a pre-trained VQGAN to compress the raw frames into grids of visual tokens and subsequently employ the Spatial-Temporal Transformers [79] to process
+spatial-temporal visual token sequences. The modules differ from each other in
+the input data type and the post-processing form of the hidden states. Specifically, the visual dynamics representations are in the same shape as visual token
+grids and are viewed as grids of prompts that will be concatenated with the visual
+token grids. During the decoding process, the hidden state of each visual token
+will be projected onto a vector, whose dimension equals the size of the VQGAN
+codebook. The softmax value of each dimension is viewed as the probability of
+the corresponding code. For a quick decoding process, we do not use the beam
+search. Instead, we recurrently use the code with the highest probability to form
+a grid and directly decode one visual frame with VQGAN.
+ST Transformer. In our PVDR implementation, the core structure is the SpatialTemporal Transformer (ST Transformer). For a lower attention computation
+burden, an ST Transformer uses cross-stacked spatial and temporal attention
+blocks to, respectively, process the information in spatial and temporal sequences.
+Generally, we design spatial and temporal attention blocks following MaskViT [24].
+As shown in Figure 9, the spatial attention blocks process the attention map of
+visual tokens at the same timestep, while the temporal attention blocks process
+the attention map of visual tokens in a small local spatial window alongside the
+temporal sequence.
+5
+6
+
+https://github.com/lucidrains/x-transformers
+https://github.com/CompVis/taming-transformers
+
+

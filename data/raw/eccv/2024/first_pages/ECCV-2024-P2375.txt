@@ -1,0 +1,48 @@
+1
+
+Appendix
+A
+
+Pseudo-code
+
+As shown in Algorithm 1, we conclude algorithm flow of the proposed method
+and present it as Pytorch-like style pseudo-code.
+Algorithm 1 Pytorch-like style pseudo-code of our method built on MoCo v2.
+Input: Initial query and key encoder parameters θq and θk , initial query and
+key projection head parameters θpq and θpk , initial decoder parameters θd , and
+unlabeled dataloader. MoCo’s hyperparameters: momentum m, temperature
+τ . Our method’s hyperparameters: α, ν, ϵg , ϵvar , κ
+for x in dataloader do
+"""——— Calculate LC ———"""
+# Acquire two views by stochastic augmentations
+x′ = T(x)
+x′′ = T(x)
+# Update key model
+θk = m ∗ θk + (1 − m) ∗ θq
+θpk = m ∗ θpk + (1 − m) ∗ θpq
+# Calculate key and query representations
+q = proj_head_q(encoder_q(x′ ))
+k = proj_head_k(encoder_k(x′′ )).detach()
+# Representation memory enqueue & dequeue
+enqueue_dequeue(Queue, k)
+# Calculate positive & negative pair logits
+l_pos = einsum(′ ck, ck− > c′ , [q, k])
+l_neg = einsum(′ ck, kj− > cj′ , [q, Queue])
+# Calculate contrastive loss LC
+logits = cat([l_pos, l_neg], dim = 1)/τ
+target = zeros(len(l_pos))
+loss_C = cross_entropy(logits, target)
+"""——— Calculate LR ———"""
+x̂ = decoder(encoder_q(x))
+loss_R = MSE_Loss(x, x̂)
+"""——— Calculate LCp ———"""
+v = encoder_q(x)
+# Feature memory bank enqueue & dequeue
+enqueue_dequeue(M, v)
+z = proj_head_q(v)
+z′′ = proj_head_q(encoder_q(x′′ ))
+# Contrastive_loss(·,·) returns the SimCLR loss when given two views
+l_c = contrastive_loss(z, z′′ )
+η = get_gradcam(l_c, v) # size: n
+
+
