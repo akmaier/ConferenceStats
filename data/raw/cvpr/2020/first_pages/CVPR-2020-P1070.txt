@@ -1,0 +1,62 @@
+ZeroQ: A Novel Zero Shot Quantization Framework
+Yaohui Cai∗,1 , Zhewei Yao∗,2 , Zhen Dong∗,2 ,
+Amir Gholami2 , Michael W. Mahoney2 , Kurt Keutzer2
+1
+Peking University; 2 University of California, Berkeley
+caiyaohui@pku.edu.cn {zheweiy, zhendong, amirgh, mahoneymw, and keutzer}@berkeley.edu
+
+Abstract
+Quantization is a promising approach for reducing the
+inference time and memory footprint of neural networks.
+However, most existing quantization methods require access to the original training dataset for retraining during
+quantization. This is often not possible for applications
+with sensitive or proprietary data, e.g., due to privacy and
+security concerns. Existing zero-shot quantization methods use different heuristics to address this, but they result
+in poor performance, especially when quantizing to ultralow precision. Here, we propose Z ERO Q, a novel zeroshot quantization framework to address this. Z ERO Q enables mixed-precision quantization without any access to
+the training or validation data. This is achieved by optimizing for a Distilled Dataset, which is engineered to match
+the statistics of batch normalization across different layers
+of the network. Z ERO Q supports both uniform and mixedprecision quantization. For the latter, we introduce a novel
+Pareto frontier based method to automatically determine
+the mixed-precision bit setting for all layers, with no manual
+search involved. We extensively test our proposed method
+on a diverse set of models, including ResNet18/50/152, MobileNetV2, ShuffleNet, SqueezeNext, and InceptionV3 on
+ImageNet, as well as RetinaNet-ResNet50 on the Microsoft
+COCO dataset. In particular, we show that Z ERO Q can
+achieve 1.71% higher accuracy on MobileNetV2, as compared to the recently proposed DFQ [32] method. Importantly, Z ERO Q has a very low computational overhead, and
+it can finish the entire quantization process in less than 30s
+(0.5% of one epoch training time of ResNet50 on ImageNet).
+We have open-sourced the Z ERO Q framework1 .
+
+1. Introduction
+Despite the great success of deep Neural Network (NN)
+models in various domains, the deployment of modern NN
+models at the edge has been challenging due to their proEqual contribution.
+1 https://github.com/amirgholami/ZeroQ
+
+hibitive memory footprint, inference time, and/or energy
+consumption. With the current hardware support for lowprecision computations, quantization has become a popular procedure to address these challenges. By quantizing
+the floating point values of weights and/or activations in a
+NN to integers, the model size can be shrunk significantly,
+without any modification to the architecture. This also allows one to use reduced-precision Arithmetic Logic Units
+(ALUs) which are faster and more power-efficient, as compared to floating point ALUs. More importantly, quantization reduces memory traffic volume, which is a significant
+source of energy consumption [15].
+However, quantizing a model from single precision to
+low-precision often results in significant accuracy degradation. One way to alleviate this is to perform the so-called
+quantization-aware fine-tuning [46, 34, 5, 42, 45, 18] to reduce the performance gap between the original model and
+the quantized model. Basically, this is a retraining procedure that is performed for a few epochs to adjust the NN parameters to reduce accuracy drop. However, quantizationaware fine-tuning can be computationally expensive and
+time-consuming. For example, in online learning situations,
+where a model needs to be constantly updated on new data
+and deployed every few hours, there may not be enough
+time for the fine-tuning procedure to finish. More importantly, in many real-world scenarios, the training dataset is
+sensitive or proprietary, meaning that it is not possible to access the dataset that was used to train the model. Good examples are medical data, bio-metric data, or user data used
+in recommendation systems.
+To address this, recent work has proposed post-training
+quantization [19, 32, 44, 3], which directly quantizes NN
+models without fine-tuning. However, as mentioned above,
+these methods result in non-trivial performance degradation, especially for low-precision quantization. Furthermore, previous post-training quantization methods usually
+require limited (unlabeled) data to assist the post-training
+quantization. However, for cases such as MLaaS (e.g.,
+Amazon AWS and Google Cloud), it may not be possible
+to access any of the training data from users. An example application case is health care information which can113169
+
+

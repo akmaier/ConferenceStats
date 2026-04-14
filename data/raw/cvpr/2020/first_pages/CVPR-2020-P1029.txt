@@ -1,0 +1,164 @@
+Rethinking Performance Estimation in Neural Architecture Search
+Xiawu Zheng 1,2,3 , Rongrong Ji1,2,3∗, Qiang Wang1,3 , Qixiang Ye3,4 , Zhenguo Li5 Yonghong Tian3,6 , Qi Tian5
+1
+Media Analytics and Computing Lab, Department of Artificial Intelligence,
+School of Informatics, Xiamen University, 361005, China
+2
+National Institute for Data Science in Health and Medicine, Xiamen University.
+3
+Peng Cheng Laboratory, Shenzhen, China. 4 University of Chinese Academy of Sciences, China.
+5
+Noah’s Ark Lab, Huawei Technologies 6 Peking University.
+{zhengxiawu,Wangqiang}@stu.xmu.edu.cn, rrji@xmu.edu.cn
+qxye@ucas.ac.cn, li.zhenguo@huawei.com,yhtian@pku.edu.cn, tian.qi1@huawei.com
+
+Neural architecture search (NAS) remains a challenging
+problem, which is attributed to the indispensable and timeconsuming component of performance estimation (PE). In
+this paper, we provide a novel yet systematic rethinking of
+PE in a resource constrained regime, termed budgeted PE
+(BPE), which precisely and effectively estimates the performance of an architecture sampled from an architecture
+space. Since searching an optimal BPE is extremely timeconsuming as it requires to train a large number of networks
+for evaluation, we propose a Minimum Importance Pruning
+(MIP) approach. Given a dataset and a BPE search space,
+MIP estimates the importance of hyper-parameters using
+random forest and subsequently prunes the minimum one
+from the next iteration. In this way, MIP effectively prunes
+less important hyper-parameters to allocate more computational resource on more important ones, thus achieving
+an effective exploration. By combining BPE with various
+search algorithms including reinforcement learning, evolution algorithm, random search, and differentiable architecture search, we achieve 1, 000× of NAS speed up with a
+negligible performance drop comparing to the SOTA.1
+
+1. Introduction
+Deep learning have made significant sucess in classification [15, 12], retrieval [48, 47] and detection [42, 46, 20]. To
+this end, neural architecture search (NAS) aims to automatically discover a suitable neural network architecture by exploring over a tremendous architecture search space, which
+∗ Corresponding Author.
+1 All the NAS search codes are available at:
+https:
+//github.com/zhengxiawu/rethinking_performance_
+estimation_in_NAS
+
+Time Cost (GPU days)
+
+Abstract
+
+10
+
+4
+
+10
+
+3
+
+10
+
+2
+
+10
+
+1
+
+10
+
+0
+
+10
+
+−1
+
+10
+
+−2
+
+10
+
+−3
+
+1800
+
+3150
+108
+
+1.5
+
+RL
+
+EA
+
+One-shot
+
+RS
+
+10
+
+4
+
+10
+
+3
+
+10
+
+2
+
+10
+
+1
+
+10
+
+0
+
+10
+
+−1
+
+10
+
+−2
+
+10
+
+−3
+
+Search
+Performance Estimation
+
+0.33
+
+0.33
+
+0.33
+0.05
+
+RL
+
+EA
+
+One-shot
+
+RS
+
+Figure 1. Time cost with/without budgeted performance estimation (BPE-1). (a) Previous methods did not optimize the huge
+computation cost in PE. (b) By incorporating the BPE, we can
+largely accelerate NAS methods including reinforcement learning
+(RL) [52], evolution algorithm (EA) [34], random search (RS) and
+DARTS [28] (One-shot) with a negligible performance drop.
+
+has shown remarkable performance over manual designs in
+various computer vision tasks [9, 51, 28, 52, 10, 26].
+Despite the extensive success, previous methods are
+still defective in intensive computation resources, which
+severely restricts its application prospect and flexibility.
+For instance, reinforcement learning (RL) based methods
+[52, 51] search a suitable architecture on CIFAR10 by training and evaluating more than 20, 000 architectures by using
+500 GPUs over 4 days. For another instance, the evolutionary algorithm (EA) based method in [34] needs 3, 150 GPU
+days to find an optimal architecture on CIFAR10.
+A NAS method generally consists of three components,
+i.e., search space, search strategy and performance estimation. As established by [51], cell based search space is now
+well adopted [49, 44, 11, 31, 34, 33, 51, 52], which is predefined and fixed during the architecture search to ensure
+a fair comparison among different NAS methods. On the
+other hand, as illustrated in Fig. 1, different search strategies (RL or EA) have similar run-time (after subtracting the
+
+11356
+
+

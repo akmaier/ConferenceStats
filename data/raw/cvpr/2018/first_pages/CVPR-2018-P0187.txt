@@ -1,0 +1,80 @@
+PieAPP: Perceptual Image-Error Assessment through Pairwise Preference
+Ekta Prashnani∗
+Hong Cai∗
+Yasamin Mostofi
+University of California, Santa Barbara
+
+Pradeep Sen
+
+{ekta,hcai,ymostofi,psen}@ece.ucsb.edu
+
+Abstract
+The ability to estimate the perceptual error between images is an important problem in computer vision with many
+applications. Although it has been studied extensively, however, no method currently exists that can robustly predict
+visual differences like humans. Some previous approaches
+used hand-coded models, but they fail to model the complexity of the human visual system. Others used machine learning to train models on human-labeled datasets, but creating
+large, high-quality datasets is difficult because people are
+unable to assign consistent error labels to distorted images.
+In this paper, we present a new learning-based method that
+is the first to predict perceptual image error like human observers. Since it is much easier for people to compare two
+given images and identify the one more similar to a reference than to assign quality scores to each, we propose a
+new, large-scale dataset labeled with the probability that
+humans will prefer one image over another. We then train
+a deep-learning model using a novel, pairwise-learning
+framework to predict the preference of one distorted image over the other. Our key observation is that our trained
+network can then be used separately with only one distorted
+image and a reference to predict its perceptual error, without ever being trained on explicit human perceptual-error
+labels. The perceptual error estimated by our new metric,
+PieAPP, is well-correlated with human opinion. Furthermore, it significantly outperforms existing algorithms, beating the state-of-the-art by almost 3× on our test set in terms
+of binary error rate, while also generalizing to new kinds of
+distortions, unlike previous learning-based methods.
+
+1 Introduction
+One of the major goals of computer vision is to enable computers to “see” like humans. To this end, a key problem is
+the automatic computation of the perceptual error (or “distance”) of a distorted image with respect to a corresponding
+reference in a way that is consistent with human observers.
+A successful solution to this problem would have many
+applications, including image compression/coding, restoration, and adaptive reconstruction.
+∗ Joint first authors.
+
+This project was supported in part by NSF grants IIS-1321168 and
+IIS-1619376, as well as a Fall 2017 AI Grant (awarded to Ekta Prashnani).
+
+Because of its importance, this problem, also known
+as full-reference image-quality assessment (FR-IQA) [58],
+has received significant research attention in the past few
+decades [5, 11, 23, 29, 30, 32]. The naı̈ve approaches do this
+by simply computing mathematical distances between the
+images based on norms such as L2 or L1 , but these are
+well-known to be perceptually inaccurate [52]. Others have
+proposed metrics that try to exploit known aspects of the human visual system (HVS) such as contrast sensitivity [22],
+high-level structural acuity [52], and masking [48, 51], or
+use other statistics/features [3,4,14,15,38,44–46,53,54,57].
+However, such hand-coded models are fundamentally limited by the difficulty of accurately modeling the complexity
+of the HVS and therefore do not work well in practice.
+To address these limitations, some have proposed IQA
+methods based on machine learning to learn more sophisticated models [19]. Although many learning-based methods
+use hand-crafted image features [8, 10, 18, 20, 21, 31, 33, 35,
+40], recent methods (including ours) apply deep-learning
+to FR-IQA to learn features automatically [7, 17, 25]. However, the accuracy of all existing learning-based methods
+depends on the size and quality of the datasets they are
+trained on, and existing IQA datasets are small and noisy.
+For instance, many datasets [16, 26, 27, 34, 47, 49, 55] are
+labeled using a mean opinion score (MOS) where each user
+gives the distorted image a subjective quality rating (e.g.,
+0 = “bad”, 10 = “excellent”). These individual scores are
+then averaged in an attempt to reduce noise. Unfortunately,
+creating a good IQA dataset in this fashion is difficult because humans cannot assign quality or error labels to a distorted image consistently, even when comparing to a reference (e.g., try rating the images in Fig.1 from 0 to 10!).
+Other datasets (e.g., TID2008 [43] and TID2013 [42])
+leverage the fact that it is much easier for people to select
+which image from a distorted pair is closer to the reference
+than to assign them quality scores. To translate user preferences into quality scores, they then take a set of distorted
+images and use a Swiss tournament [1] to assign scores to
+each. However, this approach has the fundamental problem
+that the same distorted image could have varying scores in
+different sets (see supplementary for examples in TID2008
+and TID2013). Moreover, the number of images and distortion types in all of these datasets is very limited. The
+
+1808
+
+

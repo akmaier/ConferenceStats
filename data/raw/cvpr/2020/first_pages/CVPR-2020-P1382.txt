@@ -1,0 +1,80 @@
+Sideways: Depth-Parallel Training of Video Models
+Mateusz Malinowski
+
+Grzegorz Świrszcz
+
+João Carreira
+
+Viorica Pătrăucean
+
+mateuszm@google.com
+
+swirszcz@google.com
+
+joaoluis@google.com
+
+viorica@google.com
+
+DeepMind
+London, U.K.
+
+Abstract
+We propose Sideways, an approximate backpropagation
+scheme for training video models. In standard backpropagation, the gradients and activations at every computation
+step through the model are temporally synchronized. The
+forward activations need to be stored until the backward
+pass is executed, preventing inter-layer (depth) parallelization. However, can we leverage smooth, redundant input
+streams such as videos to develop a more efficient training
+scheme? Here, we explore an alternative to backpropagation; we overwrite network activations whenever new ones,
+i.e., from new frames, become available. Such a more gradual accumulation of information from both passes breaks
+the precise correspondence between gradients and activations, leading to theoretically more noisy weight updates.
+Counter-intuitively, we show that Sideways training of deep
+convolutional video networks not only still converges, but
+can also potentially exhibit better generalization compared
+to standard synchronized backpropagation.
+
+1. Introduction
+The key ingredient of deep learning is stochastic gradient descent (SGD) [7, 42, 53], which has many variants,
+including SGD with Momentum [47], Adam [26], and Adagrad [14]. E.g., SGD approximates gradients using minibatches sampled from full datasets. Efficiency considerations primarily motivated the development of SGD as many
+datasets do not fit in memory. Moreover, computing full
+gradients over them would take a long time, compared to
+mini-batches, i.e., performing SGD steps is often more preferred [7, 16, 53]. However, SGD is not only more efficient
+but also produces better models. E.g, giant-sized models
+trained using SGD are naturally regularized and may generalize better [18, 43], and local minima do not seem to be a
+problem [11]. Explaining these phenomena is still an open
+theoretical problem, but it is clear that SGD is doing more
+than merely optimizing a given loss function [52].
+
+t+30
+
+t+15
+
+t
+
+Figure 1: Three frames of a fish swimming, sampled 15
+frames apart, or about every half a second. Note how little
+variation there is in the patch within the red square. Can
+we leverage such redundancies and the smoothness in local neighborhoods of such type of data for more efficient
+training? Our results suggest we can and there could be
+generalization benefits in doing that.
+
+In this paper, we propose a further departure from the
+gradient descent, also motivated by efficiency considerations, which trains models that operate on sequences of
+video frames. Gradients of neural networks are computed
+using the backpropagation (BP) algorithm. However, BP
+operates in a synchronized blocking fashion: first, activations for a mini-batch are computed and stored during the
+forward pass, and next, these activations are re-used to compute Jacobian matrices in the backward pass. Such blocking
+means that the two passes must be done sequentially, which
+leads to high latency, low throughput. This is particularly
+sub-optimal if there are parallel processing resources available, and is particularly prominent if we cannot parallelize
+across batch or temporal dimensions, e.g., in online learning
+or with causal models.
+The central hypothesis studied in this paper is whether
+we can backpropagate gradients based on activations from
+different timesteps, hence removing the locking between
+the layers. Intuitively, one reason this may work is that high
+frame rate videos are temporally smooth, leading to similar
+
+11834
+
+

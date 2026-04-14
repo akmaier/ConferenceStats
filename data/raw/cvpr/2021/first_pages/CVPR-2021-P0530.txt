@@ -1,0 +1,78 @@
+DyStaB: Unsupervised Object Segmentation via Dynamic-Static Bootstrapping∗
+Yanchao Yang†
+Stanford University
+
+Brian Lai†
+UCLA Vision Lab
+
+Stefano Soatto
+UCLA Vision Lab
+
+yanchaoy@cs.stanford.edu
+
+b4lai@g.ucla.edu
+
+soatto@ucla.edu
+
+Abstract
+We describe an unsupervised method to detect and segment portions of images of live scenes that, at some point in
+time, are seen moving as a coherent whole, which we refer
+to as objects. Our method first partitions the motion field by
+minimizing the mutual information between segments. Then,
+it uses the segments to learn object models that can be used
+for detection in a static image. Static and dynamic models
+are represented by deep neural networks trained jointly in a
+bootstrapping strategy, which enables extrapolation to previously unseen objects. While the training process requires
+motion, the resulting object segmentation network can be
+used on either static images or videos at inference time. As
+the volume of seen videos grows, more and more objects
+are seen moving, priming their detection, which then serves
+as a regularizer for new objects, turning our method into
+unsupervised continual learning to segment objects. Our
+models are compared to the state of the art in both video
+object segmentation and salient object detection. In the six
+benchmark datasets tested, our models compare favorably
+even to those using pixel-level supervision, despite requiring
+no manual annotation.
+
+1. Introduction
+The ability to segment the visual field into coherently
+moving regions is among the traits most broadly shared
+among visual animals [2, 17, 18]. Even camouflaged, moving objects are easy to spot (Fig. 1). During early development, humans spend considerable amounts of time interacting with a single moving object before losing interest [4],
+which may help prime object models and learn invariances
+[59]. In contrast, the mature visual system can learn an object with a few static examples; objects do not need to move
+in order to be detected. This suggests using motion as a cue
+to bootstrap object models that can be used for detection
+in static images, with no need for explicit supervision. Ob∗ Also ArXiv:2008.07012, August 16, 2020
+† Equal contributions. Our implementation and trained models are available at: https://github.com/blai88/unsupervised_segmentation
+
+Figure 1. Dynamic-static bootstrapping. (a) A lizard is hard to
+detect when still thanks to camouflage (top left). However, it is
+easy to see once it moves (bottom left; optical flow visualized using
+the inset color wheel). Once learned the lizard, a never-before-seen
+sloth (b) can be easily detected in a static image, exploiting the
+static model learned from the moving lizard.
+
+jects that have never been seen moving are considered part
+of whatever background they are part of, at least until they
+move. As time goes by, more and more objects are seen
+moving, thus improving one’s ability to detect and segment
+objects in static images (Tab. 6). The more objects are bootstrapped in a bottom-up fashion, the easier they are to detect
+top-down, priming better motion discrimination, which in
+turn results in more accurate object detection. This synergistic loop gradually improves both the diversity of objects that
+can be detected and the accuracy of the detection.
+We present a method to learn object segmentation using
+unlabeled videos, that at test time can be used for both moving objects in videos and static objects in single images. The
+method uses a motion segmentation module that performs
+temporally consistent region separation. The resulting motion segmentation primes a detector that operates on static
+images, and feeds back to the motion segmentation module,
+reinforcing it. We call this method Dynamic-Static Bootstrapping, or DyStaB. During training, the dynamic model
+minimizes the mutual information between partitions of the
+motion field, while enforcing temporal consistency, which
+yields a state-of-the-art unsupervised motion segmentation
+method. Putative regions, along with their uncertainty approximated during the computation of mutual information
+in the dynamic model, are used to train a static model. The
+
+2826
+
+

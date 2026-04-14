@@ -1,0 +1,71 @@
+Stochastic Downsampling for Cost-Adjustable Inference and
+Improved Regularization in Convolutional Networks
+Jason Kuen1 , Xiangfei Kong1 , Zhe Lin2 , Gang Wang3 , Jianxiong Yin4 , Simon See4 , Yap-Peng Tan1
+1
+2
+3
+4
+Nanyang Technological University
+Adobe Research
+Alibaba AI Labs
+NVIDIA
+{jkuen001,xfkong,eyptan}@ntu.edu.sg, zlin@adobe.com,
+gangwang6@gmail.com, {jianxiongy,ssee}@nvidia.com
+
+Abstract
+It is desirable to train convolutional networks (CNNs) to
+run more efficiently during inference. In many cases however, the computational budget that the system has for inference cannot be known beforehand during training, or
+the inference budget is dependent on the changing real-time
+resource availability. Thus, it is inadequate to train just
+inference-efficient CNNs, whose inference costs are not adjustable and cannot adapt to varied inference budgets. We
+propose a novel approach for cost-adjustable inference in
+CNNs - Stochastic Downsampling Point (SDPoint). During
+training, SDPoint applies feature map downsampling to a
+random point in the layer hierarchy, with a random downsampling ratio. The different stochastic downsampling configurations known as SDPoint instances (of the same model)
+have computational costs different from each other, while
+being trained to minimize the same prediction loss. Sharing network parameters across different instances provides
+significant regularization boost. During inference, one may
+handpick a SDPoint instance that best fits the inference budget. The effectiveness of SDPoint, as both a cost-adjustable
+inference approach and a regularizer, is validated through
+extensive experiments on image classification.
+
+1. Introduction
+Convolutional networks (CNNs) [7] have greatly accelerated the progress of many computer vision areas and applications in recent years. Despite their powerful visual representational capabilities, CNNs are bottlenecked by their
+immense computational demands. Recent CNN architectures such as Residual Networks (ResNets) [10, 11] and
+Inception [36] require billions of floating-point operations
+(FLOPs) to perform inference on just one single input image. Furthermore, as the amount of visual data grows, we
+need increasingly higher-capacity (thus higher complexity)
+CNNs which have shown to better utilize these large visual
+data compared to their lower-capacity counterparts [35].
+There have been works which tackle the efficiency issues of deep CNNs, mainly by lowering numerical precisions (quantization) [16, 29, 43], pruning network weights
+
+[8, 23, 41, 12, 25], or adopting separable convolutions [18,
+3, 40]. These methods result in more efficient models which
+have fixed inference costs (measured in floating-point operations or FLOPs). Models with fixed inference costs cannot
+work effectively in certain resource-constrained vision systems, where the computational budget that can be allocated
+to CNN inference depends on the real-time resource availability. When the system is lower in resources, it is preferable to allocate a lower budget for more efficient or cheaper
+inference, and vice versa. Moreover, in some cases, the exact inference budget cannot be known beforehand during
+training time.
+As a simple solution to such a concern, one could train
+several CNN models such that each has a different inference
+cost, and then select the one that matches the given budget at
+inference time. However, it is extremely time-consuming to
+train many models, not to mention the computational storage required to store the weights of many models. In this
+work, we focus on CNNs whose computational costs are
+dynamically adjustable at inference time. A CNN with costadjustable inference only has to be trained once, and it allows users to control the trade-off of inference cost against
+network accuracy/performance. The different inference instances (each with different inference cost) are all derived
+from the same model parameters.
+For cost-adjustable inference in CNNs, we propose a
+novel training method - Stochastic Downsampling Point
+(SDPoint). A SDPoint instance is a network configuration
+consisting of a unique downsampling point (layer index) in
+the network layer hierarchy as well as a unique downsampling ratio. As illustrated in Fig. 1, at every training iteration, a SDPoint instance is randomly selected (from a list of
+instances), and downsampling happens based on the downsampling point and ratio of that instance. The earlier the
+downsampling happens, the lower the total computational
+costs will be, given that spatially smaller feature maps are
+cheaper to process.
+During inference, a SDPoint instance can be deterministically handpicked (among the SDPoint instances seen during training) to match the given inference budget. Existing
+approaches [22, 38, 20] to achieve cost-adjustable inference
+17929
+
+

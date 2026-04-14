@@ -4,6 +4,17 @@ This repository is organized around a three-step workflow for building conferenc
 
 The goal is to collect structured metadata for every conference and year, normalize it into a consistent CSV format, and then compute overview statistics such as the percentage of papers with at least one author from a specific country.
 
+## Context
+
+This repository is motivated in part by the Medium article [A decade of change: China’s rise in AI research and the global talent flow](https://medium.com/data-science-collective/a-decade-of-change-chinas-rise-in-ai-research-and-the-global-talent-flow-d9c49ebd4d37).
+
+That post used estimated conference shares from a visual summary rather than a full paper-by-paper metadata collection pipeline. The goal here is to replace those estimates with reproducible conference/year datasets and downstream statistics.
+
+For context, this repository treats `ICCV` and `ECCV` as one conference family for analysis, even though the source data is stored under the actual venue name for each year:
+
+- odd years: `ICCV`
+- even years: `ECCV`
+
 ## Workflow Overview
 
 ### Step 1: Collect conference/year data
@@ -64,6 +75,52 @@ To run the optional local-LLM country pass yourself for one dataset:
 
 ```bash
 make llm-country CONFERENCE_SLUG=cvpr YEAR=2016
+```
+
+To fetch CVPR proceedings metadata plus PDF first pages for one year:
+
+```bash
+make cvpr-first-pages YEAR=2018
+```
+
+To fetch them for the full `2018` through `2025` range:
+
+```bash
+make cvpr-first-pages-range CVPR_START_YEAR=2018 CVPR_END_YEAR=2025
+```
+
+To test just the first 100 papers for each `CVPR` year from `2018` through `2025`:
+
+```bash
+make cvpr-first-pages-range-sample
+```
+
+This uses zero-based indexing internally, so `FIRST_PAGE_START=0` and `FIRST_PAGE_LIMIT=100` means papers `1` through `100`.
+
+To check the per-year first-page extraction status afterward:
+
+```bash
+make cvpr-first-pages-status-range CVPR_START_YEAR=2021 CVPR_END_YEAR=2025
+```
+
+After first-page extraction finishes for a year, prepare the deterministic intermediate files that the local-LLM pass will build on:
+
+```bash
+make cvpr-prepare-llm YEAR=2018
+```
+
+Then run the local-LLM country fill manually:
+
+```bash
+make llm-country CONFERENCE_SLUG=cvpr YEAR=2018
+```
+
+For the `ICCV/ECCV` family, the year resolves automatically to the right source venue:
+
+```bash
+make iccv-eccv-show-target YEAR=2024
+make iccv-eccv-prepare-llm YEAR=2024
+make iccv-eccv-llm-country YEAR=2024
 ```
 
 ## Repository Layout
@@ -183,6 +240,13 @@ python3 scripts/extract_pdf_first_pages.py \
   --manifest data/raw/cvpr/2015/first_page_manifest.csv \
   --start 0 \
   --limit 100
+```
+
+The equivalent `make` shortcuts for CVPR are:
+
+```bash
+make cvpr-first-pages YEAR=2018
+make cvpr-first-pages-range CVPR_START_YEAR=2018 CVPR_END_YEAR=2025
 ```
 
 Then run the enrichment passes. The recommended one-command wrapper is:

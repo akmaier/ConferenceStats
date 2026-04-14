@@ -1,0 +1,90 @@
+Semantic Segmentation with Generative Models:
+Semi-Supervised Learning and Strong Out-of-Domain Generalization
+Daiqing Li1 *
+1
+
+NVIDIA
+
+Junlin Yang1,3
+2
+
+Karsten Kreis1
+
+University of Toronto
+
+3
+
+Yale University
+Training
+
+Abstract
+Training deep networks with limited labeled data while
+achieving a strong generalization ability is key in the quest
+to reduce human annotation efforts. This is the goal of
+semi-supervised learning, which exploits more widely available unlabeled data to complement small labeled data sets.
+In this paper, we propose a novel framework for discriminative pixel-level tasks using a generative model of both
+images and labels. Concretely, we learn a generative adversarial network that captures the joint image-label distribution and is trained efficiently using a large set of unlabeled images supplemented with only few labeled ones.
+We build our architecture on top of StyleGAN2 [45], augmented with a label synthesis branch. Image labeling at
+test time is achieved by first embedding the target image
+into the joint latent space via an encoder network and testtime optimization, and then generating the label from the inferred embedding. We evaluate our approach in two important domains: medical image segmentation and part-based
+face segmentation. We demonstrate strong in-domain performance compared to several baselines, and are the first
+to showcase extreme out-of-domain generalization, such as
+transferring from CT to MRI in medical imaging, and photographs of real faces to paintings, sculptures, and even
+cartoons and animal faces. Project Page: https://nvtlabs.github.io/semanticGAN/
+
+1. Introduction
+Deep learning is now powering the majority of computer vision applications ranging from autonomous driving [93, 73] and medical imaging [78, 38] to image editing [69, 15, 98, 88, 70, 74]. However, deep networks are
+extremely data hungry, typically requiring training on largescale datasets to achieve high accuracy. Even when large
+datasets are available, generalizing the network’s performance to out-of-distribution data, for example, on images
+captured by a different sensor, presents challenges, since
+deep networks tend to overfit to artificial statistics in the
+* Correspondence to {daiqingl,sfidler}@nvidia.com
+
+Antonio Torralba4
+4
+
+MIT
+
+5
+
+Sanja Fidler1,2,5
+
+Vector Institute
+Out-of-Domain Test Images
+
+CT
+xray
+
+MRI
+
+Figure 1: Out-of-domain Generalization. Our model trained on real
+faces generalizes to paintings, sculptures, cartoons and even outputs plausible segmentations for animal faces. When trained on chest x-rays, it generalizes to multiple hospitals, and even hallucinates lungs under clothed
+people. Our model also generalizes well from CT to MRI medical scans.
+
+training data. Labeling large datasets, particularly for dense
+pixel-level tasks such as semantic segmentation, is already
+very time consuming. Re-doing the annotation effort each
+time the sensor changes is especially undesirable. This is
+particularly true in the medical domain, where pixel-level
+annotations are expensive to obtain (require highly-skilled
+experts), and where imaging sensors vary across sites. In
+this paper, we aim to significantly reduce the number of
+training data required for attaining successful performance,
+while achieving strong out-of-domain generalization.
+Semi-supervised learning (SSL) facilitates learning with
+small labeled data sets by augmenting the training set with
+large amounts of unlabeled data. The literature on SSL is
+vast and some classical SSL techniques include pseudolabeling [50, 2, 8, 83], consistency regularization [80, 49,
+87, 23, 83], and various data augmentation techniques [7,
+6, 91] (also see Sec. 2). State-of-the-art SSL performance
+is currently achieved by contrastive learning, which aims to
+train powerful image feature extractors using unsupervised
+contrastive losses on image transformations [13, 29, 61, 32].
+Once the feature extractors are trained, a smaller amount of
+labels is needed, since the features already implicitly encode semantic information. While SSL approaches have
+been more widely explored for classification, recent methods also tackle pixel-wise tasks [37, 62, 40, 47, 22, 68].
+Although SSL techniques allow to train models with little labeled data, they usually do not explicitly model the dis-
+
+8300
+
+

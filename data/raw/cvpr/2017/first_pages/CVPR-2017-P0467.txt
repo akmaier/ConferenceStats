@@ -1,0 +1,77 @@
+On-the-Fly Adaptation of Regression Forests for Online Camera Relocalisation
+Tommaso Cavallari1
+Julien Valentin3
+1
+
+Stuart Golodetz2∗
+Luigi Di Stefano1
+
+Nicholas A. Lord2∗
+Philip H. S. Torr2
+
+Department of Computer Science and Engineering, University of Bologna
+2
+Department of Engineering Science, University of Oxford
+3
+perceptiveio , Inc.
+1
+
+{tommaso.cavallari,luigi.distefano}@unibo.it
+2
+{smg,nicklord,phst}@robots.ox.ac.uk
+3
+julien@perceptiveio.com
+
+Abstract
+Camera relocalisation is an important problem in computer vision, with applications in simultaneous localisation and mapping, virtual/augmented reality and navigation. Common techniques either match the current image
+against keyframes with known poses coming from a tracker,
+or establish 2D-to-3D correspondences between keypoints
+in the current image and points in the scene in order to estimate the camera pose. Recently, regression forests have
+become a popular alternative to establish such correspondences. They achieve accurate results, but must be trained
+offline on the target scene, preventing relocalisation in new
+environments. In this paper, we show how to circumvent this
+limitation by adapting a pre-trained forest to a new scene
+on the fly. Our adapted forests achieve relocalisation performance that is on par with that of offline forests, and our
+approach runs in under 150ms, making it desirable for realtime systems that require online relocalisation.
+
+1. Introduction
+Camera pose estimation is an important problem in computer vision, with applications in simultaneous localisation
+and mapping (SLAM) [29, 28, 19], virtual and augmented
+reality [1, 4, 14, 30, 31, 38] and navigation [21]. In SLAM,
+the camera pose is commonly initialised upon starting reconstruction and then tracked from one frame to the next,
+but tracking can easily be lost due to e.g. rapid movement or
+textureless regions in the scene; when this happens, it is important to be able to relocalise the camera with respect to the
+scene, rather than forcing the user to start the reconstruction
+again from scratch. Camera relocalisation is also crucial for
+loop closure when trying to build globally consistent maps
+∗ S. Golodetz and N. Lord assert joint second authorship.
+
+[7, 18, 40]. Traditional approaches to camera relocalisation
+have been based around one of two main paradigms:
+(i) Image matching methods match the current image from the camera against keyframes stored in an image database (potentially with some interpolation between
+keyframes where necessary). For example, Galvez-Lopez et
+al. [10] describe an approach that computes a bag of binary
+words based on BRIEF descriptors for the current image
+and compares it with bags of binary words for keyframes
+in the database using an L1 score. Gee et al. [12] estimate
+camera pose from a set of synthetic (i.e. rendered) views
+of the scene. Their approach is interesting because unlike
+many image matching methods, they are to some extent able
+to relocalise from novel poses; however, the complexity increases linearly with the number of synthetic views needed,
+which poses significant limits to practical use. Glocker et al.
+[13] encode frames using Randomised Ferns, which when
+evaluated on images yield binary codes that can be matched
+quickly by their Hamming distance: as noted in [23], this
+makes their approach much faster than [12] in practice.
+(ii) Keypoint-based methods find 2D-to-3D correspondences between keypoints in the current image and 3D
+scene points, so as to deploy e.g. a Perspective-n-Point
+(PnP) algorithm [16] (on RGB data) or the Kabsch algorithm [17] (on RGB-D data) to generate a number of camera pose hypotheses that can be pruned to a single hypothesis using RANSAC [8]. For example, Williams et al.
+[41] recognise/match keypoints using an ensemble of randomised lists, and exclude unreliable or ambiguous matches
+when generating hypotheses. Their approach is fast, but
+needs significant memory to store the lists. Li et al. [23]
+use graph matching to help distinguish between visuallysimilar keypoints. Their method uses BRISK descriptors
+for the keypoints, and runs at around 12 FPS. Sattler et al.
+[32] describe a large-scale localisation approach that finds
+14457
+
+

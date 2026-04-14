@@ -1,0 +1,85 @@
+Temporally Distributed Networks for Fast Video Semantic Segmentation
+Ping Hu1 , Fabian Caba Heilbron2 , Oliver Wang2 , Zhe Lin2 , Stan Sclaroff1 , Federico Perazzi2
+1
+Boston University 2 Adobe Research
+
+Abstract
+We present TDNet, a temporally distributed network
+designed for fast and accurate video semantic segmentation. We observe that features extracted from a certain
+high-level layer of a deep CNN can be approximated by
+composing features extracted from several shallower subnetworks. Leveraging the inherent temporal continuity in
+videos, we distribute these sub-networks over sequential
+frames. Therefore, at each time step, we only need to perform a lightweight computation to extract a sub-features
+group from a single sub-network. The full features used for
+segmentation are then recomposed by the application of a
+novel attention propagation module that compensates for
+geometry deformation between frames. A grouped knowledge distillation loss is also introduced to further improve
+the representation power at both full and sub-feature levels. Experiments on Cityscapes, CamVid, and NYUD-v2
+demonstrate that our method achieves state-of-the-art accuracy with significantly faster speed and lower latency.
+
+1. Introduction
+Video semantic segmentation aims to assign pixel-wise
+semantic labels to video frames. As an important task for
+visual understanding, it has attracted more and more attention from the research community [19, 27, 34, 39]. The recent successes in dense labeling tasks [4, 20, 25, 28, 50, 54,
+56, 59] have revealed that strong feature representations are
+critical for accurate segmentation results. However, computing strong features typically require deep networks with
+high computation cost, thus making it challenging for realworld applications like self-driving cars, robot sensing, and
+augmented-reality, which require both high accuracy and
+low latency.
+The most straightforward strategy for video semantic
+segmentation is to apply a deep image segmentation model
+to each frame independently, but this strategy does not
+leverage temporal information provided in the video dynamic scenes. One solution, is to apply the same model to
+all frames and add additional layers on top to model temporal context to extract better features [10, 19, 23, 34]. How-
+
+NetWarp
+
+TD2 -PSP50
+
+PSPNet101
+
+TD4 -PSP18
+
+TD2 -Bise34
+
+BiseNet101
+
+LVS-LL2
+
+TD4 -Bise18
+LadderNet
+GUNet
+ICNet
+
+PEARL
+ACCEL
+
+GRFP(5)
+DFF
+ClockNet
+
+(ms/f)
+
+Figure 1. Performance on Cityscapes. Our proposed TDNet variants (denoted as and ) linked to their corresponding deep image
+segmentation backbones (denoted as ) with similar number of
+parameters. Compared with video semantic segmentation methods NetWarp [10], PEARL [19], ACCEL [18], LVS-LLS [27],
+GRFP [34], ClockNet [39], DFF [58], and real-time segmentation
+models LadderNet [21], GUNet [32], and ICNet [55], our TDNet
+achieves a better balance of accuracy and speed.
+
+ever, such methods do not help improve efficiency as all
+features must be recomputed at each frame. To reduce redundant computation, a reasonable approach is to apply a
+strong image segmentation model only at keyframes, and
+reuse the high-level feature for other frames [18, 27, 31, 58].
+However, the spatial misalignment of other frames with respect to the keyframes is challenging to compensate for and
+often leads to decreased accuracy comparing to the baseline
+image segmentation models as reported in [18, 27, 31, 58].
+Additionally, these methods have different computational
+loads between keyframes and non-keyframes, which results
+in high maximum latency and unbalanced occupation of
+computation resources that may decrease system efficiency.
+To address these challenges, we propose a novel deep
+learning model for high-accuracy and low-latency semantic video segmentation named Temporally Distributed Network (TDNet). Our model is inspired by Group Convolution [17, 22], which shows that extracting features with separated filter groups not only allows for model parallelization, but also helps learn better representations. Given a
+18818
+
+

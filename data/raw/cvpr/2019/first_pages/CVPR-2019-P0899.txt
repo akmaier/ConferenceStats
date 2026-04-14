@@ -1,0 +1,103 @@
+Accel: A Corrective Fusion Network for
+Efficient Semantic Segmentation on Video
+Samvit Jain
+
+Xin Wang
+
+Joseph E. Gonzalez
+
+University of California, Berkeley
+{samvit,xinw,jegonzal}@eecs.berkeley.edu
+
+Abstract
+We present Accel, a novel semantic video segmentation
+system that achieves high accuracy at low inference cost
+by combining the predictions of two network branches: (1)
+a reference branch that extracts high-detail features on a
+reference keyframe, and warps these features forward using frame-to-frame optical flow estimates, and (2) an update branch that computes features of adjustable quality on
+the current frame, performing a temporal update at each
+video frame. The modularity of the update branch, where
+feature subnetworks of varying layer depth can be inserted
+(e.g., ResNet-18 to ResNet-101), enables operation over
+a new, state-of-the-art accuracy-throughput trade-off spectrum. Over this curve, Accel models achieve both higher
+accuracy and faster inference times than the closest comparable single-frame segmentation networks. In general,
+Accel significantly outperforms previous work on efficient
+semantic video segmentation, correcting warping-related
+error that compounds on datasets with complex dynamics.
+Accel is end-to-end trainable and highly modular: the reference network, the optical flow network, and the update
+network can each be selected independently, depending on
+application requirements, and then jointly fine-tuned. The
+result is a robust, general system for fast, high-accuracy semantic segmentation on video.
+
+1. Introduction
+Semantic segmentation is an intensive computer vision
+task that involves generating class predictions for each pixel
+in an image, where classes range from foreground objects
+such as “person” and “vehicle” to background entities such
+as “building” and “sky”. When applied to frames in high
+resolution video, this task becomes yet more expensive,
+as the high spatial dimensionality of the output is further
+scaled by the video’s temporal frame rate (e.g., 30 frames
+per second). By treating video as a collection of uncorrelated still images, contemporary approaches to seman-
+
+Ik
+
+Ii
+
+...
+
+keyframe
+
+current frame
+
+NUfeat
+
+...
+
+NRfeat
+
+W
+
+...
+
+update
+branch
+
+W
+
+reference branch
+
+NRtask
+
+NUtask
+
+score
+fusion
+
+segmentation
+
+Si
+
+Figure 1. Accel is a fast, high-accuracy, end-to-end trainable video
+recognition system that combines two network branches: 1) a reference branch that computes a score map on high-detail features
+warped from the last visited keyframe, and 2) a cheap update
+branch that corrects this prediction based on features of adjustable
+quality (e.g., ResNet-18 to -101) computed on the current frame.
+
+tic video segmentation incur this full computational cost,
+achieving inference throughput of less than 1.5 frames per
+second (fps) on a 30 fps video feed [5, 8, 42]. Moreover, by
+ignoring temporal context, frame-by-frame approaches fail
+to realize the potential for improved accuracy offered by the
+availability of preceding frames in a scene.
+Prior work has proposed feature reuse and feature warping as means to reduce computation on video. In particular,
+exploiting the observation that higher-level representations
+evolve more slowly than raw pixels in a video [32], these
+approaches relegate feature extraction, the most expensive
+component of most video recognition architectures [45],
+to select keyframes, and project these features forward via
+naı̈ve copying or warping based on optical flow. While feature warping does enable some speedup [45], its efficacy is
+
+8866
+
+

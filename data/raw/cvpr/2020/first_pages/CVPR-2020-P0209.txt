@@ -1,0 +1,104 @@
+APQ: Joint Search for Network Architecture, Pruning and Quantization Policy
+Tianzhe Wang1,2
+
+Kuan Wang1 Han Cai1 Ji Lin1 Zhijian Liu1 Hanrui Wang1 Yujun Lin1
+1
+2
+Massachusetts Institute of Technology
+Shanghai Jiao Tong University
+
+Song Han1
+
+Single Path One-Shot 6.81
+
+Abstract
+We present APQ, a novel design methodology for efficient deep learning deployment. Unlike previous methods
+that separately optimize the neural network architecture,
+pruning policy, and quantization policy, we design to optimize them in a joint manner. To deal with the larger
+design space it brings, we devise to train a quantizationaware accuracy predictor that is fed to the evolutionary
+search to select the best fit. Since directly training such a
+predictor requires time-consuming quantization data collection, we propose to use predictor-transfer technique to
+get the quantization-aware predictor: we first generate
+a large dataset of hNN architecture, ImageNet accuracyi
+pairs by sampling a pretrained unified once-for-all network
+and doing direct evaluation; then we use these data to
+train an accuracy predictor without quantization, followed
+by transferring its weights to train the quantization-aware
+predictor, which largely reduces the quantization data collection time. Extensive experiments on ImageNet show
+the benefits of this joint design methodology: the model
+searched by our method maintains the same level accuracy as ResNet34 8-bit model while saving 8× BitOps; we
+achieve 2×/1.3× latency/energy saving compared to MobileNetV2+HAQ [30, 36] while obtaining the same level
+accuracy; the marginal search cost of joint optimization for
+a new deployment scenario outperforms separate optimizations using ProxylessNAS+AMC+HAQ [5, 12, 36] by 2.3%
+accuracy while reducing orders of magnitude GPU hours
+and CO2 emission with respect to the training cost.
+
+1. Introduction
+Deep learning has prevailed in many real-world applications like autonomous driving, robotics, and mobile
+VR/AR, while efficiency is the key to bridge research and
+deployment. Given a constrained resource budget on the
+target hardware (e.g., latency, model size, and energy consumption), it requires an elaborated design of network architecture to achieve the optimal performance within the
+constraint. Traditionally, the deployment of efficient deep
+learning can be split into model architecture design and
+model compression (pruning and quantization). Some existing works [10, 9] have shown that such a sequential pipeline
+can significantly reduce the cost of existing models. Never-
+
+11.34
+
+DNAS
+
+27.23
+
+MobileNetV2 + HAQ
+
+85.08
+
+ProxylessNAS + AMC + HAQ
+
+11,344
+
+MnasNet
+
+81,029x
+
+APQ (Ours) 0.14
+0
+
+100
+
+1,000
+
+10,000
+
+Figure 1. The illustration of marginal search cost for a upcoming
+scenario measured in pounds of CO2 emission. Simply extending existing methods could still cost a considerable CO2 emission
+which is not environmental-friendly.
+
+theless, careful hyper-parameter tuning is required to obtain
+optimal performance [12]. The number of hyper-parameters
+grows exponentially when we consider the three stages in
+the pipeline together, which will soon exceed acceptable
+human labor bandwidth. To tackle the problem, recent
+works have applied AutoML techniques to automate the
+process. Researchers proposed Neural Architecture Search
+(NAS) [44, 45, 18, 19, 2, 4] to automate the model design,
+outperforming the human-designed models by a large margin. Based on a similar technique, researchers adopt reinforcement learning to compress the model by automated
+pruning [12] and automated quantization [36]. However,
+optimizing these three factors in separate stages will lead
+to sub-optimal results: e.g., the best network architecture
+for the full-precision model is not necessarily the optimal
+one after pruning and quantization. Besides, this three-step
+strategy also requires considerable search time and energy
+consumption [32]. Therefore, we need a solution to jointly
+optimize the deep learning model for a certain hardware
+platform.
+However, directly extending existing AutoML techniques to joint model optimization setting can be problematic. Firstly, the joint search space is cubic compared to
+stage-wise search, making the search difficult. Introducing
+pruning and quantization into the pipeline will also greatly
+increase the total search time, as both of them require timeconsuming post-processing (e.g., fine-tuning) to get accuracy approximation [36, 39]. As shown in Fig. 1, searching for each deployment would lead to a considerable CO2
+emission, which can exacerbate the greenhouse effect and
+deteriorate the environment seriously. Moreover, the search
+space of each step in pipeline could be entangled, and each
+12078
+
+

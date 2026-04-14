@@ -1,0 +1,85 @@
+PVNet: Pixel-wise Voting Network for 6DoF Pose Estimation
+Sida Peng1∗
+
+Yuan Liu1∗
+Qixing Huang2
+Xiaowei Zhou1†
+Hujun Bao1†
+1
+2
+Zhejiang University
+University of Texas at Austin
+
+Abstract
+This paper addresses the challenge of 6DoF pose estimation from a single RGB image under severe occlusion or
+truncation. Many recent works have shown that a two-stage
+approach, which first detects keypoints and then solves
+a Perspective-n-Point (PnP) problem for pose estimation,
+achieves remarkable performance. However, most of these
+methods only localize a set of sparse keypoints by regressing
+their image coordinates or heatmaps, which are sensitive to
+occlusion and truncation. Instead, we introduce a Pixelwise Voting Network (PVNet) to regress pixel-wise vectors
+pointing to the keypoints and use these vectors to vote for
+keypoint locations. This creates a flexible representation for
+localizing occluded or truncated keypoints. Another important feature of this representation is that it provides uncertainties of keypoint locations that can be further leveraged
+by the PnP solver. Experiments show that the proposed approach outperforms the state of the art on the LINEMOD,
+Occlusion LINEMOD and YCB-Video datasets by a large
+margin, while being efficient for real-time pose estimation.
+We further create a Truncation LINEMOD dataset to validate the robustness of our approach against truncation. The
+code is available at https://zju3dv.github.io/pvnet/.
+
+1. Introduction
+Object pose estimation aims to detect objects and estimate their orientations and translations relative to a canonical frame [39]. Accurate pose estimation is essential for
+a variety of applications such as augmented reality, autonomous driving and robotic manipulation. For instance,
+fast and robust pose estimation is crucial in Amazon Picking Challenge [6], where a robot needs to pick objects from
+a warehouse shelf. This paper focuses on the specific setting
+of recovering the 6DoF pose of an object, i.e., rotation and
+translation in 3D, from a single RGB image of that object.
+This problem is quite challenging from many perspectives,
+∗ The first two authors contributed equally. The authors from Zhejiang
+University are affiliated with the State Key Lab of CAD&CG and the ZJUSenseTime Joint Lab of 3D Vision.
+† Corresponding authors: Hujun Bao and Xiaowei Zhou.
+
+(a) Input image
+
+(b) Vectors
+
+(c) Voting
+
+(g) Occlusion
+
+(d) 2D keypoints
+
+(e) 3D keypoints
+
+(f) Aligned model
+
+(h) Truncation
+
+Figure 1. The 6D pose estimation problem is formulated as a
+Perspective-n-Point (PnP) problem in this paper, which requires
+correspondences between 2D and 3D keypoints, as illustrated in
+(d) and (e). We predict vectors pointing to keypoints for each pixel,
+as shown in (b), and localize 2D keypoints in a RANSAC-based
+voting scheme, as shown in (c). The proposed method is robust to
+occlusion (g) and truncation (h), where the green bounding boxes
+represent the ground truth poses and the blue bounding boxes represent our predictions.
+
+including object detection under severe occlusions, variations in lighting and appearance, and cluttered background
+objects.
+Traditional methods [24, 20, 15] have shown that pose
+estimation can be achieved by establishing the correspondences between an object image and the object model. They
+rely on hand-crafted features, which are not robust to image
+variations and background clutters. Deep learning based
+methods [33, 17, 40, 4] train end-to-end neural networks
+that take an image as input and output its corresponding
+pose. However, generalization remains as an issue, as it
+is unclear that such end-to-end methods learn sufficient feature representations for pose estimation.
+Some recent methods [29, 30, 36] use CNNs to first
+regress 2D keypoints and then compute 6D pose parameters using the Perspective-n-Point (PnP) algorithm. In other
+words, the detected keypoints serve as an intermediate representation for pose estimation. Such two-stage approaches
+achieve state-of-the-art performance, thanks to robust detection of keypoints. However, these methods have difficulty in tackling occluded and truncated objects, since part
+of their keypoints are invisible. Although CNNs may predict these unseen keypoints by memorizing similar patterns,
+14561
+
+

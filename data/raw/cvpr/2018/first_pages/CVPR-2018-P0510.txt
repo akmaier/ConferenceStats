@@ -1,0 +1,92 @@
+Efficient Large-scale Approximate Nearest Neighbor Search on OpenCL FPGA
+Jialiang Zhang
+UW-Madison
+
+Soroosh Khoram
+UW-Madison
+
+Jing Li
+UW-Madison
+
+jialiang.zhang@ece.wisc.edu
+
+khoram@wisc.edu
+
+jli@ece.wisc.edu
+
+Abstract
+We present a new method for Product Quantization (PQ)
+based approximated nearest neighbor search (ANN) in high dimensional spaces. Specifically, we first propose a quantization
+scheme for the codebook of coarse quantizer, product quantizer,
+and rotation matrix, to reduce the cost of accessing these codebooks. Our approach also combines a highly parallel k-selection
+method, which can be fused with the distance calculation to reduce the memory overhead. We implement the proposed method
+on Intel HARPv2 platform using OpenCL-FPGA. The proposed
+method significantly outperforms state-of-the-art methods on
+CPU and GPU for high dimensional nearest neighbor queries
+on billion-scale datasets in terms of query time and accuracy
+regardless of the batch size. To our best knowledge, this is the
+first work to demonstrate FPGA performance superior to CPU
+and GPU on high-dimensional, large-scale ANN datasets.
+
+1. Introduction
+Approximate nearest neighbor (ANN) search in highdimensional spaces is important to many computer vision tasks,
+such as image retrieval [3], recognition[11] and classification
+[5]. This algorithm searches a high-dimensional dataset for data
+points that are close to a query point. Such searches, however,
+are slow as a consequence of the curse of dimensionality. In the
+past years, there has been increasing interest [4, 9] in compressing high-dimensional data into compact codes. Compact encoding can compress the size of index to only tens of bits per dataset
+entry. It not only reduces the size of database, but also improves
+the efficiency of nearest neighbor search on large-scale datasets.
+To generate the compact encoding, a large body of existing
+works rely on hashing [4], which approximates the similarity between two dataset entries using the Hamming distance between
+the hashed codes. Product quantization (PQ) is an alternative approach for compact encoding, which has been proven to be more
+effective on large-scale datasets than hashing-based approaches,
+especially when combined with inverted files (IVF)[19].
+PQ uses the Cartesian product of multiple small subcodebooks to achieve a large effective codebook size. Due to
+its lower quantization distortions, PQ has been shown to be
+more accurate than hashing-based methods. Moreover, PQ is
+amenable to be implemented on modern parallel processors
+
+(e.g., CPU, GPU), which makes it more promising for
+large-scale ANN applications. Further, the distances between
+codewords can be pre-computed and stored in look-up-tables
+(LUTs). Thus, the query computation involves merely reading
+the LUTs. To deal with large datasets, PQ is typically combined
+with the IVF technique, which consists of a coarse, exhaustive
+step to find a set of probing centroids near the query vector. The
+number of probing centroids is typically much smaller than the
+dataset size. Thus, it can significantly reduce the the number
+of PQ-based distance calculations.
+Quantizing dataset elements into a small codebook
+introduces a quantization error to the ANN results. To reduce
+the quantization error, existing works [6, 17] try to make
+the quantization better fit to the underlying distribution of
+database entries. Optimized product quantization (OPQ) and
+its equivalent Ck-means[17] apply an optimal global rotation
+to all product quantizers. Another method is locally optimized
+product quantization (LOPQ) [14], which locally optimizes
+product quantizer over rotation and space decomposition.
+Although the PQ-based methods can effectively reduce
+the database size, they cannot leverage the parallel processing
+capability of modern processors (e.g. multi-core CPU, GPU,
+and FPGA) well to reduce the query time. One of the reasons
+is that codebooks are too large to fit into their small but fast
+on-chip memories (cache, shared memory and block RAM) and
+need to be moved to the larger but slower external memories.
+Furthermore, for each query, these codebooks need to be
+accessed multiple times, which amplifies the storage delay
+problem creating a key performance bottlengeck. To make
+matters worse, approaches like OPQ and LOPQ, introduce
+one or more large rotation matrices, also too large to fit into
+the on-chip memory, that need to be accessed multiple times
+for every single query. As a result, the query speed in these
+approaches are bounded by the external memory delay, preventing full utilization of the available computation capabilities.
+Therefore, existing works on GPU-based ANN acceleration
+focus on reducing the number of computations of PQ-based
+method. The method in [22] introduces a Product-quantization
+tree, which can reduce number of distance calculations, using
+an additional codebook. Faiss [13] provides several detailed
+GPU-specific optimizations of the IVFPQ method and reports
+14924
+
+

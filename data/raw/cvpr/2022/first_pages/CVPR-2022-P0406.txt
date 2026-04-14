@@ -1,0 +1,78 @@
+Few-Shot Incremental Learning for Label-to-Image Translation
+Pei Chen1 , Yangkang Zhang1 , Zejian Li1 ,* Lingyun Sun1,2
+1
+Alibaba-Zhejiang University Joint Institute of Frontier Technologies, Zhejiang University
+2
+Zhejiang-Singapore Innovation and AI Joint Research Lab
+{chenpei, yangkz, zejianlee, sunly}@zju.edu.cn
+
+Labels
+
+Abstract
+Label-to-image translation models generate images from
+semantic label maps. Existing models depend on large volumes of pixel-level annotated samples. When given new
+training samples annotated with novel semantic classes, the
+models should be trained from scratch with both learned
+and new classes. This hinders their practical applications
+and motivates us to introduce an incremental learning strategy to the label-to-image translation scenario. In this paper, we introduce a few-shot incremental learning method
+for label-to-image translation. It learns new classes one
+by one from a few samples of each class. We propose
+to adopt semantically-adaptive convolution filters and normalization. When incrementally trained on a novel semantic class, the model only learns a few extra parameters of
+class-specific modulation. Such design avoids catastrophic
+forgetting of already-learned semantic classes and enables
+label-to-image translation of scenes with increasingly rich
+content. Furthermore, to facilitate few-shot learning, we
+propose a modulation transfer strategy for better initialization. Extensive experiments show that our method outperforms existing related methods in most cases and achieves
+zero forgetting.
+
+1. Introduction
+In this work, we consider the task of generating images
+from semantic label maps. Semantic maps depict the layouts and semantic classes of images, which can be regarded
+as human doodles. Existing works have made great progress
+in generation spatial alignment [36], diversity [45], fine details [47], and style controls [62]. Nevertheless, these approaches still suffer from two issues. Firstly, they require
+a vast quantity of labeled data in training. However, manually labeling data is a costly and complicated process, and
+thus semantically fine-annotated data is often expensive to
+acquire. Secondly, existing label-to-image translation mod* Corresponding author
+
+Images
+
+FILIT 0
+<latexit sha1_base64="W8J4dUkISr71QABXC5d9Sh2bq2s=">AAAC4nicjVHLSsNAFD2N73fUpQjBIrgqiYi6LAqi4KKC1UJbSh6jHZoXyUQooSt37sStP+BWP0b8A/0L74wR1CI6ITNnzr3nzNy5TuzzVJjmS0kbGR0bn5icmp6ZnZtf0BeXztIoS1xWdyM/ShqOnTKfh6wuuPBZI06YHTg+O3d6+zJ+fsWSlEfhqejHrB3YlyG/4K4tiOroqy0n8r20H9CStwJbdLnID46Oj04HHXPQ0ctmxVTDGAZWAcooRi3Sn9GChwguMgRgCCEI+7CR0teEBRMxcW3kxCWEuIozDDBN2oyyGGXYxPZovqRds2BD2kvPVKldOsWnPyGlgXXSRJSXEJanGSqeKWfJ/uadK095tz6tTuEVECvQJfYv3Wfmf3WyFoEL7KoaONUUK0ZW5xYumXoVeXPjS1WCHGLiJPYonhB2lfLznQ2lSVXt8m1tFX9VmZKVe7fIzfAmb0kNtn62cxicbVas7Yp1slWu7hWtnsQK1rBB/dxBFYeooU7e13jAI540T7vRbrW7j1StVGiW8W1o9+/SXJvB</latexit>
+
+A few samples with novel
+semantic classes
+Incremental learning
+{“cloud”}
+
+FILIT 1
+<latexit sha1_base64="hwWSekGQFo9ezX1Q33R2zRmBGDY=">AAAC4nicjVHLSsNAFD2N73fUpQjBIrgqiYi6LAqi4KKC1UJbSh6jHZoXyUQooSt37sStP+BWP0b8A/0L74wR1CI6ITNnzr3nzNy5TuzzVJjmS0kbGR0bn5icmp6ZnZtf0BeXztIoS1xWdyM/ShqOnTKfh6wuuPBZI06YHTg+O3d6+zJ+fsWSlEfhqejHrB3YlyG/4K4tiOroqy0n8r20H9CStwJbdLnID46Oj04HHWvQ0ctmxVTDGAZWAcooRi3Sn9GChwguMgRgCCEI+7CR0teEBRMxcW3kxCWEuIozDDBN2oyyGGXYxPZovqRds2BD2kvPVKldOsWnPyGlgXXSRJSXEJanGSqeKWfJ/uadK095tz6tTuEVECvQJfYv3Wfmf3WyFoEL7KoaONUUK0ZW5xYumXoVeXPjS1WCHGLiJPYonhB2lfLznQ2lSVXt8m1tFX9VmZKVe7fIzfAmb0kNtn62cxicbVas7Yp1slWu7hWtnsQK1rBB/dxBFYeooU7e13jAI540T7vRbrW7j1StVGiW8W1o9+/UvZvC</latexit>
+
+Incremental learning
+{“elephant”}
+
+FILIT 2
+<latexit sha1_base64="DXgPJEp+kplF5nP85hUH7127kfk=">AAAC4nicjVHLSsNAFD2Nr1pfVZciBIvgqiRF1GVREAsuKvQFrZQknerQvEgmQilduXMnbv0Bt/ox4h/oX3hnTMEHohMyc+bce87MnWuHLo+FYbxktKnpmdm57HxuYXFpeSW/utaIgyRyWN0J3CBq2VbMXO6zuuDCZa0wYpZnu6xpD45kvHnFopgHfk0MQ3buWRc+73PHEkR185sdO3B78dCjZdTxLHHJxei4clqpjbulcTdfMIqGGvpPYKaggHRUg/wzOughgIMEHhh8CMIuLMT0tWHCQEjcOUbERYS4ijOMkSNtQlmMMixiBzRf0K6dsj7tpWes1A6d4tIfkVLHNmkCyosIy9N0FU+Us2R/8x4pT3m3Ia126uURK3BJ7F+6SeZ/dbIWgT4OVA2cagoVI6tzUpdEvYq8uf6pKkEOIXES9ygeEXaUcvLOutLEqnb5tpaKv6pMycq9k+YmeJO3pAab39v5EzRKRXOvaJ7tFsqHaauz2MAWdqif+yjjBFXUyfsaD3jEk9bTbrRb7e4jVcukmnV8Gdr9O9cem8M=</latexit>
+
+Figure 1. An illustration of our proposed FILIT. FILIT is capable of continually learning novel semantic classes from a few
+samples, without forgetting old semantic classes. In this example,
+the model starts with a version that can depict images consisting
+of the sky, mountain, tree, dirt, and river (FILIT0 ). When given
+a few unseen images labeled with a new semantic class “cloud”,
+the model incrementally learns to depict clouds without forgetting learned classes (FILIT1 ). Similarly, given other new images
+labeled with “elephant”, the model incrementally learns to generate elephants by the river (FILIT2 ). Therefore, as incrementally
+learning on new labeled images, FILIT can generate scenes with
+increasingly rich content. Best viewed magnified on the screen.
+
+els require that training samples of all classes are prepared
+beforehand and learned at once. However, in practice, a
+trained translation model is often expected to perform new
+image generation tasks by learning novel semantic classes.
+A naive approach to achieve this is to retrain the model on
+all the old and new data, which is both time-consuming
+and computationally expensive. Therefore, it is necessary
+to equip a label-to-image translation model with the ability
+to learn new semantic classes flexibly without retraining.
+
+3697
+
+

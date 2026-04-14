@@ -1,0 +1,92 @@
+Deep Iterative Surface Normal Estimation
+Jan Eric Lenssen1,2,∗
+
+Christian Osendorfer1
+
+Jonathan Masci1
+
+janeric.lenssen@udo.edu
+
+christian@nnaisense.com
+
+jonathan@nnaisense.com
+
+1
+
+2
+
+NNAISENSE
+TU Dortmund University
+
+Abstract
+This paper presents an end-to-end differentiable algorithm for robust and detail-preserving surface normal estimation on unstructured point-clouds. We utilize graph
+neural networks to iteratively parameterize an adaptive
+anisotropic kernel that produces point weights for weighted
+least-squares plane fitting in local neighborhoods. The approach retains the interpretability and efficiency of traditional sequential plane fitting while benefiting from adaptation to data set statistics through deep learning. This results
+in a state-of-the-art surface normal estimator that is robust to noise, outliers and point density variation, preserves
+sharp features through anisotropic kernels and equivariance through a local quaternion-based spatial transformer.
+Contrary to previous deep learning methods, the proposed
+approach does not require any hand-crafted features or preprocessing. It improves on the state-of-the-art results while
+being more than two orders of magnitude faster and more
+parameter efficient.
+
+1. Introduction
+Normal vectors are local surface descriptors that are used
+as an input for several computer vision tasks ranging from
+surface reconstruction [27] to registration [39] and segmentation [17]. For this reason, the task of surface normal estimation has been an important and well studied research topic for a long time, with several methods dating
+back up to 30 years [23]. Progress in the field, however,
+has been plateauing only until recently when a number of
+works has shown that improvements can be achieved with
+the use of data-driven deep learning techniques [5, 7, 19],
+as also shown in related fields like point cloud denoising
+[42] or finding correspondences on meshes and point clouds
+[10, 14, 32, 35]. Deep learning methods are known to often
+achieve better results compared to data-independent methods. However, they have downsides in terms of robustness
+∗ Work performed during an internship at NNAISENSE.
+
+a) Least squares plane fitting
+
+Pair-wise residual features prf(i, j)
+
+b) Graph neural network
+w
+
+θ1 R 1
+
+c) Deep re-weighting
+
+θ2 R2
+
+ψ(·, θ2 )
+
+ψ(·, θ1 )
+
+R2
+R1
+
+θ3 R3
+
+ψ(·, θ3 )
+
+R3
+
+Figure 1: Simplified overview of the proposed method for
+deep iterative surface normal estimation. The figure shows
+the process for a subset of three points. (a) Surfaces are fitted by optimizing weighted least squares. (b) A graph neural network infers kernel parameters and local orientation
+from intermediate pair-wise point descriptors. (c) A trainable, adaptive kernel refines the weights for the next step of
+the least squares optimization.
+to small input changes, adversarial attacks, interpretability,
+and sometimes also computational efficiency. Also, they do
+not make use of often well-known instrinsic problem structure, which leads to the necessity of having a large amount
+of training data and model parameters to learn that structure
+on their own.
+It is well-known that surface normal estimation can be
+formulated as a least-squares optimization problem. A way
+to utilize this problem-specific knowledge with deep learning is to take an iteratively reweighting least squares (IRLS)
+scheme [22] for robust model fitting and modify it using
+deep data-dependent weighting, as it has been done recently
+(with or without iterations) for other tasks [25, 43, 44, 46].
+
+11247
+
+

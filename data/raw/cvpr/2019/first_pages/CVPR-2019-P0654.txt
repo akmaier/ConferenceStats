@@ -1,0 +1,65 @@
+Adaptive NMS: Refining Pedestrian Detection in a Crowd
+Songtao Liu1,2,3 Di Huang1,2,3∗ Yunhong Wang1,3
+1
+Beijing Advanced Innovation Center for Big Data and Brain Computing, Beihang University
+2
+State Key Laboratory of Software Development Environment, Beihang University
+3
+School of Computer Science and Engineering, Beihang University, Beijing 100191, China
+{liusongtao, dhuang, yhwang}@buaa.edu.cn
+
+Abstract
+Pedestrian detection in a crowd is a very challenging issue. This paper addresses this problem by a novel NonMaximum Suppression (NMS) algorithm to better refine the
+bounding boxes given by detectors. The contributions are
+threefold: (1) we propose adaptive-NMS, which applies a
+dynamic suppression threshold to an instance, according to
+the target density; (2) we design an efficient subnetwork to
+learn density scores, which can be conveniently embedded
+into both the single-stage and two-stage detectors; and (3)
+we achieve state of the art results on the CityPersons and
+CrowdHuman benchmarks.
+
+1. Introduction
+During the last two decades, pedestrian detection, as a
+special branch of general object detection, has received considerable attention. In the literature, many solutions have
+been presented to handle such an issue, and similar as in
+general object detection, the past several years have witnessed its technical development from models relying on
+hand-crafted features [4, 5, 11, 48] to deep learning networks [45, 46, 50, 44, 49]. Due to the capability of learning
+discriminative features, Convolutional Neural Networks (CNN) based approaches dominate this area, and the results on
+public benchmarks are significantly promoted.
+In recent years, pedestrian detection is urgently required
+in the real-world scenario where the density of people is
+high, i.e., airports, train stations, shopping malls etc. Despite great progress achieved, detecting pedestrians in those
+scenes still remains difficult, evidenced by significant performance drops of state of the art methods. For example,
+OR-CNN [49], a more recent work, reports a Miss Rate (MR) of 4.1% on the Caltech database [6], which does not consider this challenge. Its MR degrades to 11.0% on CityPersons [47], where 26.4% pedestrians are overlapped with an
+∗ corresponding author
+
+(a) original image
+
+(b) prediction before NMS
+
+(c) NMS threshold =0.5
+
+(d) NMS threshold =0.7
+
+Figure 1. Illustration of greedy-NMS results of different thresholds. The blue box shows the missing object, while the red ones
+highlight false positives. The bounding boxes in (b) are generated using Faster R-CNN. In a crowd scene, a lower NMS threshold may remove true positives (c) while a higher NMS threshold
+may increase false positives (d). The threshold for visualization is
+above 0.3.
+
+Intersection over Union (IoU) above 0.3 and the average of
+pairwise overlap between two human instances (larger than
+0.5 IoU) is 0.32 per image. Therefore, it becomes a necessity to work on pedestrian detection in a crowd. While one
+may argue that this problem is the same as occlusion, they
+are indeed different, as in a crowd scene, pedestrians whose
+appearances are similar often occlude each other by a large
+part, making it even more challenging.
+This work focuses on this issue, and we start with the
+analysis of deep learning based detectors. As we know, existing detectors either directly regress the default anchors
+into detection boxes on the feature maps (single-stage detectors, e.g., SSD [23], YOLO [30, 31], RetinaNet [21]),
+or first generate category independent region proposals
+and then refine them (two-stage detectors, e.g., Faster RCNN [32], R-FCN [19]). All the methods produce large
+numbers of false positives near the ground truth, and the
+16459
+
+

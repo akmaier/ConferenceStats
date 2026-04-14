@@ -1,0 +1,62 @@
+Hierarchical Recurrent Attention Networks for Structured Online Maps
+Namdar Homayounfar, Wei-Chiu Ma, Shrinidhi Kowshika Lakshmikanth, Raquel Urtasun
+Uber ATG Toronto
+{namdar,weichiu,klshrinidhi,urtasun}@uber.com
+
+Abstract
+In this paper, we tackle the problem of online road network extraction from sparse 3D point clouds. Our method
+is inspired by how an annotator builds a lane graph, by
+first identifying how many lanes there are and then drawing
+each one in turn. We develop a hierarchical recurrent network that attends to initial regions of a lane boundary and
+traces them out completely by outputting a structured polyline. We also propose a novel differentiable loss function
+that measures the deviation of the edges of the ground truth
+polylines and their predictions. This is more suitable than
+distances on vertices, as there exists many ways to draw
+equivalent polylines. We demonstrate the effectiveness of
+our method on a 90 km stretch of highway, and show that
+we can recover the right topology 92% of the time.
+
+1. Introduction
+A self driving car software stack is typically composed of
+three main components: perception, prediction and motion
+planning. Perception consists of estimating where everyone
+is in the scene in 3D given data from the sensors (e.g., LIDAR, cameras, radar, ultrasonic). Prediction is concerned
+with predicting the future action of the dynamic objects that
+have been identified by perception. Finally, the outputs of
+perception and prediction are used by motion planning in
+order to decide the trajectory of the ego-car.
+Despite several decades of research, these three tasks remain an open problem. To facilitate these tasks, most selfdriving car teams rely on high definition maps, commonly
+referred to as HD maps, which contain both geometric and
+semantic information about the static environment. For example, planning where to go is easier if we know the geometry of the road (i.e., lane composition). This information
+is also very useful to determine the future motion of other
+traffic participants. Furthermore, false positives in vehicle
+detection can be reduced if we know where the road is.
+To create these maps, most self-driving car programs
+rely on offline processes where semantic components such
+as lanes are extracted with the help of a user in the loop.
+
+Figure 1. Our hierarchical recurrent attention model takes a sparse
+point cloud sweep of the road (right) and outputs (left) a structured representation of the road network where each lane boundary
+instance is retrieved.
+
+Furthermore, they typically require multiple passes over the
+same environment in order to build accurate geometric representations. This is very expensive and requires a dedicated fleet for mapping. It has been estimated that mapping
+the US only once will cost over 2 Billion dollars. This approach is not scalable globally and thus it is of fundamental
+importance to design online mapping algorithms that do not
+require a user in the loop or in the least minimize their involvement to correction tasks.
+The most basic information that is required for driving
+is to be able to extract the location of the lanes in 3D space
+(mapping), and their relationship to the ego-car (localization to the map). In the context of maps, these lanes are
+structured objects and are typically represented as a set of
+polylines, one per lane boundary. We refer the reader to Fig.
+1 for a representation of a lane graph.
+Existing automatic approaches to lane extraction have
+two major drawbacks. First, they treat the problem as semantic segmentation [26, 27] or lane marking detection
+[20, 11, 14]. As a consequence they produce solutions that
+are not topologically correct, e.g., a lane might have holes
+due to occlusion. This is problematic as most motion planners can only handle lane graphs that are structured and represent the right topology. Second, these methods attempt
+to extract lane graphs from camera images [43]. Unfortunately, a good image based lane estimation is not equivalent
+to an accurate 3D lane extraction. Due to perspective projection, pixels in image space have different physical widths
+13417
+
+

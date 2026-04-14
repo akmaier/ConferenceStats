@@ -1,0 +1,73 @@
+Few Sample Knowledge Distillation for Efﬁcient Network Compression
+Tianhong Li1∗ Jianguo Li2 Zhuang Liu3 Changshui Zhang4
+1
+MIT 2 Intel Labs 3 UC Berkeley 4 Dept. Automation, Tsinghua University
+tianhong@mit.edu, jianguoli@intel.com, zhuangl@berkeley.edu, zsc@tsinghua.edu.cn
+
+Abstract
+Deep neural network compression techniques such as
+pruning and weight tensor decomposition usually require
+ﬁne-tuning to recover the prediction accuracy when the
+compression ratio is high. However, conventional ﬁnetuning suffers from the requirement of a large training set
+and the time-consuming training procedure. This paper
+proposes a novel solution for knowledge distillation from
+label-free few samples to realize both data efﬁciency and
+training/processing efﬁciency. We treat the original network
+as “teacher-net” and the compressed network as “studentnet”. A 1×1 convolution layer is added at the end of each
+layer block of the student-net, and we ﬁt the block-level outputs of the student-net to the teacher-net by estimating the
+parameters of the added layers. We prove that the added
+layer can be merged without adding extra parameters and
+computation cost during inference. Experiments on multiple datasets and network architectures verify the method’s
+effectiveness on student-nets obtained by various network
+pruning and weight decomposition methods. Our method
+can recover student-net’s accuracy to the same level as conventional ﬁne-tuning methods in minutes while using only
+1% label-free data of the full training data.
+
+1. Introduction
+Deep neural networks have demonstrated extraordinary
+success in a variety of ﬁelds such as computer vision
+[21, 13], speech recognition [14], and natural language processing [28]. However, their resource-hungry nature greatly
+hinders their wide deployment in some resource-limited
+scenarios. To address this limitation, many works have been
+done to accelerate and/or compress neural networks, among
+which network pruning [11, 23] and network weight decomposition [7, 18] are particularly popular due to their competitive performance and compatibility.
+Network pruning [23, 25] and weight decomposition
+[37, 19] methods can produce extremely compressed net∗ This work was done when Tianhong Li was intern at Intel Labs under
+supervised by Jianguo Li.
+
+works, but they usually suffer from signiﬁcant accuracy
+drops so that ﬁne-tuning is required for possible accuracy
+recovery. However, current ﬁne-tuning practices are not
+only time-consuming but also require a fully annotated
+large-scale training set, which may be infeasible in practice
+due to privacy or conﬁdential issues. This is very common
+when software or hardware vendors help their customer optimizing deep learning solutions. As a result, when the compression ratio is high, current methods may not recover the
+dropped accuracy if there are very few training examples
+(labeled or even unlabeled) for deployment.
+To solve this problem, one may ask if it is possible
+to utilize the knowledge from the original large network
+to the compressed compact network, since the latter has
+a similar block-level structure as the former, and already
+inherits some of the feature representation power from it.
+A natural solution is to use knowledge distillation (KD)
+[4, 1, 15], a method for transferring the knowledge from
+a large “teacher” model to a compact yet efﬁcient “student”
+model by matching certain statistics between them. Further
+research introduced various kinds of matching mechanisms
+[31, 33, 17, 24]. The distillation procedure typically designs
+a loss function based on the matching mechanisms and optimizes the loss during a full training process. As a result,
+these methods still require time-consuming training procedure along with fully annotated large-scale training dataset,
+thus fail to meet our goal of training/processing efﬁciency
+and high sample-efﬁciency.
+This paper addresses this issue with a simple and
+novel method, namely few-sample knowledge distillation
+(FSKD), for efﬁcient network compression, where “efﬁcient” here means both training/processing efﬁciency and
+label-free data-sample efﬁciency. As shown in Figure 1,
+FSKD contains three steps: compressing teacher-net to obtain student-net, aligning student-teacher with the added
+layers in student-net, and merging the added layers. We
+ﬁrst obtain the student-net by pruning or decomposing the
+teacher-net using existing methods. In this stage, we ensure that both teacher-net and student-net have the same
+feature map sizes at each corresponding layer block. Second, we add a 1×1 conv-layer at the end of each block of
+114639
+
+

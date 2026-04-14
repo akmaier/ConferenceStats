@@ -1,0 +1,103 @@
+ACNe: Attentive Context Normalization
+for Robust Permutation-Equivariant Learning
+Weiwei Sun1 Wei Jiang1
+1
+University of Victoria
+
+Eduard Trulls2 Andrea Tagliasacchi3 Kwang Moo Yi1
+Google Research, Zurich 3 Google Research, Toronto
+
+2
+
+{weiweisun, jiangwei, kyi}@uvic.ca
+
+Abstract
+Many problems in computer vision require dealing
+with sparse, unordered data in the form of point clouds.
+Permutation-equivariant networks have become a popular
+solution – they operate on individual data points with simple
+perceptrons and extract contextual information with global
+pooling. This can be achieved with a simple normalization
+of the feature maps, a global operation that is unaffected
+by the order. In this paper, we propose Attentive Context
+Normalization (ACN), a simple yet effective technique to
+build permutation-equivariant networks robust to outliers.
+Specifically, we show how to normalize the feature maps
+with weights that are estimated within the network, excluding outliers from this normalization. We use this mechanism to leverage two types of attention: local and global
+– by combining them, our method is able to find the essential data points in high-dimensional space to solve a given
+task. We demonstrate through extensive experiments that
+our approach, which we call Attentive Context Networks
+(ACNe), provides a significant leap in performance compared to the state-of-the-art on camera pose estimation, robust fitting, and point cloud classification under noise and
+outliers. Source code: https://github.com/vcg-uvic/acne.
+
+1. Introduction
+Several problems in computer vision require processing
+sparse, unordered collections of vectors P = {pn 2 RD },
+commonly called clouds. Examples include pixel locations
+(D=2), point clouds from depth sensors (D=3), and sparse
+correspondences across a pair of images (D=4). The latter includes wide-baseline stereo, one of the fundamental
+problems in computer vision. It lies at the core of Structurefrom-Motion (SfM), which, in turn, is the building block
+of applications such as 3D reconstruction [1], image-based
+rendering [43] and time-lapse smoothing [28].
+Wide-baseline stereo has been traditionally solved by
+extracting small collections of discrete keypoints [31] and
+
+{trulls, taglia}@google.com
+
+finding correspondences among them with robust estimators [16], a reliable approach used for well over two decades.
+This has changed over the past few years, with the arrival of
+deep learning and an abundance of new dense [57, 47, 60]
+and sparse [55, 12, 39, 59, 27] methods. Here, we focus on
+sparse methods, which have seen many recent developments
+made possible by the introduction of PointNets [36, 37] –
+neural networks that rely on multi-layer perceptrons and
+global pooling to process unordered data in a permutationequivariant manner – something which is not feasible with
+neither convolutional nor fully-connected layers.
+Networks of this type – hereafter referred to as
+permutation-equivariant networks – have pioneered the application of deep learning to point clouds. The original
+PointNet relied on the concatenation of point-wise (contextagnostic) and global (point-agnostic) features to achieve
+permutation equivariance. Yi et al. [55] proposed Context
+Normalization (CN) as a simple, yet effective alternative to
+global feature pooling: all it requires is a non-parametric
+normalization of the feature maps to zero mean and unit
+variance. Contrary to other normalization techniques utilized by neural networks [22, 2, 46, 51], whose primary
+objective is to improve convergence, context normalization
+is used to generate contextual information while preserving
+permutation equivariance. Despite its simplicity, it proved
+more effective than the PointNet approach on wide-baseline
+stereo, contributing to a relative increase in pose estimation
+accuracy of 50 100%; see [55, Fig. 5].
+Note that CN normalizes the feature maps according to
+first- (mean) and second- (variance) order moments. Interestingly, these two quantities can be expressed as the solution
+of a least-squares problem:
+X
+µ̂ = argmin
+kpn µk22
+(1)
+µ
+
+σ̂ = argmin
+σ
+
+n
+
+X
+
+kpn
+
+µ̂k22
+
+2
+
+σ 2 2
+
+(2)
+
+n
+
+However, it is well known that least-squares optimization
+is not robust to outliers [6, Sec. 3], a problem that also
+afflicts CN. We illustrate this limitation in Fig. 1, where
+111286
+
+

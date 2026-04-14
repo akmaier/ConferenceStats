@@ -1,0 +1,120 @@
+Thinking Fast and Slow: Efficient Text-to-Visual Retrieval with Transformers
+Antoine Miech1 *
+Jean-Baptiste Alayrac1 *
+Ivan Laptev2
+Josef Sivic3
+Andrew Zisserman1,4
+1
+
+DeepMind
+
+2
+
+ENS/Inria
+
+3
+
+CIIRC CTU
+
+4
+
+VGG Oxford
+
+{jalayrac,miech}@google.com
+
+Abstract
+Our objective is language-based search of large-scale
+image and video datasets. For this task, the approach
+that consists of independently mapping text and vision to
+a joint embedding space, a.k.a. dual encoders, is attractive as retrieval scales and is efficient for billions of images using approximate nearest neighbour search. An alternative approach of using vision-text transformers with
+cross-attention gives considerable improvements in accuracy over the joint embeddings, but is often inapplicable in
+practice for large-scale retrieval given the cost of the crossattention mechanisms required for each sample at test time.
+This work combines the best of both worlds. We make the
+following three contributions. First, we equip transformerbased models with a new fine-grained cross-attention architecture, providing significant improvements in retrieval
+accuracy whilst preserving scalability. Second, we introduce a generic approach for combining a Fast dual encoder
+model with our Slow but accurate transformer-based model
+via distillation and re-ranking. Finally, we validate our approach on the Flickr30K image dataset where we show an
+increase in inference speed by several orders of magnitude
+while having results competitive to the state of the art. We
+also extend our method to the video domain, improving the
+state of the art on the VATEX dataset.
+
+1. Introduction
+Imagine yourself looking for an image that best matches
+a given textual description among thousands of other images. One effective way would be to first isolate a few
+promising candidates by giving a quick glance at all the
+images with a fast process, e.g. by eliminating images that
+* Equal contribution.
+1 Département d’informatique de l’ENS, École normale supérieure,
+
+CNRS, PSL Research University, 75005 Paris, France.
+3 Czech Institute of Informatics, Robotics and Cybernetics at the Czech
+Technical University in Prague.
+4 VGG, Dept. of Engineering Science, University of Oxford
+
+A man rides a
+bike with a cat
+wearing
+sunglasses.
+
+Text
+network
+
+Vision
+network
+
+A man rides a
+bike with a cat
+wearing
+sunglasses.
+
+Distillation
+
+Cross-Attention
+network
+
+(at training)
+
+Similarity
+
+Reranking
+
+Similarity
+
+(at query time)
+
+Fast
+
+Slow
+
+Dual encoder
+
+Cross-Attention
+
+Figure 1: On the left, the Fast models, a.k.a dual encoders, independently process the input image and text to compute a similarity
+score via a single dot product, which can be efficiently indexed
+and is thus amenable to large-scale search. On the right, the Slow
+models, a.k.a cross-attention models, jointly process the input image and text with cross-modal attention to compute a similarity
+score. Fast and indexable models are improved by Slow models via
+distillation at training time (offline). Slow models are accelerated
+and improved with the distilled Fast approaches using a re-ranking
+strategy at query time.
+
+have clearly nothing in common with the description. In the
+second phase, you may start paying more attention to image details with a slow process, e.g. by grounding individual words of a query sentence to make sure the scrutinized
+image is the best match.
+Analogous to the fast process above, fast retrieval systems can be implemented by separately encoding visual and
+textual inputs into a joint embedding vector space where
+similarities can be computed by dot product. Such methods
+are regarded as indexable, i.e. they allow application of fast
+approximate nearest neighbour search [11, 32, 53, 65] and
+enable efficient billion-scale image retrieval. However, the
+accuracy of such methods is limited due to the simplicity of
+vision-text interaction model defined by the dot product in
+the joint embedding space. We refer to these techniques as
+Dual Encoders (DE) or Fast approaches.
+Vision-text transformers compare each word to all loca-
+
+9826
+
+

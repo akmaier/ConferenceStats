@@ -1,0 +1,70 @@
+Fully Quantized Network for Object Detection
+Rundong Li ∗ †‡
+
+Yan Wang ∗ ‡ Feng Liang ‡
+†
+ShanghaiTech University
+
+Hongwei Qin ‡ Junjie Yan ‡
+‡
+SenseTime Research
+
+Rui Fan †
+
+{lird, fanrui}@shanghaitech.edu.cn
+{wangyan1, liangfeng, qinhongwei, yanjunjie}@sensetime.com
+
+Abstract
+Efficient neural network inference is important in a number of practical domains, such as deployment in mobile
+settings. An effective method for increasing inference efficiency is to use low bitwidth arithmetic, which can subsequently be accelerated using dedicated hardware. However, designing effective quantization schemes while maintaining network accuracy is challenging. In particular, current techniques face difficulty in performing fully end-toend quantization, making use of aggressively low bitwidth
+regimes such as 4-bit, and applying quantized networks to
+complex tasks such as object detection. In this paper, we
+demonstrate that many of these difficulties arise because of
+instability during the fine-tuning stage of the quantization
+process, and propose several novel techniques to overcome
+these instabilities. We apply our techniques to produce fully
+quantized 4-bit detectors based on RetinaNet and Faster RCNN, and show that these achieve state-of-the-art performance for quantized detectors. The mAP loss due to quantization using our methods is more than 3.8× less than the
+loss from existing methods.
+
+1. Introduction
+State-of-the-art object detectors are based on powerful
+convolution neural network (CNN) architectures [26, 21,
+23, 25]. While CNNs achieve remarkable accuracy, their
+high computational cost during inference restricts their usage on resource-limited devices such as mobile phones,
+smart cameras and drones.
+To perform efficient inference on complex networks,
+several techniques have been proposed. These include improved network designs [12, 15, 32] and network search
+[36], network pruning [9, 8] and network quantization. Current research areas in network quantization include reducing
+the bitwidth of network parameters to decrease model mem∗ Equal contributions. This work was done when Rundong, Yan and
+Feng were interns at SenseTime Research.
+
+ory usage [33, 11, 30], quantizing both network parameters
+and activations to accelerate specific types of layers in the
+network using bitwise operations [35, 31, 14, 4], and quantizing network gradients to speed up distributed training [2].
+Although promising results on tasks such as image classification have been reported [31, 4, 35, 33, 24] using the
+aforementioned quantization techniques, using quantized
+networks for more complex tasks such as object detection
+remains a challenge. Issues faced by current methods include:
+Hardware-friendly end-to-end quantization Many
+current quantization techniques [14, 35] focus on specific
+types of operations such as convolutions or matrix multiplication, while leaving other operations and network layers in
+full precision. This introduces two problems. The first is
+that critical operations such as batch normalization are either not handled [35] or ablated [29] during training, leading to a mismatch between training and evaluation behaviors, or causing training convergence difficulties. Another
+problem is that when deployed on real hardware, both integer and floating point arithmetic units are needed for performing network inference. This causes data exchange between different arithmetic units that may sometimes negate
+the speedups achieved by quantization.
+Low bitwidth quantization on complex tasks Current
+quantization research mostly falls into two categories. The
+first focuses on performing aggressive bit-width compression, e.g. using ternary [19, 1] or even binary [13, 24] values, and applies this to relatively simple tasks such as classification, where high accuracy is not required. Another type
+of research uses relatively conservative quantization, e.g. 8
+bits, but can be applied to a broader range of more complex
+tasks such as neural language processing [11], face attribute
+extraction [17] and object detection [18]. Detection is complex because given a candidate region, the detector needs to
+not only classify whether this region contains a target object
+class, but also accurately regress a bounding box if an object
+is convincingly detected. There have been several works on
+quantizing detectors to use 8 bits [17, 28]. However, as the
+computational complexity of multiplication grows superlin-
+
+2810
+
+

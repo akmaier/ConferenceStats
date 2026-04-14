@@ -1,0 +1,330 @@
+Learning Channel-wise Interactions for Binary Convolutional Neural Networks
+Ziwei Wang1,2,3 , Jiwen Lu1,2,3 , Chenxin Tao1 , Jie Zhou1,2,3 , Qi Tian4
+1
+Department of Automation, Tsinghua University, China
+2
+State Key Lab of Intelligent Technologies and Systems, China
+3
+Beijing National Research Center for Information Science and Technology, China
+4
+Huawei Noah’s Ark Lab, China
+wang-zw18@mails.tsinghua.edu.cn; lujiwen@tsinghua.edu.cn; tcx16@mails.tsinghua.edu.cn;
+jzhou@tsinghua.edu.cn; tian.qi@huawei.com
+
+Abstract
+
+Layerl
+
+In this paper, we propose a channel-wise interaction
+based binary convolutional neural network learning method
+(CI-BCNN) for efﬁcient inference. Conventional methods
+apply xnor and bitcount operations in binary convolution
+with notable quantization error, which usually obtains inconsistent signs in binary feature maps compared with their
+full-precision counterpart and leads to signiﬁcant information loss. In contrast, our CI-BCNN mines the channel-wise
+interactions, through which prior knowledge is provided to
+alleviate inconsistency of signs in binary feature maps and
+preserves the information of input samples during inference.
+Speciﬁcally, we mine the channel-wise interactions by a reinforcement learning model, and impose channel-wise priors on the intermediate feature maps through the interacted
+bitcount function. Extensive experiments on the CIFAR-10
+and ImageNet datasets show that our method outperforms
+the state-of-the-art binary convolutional neural networks
+with less computational and storage cost.
+
+0.5
+
+-1.7 -0.1 -0.4
+
+-3.0 -0.1 -0.6
+
+-0.9 -0.3 0.2 0.1 0.1
+
+0.8
+
+0.9
+
+-0.8 0.2
+
+1.1
+
+-1.5 0.4
+
+-0.8 -1.0 -0.8 0.1 -0.1
+
+0.8 -0.1 0.9
+
+-0.4 0.4
+
+1.7
+
+-0.5 0.1 -0.9 0.7 0.9 ٘澳
+
+‫ ݎ‬澳 3.2
+-0.7 0.7
+
+-0.1 -0.1 0.7 0.6 0.8
+
+-0.6 -0.3 0.4
+
+-0.3 -0.1 -0.8 0.3 0.8
+
+ܺ‫ ݎ‬澳
+
+0.6
+
+‫ ͳݎ‬澳
+
+ൌ澳
+
+BatchNorm
+
+2.2
+ͳ
+
+‫ ݎͳܣ‬澳
+
+1.8
+
+2.4 -1.2
+
+0.2 -0.3
+
+1.2
+
+0.6 -0.1
+
+0
+
+‫ ݎ‬澳-1.6
+-0.6 0.4
+
+1.1
+
+1.6 -1.1
+
+-0.5 -0.9 -0.5
+
+0.6
+
+0.9 -1.0 0.1
+
+-0.7
+
+Full-precision
+Binary
+
+ʹ
+
+-1.4
+
+‫ ʹݎܣ‬澳
+
+‫ ʹݎ‬澳
+
+Layerl+1
+
+Layerl
+-1 -1 1
+
+1
+
+1
+
+-1 -1 -1 1 -1
+-1 1 -1 1
+
+1
+
+-1 -1 1
+
+1
+
+1
+
+-1 -1 -1 1
+
+1
+
+٘澳
+
+ܾܺ 澳
+
+Xnor-Net
+
+Channel-wise
+Interaction
+
+1. Introduction
+Deep convolutional neural networks have achieved stateof-the-art performances in various vision applications such
+as object detection [10, 33, 22], tracking [13, 28, 1], face
+recognition [38, 29, 7] and many others. However, deploying deep convolutional neural networks in portable devices
+for inference is still limited because of the huge computational and storage cost. Moreover, high degrees of redundancy are exhibited in parameters of well-trained models [5]. Hence, it is desirable to design deep convolutional
+neural networks with fewer parameters and lighter architectures for efﬁcient inference.
+Recently, several neural network compression methods
+have been proposed including pruning [9, 21, 12], quantiza-
+
+Layerl+1
+-0.4 0.8
+
+CI-BCNN
+
+-1 1 -1
+
+-5 5 -1
+
+-1 1 -1
+
+1
+
+1
+
+-1 1
+
+3
+
+-1 1
+
+1
+
+1 -1 1
+
+-1 1
+
+5
+
+-1 1
+
+1
+
+1
+ܾͳ 澳
+
+ൌ澳
+
+3
+
+5 -1
+
+-1 -1 -1
+
+3
+
+1 -1
+
+1 -1 1
+
+-1 1 -3
+
+-1 -1 1
+
+ܾʹ 澳
+
+Layerl+1
+-1 -1 -1
+
+-1
+
+1
+
+3
+
+-1
+
+1
+
+1
+
+-1
+
+1
+
+5
+
+-1
+
+1
+
+1
+
+3
+
+-6
+5 -1
+
+1
+
+Ԣ ܾ 澳
+
+1
+
+-1
+
+3
+
+1
+
+-1
+
+1
+
+1
+
+-1
+
+-1
+
+1
+
+-3
+
+-1
+
+1
+
+-1
+
+Sign
+
+ͳ
+
+ʹ
+
+Ԣ ܾ 澳
+
+Sign
+
+1
+
+ͳܾ 澳
+
+1
+
+1 -1
+
+1 -1
+
+-1 1 -1
+ʹܾ 澳
+
+-5 -1 -1
+
+BatchNorm
+
+BatchNorm
+
+Input
+Filters
+Output
+
+Inconsistent Signs
+Corrected Signs
+
+Figure 1. Convolution operations in real-valued neural networks
+(top), Xnor-Net (the yellow box) and our CI-BCNN (the green
+box). Because of the quantization error resulted from xnor
+and bitcount operations, Xnor-Net usually outputs binary feature
+maps which have the inconsistent signs compared with their fullprecision counterpart (the red circle). Our CI-BCNN provides priors according to channel-wise interactions to correct the inconsistent signs (the blue circle), which preserves information for intermediate feature maps (best viewed in color).
+
+tion [23, 17, 8], low-rank decomposition [6, 39, 43] and efﬁcient architecture design [18, 15, 26]. Among these meth4321
+568
+
+

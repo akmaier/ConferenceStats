@@ -1,0 +1,86 @@
+Pixel-Adaptive Convolutional Neural Networks
+Hang Su1 , Varun Jampani2 , Deqing Sun2 , Orazio Gallo2 , Erik Learned-Miller1 , and Jan Kautz2
+1
+
+UMass Amherst
+
+2
+
+NVIDIA
+
+Abstract
+Convolutions are the fundamental building blocks of
+CNNs. The fact that their weights are spatially shared is
+one of the main reasons for their widespread use, but it is
+also a major limitation, as it makes convolutions contentagnostic. We propose a pixel-adaptive convolution (PAC)
+operation, a simple yet effective modification of standard
+convolutions, in which the filter weights are multiplied with
+a spatially varying kernel that depends on learnable, local pixel features. PAC is a generalization of several popular filtering techniques and thus can be used for a wide
+range of use cases. Specifically, we demonstrate state-ofthe-art performance when PAC is used for deep joint image upsampling. PAC also offers an effective alternative to
+fully-connected CRF (Full-CRF), called PAC-CRF, which
+performs competitively compared to Full-CRF, while being
+considerably faster. In addition, we also demonstrate that
+PAC can be used as a drop-in replacement for convolution
+layers in pre-trained networks, resulting in consistent performance improvements.
+
+1. Introduction
+Convolution is a basic operation in many image processing and computer vision applications and the major building block of Convolutional Neural Network (CNN) architectures. It forms one of the most prominent ways of propagating and integrating features across image pixels due to
+its simplicity and highly optimized CPU/GPU implementations. In this work, we concentrate on two important characteristics of standard spatial convolution and aim to alleviate
+some of its drawbacks: Spatial Sharing and its ContentAgnostic nature.
+Spatial Sharing: A typical CNN shares filters’ parameters across the whole input. In addition to affording translation invariance to the CNN, spatially invariant convolutions significantly reduce the number of parameters compared with fully connected layers. However, spatial sharing
+is not without drawbacks. For dense pixel prediction tasks,
+such as semantic segmentation, the loss is spatially varying
+because of varying scene elements on a pixel grid. Thus
+
+𝐾
+
+𝑊
+
+f-1,-1
+
+f-1,0
+
+f-1,1
+
+f0,-1
+
+f0,0
+
+f0,1
+
+f1,-1
+
+f1,0
+
+f1,1
+
+𝐾
+
+𝐾(f-1,-1,f0,0) 𝐾(f-1,0,f0,0) 𝐾(f-1,1,f0,0)
+𝐾(f0,-1,f0,0) 𝐾(f0,0,f0,0) 𝐾(f0,1,f0,0)
+𝐾(f1,-1,f0,0) 𝐾(f1,0,f0,0) 𝐾(f1,1,f0,0)
+
+Figure 1: Pixel-Adaptive Convolution. PAC modifies a standard
+convolution on an input v by modifying the spatially invariant filter W with an adapting kernel K. The adapting kernel is constructed using either pre-defined or learned features f . ⊗ denotes
+element-wise multiplication of matrices followed by a summation.
+Only one output channel is shown for the illustration.
+
+the optimal gradient direction for parameters differs at each
+pixel. However, due to the spatial sharing nature of convolution, the loss gradients from all image locations are globally pooled to train each filter. This forces the CNN to learn
+filters that minimize the error across all pixel locations at
+once, but may be sub-optimal at any specific location.
+Content-Agnostic: Once a CNN is trained, the same convolutional filter banks are applied to all the images and all
+the pixels irrespective of their content. The image content
+varies substantially across images and pixels. Thus a single trained CNN may not be optimal for all image types
+(e.g., images taken in daylight and at night) as well as different pixels in an image (e.g., sky vs. pedestrian pixels).
+Ideally, we would like CNN filters to be adaptive to the
+type of image content, which is not the case with standard
+CNNs. These drawbacks can be tackled by learning a large
+number of filters in an attempt to capture both image and
+pixel variations. This, however, increases the number of
+parameters, requiring a larger memory footprint and an extensive amount of labeled data. A different approach is to
+use content-adaptive filters inside the networks.
+Existing content-adaptive convolutional networks can be
+111166
+
+

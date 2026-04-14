@@ -1,0 +1,76 @@
+Dynamic Face Video Segmentation via Reinforcement Learning
+Yujiang Wang1,2∗ Mingzhi Dong3 Jie Shen1,2† Yang Wu4
+Shiyang Cheng2 Maja Pantic1,2
+1
+Imperial College London 2 Samsung AI Center Cambridge
+3
+University College London 4 Kyoto University
+yujiang.wang14@imperial.ac.uk, mingzhi.dong.13@ucl.ac.uk, jie.shen07@imperial.ac.uk
+wu.yang.8c@kyoto-u.ac.jp, shiyang.c@samsung.com, m.pantic@imperial.ac.uk
+
+Abstract
+For real-time semantic video segmentation, most recent
+works utilised a dynamic framework with a key scheduler
+to make online key/non-key decisions. Some works used a
+fixed key scheduling policy, while others proposed adaptive
+key scheduling methods based on heuristic strategies, both
+of which may lead to suboptimal global performance. To
+overcome this limitation, we model the online key decision
+process in dynamic video segmentation as a deep reinforcement learning problem and learn an efficient and effective
+scheduling policy from expert information about decision
+history and from the process of maximising global return.
+Moreover, we study the application of dynamic video segmentation on face videos, a field that has not been investigated
+before. By evaluating on the 300VW dataset, we show that
+the performance of our reinforcement key scheduler outperforms that of various baselines in terms of both effective
+key selections and running speed. Further results on the
+Cityscapes dataset demonstrate that our proposed method
+can also generalise to other scenarios. To the best of our
+knowledge, this is the first work to use reinforcement learning
+for online key-frame decision in dynamic video segmentation,
+and also the first work on its application on face videos.
+
+1. Introduction
+In computer vision, semantic segmentation is a computationally intensive task which performs per-pixel classification on images. Following the pioneering work of Fully
+Convolutional Networks (FCN) [25], tremendous progress
+has been made in recent years with the propositions of various deep segmentation methods [5, 2, 52, 59, 24, 8, 22,
+34, 6, 58, 30]. To achieve accurate result, these image
+† Corresponding author.
+∗ Yujiang Wang conducted this research during his internship at Samsung AI Center, Cambridge.
+
+segmentation models usually employ heavy-weight deep
+architectures and additional steps such as spatial pyramid
+pooling [59, 6, 5] and multi-scaled paths of inputs/features
+[7, 58, 23, 5, 4, 22, 35], which further increase the computational workload. For real-time applications such as autonomous driving, video surveillance, and facial analysis
+[49], it is impractical to apply such methods on a per-frame
+basis, which will result in high latency intolerable to those
+applications. Therefore, acceleration becomes a necessity for
+these models to be applied in real-time video segmentation.
+Various methods [40, 64, 54, 20, 16, 29, 17, 31, 11] have
+been proposed to accelerate video segmentation. Because
+adjacent frames in a video often share a large proportion
+of similar pixels, most of these works utilise a dynamic
+framework which separates frames into key and non-key
+frames and produce their segmentation masks differently. As
+illustrated in Fig. 1 (up), a deep image segmentation model
+N is divided into a heavy feature extraction part Nf eat and
+a light task-related part Ntask . To produce segmentation
+masks, key frames would go through both Nf eat and Ntask ,
+while a fast feature interpolation method is used to obtain
+features for the non-key frames by warping Nf eat ’s output
+on the last key frame (LKF), thus to avoid the heavy cost
+of running Nf eat on every frame. On top of that, a key
+scheduler is used to predict whether an incoming frame
+should be a key or non-key frame.
+As an essential part of dynamic video segmentation, decisions made by the key scheduler could significantly affect the
+overall performance [20, 54, 62] of the video segmentation
+framework. However, this topic is somewhat underexplored
+by the community. Recent works have either adopted a fixed
+key scheduler [29, 64, 17, 16], or proposed adaptive schedulers [54, 20, 62] which are trained to heuristically predict
+similarities (or deviations) between two video frames. Those
+key schedulers lack awareness of the global video context
+and can lead to suboptimal performance in the long run.
+To overcome this limitation, we propose to apply Reinforcement Learning (RL) techniques to expose the key
+
+6959
+
+

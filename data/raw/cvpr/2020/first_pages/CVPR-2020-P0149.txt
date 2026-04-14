@@ -1,0 +1,73 @@
+Fixed-Point Back-Propagation Training
+Xishan Zhang1,2 , Shaoli Liu∗1 , Rui Zhang1,2 , Chang Liu1 , Di Huang1 , Shiyi Zhou1 , Jiaming Guo1 ,
+Qi Guo2 , Zidong Du1,2 , Tian Zhi1,2 and Yunji Chen2
+1
+
+2
+
+Cambricon Technologies Corporation Limited, Beijing, China
+State Key Lab of Computer Architecture, Institute of Computing Technology, CAS, Beijing, China
+
+Abstract
+Recent emerged quantization technique (i.e., using low
+bit-width ﬁxed-point data instead of high bit-width floatingpoint data) has been applied to inference of deep neural
+networks for fast and efﬁcient execution. However, directly
+applying quantization in training can cause signiﬁcant accuracy loss, thus remaining an open challenge. In this paper, we propose a novel training approach, which applies
+a layer-wise precision-adaptive quantization in deep neural
+networks. The new training approach leverages our key insight that the degradation of training accuracy is attributed
+to the dramatic change of data distribution. Therefore, by
+keeping the data distribution stable through a layer-wise
+precision-adaptive quantization, we are able to directly
+train deep neural networks using low bit-width ﬁxed-point
+data and achieve guaranteed accuracy, without changing
+hyper parameters. Experimental results on a wide variety of
+network architectures (e.g., convolution and recurrent networks) and applications (e.g., image classiﬁcation, object
+detection, segmentation and machine translation) show that
+the proposed approach can train these neural networks with
+negligible accuracy losses (-1.40%∼1.3%, 0.02% on average), and speed up training by 252% on a state-of-the-art
+Intel CPU.
+
+1. Introduction
+While deep neural networks have become state-of-theart techniques for a wide range of machine learning applications, such as image recognition [14], object detection [21],
+machine translation [32, 8], the computation costs of deep
+neural networks are continuously increasing, which greatly
+hampers the development and deployment of deep neural
+∗ Shaoli Liu is the corresponding author of this paper (Email:
+liushaoli@cambricon.com). This work was funded and supported by Cambricon Technologies.
+
+,17WR=HURV
+
+,17
+
+D
+
+=HURV
+
+=HURV
+
+,17
+
+E
+
+,17
+
+F
+
+G
+
+Figure 1: AlexNet fc2 layer activation gradient distribution
+(base-2 logarithm) and training convergence.
+
+networks. For example, 10,000 GPU hours are used to perform neural architecture search on ImageNet [2]. Quantization is a promising technique to reduce the computation
+cost of neural network training, which can replace high-cost
+ﬂoating-point numbers (e.g., ﬂoat32) with low-cost ﬁxedpoint numbers (e.g., int8/int16). Recently, both the software society [6, 12, 16, 19, 27, 35] and the hardware society [11, 24, 23, 31] have carried out extensive researches on
+quantization of deep neural network for inference tasks.
+Though various investigations have demonstrated that
+deep learning inference can be accurately performed
+with low bit-width ﬁxed-point numbers through quantization [16, 17, 6, 33, 35, 35, 37], the quantiﬁed training
+remains an open challenge. Some existing approaches
+quantify the backward-pass to low-bit (e.g., int8) but incur signiﬁcant accuracy drop, for examples, 3˜7% loss for
+AlexNet [38, 36]. [7] uses int16 for both forward-pass
+12330
+
+

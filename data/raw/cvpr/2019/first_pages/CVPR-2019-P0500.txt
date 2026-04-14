@@ -1,0 +1,63 @@
+Centripetal SGD for Pruning Very Deep Convolutional Networks with
+Complicated Structure ∗
+Xiaohan Ding 1 Guiguang Ding 1 Yuchen Guo 1 Jungong Han 2
+1
+Tsinghua University 2 Lancaster University
+dxh17@mails.tsinghua.edu.cn dinggg@tsinghua.edu.cn {yuchen.w.guo,jungonghan77}@gmail.com
+
+Abstract
+The redundancy is widely recognized in Convolutional
+Neural Networks (CNNs), which enables to remove unimportant filters from convolutional layers so as to slim the
+network with acceptable performance drop. Inspired by the
+linearity of convolution, we seek to make some filters increasingly close and eventually identical for network slimming. To this end, we propose Centripetal 1 SGD (C-SGD),
+a novel optimization method, which can train several filters to collapse into a single point in the parameter hyperspace. When the training is completed, the removal of the
+identical filters can trim the network with NO performance
+loss, thus no finetuning is needed. By doing so, we have
+partly solved an open problem of constrained filter pruning on CNNs with complicated structure, where some layers must be pruned following others. Our experimental results on CIFAR-10 and ImageNet have justified the effectiveness of C-SGD-based filter pruning. Moreover, we have
+provided empirical evidences for the assumption that the redundancy in deep neural networks helps the convergence of
+training by showing that a redundant CNN trained using CSGD outperforms a normally trained counterpart with the
+equivalent width.
+
+1. Introduction
+Convolutional Neural Network (CNN) has become an
+important tool for machine learning and many related fields
+[10, 36, 37, 38]. However, due to their nature of computational intensity, as CNNs grow wider and deeper,
+their memory footprint, power consumption and required
+floating-point operations (FLOPs) have increased dramat∗ This work is supported by the National Key R&D Program of China
+(No. 2018YFC0807500), National Natural Science Foundation of China
+(No. 61571269), National Postdoctoral Program for Innovative Talents
+(No. BX20180172), and the China Postdoctoral Science Foundation (No.
+2018M640131). Corresponding author: Guiguang Ding.
+1 Here “centripetal” means “several objects moving towards a center”,
+not “an object rotating around a center by the centripetal force”.
+
+ically, thus making them difficult to be deployed on platforms without rich computational resource, like embedded
+systems. In this context, CNN compression and acceleration methods have been intensively studied, including tensor low rank expansion [31], connection pruning [20], filter
+pruning [40], quantization [19], knowledge distillation [27],
+fast convolution [48], feature map compacting [61], etc.
+We focus on filter pruning, a.k.a. channel pruning [26]
+or network slimming [44], for three reasons. Firstly, filter
+pruning is a universal technique which is able to handle any
+kinds of CNNs, making no assumptions on the application
+field, the network architecture or the deployment platform.
+Secondly, filter pruning effectively reduces the FLOPs of
+the network, which serve as the main criterion of computational burdens. Lastly, as an important advantage in practice, filter pruning produces a thinner network with no customized structure or extra operation, which is orthogonal to
+the other model compression and acceleration techniques.
+Motivated by the universality and significance, considerable efforts have been devoted to filter pruning techniques. Due to the widely observed redundancy in CNNs
+[8, 9, 13, 19, 66, 69], numerous excellent works have shown
+that, if a CNN is pruned appropriately with acceptable structural damage, a follow-up finetuning procedure can restore
+the performance to a certain degree. 1) Some prior works
+[2, 5, 28, 40, 49, 50, 66] sort the filters by their importance,
+directly remove the unimportant ones and re-construct the
+network with the remaining filters. As the important filters
+are preserved, a comparable level of performance can be
+reached by finetuning. However, some recent powerful networks have complicated structures, like identity mapping
+[23] and dense connection [29], where some layers must be
+pruned in the same pattern as others, raising an open problem of constrained filter pruning. This further challenges
+such pruning techniques, as one cannot assume the important filters at different layers reside on the same positions.
+2) Obviously, the model is more likely to recover if the destructive impact of pruning is reduced. Taking this into consideration, another family of methods [3, 15, 43, 60, 63]
+seeks to zero out some filters in advance, where group-
+
+4943
+
+

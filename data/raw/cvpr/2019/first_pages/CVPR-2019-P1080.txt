@@ -1,0 +1,107 @@
+Practical Full Resolution Learned Lossless Image Compression
+Fabian Mentzer
+
+Eirikur Agustsson
+
+Michael Tschannen
+
+Radu Timofte
+
+Luc Van Gool
+
+mentzerf@vision.ee.ethz.ch
+
+aeirikur@vision.ee.ethz.ch
+
+michaelt@nari.ee.ethz.ch
+
+timofter@vision.ee.ethz.ch
+
+vangool@vision.ee.ethz.ch
+
+ETH Zürich, Switzerland
+Abstract
+We propose the first practical learned lossless image compression system, L3C, and show that it outperforms the popp(x|f (1) )
+ular engineered codecs, PNG, WebP and JPEG2000. At
+the core of our method is a fully parallelizable hierarchical probabilistic model for adaptive entropy coding which
+x
+z (1)
+is optimized end-to-end for the compression task. In contrast to recent autoregressive discrete probabilistic models
+D(1) f
+E (1) Q
+p(z (1) |f (2) )
+such as PixelCNN, our method i) models the image distribution jointly with learned auxiliary representations instead
+of exclusively modeling the image distribution in RGB space,
+z (2)
+and ii) only requires three forward-passes to predict all pixel
+(1)
+(2)
+(1)
+Q
+D(2)
+E
+D
+E
+probabilities instead of one for each pixel. As a result, L3C
+f
+obtains over two orders of magnitude speedups when sampling compared to the fastest PixelCNN variant (Multiscalez (3)
+PixelCNN). Furthermore, we find that learning the auxiliary
+(3)
+Q
+E
+D(3) f
+representation is crucial and outperforms predefined auxiliary representations such as an RGB pyramid significantly. Figure 1: Overview of the architecture of L3C. The feature extracsha1_base64="06rEWvWPE+mR3cLra/xJ60akb/c=">AAAKdHicvVZbb9MwGM3GZV0YsAFv8GCoJnWsq5JymzQqTdoDPA6JXaQkmhzHac0cJ3IcttbKz+GVR/4Lj/wJnrGTDbreNECNq0qfv/PZx+fE0mc/oSQVlvV9YfHGzVu3l2rL5p2Vu/fur649OEzjjCN8gGIa82MfppgShg8EERQfJxzDyKf4yD/d0/jRZ8xTErOPop9gL4JdRkKCoFCpk7WlL6br4y5hUpDTQUKQyDjOHb0d+BQT1uFxxgLPdJNuGEHRS7GIIOKxdFHm4/Nc2vkUrD8DG+TSalmvJsFxGKqJxtvTYV/jL6fjSOOvp+OBxrcVHnB45mRUcAhEj7BmSCjt7KkTFs55oGE11W8DbG2Bzc3GVil6OGU1y2T/T2qkCPURxTt/S6Un5c6DGVS6aqjo36gmqhpj/x9VF65XZ+MI4fzNvI7CeVjqV+6pX7mpszXOw1VUuauocldna5yHq0HlrgaVuzpb43VdxSy40o5N82S1rhpmMcB4YF8E9d1669Hgx7uv+ydrC9/cIEZZhJlAFKapY1uJ8CTkgigS1fqyFCcQncIudlTIYIRTTxYPihysq0wAwpirPxOgyA6vkDBK037kq8qivY5iOjkRO78kGIf8aFLayUS47UnCkkxghsqjhRkFIgb6PQMCwjEStK8C1eGJUgdQD3KIhHr1XCHQjirdDJ+hOIogC567iHBlRuDYnnQ17Fw+pToNvUlLTzc8aYKh4bI4wE7agwnulOvLG3HWIwI39WVpEsYwB4q501aeg2KvDSDrdr6TqxMUHlAs5O9LlEufqlM+ta1cfWl79LuOB4ftlv2i1f5g13fbRjlqxmPjmdEwbOONsWu8N/aNAwPVVmrt2k7t7fJP84lZN9fL0sWFizUPjSvDbP0C1iAzRg==</latexit>
+
+(1)
+
+<latexit
+
+<latexit sha1_base64="u3Q1uGUfKwtLn7PsOvnF1uOcuVk=">AAAHVnictVXdbtMwFM7Guo7CYAVuJm4MFVLHuirpkEAalSZxw+WQ2I+URJPjnLRmjh05Dl0X5TkQPADPBC+DsJtN69auYmM7UaTj8x2fz+eLdRIkjKbKtn/Pzd9bqCxWl+7XHjxcfvR4pf5kLxWZJLBLBBPyIMApMMphV1HF4CCRgOOAwX5w9MHg+19BplTwz2qYgB/jHqcRJVjp0GF94WfNC6BHea7o0UlCicokFK4ph74IyrtSZDz0a17Si2Ks+imoGBMpco9kARwXuVNcgQ1nYCdFbrenoiKK9MLAnavhwOBvNB5KPHAzpiRGqk95K6KMdQOWwQvH9lHTbulnDW1soPX15kZ54vGQ3SqDw/PQpSQyJAy2rkdkFmXdkxlEJmss6SZEUzua4L5ORz0JwM+ZTuW+OwVn892+kDfo77/0lBBOsAV3J+dMuttX8/rd/auYwMML86hWO1xp2G17ZGjScU6dxvbq6ndtP3YO63PfvFCQLAauCMNp6jp2ovwcS0U1iR4eWQoJJke4B652OY4h9fPRRC3QKx0JUSSkfrlCo+j4jhzHaTqMA505GlCXMROcih2fEUxCQTwt7GYqeufnlCeZAk7Ko0UZQ0ogM9BRSCUQxYba0TOS6u4Q6WOJidJj/wKBUVT3zWFARBxjHr72CJVajNB1/NwzsHv2L+k2TZG2Wa75eQ2NmcdFCG7axwl0y/3ldRj0qYKWuSktyjlIpJm7Ha05GtVaQ3nDKbaKQn9K5/KHm3T2Om1ns9355DS2n1mlLVnPrZdW03Kst9a29dHasXYtUlmubFbeV7qLvxb/VCvVapk6P3e656l1waorfwE0mTsw</latexit>
+
+p(z (2) |f (3) )
+
+sha1_base64="06rEWvWPE+mR3cLra/xJ60akb/c=">AAAKdHicvVZbb9MwGM3GZV0YsAFv8GCoJnWsq5JymzQqTdoDPA6JXaQkmhzHac0cJ3IcttbKz+GVR/4Lj/wJnrGTDbreNECNq0qfv/PZx+fE0mc/oSQVlvV9YfHGzVu3l2rL5p2Vu/fur649OEzjjCN8gGIa82MfppgShg8EERQfJxzDyKf4yD/d0/jRZ8xTErOPop9gL4JdRkKCoFCpk7WlL6br4y5hUpDTQUKQyDjOHb0d+BQT1uFxxgLPdJNuGEHRS7GIIOKxdFHm4/Nc2vkUrD8DG+TSalmvJsFxGKqJxtvTYV/jL6fjSOOvp+OBxrcVHnB45mRUcAhEj7BmSCjt7KkTFs55oGE11W8DbG2Bzc3GVil6OGU1y2T/T2qkCPURxTt/S6Un5c6DGVS6aqjo36gmqhpj/x9VF65XZ+MI4fzNvI7CeVjqV+6pX7mpszXOw1VUuauocldna5yHq0HlrgaVuzpb43VdxSy40o5N82S1rhpmMcB4YF8E9d1669Hgx7uv+ydrC9/cIEZZhJlAFKapY1uJ8CTkgigS1fqyFCcQncIudlTIYIRTTxYPihysq0wAwpirPxOgyA6vkDBK037kq8qivY5iOjkRO78kGIf8aFLayUS47UnCkkxghsqjhRkFIgb6PQMCwjEStK8C1eGJUgdQD3KIhHr1XCHQjirdDJ+hOIogC567iHBlRuDYnnQ17Fw+pToNvUlLTzc8aYKh4bI4wE7agwnulOvLG3HWIwI39WVpEsYwB4q501aeg2KvDSDrdr6TqxMUHlAs5O9LlEufqlM+ta1cfWl79LuOB4ftlv2i1f5g13fbRjlqxmPjmdEwbOONsWu8N/aNAwPVVmrt2k7t7fJP84lZN9fL0sWFizUPjSvDbP0C1iAzRg==</latexit>
+
+<latexit
+
+(2)
+
+(3)
+
+1. Introduction
+Since likelihood-based discrete generative models learn
+a probability distribution over pixels, they can in theory be
+used for lossless image compression [40]. However, recent
+work on learned compression using deep neural networks has
+solely focused on lossy compression [4, 41, 42, 34, 1, 3, 44].
+Indeed, the literature on discrete generative models [46, 45,
+35, 32, 20] has largely ignored the application as a lossless compression system, with neither bitrates nor runtimes
+being compared with classical codecs such as PNG [31],
+WebP [47], JPEG2000 [38], and FLIF [39]. This is not surprising as (lossless) entropy coding using likelihood-based
+discrete generative models amounts to a decoding complexity
+essentially identical to the sampling complexity of the model,
+which renders many of the recent state-of-the-art autoregressive models such as PixelCNN [46], PixelCNN++ [35], and
+Multiscale-PixelCNN [32] impractical, requiring minutes or
+hours on a GPU to generate moderately large images, typically <256 × 256px (see Table 2). The computational com-
+
+tors E (s) compute quantized (by Q) auxiliary hierarchical feature
+representation z (1) , . . . , z (S) whose joint distribution with the image x, p(x, z (1) , . . . , z (S) ), is modeled using the non-autoregressive
+predictors D(s) . The features f (s) summarize the information up to
+scale s and are used to predict p for the next scale.
+
+plexity of these models is mainly caused by the sequential nature of the sampling (and thereby decoding) operation, where
+a forward pass needs to be computed for every single (sub)
+pixel of the image in a raster scan order.
+In this paper, we address these challenges and develop
+a fully parallelizeable learned lossless compression system,
+outperforming the popular classical systems PNG, WebP and
+JPEG2000.
+Our system (see Fig. 1 for an overview) is based on a hierarchy of fully parallel learned feature extractors and predictors which are trained jointly for the compression task. Our
+code is available online1 . The role of the feature extractors is
+to build an auxiliary hierarchical feature representation which
+helps the predictors to model both the image and the auxiliary
+1 https://github.com/fab-jul/L3C-PyTorch
+
+110629
+
+

@@ -1,0 +1,83 @@
+Learning to Simulate Dynamic Environments with GameGAN
+Seung Wook Kim1,2,3∗ Yuhao Zhou2† Jonah Philion1,2,3
+Antonio Torralba4
+Sanja Fidler1,2,3∗
+1
+2
+3
+4
+NVIDIA
+University of Toronto
+Vector Institute
+MIT
+{seungwookk,jphilion,sfidler}@nvidia.com
+
+henryzhou@cs.toronto.edu
+
+torralba@mit.edu
+
+Abstract
+Simulation is a crucial component of any robotic system.
+In order to simulate correctly, we need to write complex
+rules of the environment: how dynamic agents behave, and
+how the actions of each of the agents affect the behavior of
+others. In this paper, we aim to learn a simulator by simply watching an agent interact with an environment. We
+focus on graphics games as a proxy of the real environment.
+We introduce GameGAN, a generative model that learns
+to visually imitate a desired game by ingesting screenplay
+and keyboard actions during training. Given a key pressed
+by the agent, GameGAN “renders” the next screen using
+a carefully designed generative adversarial network. Our
+approach offers key advantages over existing work: we design a memory module that builds an internal map of the
+environment, allowing for the agent to return to previously
+visited locations with high visual consistency. In addition,
+GameGAN is able to disentangle static and dynamic components within an image making the behavior of the model
+more interpretable, and relevant for downstream tasks that
+require explicit reasoning over dynamic elements. This enables many interesting applications such as swapping different components of the game to build new games that do
+not exist. We will release the code, enabling human players
+to play generated games with our GameGAN.
+
+1. Introduction
+Before deployment to the real world, an artificial agent
+needs to undergo extensive testing in challenging simulated
+environments. Designing good simulators is thus extremely
+important. This is traditionally done by writing procedural
+models to generate valid and diverse scenes, and complex
+behavior trees that specify how each actor in the scene behaves and reacts to actions made by other actors, including
+the ego agent. However, writing simulators that encompass
+a large number of diverse scenarios is extremely time consuming and requires highly skilled graphics experts. Learn∗ Correspondence to {seungwookk,sfidler}@nvidia.com
+† YZ worked on this project during his internship at NVIDIA.
+
+Figure 1. If you look at the person on the left picture, you might think
+she is playing Pacman of Toru Iwatani, but she is not! She is actually
+playing with a GAN generated version of Pacman. In this paper, we introduce GameGAN that learns to reproduce games by just observing lots
+of playing rounds. Moreover, our model can disentangle background from
+dynamic objects, allowing us to create new games by swapping components as shown in the center and right images.
+
+ing to simulate by simply observing the dynamics of the real
+world is the most scaleable way going forward.
+A plethora of existing work aims at learning behavior
+models [2, 28, 16, 3]. However, these typically assume a
+significant amount of supervision such as access to agents’
+ground-truth trajectories. We aim to learn a simulator by
+simply watching an agent interact with an environment. To
+simplify the problem, we frame this as a 2D image generation problem. Given sequences of observed image frames
+and the corresponding actions the agent took, we wish to
+emulate image creation as if “rendered” from a real dynamic
+environment that is reacting to the agent’s actions.
+We focus on graphics games as a proxy of the real environment. Our goal is to replace the graphics engine at
+test time, by visually imitating the game using a learned
+model. This is a challenging problem: different games have
+different number of components as well as different physical dynamics. Furthermore, many games require long-term
+consistency in the environment. For example, imagine a
+game where an agent navigates through a maze. When the
+agent moves away and later returns to a location, it expects
+the scene to look consistent with what it has encountered
+before. In visual SLAM, detecting loop closure (returning
+to a previous location) is already known to be challenging,
+let alone generating one. Last but not least, both deterministic and stochastic behaviors typically exist in a game, and
+modeling the latter is known to be particularly hard.
+In this paper, we introduce GameGAN, a generative
+11231
+
+

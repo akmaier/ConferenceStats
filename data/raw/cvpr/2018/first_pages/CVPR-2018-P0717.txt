@@ -1,0 +1,77 @@
+Dynamic Zoom-in Network for Fast Object Detection in Large Images
+Mingfei Gao1 Ruichi Yu1 Ang Li2∗ Vlad I. Morariu3∗ Larry S. Davis1
+1
+University of Maryland, College Park 2 DeepMind 3 Adobe Research
+{mgao,richyu,lsd}@umiacs.umd.edu
+
+anglili@google.com
+
+morariu@adobe.com
+
+Abstract
+We introduce a generic framework that reduces the computational cost of object detection while retaining accuracy
+for scenarios where objects with varied sizes appear in high
+resolution images. Detection progresses in a coarse-to-fine
+manner, first on a down-sampled version of the image and
+then on a sequence of higher resolution regions identified
+as likely to improve the detection accuracy. Built upon reinforcement learning, our approach consists of a model (Rnet) that uses coarse detection results to predict the potential accuracy gain for analyzing a region at a higher resolution and another model (Q-net) that sequentially selects
+regions to zoom in. Experiments on the Caltech Pedestrians dataset show that our approach reduces the number of
+processed pixels by over 50% without a drop in detection
+accuracy. The merits of our approach become more significant on a high resolution test set collected from YFCC100M
+dataset, where our approach maintains high detection performance while reducing the number of processed pixels by
+about 70% and the detection time by over 50%.
+
+1. Introduction
+Most recent convolutional neural network (CNN) detectors are applied to images with relatively low resolution,
+e.g., VOC2007/2012 (about 500×400) [12, 13] and MS
+COCO (about 600×400) [26]. At such low resolutions, the
+computational cost of convolution is low. However, the resolution of everyday devices has quickly outpaced standard
+computer vision datasets. The camera of a 4K smartphone,
+for instance, has a resolution of 2,160×3,840 pixels and
+a DSLR camera can reach 6,000×4,000 pixels. Applying
+state-of-the-art CNN detectors directly to those high resolution images requires a large amount of processing time.
+Additionally, the convolution output maps are too large for
+the memory of current GPUs.
+Prior works address some of these issues by simplifying
+the network architecture [14, 41, 9, 23, 38] to speed up de∗ The work was done while the author was at the University of Maryland
+
+R-net
+State Representation
+Fine
+Detector
+
+Q-net
+Update
+& Iterate
+
+Fine
+Detector
+
+Step 1
+Step 2
+
+Zoom Region 1
+Zoom Region 2
+
+Figure 1: Illustration of our approach. The input is a downsampled version of the image to which a coarse detector is
+applied. The R-net uses the initial coarse detection results to
+predict the utility of zooming in on a region to perform detection at higher resolution. The Q-net, then uses the computed accuracy gain map and a history of previous zooms
+to determine the next zoom that is most likely to improve
+detection with limited computational cost.
+
+tection and reduce GPU memory consumption. However,
+these models are tailored to particular network structures
+and may not generalize well to new architectures. A more
+general direction is treating the detector as a black box that
+is judiciously applied to optimize accuracy and efficiency.
+For example, one could partition an image into sub-images
+that satisfy memory constraints and apply the CNN to each
+sub-image. However, this solution is still computationally
+burdensome. One could also speed up detection process and
+reduce memory requirements by running existing detectors
+on down-sampled images. However, the smallest objects
+may become too small to detect in the down-sampled images. Object proposal methods are the basis for most CNN
+
+6926
+
+

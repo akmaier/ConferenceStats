@@ -1,0 +1,81 @@
+IBRNet: Learning Multi-View Image-Based Rendering
+Qianqian Wang1,2 Zhicheng Wang1 Kyle Genova1,3 Pratul Srinivasan1 Howard Zhou1
+Jonathan T. Barron1 Ricardo Martin-Brualla1 Noah Snavely1,2 Thomas Funkhouser1,3
+1
+
+Google Research
+
+2
+
+Cornell Tech, Cornell University
+
+Abstract
+We present a method that synthesizes novel views of complex scenes by interpolating a sparse set of nearby views.
+The core of our method is a network architecture that includes a multilayer perceptron and a ray transformer that
+estimates radiance and volume density at continuous 5D
+locations (3D spatial locations and 2D viewing directions),
+drawing appearance information on the fly from multiple
+source views. By drawing on source views at render time,
+our method hearkens back to classic work on image-based
+rendering (IBR), and allows us to render high-resolution
+imagery. Unlike neural scene representation work that optimizes per-scene functions for rendering, we learn a generic
+view interpolation function that generalizes to novel scenes.
+We render images using classic volume rendering, which is
+fully differentiable and allows us to train using only multiview posed images as supervision. Experiments show that
+our method outperforms recent novel view synthesis methods that also seek to generalize to novel scenes. Further, if
+fine-tuned on each scene, our method is competitive with
+state-of-the-art single-scene neural rendering methods.1
+
+1. Introduction
+Given a set of posed images of a scene, the goal of novel
+view synthesis is to produce photo-realistic images of the
+same scene at novel viewpoints. Early work on novel view
+synthesis focused on image-based rendering (IBR). Starting
+from the pioneering work on view interpolation of Chen
+and Williams [6], and proceeding through light field rendering [3, 15, 28], view-dependent texturing [8], and more
+modern learning-based methods [17], IBR methods generally operate by warping, resampling, and/or blending source
+views to target viewpoints. Such methods can allow for highresolution rendering, but generally require either very dense
+input views or explicit proxy geometry, which is difficult to
+estimate with high quality leading to artifacts in rendering.
+1 https://ibrnet.github.io/
+
+3
+
+Princeton University
+
+More recently, one of the most promising research directions for novel view synthesis is neural scene representations,
+which represent scenes as the weights of neural networks.
+This research area has seen significant progress through the
+use of Neural Radiance Fields (NeRF) [40]. NeRF shows
+that multi-layer perceptrons (MLPs) combined with positional encoding can be used to represent the continuous 5D
+radiance field of a scene, enabling photo-realistic novel view
+synthesis on complex real-world scenes. NeRF’s use of continuous scene modeling via MLPs, as opposed to explicit
+discretized volumes [56] or multi-plane images [12, 70] allows for more compact representations and scales to larger
+viewing volumes.
+Although neural scene representations like NeRF can
+represent scenes faithfully and compactly, they typically
+require a lengthy optimization process for each new scene
+before they can synthesize any novel views of that scene,
+which limits the value of these methods for many real-world
+applications.
+In this work, we leverage ideas from both IBR and NeRF
+into a new learning-based method that generates a continuous scene radiance field on-the-fly from multiple source
+views for rendering novel views. We learn a general view
+interpolation function that simultaneously performs density/occlusion/visibility reasoning and color blending while
+rendering a ray. This enables our system to operate without any scene-specific optimization or precomputed proxy
+geometry.
+At the core of our method is a lightweight MLP network
+that we call IBRNet, which aggregates information from
+source views along a given ray to compute its final color.
+For sampled 3D locations along the ray, the network first
+fetches latent 2D features, derived from nearby source views,
+that encode spatial context. IBRNet then aggregates these
+2D features for each sampled location to produce a density
+feature that captures information about whether that feature
+seems to be on a surface. A ray transformer module then
+computes a scalar density value for each sample by considering these density features along the entire ray, enabling
+visibility reasoning across larger spatial scales. Separately, a
+
+4690
+
+

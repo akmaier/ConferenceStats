@@ -1,0 +1,97 @@
+Point2Seq: Detecting 3D Objects as Sequences
+Yujing Xue1,2 * Jiageng Mao3 * Minzhe Niu2 Hang Xu2 Michael Bi Mi4
+Wei Zhang2 Xiaogang Wang3 Xinchao Wang1†
+1
+National University of Singapore 2 Huawei Noah’s Ark Lab
+3
+The Chinese University of Hong Kong 4 Huawei International Pte Ltd
+
+Abstract
+We present a simple and effective framework, named
+Point2Seq, for 3D object detection from point clouds. In
+contrast to previous methods that normally predict attributes of 3D objects all at once, we expressively model the
+interdependencies between attributes of 3D objects, which
+in turn enables a better detection accuracy. Specifically,
+we view each 3D object as a sequence of words and reformulate the 3D object detection task as decoding words
+from 3D scenes in an auto-regressive manner. We further
+propose a lightweight scene-to-sequence decoder that can
+auto-regressively generate words conditioned on features
+from a 3D scene as well as cues from the preceding words.
+The predicted words eventually constitute a set of sequences
+that completely describe the 3D objects in the scene, and
+all the predicted sequences are then automatically assigned
+to the respective ground truths through similarity-based sequence matching. Our approach is conceptually intuitive
+and can be readily plugged upon most existing 3D-detection
+backbones without adding too much computational overhead; the sequential decoding paradigm we proposed, on
+the other hand, can better exploit information from complex 3D scenes with the aid of preceding predicted words.
+Without bells and whistles, our method significantly outperforms previous anchor- and center-based 3D object detection frameworks, yielding the new state of the art on
+the challenging ONCE dataset as well as the Waymo Open
+Dataset. Code is available at https://github.com/
+ocNflag/point2seq.
+
+1. Introduction
+3D object detection is a critical component of intelligent
+perception systems for self-driving, aiming to localize and
+recognize cars, pedestrians, and other key objects around
+an autonomous vehicle. With the increasing popularity of
+LiDAR sensors, 3D object detection from point clouds has
+* Joint first authors with equal contribution.
+† Corresponding author. Email: xinchao@nus.edu.sg
+
+3D Object as a Sequence
+
+Point Cloud
+
+Backbone
+
+BEV Feature
+Map
+
+Region
+𝑊𝑅
+
+Location
+𝑊𝐿
+
+Orientation
+𝑊𝑂
+
+Size
+𝑊𝑆
+
+Category
+𝑊𝐶
+
+Figure 1. Point2Seq reformulates the 3D object detection problem
+as auto-regressively generating sequences of words that can represent the 3D objects. The sequential decoding paradigm attains better detection performance compared to previous works that predict
+all attributes of the 3D objects in parallel, thanks to its competence
+in exploring intrinsic dependencies among object attributes.
+
+been receiving much attention owing to the advanced detection accuracy compared to other input modalities.
+In driving scenes, most 3D objects are extremely small
+relative to the detection range, and numerous approaches
+have been employed to detect those small objects from point
+clouds accurately. Anchor-based methods [13, 38] place
+predefined anchors on each pixel center of a Bird-Eye-View
+(BEV) feature map, while center-based approaches [9, 42]
+treat the pixels near object centers as positives and predict
+boxes using those pixel features. These methods rely on
+complex hand-crafted procedures of label assignments and
+post-processing, and quantization errors introduced by the
+BEV representations lead to severe misalignment between
+the object locations and the pixel features used to predict
+those objects. Approaches like [16, 25, 27] rely on a second refinement stage to mitigate the misalignment issue,
+yet at the cost of adding too much computational overhead.
+Therefore, learning more spatially-aligned features to detect the 3D objects accurately while maintaining a high efficiency poses an open challenge to the research community.
+To address the challenge, in this paper, we introduce
+Point2Seq, a flexible and streamlined framework for 3D object detection from point clouds. Unlike prior methods that
+typically predict all attributes of a 3D object (e.g., location,
+class, size) simultaneously, we represent each object as a
+sequence, in which each word corresponds to an object attribute, and we explicitly explore the inherent dependencies
+among words alongside their relations with the input 3D
+scene to progressively predict each attribute of 3D objects.
+Our motivation is quite intuitive: given the fact that each ob-
+
+8521
+
+

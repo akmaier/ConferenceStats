@@ -1,0 +1,72 @@
+Region Proposal by Guided Anchoring
+Jiaqi Wang1∗ Kai Chen1∗ Shuo Yang2 Chen Change Loy3 Dahua Lin1
+1
+CUHK - SenseTime Joint Lab, The Chinese University of Hong Kong
+2
+Amazon Rekognition 3 Nanyang Technological University
+{wj017,ck015,dhlin}@ie.cuhk.edu.hk
+
+Abstract
+Region anchors are the cornerstone of modern object
+detection techniques. State-of-the-art detectors mostly rely
+on a dense anchoring scheme, where anchors are sampled
+uniformly over the spatial domain with a predefined set of
+scales and aspect ratios. In this paper, we revisit this foundational stage. Our study shows that it can be done much
+more effectively and efficiently. Specifically, we present an
+alternative scheme, named Guided Anchoring, which leverages semantic features to guide the anchoring. The proposed method jointly predicts the locations where the center of objects of interest are likely to exist as well as the
+scales and aspect ratios at different locations. On top of
+predicted anchor shapes, we mitigate the feature inconsistency with a feature adaption module. We also study
+the use of high-quality proposals to improve detection performance. The anchoring scheme can be seamlessly integrated into proposal methods and detectors. With Guided
+Anchoring, we achieve 9.1% higher recall on MS COCO
+with 90% fewer anchors than the RPN baseline. We also
+adopt Guided Anchoring in Fast R-CNN, Faster R-CNN
+and RetinaNet, respectively improving the detection mAP
+by 2.2%, 2.7% and 1.2%. Code is available at https:
+//github.com/open-mmlab/mmdetection.
+
+1. Introduction
+Anchors are regression references and classification candidates to predict proposals (for two-stage detectors) or final
+bounding boxes (for single-stage detectors). Modern object
+detection pipelines usually begin with a large set of densely
+distributed anchors. Take Faster RCNN [27], a popular object detection framework, for instance, it first generates region proposals from a dense set of anchors and then classifies them into specific classes and refines their locations via
+bounding box regression.
+There are two general rules for a reasonable anchor de∗ Equal contribution.
+
+shuoy@amazon.com
+
+ccloy@ntu.edu.sg
+
+sign: alignment and consistency. Firstly, to use convolutional features as anchor representations, anchor centers
+need to be well aligned with feature map pixels. Secondly,
+the receptive field and semantic scope should be consistent
+with the scale and shape of anchors on different locations of
+a feature map. The sliding window is a simple and widely
+adopted anchoring scheme following the rules. For most detection methods, the anchors are defined by such a uniform
+scheme, where every location in a feature map is associated
+with k anchors with predefined scales and aspect ratios.
+Anchor-based detection pipelines have been shown effective in both benchmarks [6, 20, 7, 5] and real-world systems. However, the uniform anchoring scheme described
+above is not necessarily the optimal way to prepare the anchors. This scheme can lead to two difficulties: (1) A neat
+set of anchors of fixed aspect ratios has to be predefined for
+different problems. A wrong design may hamper the speed
+and accuracy of the detector. (2) To maintain a sufficiently
+high recall for proposals, a large number of anchors are
+needed, while most of them correspond to false candidates
+that are irrelevant to the object of interests. Meanwhile, a
+large number of anchors can lead to significant computational cost especially when the pipeline involves a heavy
+classifier in the proposal stage.
+In this work, we present a more effective method to prepare anchors, with the aim to mitigate the issues of handpicked priors. Our method is motivated by the observation
+that objects are not distributed evenly over the image. The
+scale of an object is also closely related to the imagery content, its location and geometry of the scene. Following this
+intuition, our method generates sparse anchors in two steps:
+first identifying sub-regions that may contain objects and
+then determining the shapes at different locations.
+Learnable anchor shapes are promising, but it breaks the
+aforementioned rule of consistency, thus presents a new
+challenge for learning anchor representations for accurate
+classification and regression. Scales and aspect ratios of anchors are now variable instead of fixed, so different feature
+map pixels have to learn adaptive representations that fit the
+corresponding anchors. To solve this problem, we introduce
+
+2965
+
+

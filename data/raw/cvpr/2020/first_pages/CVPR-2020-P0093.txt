@@ -1,0 +1,73 @@
+Structured Compression by Weight Encryption
+for Unstructured Pruning and Quantization
+Se Jung Kwon1∗
+Dongsoo Lee1∗
+Byeongwook Kim1
+1
+1
+Parichay Kapoor
+Baeseong Park
+Gu-Yeon Wei1,2
+1
+2
+Samsung Research, Republic of Korea
+Harvard University, MA
+{sejung0.kwon, dongsoo3.lee, byeonguk.kim, pk.kapoor, bpbs.park, gy.wei}@samsung.com
+
+Abstract
+Model compression techniques, such as pruning and
+quantization, are becoming increasingly important to reduce the memory footprints and the amount of computations. Despite model size reduction, achieving performance enhancement on devices is, however, still challenging mainly due to the irregular representations of
+sparse matrix formats. This paper proposes a new weight
+representation scheme for Sparse Quantized Neural Networks, specifically achieved by fine-grained and unstructured pruning method. The representation is encrypted in a
+structured regular format, which can be efficiently decoded
+through XOR-gate network during inference in a parallel
+manner. We demonstrate various deep learning models that
+can be compressed and represented by our proposed format
+with fixed and high compression ratio. For example, for
+fully-connected layers of AlexNet on ImageNet dataset, we
+can represent the sparse weights by only 0.28 bits/weight
+for 1-bit quantization and 91% pruning rate with a fixed
+decoding rate and full memory bandwidth usage. Decoding
+through XOR-gate network can be performed without any
+model accuracy degradation with additional patch data associated with small overhead.
+
+1. Introduction
+Deep neural networks (DNNs) are evolving to solve
+increasingly complex and varied tasks with dramatically
+growing data size [7]. As a result, the growth rate of model
+sizes for recent DNNs leads to slower response times and
+higher power consumption during inference [9]. To mitigate
+such concerns, model compression techniques have been introduced to significantly reduce model size of DNNs while
+maintaining reasonable model accuracy.
+It is well known that DNNs are designed to be overparameterized in order to ease local minima exploration
+∗ Equal contribution
+
+[5, 6]. Thus, various model compression techniques have
+been proposed for high-performance and/or low-power inference. For example, pruning techniques remove redundant weights (to zero) without compromising accuracy [18],
+in order to achieve memory and computation reduction on
+devices [11, 27, 37, 20]. As another model compression
+technique, non-zero weights can be quantized to fewer bits
+with comparable model accuracy of full-precision parameters, as discussed in [4, 28, 14, 32].
+To achieve even higher compression ratios, pruning and
+quantization can be combined to form Sparse Quantized
+Neural Networks (SQNNs). Intuitively, quantization can
+leverage parameter pruning since pruning reduces the number of weights to be quantized and quantization loss decreases accordingly [21]. Deep compression [10], ternary
+weight networks (TWN) [23], trained ternary quantization
+(TTQ) [36], and viterbi-based compression [1, 19] represent recent efforts to synergistically combine pruning and
+quantization.
+To benefit from sparsity, it is important to (1) represent
+pruned models in a format with small memory footprint and
+(2) implement fast computations with sparse matrices as input operands. Even if reduced SQNNs can be generated
+with a high pruning rate, it is challenging to gain performance enhancement without an inherently parallel sparsematrix decoding process during inference. To illustrate such
+a challenge, Figure 1 presents DRAM bandwidth, the number of transactions, and execution time of a matrix multiplication using one random (2048×2048) sparse matrix
+(following CSR format) and a random (2048×64) dense
+matrix on NVIDIA Tesla V100 (supported by CUDA 9.1).
+Because of unbalanced workloads (note that pruning each
+weight is a somewhat independent and random operation)
+and additional data for index, sparse matrix computations
+using CSR format do not offer performance gain as much
+as sparsity. Moreover, if pruning rate is not high enough,
+sparse matrix operations can be even slower than dense matrix operations.
+As such, structured and blocked-based pruning tech11909
+
+

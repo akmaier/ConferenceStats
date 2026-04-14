@@ -1,0 +1,149 @@
+PointNetVLAD: Deep Point Cloud Based Retrieval for Large-Scale Place
+Recognition
+Mikaela Angelina Uy Gim Hee Lee
+Department of Computer Science, National University of Singapore
+{mikacuy,gimhee.lee}@comp.nus.edu.sg
+
+Abstract
+Unlike its image based counterpart, point cloud based
+retrieval for place recognition has remained as an unexplored and unsolved problem. This is largely due to the difficulty in extracting local feature descriptors from a point
+cloud that can subsequently be encoded into a global descriptor for the retrieval task. In this paper, we propose the
+PointNetVLAD where we leverage on the recent success of
+deep networks to solve point cloud based retrieval for place
+recognition. Specifically, our PointNetVLAD is a combination/modification of the existing PointNet and NetVLAD,
+which allows end-to-end training and inference to extract
+the global descriptor from a given 3D point cloud. Furthermore, we propose the “lazy triplet and quadruplet” loss
+functions that can achieve more discriminative and generalizable global descriptors to tackle the retrieval task. We
+create benchmark datasets for point cloud based retrieval
+for place recognition, and the experimental results on these
+datasets show the feasibility of our PointNetVLAD. Our
+code and datasets are publicly available on the project website 1 .
+
+1. Introduction
+Localization addresses the question of “where am I in a
+given reference map”, and it is of paramount importance
+for robots such as self-driving cars [13] and drones [11]
+to achieve full autonomy. A common method for the localization problem is to first store a map of the environment as a database of 3D point cloud built from a collection
+of images with Structure-from-Motion (SfM) [15], or LiDAR scans with Simultaneous Localization and Mapping
+(SLAM) [44]. Given a query image or LiDAR scan of a
+local scene, we then search through the database to retrieve
+the best match that will tell us the exact pose of the query
+image/scan with respect to the reference map.
+A two-step approach is commonly used in image based
+localization [34, 33, 37, 50] - (1) place recognition [9, 8,
+25, 46, 12], followed by (2) pose estimation [14]. In place
+1 https://github.com/mikacuy/pointnetvlad.git
+
+Snow / Day
+
+No Snow / Night
+
+0.3
+
+0.3
+
+0.25
+
+0.25
+
+0.2
+
+0.2
+
+0.15
+
+0.15
+
+0.1
+
+0.1
+-0.8
+
+0.05
+
+0.05
+-0.6
+
+0
+-0.05
+
+-0.4
+
+-0.1
+-0.2
+
+0
+
+-0.8
+
+-0.05
+
+-0.6
+-0.4
+
+-0.1
+-0.2
+
+-0.15
+0
+
+0
+
+0.3
+0.3
+
+0.2
+0.2
+
+0.2
+
+0.2
+
+0.1
+0
+
+0.1
+
+0.4
+
+-0.1
+
+0
+
+0.4
+
+-0.1
+
+-0.2
+-0.3
+
+-0.2
+-0.3
+
+0.6
+
+0.6
+
+Figure 1. Two pairs of 3D LiDAR point clouds (top row) and images (bottom row) taken from two different times. It can be seen
+that the pair of 3D LiDAR point cloud remain largely invariant to
+the lighting and seasonal changes that made it difficult to match
+the pair of images. Data from [24].
+
+recognition, a global descriptor is computed for each of the
+images used in SfM by aggregating local image descriptors,
+e.g. SIFT, using the bag-of-words approach [26, 41]. Each
+global descriptor is stored in the database together with the
+camera pose of its associated image with respect to the 3D
+point cloud reference map. Similar global descriptor is extracted from the query image and the closest global descriptor in the database can be retrieved via an efficient search.
+The camera pose of the closest global descriptor would give
+us a coarse localization of the query image with respect to
+the reference map. In pose estimation, we compute the exact pose of the query image with the Perspective-n-Point
+(PnP) [14] and geometric verification [21] algorithms.
+The success of image based place recognition is largely
+attributed to the ability to extract image feature descriptors
+e.g. SIFT, that are subsequently aggregated with bag-ofwords to get the global descriptor. Unfortunately, there is
+no algorithm to extract local features similar to SIFT for
+LiDAR scans. Hence, it becomes impossible to compute
+global descriptors from the bag-of-word approach to do Li14470
+
+

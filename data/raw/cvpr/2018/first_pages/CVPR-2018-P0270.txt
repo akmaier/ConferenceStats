@@ -1,0 +1,78 @@
+Geometry-Aware Learning of Maps for Camera Localization
+Samarth Brahmbhatt1
+1
+
+Jinwei Gu2
+
+Kihwan Kim2
+
+{samarth.robo, hays}@gatech.edu
+1
+
+2
+
+James Hays1
+
+Jan Kautz2
+
+{jinweig, kihwank, jkautz}@nvidia.com
+
+Georgia Institute of Technology
+
+2
+
+NVIDIA
+
+Abstract
+Maps are a key component in image-based camera localization and visual SLAM systems: they are used to establish geometric constraints between images, correct drift
+in relative pose estimation, and relocalize cameras after lost
+tracking. The exact definitions of maps, however, are often
+application-specific and hand-crafted for different scenarios (e.g. 3D landmarks, lines, planes, bags of visual words).
+We propose to represent maps as a deep neural net called
+MapNet, which enables learning a data-driven map representation. Unlike prior work on learning maps, MapNet exploits cheap and ubiquitous sensory inputs like visual
+odometry and GPS in addition to images and fuses them
+together for camera localization. Geometric constraints expressed by these inputs, which have traditionally been used
+in bundle adjustment or pose-graph optimization, are formulated as loss terms in MapNet training and also used
+during inference. In addition to directly improving localization accuracy, this allows us to update the MapNet (i.e.,
+maps) in a self-supervised manner using additional unlabeled video sequences from the scene. We also propose a
+novel parameterization for camera rotation which is better suited for deep-learning based camera pose regression.
+Experimental results on both the indoor 7-Scenes dataset
+and the outdoor Oxford RobotCar dataset show significant
+performance improvement over prior work. The MapNet
+project webpage is https://goo.gl/mRB3Au.
+
+1. Introduction
+Camera localization i.e. recovering the 3D position and
+orientation of a moving camera is one of the fundamental
+tasks in computer vision with a wide variety of applications in robotics, autonomous driving, and AR/VR. A key
+component in camera localization, including various visual
+SLAM systems [20, 42, 56] and image-based localization
+methods [35, 46, 47] is the concept of a map. A map is an
+abstract summary of the input data that establishes geometric constraints between observations and can be queried to
+get the camera pose when tracking is drifting or lost. Maps,
+however, are usually defined in an application-specific man-
+
+Figure 1: Camera localization results for outdoor (left) and
+indoor (right) scenes from the Oxford RobotCar [38] and 7Scenes [48] datasets. As shown, prior DNN-based methods (e.g.,
+PoseNet [32, 30, 31]) result in noisy estimations, while traditional
+visual odometry based methods (e.g., stereo VO or DSO [18]) often drift over time. In contrast, MapNet gives accurate camera
+pose estimates by including various geometric constraints in DNN
+training and inference.
+
+ner with hand-crafted features. Examples include 3D landmarks for general visual SLAM methods [34, 35, 42], 3D
+lines and patches in semi-dense SLAM methods and indoor scenes [20, 43, 56], object-level context in semantic
+SLAM methods [10, 45], bag of visual word features on
+key frames for camera relocalization [12, 46, 47]. Being
+application-specific, these map representations may ignore
+useful (sometimes, the only available) features in environments they were not designed for, and are inflexible to update as more input data come in.
+Is there a general map representation for camera localization that addresses these drawbacks? In this paper, we take a
+step towards answering this question. We propose to represent maps as a DNN, called MapNet, which learns the map
+representation directly from input data, with the flexibility
+to fuse multiple sensory inputs and to improve over time
+using unlabeled data. MapNet aims to be a part that can be
+easily plugged into any visual SLAM or image-based localization systems. We are inspired by both the recent DNNbased camera localization work (e.g., PoseNet [32] and its
+variants [11, 31, 40, 55]) in the context of structure-frommotion, as well as the traditional map optimization methods
+(e.g., bundle adjustment (BA) [22, 23, 39], pose graph optimization (PGO) [8, 17, 37]) in the context of visual SLAM.
+Compared to these prior works, our approach makes the fol12616
+
+

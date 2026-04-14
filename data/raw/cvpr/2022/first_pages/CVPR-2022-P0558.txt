@@ -1,0 +1,86 @@
+Which Model to Transfer? Finding the Needle in the Growing Haystack
+Cedric Renggli*
+ETH Zurich
+
+André Susano Pinto
+Google Research
+
+Carlos Riquelme
+Google Research
+
+Luka Rimanic
+ETH Zurich
+
+Ce Zhang
+ETH Zurich
+
+Abstract
+Transfer learning has been recently popularized as a
+data-efficient alternative to training models from scratch,
+in particular for computer vision tasks where it provides a
+remarkably solid baseline. The emergence of rich model
+repositories, such as TensorFlow Hub, enables the practitioners and researchers to unleash the potential of these
+models across a wide range of downstream tasks. As these
+repositories keep growing exponentially, efficiently selecting a good model for the task at hand becomes paramount.
+We provide a formalization of this problem through a familiar notion of regret and introduce the predominant strategies, namely task-agnostic (e.g. ranking models by their
+ImageNet performance) and task-aware search strategies
+(such as linear or kNN evaluation). We conduct a largescale empirical study and show that both task-agnostic and
+task-aware methods can yield high regret. We then propose
+a simple and computationally efficient hybrid search strategy which outperforms the existing approaches. We highlight the practical benefits of the proposed solution on a set
+of 19 diverse vision tasks.
+
+1. Introduction
+Services such as TensorFlow Hub or PyTorch Hub1 offer
+a plethora of pre-trained models that often achieve state-ofthe-art performance on specific tasks in the vision domain.
+The predominant approach, namely choosing a pre-trained
+model and fine-tuning it to the downstream task, is an effective and data efficient approach [12, 13, 18, 23, 33, 35].
+Perhaps surprisingly, this approach is also effective when
+the pre-training task is significantly different from the target
+task, such as when applying an ImageNet pre-trained model
+to diabetic retinopathy classification [20]. Fine-tuning often entails adding several more layers to the pre-trained
+deep network and tuning all the parameters using a limited
+* Work done while interning at Google Research. Correspondence to C.
+Renggli (cedric.renggli@inf.ethz.ch) and M. Lucic (lucic@google.com).
+1 https://tfhub.dev and https://pytorch.org/hub
+
+Joan Puigcerver
+Google Research
+
+Mario Lucic
+Google Research
+
+amount of downstream data. Due to the fact that all parameters are being updated, this process can be extremely
+costly in terms of compute [35]. Fine-tuning all models to
+find the best performing one is becoming computationally
+infeasible. A more efficient alternative is to simply train
+a cheap classifier on top of the learned representation (e.g.
+pre-logits). However, the performance gap with respect to
+fine-tuning can be rather large [13, 14].
+This raises a very practical question: Given a new task,
+how to pick the best model to fine-tune? This question was
+intensively studied in recent years and existing approaches
+can be divided into two groups: (a) task-agnostic model
+search strategies, which rank pre-trained models independently of the downstream task (e.g. ranking the models by
+ImageNet accuracy, if available) [14], and (b) task-aware
+model search strategies, which make use of the downstream
+dataset in order to rank models (e.g. kNN classifier accuracy as a proxy for fine-tuning accuracy, or using the metalearned Task2Vec representations) [1, 16, 22]. Most of the
+prior work attempts to answer this question by using a homogeneous sets of pre-trained models whereby the models
+share the same architecture or they were trained on the same
+dataset. However, this does not reflect the current landscape
+of models available in online repositories.
+As a result, several practically relevant questions remained open. Firstly, how do existing methods compare
+in the presence of both “generalist models” (e.g. models
+trained on a relatively diverse distribution such as ImageNet) and “expert models” (e.g. trained on domain-specific
+datasets such as plants), across a diverse collection of
+datasets? Secondly, is there a method which strikes a good
+balance between computational cost and performance?
+Our contributions. In this paper, we provide a largescale, systematic empirical study of these questions. (i) We
+define and motivate the model search problem through a notion of regret. We conduct the first study of this problem in
+a realistic setting focusing on heterogeneous model pools.
+(ii) We consider 19 downstream tasks on a heterogeneous
+set of 46 models grouped into 5 representative sets. (iii) We
+highlight the dependence of the performance of each strat-
+
+9205
+
+

@@ -1,0 +1,80 @@
+FBI-Denoiser: Fast Blind Image Denoiser for Poisson-Gaussian Noise
+Jaeseok Byun1∗, Sungmin Cha1∗, and Taesup Moon2†
+1
+Department of Electrical and Computer Engineering, Sungkyunkwan University, Suwon, Korea
+2
+Department of Electrical and Computer Engineering, Seoul National University, Seoul, Korea
+{wotjr3868, csm9593}@skku.edu, tsmoon@snu.ac.kr
+
+Abstract
+We consider the challenging blind denoising problem for
+Poisson-Gaussian noise, in which no additional information
+about clean images or noise level parameters is available.
+Particularly, when only “single” noisy images are available for training a denoiser, the denoising performance of
+existing methods was not satisfactory. Recently, the blind
+pixelwise affine image denoiser (BP-AIDE) was proposed
+and significantly improved the performance in the above
+setting, to the extent that it is competitive with denoisers
+which utilized additional information. However, BP-AIDE
+seriously suffered from slow inference time due to the inefficiency of noise level estimation procedure and that of the
+blind-spot network (BSN) architecture it used. To that end,
+we propose Fast Blind Image Denoiser (FBI-Denoiser) for
+Poisson-Gaussian noise, which consists of two neural network models; 1) PGE-Net that estimates Poisson-Gaussian
+noise parameters 2000 times faster than the conventional
+methods and 2) FBI-Net that realizes a much more efficient
+BSN for pixelwise affine denoiser in terms of the number
+of parameters and inference speed. Consequently, we show
+that our FBI-Denoiser blindly trained solely based on single
+noisy images can achieve the state-of-the-art performance
+on several real-world noisy image benchmark datasets with
+much faster inference time (×10), compared to BP-AIDE.
+
+1. Introduction
+Convolutional neural network (CNN)-based denoisers
+achieved impressive state-of-the-art denoising performances
+mainly by utilizing the supervised learning approach based
+on collecting many clean and noisy image pairs. The performance gain was first shown in the additive white Gaussian
+noise setting [47, 42, 48, 26, 36, 14], then the approach was
+extended also to the Poisson-Gaussian noise setting, which
+better models the real-world source-dependent noise. It was
+∗ Equal contribution.
+† Corresponding author (E-mail: tsmoon@snu.ac.kr)
+
+demonstrated that the gain was attained not only with respect
+to the quantitative metrics, e.g., PSNR or SSIM [44], on the
+real-world noise benchmarks such as DND [35], SIDD [3]
+and FMD [49], but also with respect to the inference time for
+denoising (using GPUs), compared to the more conventional
+prior- or optimization-based methods [17, 21].
+Despite above promising achievements, the plain supervised learning approach has a critical drawback in a more
+practical, real-world setting, since the availability of the
+enough number of the clean-noisy images pairs for training
+is sometimes a luxury that cannot be simply assumed. For
+example, in medical imaging (CT or MRI), obtaining the underlying clean image for a noisy image becomes extremely
+time-consuming and expensive. In order to overcome this
+drawback, several attempts have been made in recent years.
+The first approach is to utilize unpaired clean images and
+generate synthetic noisy images to again carry on the supervised training with the generated pairs. For example, in
+[7, 46], based on in-camera signal processing (ISP) pipeline
+and specific Poisson-Gaussian noise parameters, they generated synthetic noisy sRGB or rawRGB images from clean
+sRGB images. Another examples can be found in [45, 16], in
+which they learned a model to generate noise present in the
+given noisy images, then used that model to corrupt the clean
+images to build paired supervised training set. While these
+approaches were shown to achieve good performance for
+some specific settings, they either lack generalities or have
+limited performance for real-world noisy image denoising.
+The second recent approach to remove the requirement of
+clean-noisy pairs is to train a denoiser solely based on noisy
+images [25, 23, 6, 24, 38, 34, 13, 41]. However, those methods also had their own limitations, such as requiring pairs
+of independently realized noisy images for the same clean
+source [25, 50], poor performance on benchmark datasets
+[23, 6], large inference time due to requiring many number
+of samplings [38], or limited or no experiment on real-world
+noise setting [24, 34, 41, 50, 13].
+Recently, BP-AIDE [10], which extends the framework
+of [12, 11], was proposed as another attempt to lift the requirement of clean images. Namely, the scheme made a
+
+5768
+
+

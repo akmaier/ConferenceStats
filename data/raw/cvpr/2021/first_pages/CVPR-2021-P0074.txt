@@ -1,0 +1,171 @@
+Distilling Object Detectors via Decoupled Features
+Jianyuan Guo1,2 , Kai Han1 , Yunhe Wang1∗, Han Wu2 , Xinghao Chen1 , Chunjing Xu1 , Chang Xu2∗
+1
+
+2
+
+Noah’s Ark Lab, Huawei Technologies.
+School of Computer Science, Faculty of Engineering, University of Sydney.
+
+{jianyuan.guo, kai.han, yunhe.wang}@huawei.com; c.xu@sydney.edu.au
+
+without KD
+COCO mAP = 37.7%
+
+Abstract
+
+6.9%
+5.4%
+
+Bed
+
+Knowledge distillation is a widely used paradigm for inheriting information from a complicated teacher network to
+a compact student network and maintaining the strong performance. Different from image classification, object detectors are much more sophisticated with multiple loss functions in which features that semantic information rely on
+are tangled. In this paper, we point out that the information
+of features derived from regions excluding objects are also
+essential for distilling the student detector, which is usually ignored in existing approaches. In addition, we elucidate that features from different regions should be assigned
+with different importance during distillation. To this end,
+we present a novel distillation algorithm via decoupled features (DeFeat) for learning a better student detector. Specifically, two levels of decoupled features will be processed for
+embedding useful information into the student, i.e., decoupled features from neck and decoupled proposals from classification head. Extensive experiments on various detectors
+with different backbones show that the proposed DeFeat is
+able to surpass the state-of-the-art distillation methods for
+object detection. For example, DeFeat improves ResNet50
+based Faster R-CNN from 37.4% to 40.9% mAP, and improves ResNet50 based RetinaNet from 36.5% to 39.7%
+mAP on COCO benchmark. Code will be released1,2 .
+
+1. Introduction
+As one of the fundamental computer vision tasks, object detection has attracted increasing attention in various
+real-world applications including autonomous driving and
+surveillance video analysis. Recent advances of deep learning introduce many convolutional neural network based
+solutions to object detection. The backbone of a detector is often composed of heavy convolution operations to
+produce intensive features that is critical to the detection
+∗ Corresponding author.
+1 https://github.com/huawei-noah/noah-research/tree/master/DeFeat
+2 https://www.mindspore.cn/resources/hub
+
+6.4%
+
+KD: object regions
+COCO mAP = 39.9%
+
+KD: background regions
+COCO mAP = 39.9%
+
+5.0%
+5.9%
+5.7%
+
+6.9%
+4.2%
+4.8%
+3.2%
+
+3.2%
+4.0%
+
+10.0%
+
+10.0%
+
+8.8%
+
+68.5%
+
+70.9%
+70.2%
+
+Cor
+Sandwich
+
+Loc
+
+Sim
+
+Oth
+
+BG
+
+FN
+
+Cor
+
+Loc
+
+26.8%
+29.7%
+
+Sim
+
+Oth
+
+BG
+
+4.4%
+
+Loc
+
+Sim
+
+Oth
+
+BG
+
+FN
+
+27.3%
+
+3.6%
+
+4.7%
+
+16.8%
+
+Cor
+
+27.7%
+
+27.7%
+
+14.7%
+
+7.6%
+
+FN
+
+27.3%
+
+16.1%
+
+17.1%
+16.3%
+
+18.8%
+5.4%
+
+8.0%
+
+Figure 1. Error analyses of different distillation methods on COCO
+minival. KD via background regions alleviates the false positive
+rate and achieves comparable result with KD via object regions.
+Cor: correct class (IoU > 0.5). Loc: correct class but misaligned
+box (0.1 < IoU < 0.5). Sim: wrong class but correct supercategory (IoU > 0.1). Oth: wrong class (IoU > 0.1). BG: background
+false positives (IoU < 0.1). FN: false negatives (remaining errors).
+
+accuracy. But doing so inevitably results in a sharp increase in the cost of computing resource and an apparent
+decrease in detection speed. Techniques such as quantization [19, 58, 31, 57, 62], pruning [2, 17, 20], network
+design [55, 49, 15, 18] and knowledge distillation [56, 6]
+have been developed to overcome this dilemma and achieve
+an efficient inference on detection task. We are particularly interested in knowledge distillation [24], as it provides
+an elegant way to learn a compact student network when
+a performance proven teacher network is available. Classical knowledge distillation methods are firstly developed
+for the classification task to decide which category the image belongs to. The information from soft label outputs
+[24, 28, 38, 13] or intermediate features [1, 23, 66] of a
+well-optimized teacher network have been well exploited to
+learn the student networks, but these methods cannot be directly extended to the detection task which needs to further
+figure out where the objects are.
+There are a few attempts investigating knowledge distillation in the object detection task. For example, FGFI [56]
+asks the student network to imitate the teacher network on
+
+2154
+
+

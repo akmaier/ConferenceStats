@@ -1,0 +1,94 @@
+Taskology: Utilizing Task Relations at Scale
+Yao Lu1 2 , Sören Pirk1,2 , Jan Dlabal2 , Anthony Brohan1,2 , Ankita Pasad3∗,
+Zhao Chen4 , Vincent Casser4 , Anelia Angelova1,2 , Ariel Gordon1,2
+1
+Robotics at Google, 2 Google Research, 3 Toyota Technological Institute at Chicago, 4 Waymo LLC
+{yaolug, pirk, dlabal, brohan}@google.com, ankitap@ttic.edu,
+{zhaoch, casser}@waymo.com, {anelia, gariel}@google.com
+
+Abstract
+Many computer vision tasks address the problem of
+scene understanding and are naturally interrelated e.g. object classification, detection, scene segmentation, depth estimation, etc. We show that we can leverage the inherent relationships among collections of tasks, as they are
+trained jointly, supervising each other through their known
+relationships via consistency losses. Furthermore, explicitly utilizing the relationships between tasks allows improving their performance while dramatically reducing the need
+for labeled data, and allows training with additional unsupervised or simulated data. We demonstrate a distributed
+joint training algorithm with task-level parallelism, which
+affords a high degree of asynchronicity and robustness. This
+allows learning across multiple tasks, or with large amounts
+of input data, at scale. We demonstrate our framework on
+subsets of the following collection of tasks: depth and normal prediction, semantic segmentation, 3D motion and egomotion estimation, and object tracking and 3D detection
+in point clouds. We observe improved performance across
+these tasks, especially in the low-label regime.
+
+1. Introduction
+Many tasks in computer vision, such as depth and surface
+normal estimation, flow prediction, pose estimation, semantic segmentation, or classification, are inherently related as
+they describe the surrounding scene along with its dynamics. While solving for each of these tasks may require specialized methods, most tasks are connected by the underlying physics observed in the real world. A considerable
+amount of research aims to reveal the relationships between
+tasks [60, 5, 15, 56, 13, 54, 55], but only a few methods
+exploit these fundamental relationships. Some approaches
+rely on the unparalleled performance of deep networks to
+learn explicit mappings between tasks [55, 54]. However,
+while training tasks pairs leverages their relationships, it
+∗ Work done while at Robotics at Google
+
+Supervision∇
+Loss 1
+
+∇
+
+∇
+
+Consistency
+Loss
+
+Task 1
+
+Supervision
+Loss 2
+
+∇
+
+∇
+Task 2
+
+Images
+Labels
+
+Labels
+Images
+
+Dataset 1
+
+Mediator dataset
+(unlabeled)
+
+Images
+
+Dataset 2
+
+Figure 1. Illustration of our framework for the collective training of
+multiple tasks with a consistency loss (two tasks are shown). Each
+task is performed by a separate network, and trained on a its own
+dataset and a shared unlabeled mediator dataset. The consistency
+loss is imposed for samples from the mediator dataset.
+
+may lead to inconsistencies across multiple tasks, e.g. [55],
+and points to the alternative of training tasks jointly.
+Multi-task learning targets the problem of training multiple tasks jointly. Common to many approaches is a shared
+feature-extractor component with multiple “heads” that perform separate tasks [15, 56, 13]. Training multiple tasks together increases the coherency between them and – in some
+setups – also enables their self-supervision [60, 5]. However, the joint training also has a few disadvantages. For
+one, a single model for multiple tasks is difficult to design,
+maintain and improve, as any changes in the training data,
+losses, or hyperparameters associated with one of the tasks,
+also affects all others. Secondly, different modalities come
+with different architectures, which are difficult to merge into
+a single model. For example, point clouds require sparse
+processing [43], while tensored images use CNNs. Thirdly,
+it can become intractable to process a single model – built
+to perform multiple tasks – on a single compute node.
+In this paper we introduce a novel approach for distributed collective training that explicitly leverages the inherent connections between multiple tasks (Fig. 1). Con-
+
+8700
+
+

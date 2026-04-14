@@ -1,0 +1,156 @@
+Understanding the Disharmony between Dropout and Batch Normalization by
+Variance Shift
+Xiang Li∗1,2 , Shuo Chen1 , Xiaolin Hu†3 and Jian Yang‡1
+1
+
+2
+
+PCALab, Nanjing University of Science and Technology
+
+Abstract
+
+1. Introduction
+Srivastava et al. [28] brought Dropout as a simple way to
+prevent neural networks from overfitting. It has been proved
+to be significantly effective over a large range of machine
+learning areas, such as image classification [26, 2], speech
+∗ Xiang Li, Shuo Chen and Jian Yang are with PCA Lab, Key Lab of
+Intelligent Perception and Systems for High-Dimensional Information of
+Ministry of Education, and Jiangsu Key Lab of Image and Video Understanding for Social Security, School of Computer Science and Engineering,
+Nanjing University of Science and Technology, China. Xiang Li is also a
+visiting scholar at Momenta. Email: xiang.li.implus@njust.edu.cn
+† Xiaolin Hu is with the Tsinghua National Laboratory for Information
+Science and Technology (TNList) Department of Computer Science and
+Technology, Tsinghua University, China.
+‡ Corresponding author.
+
+Dropout 𝑎~Bernoulli(𝑝)
+
+Train Mode
+
+Test Mode
+
+𝑋=𝑎
+
+1
+𝑥
+𝑝
+
+3.5
+
+Tsinghua University
+
+BN
+
+𝑋
+
+𝜇 = 𝐸 𝑋 , 𝜎 2 = 𝑉𝑎𝑟 𝑋 , 𝑋෠ =
+
+1
+
+𝑉𝑎𝑟 𝑇𝑟𝑎𝑖𝑛 𝑋 = 𝑝
+
+𝑉𝑎𝑟 𝑇𝑒𝑠𝑡 𝑋 = 1
+
+𝑋=𝑥
+
+𝑥~𝒩(0,1)
+
+real_vari , moving_vari )
+max(moving
+_vari
+real_vari
+
+This paper first answers the question “why do the two
+most powerful techniques Dropout and Batch Normalization (BN) often lead to a worse performance when they are
+combined together in many modern neural networks, but
+cooperate well sometimes as in Wide ResNet (WRN)?” in
+both theoretical and empirical aspects. Theoretically, we
+find that Dropout shifts the variance of a specific neural
+unit when we transfer the state of that network from training to test. However, BN maintains its statistical variance,
+which is accumulated from the entire learning procedure, in
+the test phase. The inconsistency of variances in Dropout
+and BN (we name this scheme “variance shift”) causes the
+unstable numerical behavior in inference that leads to erroneous predictions finally. Meanwhile, the large feature
+dimension in WRN further reduces the “variance shift” to
+bring benefits to the overall performance. Thorough experiments on representative modern convolutional networks like
+DenseNet, ResNet, ResNeXt and Wide ResNet confirm our
+findings. According to the uncovered mechanism, we get
+better understandings in the combination of these two techniques and summarize guidelines for better practices.
+
+𝑥~𝒩(0,1)
+
+3
+
+Momenta
+
+𝑋
+
+𝐸𝑀𝑜𝑣𝑖𝑛𝑔 𝑋 ← 𝐸(𝜇)
+
+𝑋−𝜇
+
+𝜎2 + 𝜀
+𝑉𝑎𝑟𝑀𝑜𝑣𝑖𝑛𝑔 𝑋 ← 𝐸(𝜎 2 )
+
+1
+𝑝
+
+𝑉𝑎𝑟 𝑀𝑜𝑣𝑖𝑛𝑔 𝑋 = 𝐸( )
+1
+𝑝
+
+𝑉𝑎𝑟 𝑀𝑜𝑣𝑖𝑛𝑔 𝑋 = 𝐸( )
+
+𝑋෠ =
+
+𝑋−𝐸 𝑀𝑜𝑣𝑖𝑛𝑔 (𝑋)
+
+𝑉𝑎𝑟 𝑀𝑜𝑣𝑖𝑛𝑔 𝑋 +𝜀
+
+Test Acc 77.42%, No Dropout in each bottleneck
+Test Acc 68.55%, Dropout 0.5 in each bottleneck
+
+3.0
+2.5
+2.0
+1.5
+1.0
+0.5
+
+0
+
+20
+
+40
+
+60
+
+80
+
+BN layer index on DenseNet trained on CIFAR100
+
+100
+
+Figure 1. Up: a simplified mathematical illustration of “variance
+shift”. In test mode, the neural variance of X is different from
+that in train mode caused by Dropout, yet BN attempts to treat that
+variance as the popular statistics accumulated from training. Note
+that p denotes the Dropout retain ratio and a comes from Bernoulli
+distribution which has probability p of being 1. Down: variance
+shift in experimental statistics on DenseNet trained on CIFAR100
+dataset. The curves are both calculated from the same training
+data. “moving vari ” is the moving variance (take its mean value
+instead if it is a vector) that the i-th BN layer accumulates during
+the entire learning, and “real vari ” stands for the real variance of
+neural response before the i-th BN layer in inference.
+
+recognition [9, 5, 3] and even natural language processing
+[18, 15]. Before the birth of Batch Normalization (BN),
+it became a necessity of almost all the state-of-the-art networks and successfully boosted their performances against
+overfitting risks, despite its amazing simplicity.
+Ioffe and Szegedy [17] demonstrated BN, a powerful
+
+2682
+
+

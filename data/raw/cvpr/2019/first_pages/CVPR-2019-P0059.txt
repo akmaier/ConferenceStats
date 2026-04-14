@@ -1,0 +1,113 @@
+Knowledge Adaptation for Efficient Semantic Segmentation
+Tong He1 Chunhua Shen1∗ Zhi Tian1 Dong Gong1 Changming Sun2 Youliang Yan3
+1
+The University of Adelaide 2 Data61, CSIRO 3 Noah’s Ark Lab, Huawei Technologies
+
+Abstract
+
+mIOU
+
+Both accuracy and efficiency are of significant importance to the task of semantic segmentation. Existing deep
+FCNs suffer from heavy computations due to a series of
+high-resolution feature maps for preserving the detailed
+knowledge in dense estimation. Although reducing the feature map resolution (i.e., applying a large overall stride) via
+subsampling operations (e.g., polling and convolution striding) can instantly increase the efficiency, it dramatically decreases the estimation accuracy. To tackle this dilemma,
+we propose a knowledge distillation method tailored for
+semantic segmentation to improve the performance of the
+compact FCNs with large overall stride. To handle the inconsistency between the features of the student and teacher
+network, we optimize the feature similarity in a transferred
+latent domain formulated by utilizing a pre-trained autoencoder. Moreover, an affinity distillation module is proposed
+to capture the long-range dependency by calculating the
+non-local interactions across the whole image. To validate
+the effectiveness of our proposed method, extensive experiments have been conducted on three popular benchmarks:
+Pascal VOC, Cityscapes and Pascal Context. Built upon a
+highly competitive baseline, our proposed method can improve the performance of a student network by 2.5% (mIOU
+boosts from 70.2 to 72.7 on the cityscapes test set) and can
+train a better compact model with only 8% float operations (FLOPS) of a model that achieves comparable performances.
+
+73
+
+1. Introduction
+Semantic segmentation is a crucial and challenging task
+for image understanding [3, 5, 4, 33, 14, 33, 16, 17, 24]. It
+aims to predict a dense labeling map for the input image,
+which assigns each pixel a unique category label. Semantic
+segmentation has shown great potential in many applications like autonomous driving and video surveillance. Recently, deep fully convolution network (FCN) based methods [3, 5] have achieved remarkable results in semantic segmentation. Extensive methods have been investigated to im∗ Corresponding author.
+
+OS: 8
+mIoU: 72.9,
+FLOPS: 17.70
+
+OS: 16
+mIoU: 72.5,
+FLOPS: 5.50
+
+72
+
+OS: 8
+mIoU: 71.9,
+FLOPS: 17.70
+
+71
+70
+
+OS: 32
+mIoU: 70.7,
+FLOPS: 3.23
+
+OS: 4
+mIoU: 73.0,
+FLOPS: 67.03
+
+OS: 4
+mIoU: 72.3,
+FLOPS: 67.03
+
+OS: 16
+mIoU: 70.5,
+FLOPS: 5.50
+
+69
+68
+
+OS: 32
+mIoU: 68.9,
+FLOPS: 3.23
+
+5
+
+10
+
+15
+
+20
+
+60
+
+FLOPS(G)
+
+Figure 1 – The relation between FLOPS and performance. Blue dots are
+the performance of student model (MobilNetV2), while red dots are the
+performance of student model with our proposed knowledge distillation
+method. The performance is trained on the PASCAL VOC trainaug set
+and tested on the val set. OS means output stride. With the help of our
+proposed method, the student model with low resolution (16s) of the feature maps outperforms the model with large feature maps (4s) by using
+only 8% FLOPS.
+
+prove the performance by introducing sophisticated models
+with a large number of parameters. To preserve the detailed
+semantic structures in the dense estimation, many state-ofthe-art FCN based methods [31, 3, 4, 5] maintain a series
+of high-resolution feature maps by applying a small overall stride [5], which causes heavy computations and limits
+the practicability of semantic segmentation. For example,
+Chen proposed DeepLabV3+ [5] and achieved state-of-theart performance on many open benchmarks such as Pascal VOC [8] and Cityscapes [7]. However, this is obtained
+back-boned on a large model: Xception-65 [6], which contains more than 41.0M parameters and 1857G FLOPS and
+runs at 1.3 FPS on a single 1080Ti GPU card if the output stride is set to 16. Even worse, 6110G FLOPS will be
+needed and running at 0.4 FPS with output stride of 8. Similar situation can be found in lightweight models (see Fig. 1).
+One instant way to address this limitation is to reduce
+the resolution of a series of feature maps via sub-sampling
+operations like pooling and convolution striding. However,
+unsatisfactory estimation accuracy will be incurred for the
+
+578
+
+

@@ -1,0 +1,67 @@
+Learning to Segment 3D Point Clouds in 2D Image Space
+Yecheng Lyu∗
+Xinming Huang
+Ziming Zhang
+Worcester Polytechnic Institute
+{ylyu, xhuang, zzhang15}@wpi.edu
+
+Abstract
+In contrast to the literature where local patterns in 3D
+point clouds are captured by customized convolutional operators, in this paper we study the problem of how to effectively
+and efficiently project such point clouds into a 2D image
+space so that traditional 2D convolutional neural networks
+(CNNs) such as U-Net can be applied for segmentation. To
+this end, we are motivated by graph drawing and reformulate it as an integer programming problem to learn the
+topology-preserving graph-to-grid mapping for each individual point cloud. To accelerate the computation in practice,
+we further propose a novel hierarchical approximate algorithm. With the help of the Delaunay triangulation for graph
+construction from point clouds and a multi-scale U-Net for
+segmentation, we manage to demonstrate the state-of-the-art
+performance on ShapeNet and PartNet, respectively, with
+significant improvement over the literature. Code is available at https://github.com/Zhang-VISLab.
+Figure 1: State-of-the-art part segmentation performance comparison on
+
+1. Introduction
+
+ShapeNet, where IoU denotes intersection-over-union.
+
+Recently point cloud processing has been attracting more
+and more attention [45, 44, 17, 46, 10, 61, 34, 25, 57, 29, 66,
+30, 73, 72, 33, 71, 18, 39, 27, 38, 60, 28, 53, 47, 70]. As a
+fundamental data structure to store the geometric features, a
+point cloud saves the 3D positions of points scanned from
+the physical world as an orderless list. In contrast, images
+have regular patterns on 2D grid with well-organised pixels
+in local neighborhood. Such local regularity is beneficial for
+fast 2D convolution, leading to well-designed convolutional
+neural networks (CNNs) such as FCN [35], GoogleNet [54]
+and ResNet [16] that can efficiently and effectively extract
+local features from pixels to semantics with state-of-the-art
+performance for different applications.
+Motivation. In fact PointNet1 [45] for point cloud classification and segmentation can be re-interpreted from the
+perspective of CNN. In general, PointNet projects each 3D
+
+(x, y, z)-point into a higher dimensional feature space using
+a multilayer perceptron (MLP) and pools all the features
+from a cloud globally as a cloud signature for further usage.
+As an equivalent CNN implementation, one can construct
+an (x, y, z)-image with all the 3D points as the pixels in
+a random order and (0, 0, 0) for the rest of the image, and
+apply 1 × 1 convolutional kernels sequentially to the image,
+followed by a global max-pooling operator. Different from
+conventional RGB images, here (x, y, z)-images define a
+new 2D image space with x, y, z as channels. Same image
+representation has been explored in [37, 36, 41, 64, 65] for
+LiDAR points. Unlike CNNs, PointNet lacks of the ability
+of extracting local features that may limit its performance.
+
+∗ Part of this work was done when the author was an intern at Mitsubishi
+Electric Research Laboratories (MERL).
+1 For simplicity in our explanation, we assume no bias term in PointNet.
+
+This observation inspires us to investigate whether in the
+literature there exists a state-of-the-art method that applies
+conventional 2D CNNs as backbone to image representations for 3D point cloud segmentation. Surprisingly, as we
+summarize in Table 1, we can only find a few, indicating that
+currently such integrated methods for point cloud segmen112255
+
+

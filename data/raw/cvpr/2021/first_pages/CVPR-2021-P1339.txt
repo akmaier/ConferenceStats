@@ -1,0 +1,121 @@
+You Only Look One-level Feature
+Qiang Chen1,2∗, Yingming Wang4 , Tong Yang4 , Xiangyu Zhang4 , Jian Cheng1,2,3†, Jian Sun4
+1
+NLPR, Institute of Automation, Chinese Academy of Sciences
+2
+School of Artificial Intelligence, University of Chinese Academy of Sciences
+3
+CAS Center for Excellence in Brain Science and Intelligence Technology
+4
+MEGVII Technology
+{qiang.chen, jcheng}@nlpr.ia.ac.cn, {wangyingming, yangtong, zhangxiangyu, sunjian}@megvii.com
+
+Abstract
+
+C5
+C4
+
+This paper revisits feature pyramids networks (FPN) for
+one-stage detectors and points out that the success of FPN
+is due to its divide-and-conquer solution to the optimization problem in object detection rather than multi-scale feature fusion. From the perspective of optimization, we introduce an alternative way to address the problem instead
+of adopting the complex feature pyramids - utilizing only
+one-level feature for detection. Based on the simple and efficient solution, we present You Only Look One-level Feature (YOLOF). In our method, two key components, Dilated Encoder and Uniform Matching, are proposed and
+bring considerable improvements. Extensive experiments
+on the COCO benchmark prove the effectiveness of the proposed model. Our YOLOF achieves comparable results
+with its feature pyramids counterpart RetinaNet while being 2.5× faster. Without transformer layers, YOLOF can
+match the performance of DETR in a single-level feature
+manner with 7× less training epochs. Code is available at
+https://github.com/megvii-model/YOLOF.
+
+1. Introduction
+In state-of-the-art two-stage detectors [19, 10, 1] and
+one-stage detectors [20, 35], feature pyramids become an
+essential component. The most popular way to build feature pyramids is the feature pyramid networks (FPN) [19],
+which mainly brings two benefits: (1) multi-scale feature
+fusion: fusing multiple low-resolution and high-resolution
+feature inputs to obtain better representations; (2) divideand-conquer: detecting objects on different levels regarding
+objects’ scales. A common belief for FPN is that its success
+relies on the fusion of multiple level features, inducing a
+∗ This work is done during Qiang Chen’s internship at MEGVII Technology.
+† Corresponding author.
+
+MiMo
+35.9 mAP
+
+C3
+
+P7
+P6
+P5
+P4
+P3
+
+C5
+C4
+C3
+
+C4
+
+MiSo
+23.9 mAP
+
+C3
+
+(c) Multiple-in-Single-out
+
+P7
+P6
+P5
+P4
+P3
+
+(b) Single-in-Multiple-out
+
+(a) Multiple-in-Multiple-out
+C5
+
+SiMo
+35.0 mAP
+
+P7
+P6
+P5
+P4
+P3
+
+C5
+C4
+
+SiSo
+23.7 mAP
+
+C3
+
+P7
+P6
+P5
+P4
+P3
+
+(d) Single-in-Single-out
+
+Figure 1. Comparison of box AP among the Multiple-in-Multipleout (MiMo), Single-in-Multiple-out (SiMo), Multiple-in-Singleout (MiSo), and Single-in-Single-out (SiSo) encoders on COCO
+validation set. Here, we adopt the original RetinaNet [20] as our
+baseline model, where C3, C4, and C5 denote output features of
+the backbone with a downsample rate of {8, 16, 32} and P3 to
+P7 represent the feature levels used for final detection. All results
+reported in the figure use the same backbone, ResNet-50 [11]. The
+structure of MiMo is same as the FPN in RetinaNet [20].
+
+line of studies of designing complex fusion methods manually [22, 14, 25], or via Neural Architecture Search (NAS)
+algorithms [7, 34]. However, the belief ignores the function
+of the divide-and-conquer in FPN. It leads to fewer studies
+on how these two benefits contribute to FPN’s success and
+may hinder new advances.
+This paper studies the influence of FPN’s two benefits in one-stage detectors. We design experiments by decoupling the multi-scale feature fusion and the divide-andconquer functionalities with RetinaNet [20]. In detail, we
+consider FPN as a Multiple-in-Multiple-out (MiMo) encoder, which encodes multi-scale features from the backbone and provides feature representations for the decoder
+(the detection heads). We conduct controlled comparisons among Multiple-in-Multiple-out (MiMo), Single-inMultiple-out (SiMo), Multiple-in-Single-out (MiSo), and
+Single-in-Single-out (SiSo) encoders in Figure 1. Surprisingly, the SiMo encoder, which only has one input feature
+C5 and does not perform feature fusion, can achieve com113039
+
+

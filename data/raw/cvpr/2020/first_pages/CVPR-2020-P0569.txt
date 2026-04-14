@@ -1,0 +1,66 @@
+Scale-space flow for end-to-end optimized video compression
+Eirikur Agustsson, David Minnen, Nick Johnston, Johannes Ballé, Sung Jin Hwang, George Toderici
+Google Research, Perception Team
+{eirikur, dminnen, nickj, jballe, sjhwang, gtoderici}@google.com
+
+Abstract
+Despite considerable progress on end-to-end optimized
+deep networks for image compression, video coding remains a challenging task. Recently proposed methods for
+learned video compression use optical flow and bilinear
+warping for motion compensation and show competitive
+rate–distortion performance relative to hand-engineered
+codecs like H.264 and HEVC. However, these learningbased methods rely on complex architectures and training
+schemes including the use of pre-trained optical flow networks, sequential training of sub-networks, adaptive rate
+control, and buffering intermediate reconstructions to disk
+during training. In this paper, we show that a generalized
+warping operator that better handles common failure cases,
+e.g. disocclusions and fast motion, can provide competitive compression results with a greatly simplified model and
+training procedure. Specifically, we propose scale-space
+flow, an intuitive generalization of optical flow that adds
+a scale parameter to allow the network to better model uncertainty. Our experiments show that a low-latency video
+compression model (no B-frames) using scale-space flow
+for motion compensation can outperform analogous stateof-the art learned video compression models while being
+trained using a much simpler procedure and without any
+pre-trained optical flow networks.
+
+1. Introduction
+Recently, there has been significant progress in the
+area of end-to-end optimized image compression, which
+went from barely matching JPEG [33] to methods such
+as [8, 26, 5] that can outperform the best hand-engineered
+codecs when evaluated in terms of multi-scale structural
+similarity (MS-SSIM) [36], PSNR, and subjective quality
+assessments from user studies. While this is very encouraging, over 60% of downstream internet traffic currently consists of streaming video data [1], which means that in order
+to maximize impact on bandwidth reduction, researchers
+should focus on video compression.
+Since the area of neural video compression is in early
+
+Figure 1. Our proposed scale-space warping module. From the
+source image x, we construct a fixed-resolution scale-space volume X. In contrast to bilinear warping, where the warped output
+is sampled directly from the 2-D source image using a 2-channel
+displacement field (fx , fy ), we trilinearly sample from the 3-D
+scale-space volume using a 3-channel displacements+scale field
+(gx , gy , gz ). The scale value gives a continuous, differentiable
+knob that can adaptively blur the source image when warping if
+the warp is not a good prediction of the target image.
+
+stages, it is not yet clear which network architectures are
+most effective for different application scenarios. We can
+roughly categorize the existing research methods into the
+following three categories:
+1) 3D autoencoders are a natural extension of the work
+done for learned image compression, but [27] demonstrated
+that representing video using spatiotemporal transformations alone does not lead to better performance compared
+to standard methods. However, when combined with temporally conditioned entropy models [19], such methods can
+perform on par with standard methods in terms of MSSSIM.
+2) Frame interpolation methods use neural networks to
+temporally interpolate between frames in a video and then
+encode the residuals [38, 17]. This approach is commonly
+used in standard video coding (called “bidirectional prediction” or “B-frame coding”) [37], but has the disadvantage
+that it is generally not suitable for low-latency streaming
+since such methods need information “from the future” to
+decode each B-frame. However, in standard codecs, the use
+of B-frames typically provides the best rate–distortion (RD)
+18503
+
+

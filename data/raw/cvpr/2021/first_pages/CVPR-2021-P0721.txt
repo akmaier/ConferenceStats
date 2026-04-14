@@ -1,0 +1,74 @@
+Deep Two-View Structure-from-Motion Revisited
+Jianyuan Wang1 , * Yiran Zhong1 , Yuchao Dai2 , Stan Birchfield3 ,
+Kaihao Zhang1 , Nikolai Smolyanskiy3 , Hongdong Li1
+1
+Australian National University, 2 Northwestern Polytechnical University, 3 NVIDIA
+*
+
+Abstract
+Two-view structure-from-motion (SfM) is the cornerstone of 3D reconstruction and visual SLAM. Existing deep
+learning-based approaches formulate the problem by either recovering absolute pose scales from two consecutive
+frames or predicting a depth map from a single image, both
+of which are ill-posed problems. In contrast, we propose
+to revisit the problem of deep two-view SfM by leveraging
+the well-posedness of the classic pipeline. Our method consists of 1) an optical flow estimation network that predicts
+dense correspondences between two frames; 2) a normalized pose estimation module that computes relative camera poses from the 2D optical flow correspondences, and 3)
+a scale-invariant depth estimation network that leverages
+epipolar geometry to reduce the search space, refine the
+dense correspondences, and estimate relative depth maps.
+Extensive experiments show that our method outperforms
+all state-of-the-art two-view SfM methods by a clear margin on KITTI depth, KITTI VO, MVS, Scenes11, and SUN3D
+datasets in both relative pose and depth estimation.
+
+1. Introduction
+Two-view structure-from-motion (SfM) is the problem
+of estimating the camera motion and scene geometry from
+two image frames of a monocular sequence. As the foundation of both 3D reconstruction and visual simultaneous
+localization and mapping (vSLAM), this important problem
+finds its way into a wide range of applications, including autonomous driving, augmented/virtual reality, and robotics.
+Classic approaches to two-view SfM follow a standard
+pipeline of first matching features/edges between the two
+images, then inferring motion and geometry from those
+matches [8, 22, 30, 14, 12, 11, 47, 52]. When imaging
+conditions are well-behaved (constant lighting, diffuse and
+rigid surfaces, and non-repeating visual texture), the match* indicates equal contribution, listed in alphabetical order. Yiran is the
+corresponding author. Work was partially done when Yiran was an intern
+at NVIDIA, Redmond, WA.
+
+ing process is well-posed. And, once the matches have been
+found, the motion and geometry can be recovered.
+For decades, researchers who work in this area have generally required at least two views, and their methods have
+recovered only relative camera motion and relative scene
+geometry (that is, shape up to an unknown scale factor).
+Without a priori knowledge of scale or recognizable objects
+in the scene, it is impossible to recover scene geometry from
+a single view [18, 48, 44, 25]. Similarly, it is impossible to
+infer absolute scale from two views of a scene [17].
+With the rise of deep learning, a number of researchers
+have recently explored neural network-based solutions to
+two-view SfM. Most of these methods fall into one of two
+categories. In the first category, which we shall call Type I,
+the problem is treated as a joint optimization task of monocular depth and pose regression [53, 46, 32]. Two networks
+are used: one to estimate the up-to-scale depth from a single
+image, and the other one to predict the up-to-scale camera
+pose from two input images. Both networks act independently during inference. In the second category, denoted
+Type II, the scaled camera pose and the scaled depth are
+inferred from the image pair, and are iteratively refined via
+multi-view geometry [39, 35, 36]. While the power of deep
+learning allows both Type I and Type II solutions to achieve
+compelling results, we note that their formulations attempt
+to solve one of the ill-posed [3] problems mentioned above.
+In this paper, we revisit the use of deep learning for twoview SfM. Our framework follows the classic SfM pipeline
+that features are matched between image frames to yield relative camera poses, from which relative depths are then estimated. By combining the strengths of deep learning within
+a classic pipeline, we are able to avoid ill-posedness, which
+allows our approach to achieve state-of-the-art results on
+several benchmarks.
+A comparison between our approach and existing
+pipelines is shown in Fig. 1. Our method operates by first
+estimating dense matching points between two frames using a deep optical flow network [50, 40], from which a set
+of highly reliable matches are sampled in order to compute the relative camera pose via a GPU-accelerated classic
+five-point algorithm [24] with RANSAC [13]. Since these
+
+8953
+
+

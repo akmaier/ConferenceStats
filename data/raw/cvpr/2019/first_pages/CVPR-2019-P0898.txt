@@ -1,0 +1,105 @@
+Improving Semantic Segmentation via Video Propagation and Label Relaxation
+Yi Zhu1∗
+
+Karan Sapra2∗ Fitsum A. Reda2 Kevin J. Shih2 Shawn Newsam1
+Andrew Tao2 Bryan Catanzaro2
+1
+University of California at Merced 2 Nvidia Corporation
+
+{yzhu25,snewsam}@ucmerced.edu
+
+{ksapra,freda,kshih,atao,bcatanzaro}@nvidia.com
+
+Abstract
+
+Video
+Prediction
+
+Video
+Prediction
+I͠ t+1
+
+It
+
+Semantic segmentation requires large amounts of pixelwise annotations to learn accurate models. In this paper, we
+present a video prediction-based methodology to scale up
+training sets by synthesizing new training samples in order
+to improve the accuracy of semantic segmentation networks.
+We exploit video prediction models’ ability to predict future
+frames in order to also predict future labels. A joint propagation strategy is also proposed to alleviate mis-alignments
+in synthesized samples. We demonstrate that training segmentation models on datasets augmented by the synthesized samples leads to significant improvements in accuracy. Furthermore, we introduce a novel boundary label relaxation technique that makes training robust to annotation
+noise and propagation artifacts along object boundaries.
+Our proposed methods achieve state-of-the-art mIoUs of
+83.5% on Cityscapes and 82.9% on CamVid. Our single
+model, without model ensembles, achieves 72.8% mIoU on
+the KITTI semantic segmentation test set, which surpasses
+the winning entry of the ROB challenge 2018.
+
+1. Introduction
+Semantic segmentation is the task of dense per pixel predictions of semantic labels. Large improvements in model
+accuracy have been made in recent literature [44, 14, 10],
+in part due to the introduction of Convolutional Neural Networks (CNNs) for feature learning, the task’s utility for selfdriving cars, and the availability of larger and richer training datasets (e.g., Cityscapes [15] and Mapillary Vista [32]).
+While these models rely on large amounts of training data
+to achieve their full potential, the dense nature of semantic
+segmentation entails a prohibitively expensive dataset annotation process. For instance, annotating all pixels in a
+1024 × 2048 Cityscapes image takes on average 1.5 hours
+[15]. Annotation quality plays an important role for training
+better models. While coarsely annotating large contiguous
+∗ indicates equal contribution.
+
+Joint
+Propagation
+
+Augmented
+Training Set
+
+t+2
+
+…
+
+Joint
+Propagation
+͠
+
+Lt
+
+͠I
+
+Lt+1
+
+Boundary Label
+Relaxation
+
+͠
+L
+t+2
+
+Segmentation Network
+
+Figure 1: Framework overview. We propose joint image-label
+propagation to scale up training sets for robust semantic segmentation. The green dashed box includes manually labelled samples,
+and the red dashed box includes our propagated samples. T is the
+transformation function learned by the video prediction models to
+perform propagation. We also propose boundary label relaxation
+to mitigate label noise during training. Our framework can be used
+with most semantic segmentation and video prediction models.
+
+regions can be performed quickly using annotation toolkits,
+finely labeling pixels along object boundaries is extremely
+challenging and often involves inherently ambiguous pixels.
+Many alternatives have been proposed to augment training processes with additional data. For example, Cords et
+al. [15] provided 20K coarsely annotated images to help
+train deep CNNs, an annotation cost effective alternative
+used by all top 10 performers on the Cityscapes benchmark.
+Nevertheless, coarse labeling still takes, on average, 7 minutes per image. An even cheaper way to obtain more labeled
+samples is to generate synthetic data [35, 36, 18, 47, 45].
+However, model accuracy on the synthetic data often does
+not generalize to real data due to the domain gap between
+synthetic and real images. Luc et al. [28] use a state-of-theart image segmentation method [42] as a teacher to generate extra annotations for unlabelled images. However,
+their performance is bounded by the teacher method. Another approach exploits the fact that many semantic segmentation datasets are based on continuous video frame
+sequences sparsely labeled at regular intervals. As such,
+several works [2, 9, 31, 16, 33] propose to use temporal
+
+8856
+
+

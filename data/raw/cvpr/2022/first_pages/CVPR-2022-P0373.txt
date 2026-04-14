@@ -1,0 +1,167 @@
+Panoptic SegFormer: Delving Deeper into Panoptic Segmentation with
+Transformers
+Zhiqi Li1 , Wenhai Wang2 , Enze Xie3 , Zhiding Yu4 ,
+Anima Anandkumar4,5 , Jose M. Alvarez4 , Ping Luo3 , Tong Lu1
+1
+
+Nanjing University 2 Shanghai AI Laboratory 3 The University of Hong Kong 4 NVIDIA 5 Caltech
+lzq@smail.nju.edu.cn wangwenhai@pjlab.org.cn xieenze@hku.hk zhidingy@nvidia.com
+aanandkumar@nvidia.com josea@nvidia.com pluo@cs.hku.hk lutong@nju.edu.cn
+
+COCO Panoptic PQ (%)
+
+54
+
+56
+
+Panoptic SegFormer
+
+Abstract
+MaskFormer
+
+Max-Deeplab
+52
+Panoptic segmentation involves a combination of
+joint
+
+semantic
+segmentation and instance segmentation, where
+50
+image contents are divided into two types: things and
+48
+stuff. We present Panoptic SegFormer, a general framework
+for 46
+panoptic segmentation
+with transformers. It contains
+DETR
+three 44
+innovative components: an efficient deeply-supervised
+mask decoder, a query decoupling strategy, and an im42
+proved post-processing method. We also use Deformable
+DETR40 to efficiently process multi-scale features, which is
+0
+50
+100 150 200 250 300 350 400 450 500
+a fast and efficient version of DETR. Specifically, we su#Parameter (M)
+pervise the attention modules
+in the mask decoder in a
+layer-wise manner. This deep supervision strategy lets the
+attention modules quickly focus on meaningful semantic
+regions. It improves performance and reduces the number of required training epochs by half compared to Deformable DETR. Our query decoupling strategy decouples
+the responsibilities of the query set and avoids mutual interference between things and stuff. In addition, our postprocessing strategy improves performance without additional costs by jointly considering classification and segmentation qualities to resolve conflicting mask overlaps.
+Our approach increases the accuracy 6.2% PQ over the
+baseline DETR model. Panoptic SegFormer achieves stateof-the-art results on COCO test-dev with 56.2% PQ. It also
+shows stronger zero-shot robustness over existing methods.
+
+1. Introduction
+Semantic segmentation and instance segmentation are
+two important and related vision tasks. Their underlying
+connections recently motivated panoptic segmentation as a
+unification of both the tasks [6]. In panoptic segmentation,
+image contents are divided into two types: things and stuff.
+Things refer to countable instances (e.g., person, car) and
+each instance has a unique id to distinguish it from the other
+
+Panoptic SegFormer
+K-Net
+
+54
+
+COCO Panoptic PQ (%)
+
+56
+
+MaskFormer
+
+52
+
+Max-Deeplab
+
+50
+
+DETR-R50 [1]
+Max-Deeplab-S [2]
+Max-Deeplab-L [2]
+MaskFormer-T [3]
+MaskFormer-B [3]
+MaskFormer-L [3]
+K-Net-L [4]
+Panoptic SegFormer-B0
+Panoptic SegFormer-B2
+Panoptic SegFormer-B5
+
+48
+46
+
+DETR
+
+44
+42
+40
+0
+
+50
+
+100
+
+150
+
+200
+
+250
+
+300
+
+PQ (%) #Param (M)
+43.5
+42.8
+48.4
+62.0
+51.1
+451.0
+47.4
+42.0
+51.1
+102.0
+52.7
+212.0
+54.6
+208.9
+49.5
+24.2
+52.5
+43.6
+55.4
+104.9
+
+350
+
+400
+
+450
+
+500
+
+#Parameter (M)
+
+Figure 1. Comparison to the prior arts in panoptic segmentation
+methods on the COCO val2017 split. Panoptic SegFormer models
+outperform the other counterparts among different models. Panoptic SegFormer (PVTv2-B5 [5]) achieves 55.4% PQ, surpassing
+previous methods with significantly fewer parameters.
+
+instances. Stuff refers to the amorphous and uncountable
+regions (e.g., sky, grassland) and has no instance id [6].
+Recent works [1–3] attempt to employ transformers to
+handle both things and stuff through a query set. For example, DETR [1] simplifies the workflow of panoptic segmentation by adding a panoptic head on top of an end-to-end
+object detector. Unlike previous methods [6,7], DETR does
+not require additional handcrafted pipelines [8, 9]. While
+being simple, DETR also causes some issues: (1) It requires
+a lengthy training process to converge; (2) Because the computational complexity of self-attention is squared with the
+length of the input sequence, the feature resolution of DETR
+is limited. So that it uses an FPN-style [1,10] panoptic head
+to generate masks, which always suffer low-fidelity boundaries; (3) It handles things and stuff equally, yet representing them with bounding boxes, which may be suboptimal
+for stuff [2, 3]. Although DETR achieves excellent performance on the object detection task, its superiority on panoptic segmentation has not been well demonstrated. In order
+
+1280
+
+

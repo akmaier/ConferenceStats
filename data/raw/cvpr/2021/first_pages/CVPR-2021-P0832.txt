@@ -1,0 +1,72 @@
+Diverse Branch Block: Building a Convolution as an Inception-like Unit
+Xiaohan Ding 1∗ Xiangyu Zhang 2 Jungong Han 3 Guiguang Ding 1†
+1
+Beijing National Research Center for Information Science and Technology (BNRist);
+School of Software, Tsinghua University, Beijing, China
+2
+MEGVII Technology
+3
+Computer Science Department, Aberystwyth University, SY23 3FL, UK
+dxh17@mails.tsinghua.edu.cn
+jungonghan77@gmail.com
+
+Abstract
+We propose a universal building block of Convolutional
+Neural Network (ConvNet) to improve the performance
+without any inference-time costs. The block is named Diverse Branch Block (DBB), which enhances the representational capacity of a single convolution by combining diverse
+branches of different scales and complexities to enrich the
+feature space, including sequences of convolutions, multiscale convolutions, and average pooling. After training, a
+DBB can be equivalently converted into a single conv layer
+for deployment. Unlike the advancements of novel ConvNet architectures, DBB complicates the training-time microstructure while maintaining the macro architecture, so
+that it can be used as a drop-in replacement for regular
+conv layers of any architecture. In this way, the model can
+be trained to reach a higher level of performance and then
+transformed into the original inference-time structure for
+inference. DBB improves ConvNets on image classification
+(up to 1.9% higher top-1 accuracy on ImageNet), object
+detection and semantic segmentation. The PyTorch code
+and models are released at https://github.com/
+DingXiaoH/DiverseBranchBlock.
+
+1. Introduction
+Improving the performance of Convolutional Neural
+Network (ConvNet) has always been a heated research
+topic. On one hand, the advancements in architecture design, e.g., the Inception models [27, 28, 26, 15], have re∗ This work is supported by The National Key Research and Development Program of China (No. 2017YFA0700800), the National Natural
+Science Foundation of China (No.61925107, No.U1936202) and Beijing
+Academy of Artificial Intelligence (BAAI). Xiaohan Ding is funded by the
+Baidu Scholarship Program 2019 (http://scholarship.baidu.
+com/). This work is done during Xiaohan Ding’s internship at MEGVII.
+† Corresponding author.
+
+zhangxiangyu@megvii.com
+dinggg@tsinghua.edu.cn
+
+vealed that the multi-branch topology and combination of
+various paths with different scales and complexities can enrich the feature space and improve the performance. However, the complicated structure usually slows down the inference, as a combination of small operators (e.g., concatenation of 1 × 1 conv and pooling) is not friendly to the devices with strong parallel computing powers like GPU [21].
+On the other hand, more parameters and connections
+usually lead to higher performance, but the size of ConvNet
+we deploy cannot increase arbitrarily due to the business
+requirements and hardware constraints. Considering this,
+we usually judge the quality of a ConvNet by the trade-off
+between performance and inference-time costs such as the
+latency, memory footprint and number of parameters. In
+the common cases, we train the models on powerful GPU
+workstations and deploy them onto efficiency-sensitive devices, so we consider it acceptable to improve the performance with the costs of more training resources, as long as
+the deployed model keeps the same size.
+In this paper, we seek to insert complicated structures
+into numerous ConvNet architectures to improve the performance while keeping the original inference-time costs. To
+this end, we decouple the training-time and inference-time
+network structure by complicating the model only during
+training and converting it back into the original structure
+for inference. Naturally, we require such extra training-time
+structures to be 1) effective in improving the training-time
+model’s performance and 2) able to transform into the original inference-time structure.
+For the usability and universality, we upgrade the basic
+ConvNet component, K × K conv, into a powerful block
+named Diverse Branch Block (DBB) (Fig. 1). As a building block, DBB is complementary to the other efforts to improve ConvNet, e.g., architecture design [12, 24, 13, 21, 23,
+35], neural architecture search [2, 39, 22, 20, 19], data augmentation and training methods [25, 5, 33] and fulfills the
+above two requirements by the following two properties:
+
+10886
+
+

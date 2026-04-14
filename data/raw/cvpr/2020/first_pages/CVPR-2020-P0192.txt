@@ -1,0 +1,76 @@
+Learning to Autofocus
+Charles Herrmann1 Richard Strong Bowen1 Neal Wadhwa2 Rahul Garg2
+Qiurui He2 Jonathan T. Barron2 Ramin Zabih1,2
+1
+
+{cih, rsb, rdz}@cs.cornell.edu
+
+Cornell Tech
+
+2
+
+Google Research
+
+{nealw, rahulgarg, qiurui, barron, raminz}@google.com
+
+Abstract
+Autofocus is an important task for digital cameras, yet
+current approaches often exhibit poor performance. We
+propose a learning-based approach to this problem, and
+provide a realistic dataset of sufficient size for effective
+learning. Our dataset is labeled with per-pixel depths obtained from multi-view stereo, following [9]. Using this
+dataset, we apply modern deep classification models and
+an ordinal regression loss to obtain an efficient learningbased autofocus technique. We demonstrate that our approach provides a significant improvement compared with
+previous learned and non-learned methods: our model reduces the mean absolute error by a factor of 3.6 over the
+best comparable baseline algorithm. Our dataset and code
+are publicly available.
+
+1. Introduction
+In a scene with variable depth, any camera lens with a
+finite-size aperture can only focus at one scene depth (the
+focus distance), and the rest of the scene will contain blur.
+This blur is difficult to remove via post-processing, and so
+selecting an appropriate focus distance is crucial for image
+quality.
+There are two main, independent tasks that a camera
+must address when focusing. First, the camera must determine the salient region that should be in focus. The user
+may choose such a region explicitly, e.g., by tapping on the
+screen of a smartphone, or it may be detected automatically
+by, for example, a face detector. Second, given a salient region (which camera manufacturers often refer to as “autofocus points”) and one or more possibly out-of-focus observations, the camera must predict the most suitable focus
+distance for the lens that brings that particular region into
+focus. This second task is called autofocus.
+Conventional autofocus algorithms generally fall into
+two major categories: contrast-based and phase-based
+methods. Contrast-based methods define a sharpness metric, and identify the ideal focus distance by maximizing the
+
+sharpness metric across a range of focus distances. Such
+methods are necessarily slow in practice, as they must make
+a large number of observations, each of which requires
+physical lens movement. In addition, they suffer from a few
+important weaknesses, which we discuss in Section 4.
+Modern phase-based methods leverage disparity from
+the dual-pixel sensors that are increasingly available on
+smartphones and DSLR cameras. These sensors are essentially two-view plenoptic cameras [26] with left and
+right sub-images that receive light from the two halves of
+the aperture. These methods operate under the assumption that in-focus objects will produce similar left and right
+sub-images, whereas out-of-focus objects will produce subimages with a displacement or disparity that is proportional
+to the degree of defocus. Naively, one could search for the
+focus distance that minimizes the left/right mismatch, like
+the contrast-based methods. Alternatively, some methods
+use calibration to model the relationship between disparity
+and depth, and make a prediction with just one input. However, accurate estimation of disparity between the dual-pixel
+sub-images is challenging due to the small effective baseline. Further, it is difficult to characterize the relationship
+between disparity and depth accurately due to optical effects that are hard to model, resulting in errors [9].
+In this paper, we introduce a novel learning-based approach to autofocus: a ConvNet that takes as input raw sensor data, optionally including the dual-pixel data, and predicts the ideal focus distance. Deep learning is well-suited
+to this task, as modern ConvNets are able to utilize subtle
+defocus clues (such as irregularly-shaped point spread functions) in the data that often mislead heuristic contrast-based
+autofocus methods. Unlike phase-based methods, a learned
+model can also directly estimate the position the lens should
+be moved to, instead of determining it from disparity using a
+hand-crafted model and calibration—a strategy which may
+be prone to errors.
+In order to train and evaluate our network, we also introduce a large and realistic dataset captured using a smartphone camera and labeled with per-pixel depth computed
+using multi-view stereo. The dataset consists of focal
+12230
+
+

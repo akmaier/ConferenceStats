@@ -1,0 +1,87 @@
+Wide-Baseline Relative Camera Pose Estimation with Directional Learning
+Kefan Chen∗
+Google Research
+
+Noah Snavely
+Google Research
+
+Ameesh Makadia
+Google Research
+
+chenkefan950518@gmail.com
+
+snavely@google.com
+
+makadia@google.com
+
+Abstract
+Modern deep learning techniques that regress the relative
+camera pose between two images have difficulty dealing with
+challenging scenarios, such as large camera motions resulting in occlusions and significant changes in perspective that
+leave little overlap between images. These models continue
+to struggle even with the benefit of large supervised training
+datasets. To address the limitations of these models, we take
+inspiration from techniques that show regressing keypoint
+locations in 2D and 3D can be improved by estimating a
+discrete distribution over keypoint locations. Analogously,
+in this paper we explore improving camera pose regression
+by instead predicting a discrete distribution over camera
+poses. To realize this idea, we introduce DirectionNet, which
+estimates discrete distributions over the 5D relative pose
+space using a novel parameterization to make the estimation problem tractable. Specifically, DirectionNet factorizes
+relative camera pose, specified by a 3D rotation and a translation direction, into a set of 3D direction vectors. Since
+3D directions can be identified with points on the sphere,
+DirectionNet estimates discrete distributions on the sphere
+as its output. We evaluate our model on challenging synthetic and real pose estimation datasets constructed from
+Matterport3D and InteriorNet. Promising results show a
+near 50% reduction in error over direct regression methods.
+
+1. Introduction
+Estimating the relative pose between two images is fundamental to many applications in computer vision such
+as 3D reconstruction, stereo rectification, and camera localization [19]. For calibrated cameras, relative pose is
+synonymous with the essential matrix, which encapsulates
+the projective geometry relating two views. Prevailing
+approaches recover the global model from corresponding
+points [30, 20, 42] within an iterative robust model fitting
+process [15, 64]. Recent progress has introduced deeplearned modules that can replace components of this classic
+∗ Work done while Kefan was a member of the Google AI Residency
+program (g.co/airesidency).
+
+pipeline [62, 50, 10, 9, 52, 43, 47, 2]. While this class of
+techniques has been extensively analyzed [49], well-known
+failure cases include where feature detection or matching is
+difficult, such as low image overlap, large changes in scale or
+perspective, or scenes with insufficient or repeated textures.
+In these cases, it is natural to consider if supervised deep
+learning can address this basic task of essential matrix estimation, considering its success in tackling a variety of
+challenging computer vision problems. Specifically, can we
+train a deep neural network to represent the complex function
+that directly maps image pairs to their relative camera pose?
+Such a model would provide an appealing alternative to formulations that are sensitive to correspondence estimation
+performance.
+Unfortunately, evidence suggests designing regression
+models for pose estimation is challenging, and in fact finding
+a parameterization of the motion groups effective in deep
+learning models is still an active research topic [33, 66, 44].
+Not surprisingly, the initial works exploring relative pose
+regression (e.g. [38, 46]) are not conclusively successful in
+the difficult scenarios described above.
+In this work we introduce a novel deep learning model for
+relative pose estimation, focused on the challenging widebaseline case. Conceptually, our model generates a discrete
+probability distribution over relative poses, and the final pose
+estimate is taken as the expectation of this distribution. Our
+method is inspired by works that show estimating a discrete
+distribution, or a heatmap over a quantized output space,
+consistently outperforms direct regression to the continuous
+output space. This conclusion has been observed in different applications, such as estimating 2D and 3D keypoint
+locations [55, 32, 57], and estimating periodic angles [25].
+However, it is currently unclear if this idea translates directly to complex higher dimensional output spaces. Relative
+camera pose lives in a five dimensional space, so predicting a discrete distribution would require O(N 5 ) storage in
+the output space alone [35]! Given that this is currently intractable for neural networks at any reasonable resolution,
+the question is how can we apply this concept to the relative
+pose problem effectively?
+To this end, we introduce a novel formulation that builds
+
+3258
+
+

@@ -1,0 +1,86 @@
+Network Quantization with Element-wise Gradient Scaling
+Junghyup Lee
+
+Dohyung Kim
+
+Bumsub Ham∗
+
+School of Electrical and Electronic Engineering, Yonsei University
+
+Abstract
+Network quantization aims at reducing bit-widths of
+weights and/or activations, particularly important for implementing deep neural networks with limited hardware
+resources. Most methods use the straight-through estimator (STE) to train quantized networks, which avoids a
+zero-gradient problem by replacing a derivative of a discretizer (i.e., a round function) with that of an identity function. Although quantized networks exploiting the STE have
+shown decent performance, the STE is sub-optimal in that
+it simply propagates the same gradient without considering discretization errors between inputs and outputs of the
+discretizer. In this paper, we propose an element-wise gradient scaling (EWGS), a simple yet effective alternative to
+the STE, training a quantized network better than the STE
+in terms of stability and accuracy. Given a gradient of
+the discretizer output, EWGS adaptively scales up or down
+each gradient element, and uses the scaled gradient as the
+one for the discretizer input to train quantized networks via
+backpropagation. The scaling is performed depending on
+both the sign of each gradient element and an error between
+the continuous input and discrete output of the discretizer.
+We adjust a scaling factor adaptively using Hessian information of a network. We show extensive experimental results on the image classification datasets, including CIFAR10 and ImageNet, with diverse network architectures under
+a wide range of bit-width settings, demonstrating the effectiveness of our method.
+
+1. Introduction
+Convolutional neural networks (CNNs) have shown remarkable advances in many computer vision tasks, such
+as image classification [16, 24, 36], semantic segmentation [15, 28], object detection [13, 27], and image restoration [9], while at the cost of large amounts of weights and
+operations. Network quantization lowers bit-precision of
+weights and/or activations in a network. It is effective in
+particular to reduce the memory and computational cost of
+∗ Corresponding author.
+
+copy
+copy
+
+𝐱𝐱 𝑛𝑛
+
+round
+
+𝐱𝐱 𝑞𝑞
+
+−𝓖𝓖𝐱𝐱𝑛𝑛
+−𝓖𝓖𝐱𝐱𝑞𝑞
+
+(a) Gradient propagation using STE [3].
+
+scale up
+scale down
+
+𝐱𝐱 𝑛𝑛
+
+round
+
+𝐱𝐱 𝑞𝑞
+
+−𝓖𝓖𝐱𝐱𝑛𝑛
+
+−𝓖𝓖𝐱𝐱𝑞𝑞
+
+(b) Gradient propagation using EWGS.
+
+Figure 1: Comparison of STE [3] and EWGS. We visualize discrete levels and a loss landscape by straight lines and a contour
+plot, respectively. In a forward pass, a continuous latent point xn
+is mapped to a discrete point xq using a round function. Training
+a quantized network requires backpropagating a gradient from xq
+to xn . (a) The STE propagates the same gradient i.e., Gxn = Gxq
+without considering the value of xn , where we denote by Gxn
+and Gxq the gradients of xn and xq , respectively. (b) Our approach, on the other hand, scales up or down each element of the
+gradient during backpropagation, while taking into account discretization errors i.e., xn − xq . (Best viewed in color.)
+
+CNNs, and thus network quantization could be a potential
+solution for implementing CNNs with limited hardware resources. For example, binarized neural networks [19, 34]
+use 32× less memory compared to the full-precision (32bit) counterparts, and the binarization techniques allow to
+replace multiplication and addition with XNOR and bitcount operations, respectively.
+Quantized networks involve weight and/or activation
+quantizers in convolutional or fully-connected layers. The
+quantizers take full-precision weights or activations, and
+typically perform normalization, discretization, and denor-
+
+6448
+
+

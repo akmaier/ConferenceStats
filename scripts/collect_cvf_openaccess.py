@@ -14,6 +14,7 @@ ENTRY_RE = re.compile(
     r"<dd>(.*?)</dd>\s*<dd>(.*?)</dd>",
     flags=re.S,
 )
+DAY_LINK_RE = re.compile(r'href="([^"]+\?day=[^"]+)"')
 
 
 def normalize_space(value: str) -> str:
@@ -49,6 +50,34 @@ def parse_entries(proceedings_url: str, toc_html: str):
             }
         )
     return entries
+
+
+def find_day_page_urls(proceedings_url: str, toc_html: str):
+    seen = []
+    for href in DAY_LINK_RE.findall(toc_html):
+        full_url = urljoin(proceedings_url, href)
+        if full_url not in seen:
+            seen.append(full_url)
+    return seen
+
+
+def collect_entries(proceedings_url: str, toc_html: str):
+    entries = parse_entries(proceedings_url, toc_html)
+    if entries:
+        return entries
+
+    day_page_urls = find_day_page_urls(proceedings_url, toc_html)
+    collected = []
+    seen_pages = set()
+    for day_url in day_page_urls:
+        day_html = fetch_url(day_url)
+        for entry in parse_entries(proceedings_url, day_html):
+            page_url = entry["paper_page_url"]
+            if page_url in seen_pages:
+                continue
+            seen_pages.add(page_url)
+            collected.append(entry)
+    return collected
 
 
 def build_rows(entries, conference: str, year: int):
@@ -168,7 +197,7 @@ def main():
         toc_path = raw_dir / "toc.html"
         toc_path.write_text(toc_html, encoding="utf-8")
 
-    entries = parse_entries(args.proceedings_url, toc_html)
+    entries = collect_entries(args.proceedings_url, toc_html)
     authors, papers, paper_authors, paper_index = build_rows(entries, args.conference, args.year)
 
     write_csv(

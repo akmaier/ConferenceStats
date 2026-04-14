@@ -1,0 +1,81 @@
+CRAVES: Controlling Robotic Arm with a Vision-based Economic System
+Yiming Zuo1∗, Weichao Qiu2∗, Lingxi Xie2,4 , Fangwei Zhong3 , Yizhou Wang3,5,6 , Alan L. Yuille2
+1
+2
+3
+Tsinghua University
+Johns Hopkins University
+Peking University
+4
+5
+Noah’s Ark Lab, Huawei Inc. Peng Cheng Laboratory 6 DeepWise AI Lab
+{zuoyiming17,qiuwch,198808xc,zfw1226,alan.l.yuille}@gmail.com,
+
+Abstract
+Training a robotic arm to accomplish real-world tasks
+has been attracting increasing attention in both academia
+and industry. This work discusses the role of computer vision algorithms in this field. We focus on low-cost arms on
+which no sensors are equipped and thus all decisions are
+made upon visual recognition, e.g., real-time 3D pose estimation. This requires annotating a lot of training data,
+which is not only time-consuming but also laborious.
+In this paper, we present an alternative solution, which
+uses a 3D model to create a large number of synthetic data,
+trains a vision model in this virtual domain, and applies it
+to real-world images after domain adaptation. To this end,
+we design a semi-supervised approach, which fully leverages the geometric constraints among keypoints. We apply
+an iterative algorithm for optimization. Without any annotations on real images, our algorithm generalizes well and
+produces satisfying results on 3D pose estimation, which is
+evaluated on two real-world datasets. We also construct
+a vision-based control system for task accomplishment, for
+which we train a reinforcement learning agent in a virtual
+environment and apply it to the real-world. Moreover, our
+approach, with merely a 3D model being required, has the
+potential to generalize to other types of multi-rigid-body dynamic systems.
+
+1. Introduction
+Precise and agile robotic arms have been widely used
+in the assembly industry for decades, but the adaptation
+of robots to domestic use is still a challenging topic. This
+task can be made much easier if vision input are provided
+and well utilized by the robots. A typical example lies
+in autonomous driving [8]. In the area of robotics, researchers have paid more and more attentions to visionbased robots and collected large-scale datasets, e.g., for object grasping [19][29] and block stacking [12]. However,
+∗ This work was done when the first author was an intern at the Johns
+
+Hopkins University. The first two authors contributed equally.
+
+yizhou.wang@pku.edu.cn
+
+the high cost of configuring a robotic system largely limits
+researchers from accessing these interesting topics.
+This work aims at equipping a robotic system with computer vision algorithms, e.g., predicting its real-time status
+using an external camera, so that researchers can control
+them with a high flexibility, e.g., mimicking the behavior of
+human operators. In particular, we build our platform upon
+a low-cost robotic arm named OWI-535 which can be purchased from Amazon1 for less than $40. The downside is
+that this arm has no sensors and thus it totally relies on vision inputs2 – on the other hand, we can expect vision inputs
+to provide complementary information in sensor-equipped
+robotic systems. We chose this arm for two reasons. (i)
+Accessibility: the cheap price reduces experimental budgets and makes our results easy to be reproduced by lab researchers (poor vision people :( ). (ii) Popularity: users
+around the world uploaded videos to YouTube recording
+how this arm was manually controlled to complete various tasks, e.g., picking up tools, stacking up dices, etc.
+These videos were captured under substantial environmental changes including viewpoint, lighting condition, occlusion and blur. This raises real-world challenges which are
+very different from research done in a lab environment.
+Hence, the major technical challenge is to train a vision
+algorithm to estimate the 3D pose of the robotic arm.
+Mathematically, given an input image x, a vision model
+M : p = h(x; θ) is used to predict p, the real-time 3D
+pose of the arm, where θ denotes the learnable parameters,
+e.g., in the context of deep learning [17], network weights.
+Training such a vision model often requires a considerable
+amount of labeled data. One option is to collect a large
+number of images under different environments and annotate them using crowd-sourcing, but we note a significant
+limitation as these efforts, which take hundreds of hours, are
+often not transferable from one robotic system to another.
+In this paper, we suggest an alternative solution which bor1 https://www.amazon.com/dp/B0017OFRCY/
+2 Even when the initialized status of the arm is provided and each action
+is recorded, we cannot accurately compute its real-time status because each
+order is executed with large variation – even the battery level can affect.
+
+14214
+
+

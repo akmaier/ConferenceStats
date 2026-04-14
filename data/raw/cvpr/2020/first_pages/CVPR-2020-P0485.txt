@@ -1,0 +1,105 @@
+Lightweight Multi-View 3D Pose Estimation
+through Camera-Disentangled Representation
+Edoardo Remelli1
+
+Shangchen Han2
+Sina Honari1
+Pascal Fua1
+1
+CVLab, EPFL, Lausanne, Switzerland
+2
+Facebook Reality Labs, Redmond, USA
+
+Robert Wang2
+
+Abstract
+Encoder
+
+We present a lightweight solution to recover 3D pose
+from multi-view images captured with spatially calibrated
+cameras. Building upon recent advances in interpretable
+representation learning, we exploit 3D geometry to fuse
+input images into a unified latent representation of pose,
+which is disentangled from camera view-points. This allows us to reason effectively about 3D pose across different views without using compute-intensive volumetric grids.
+Our architecture then conditions the learned representation
+on camera projection operators to produce accurate perview 2d detections, that can be simply lifted to 3D via a
+differentiable Direct Linear Transform (DLT) layer. In order to do it efficiently, we propose a novel implementation
+of DLT that is orders of magnitude faster on GPU architectures than standard SVD-based triangulation methods.
+We evaluate our approach on two large-scale human pose
+datasets (H36M and Total Capture): our method outperforms or performs comparably to the state-of-the-art volumetric methods, while, unlike them, yielding real-time performance.
+
+1. Introduction
+Most recent works on human 3D pose capture has focused on monocular reconstruction, even though multi-view
+reconstruction is much easier, since multi-camera setups are
+perceived as being too cumbersome. The appearance of Virtual/Augmented Reality headsets with multiple integrated
+cameras challenges this perception and has the potential to
+bring back multi-camera techniques to the fore, but only if
+multi-view approaches can be made sufficiently lightweight
+to fit within the limits of low-compute headsets.
+Unfortunately, the state-of-the-art multi-camera 3D pose
+estimation algorithms tend to be computationally expensive
+because they rely on deep networks that operate on volumetric grids [14], or volumetric Pictorial Structures [22,
+21], to combine features coming from different views in accordance with epipolar geometry. Fig. 1(a) illustrates these
+
+3D-CNN
+
+#$%$
+
+Decoder
+
+or
+
+Encoder
+
+PSM
+
+#)%$
+
+Decoder
+
+a) Volumetric Approaches
+Disentangled
+Representation
+
+Encoder
+
+! |#$%$
+
+&'(
+
+! |#$
+
+Decoder
+DLT
+
+Encoder
+
+! |#)%$
+
+! |#) Decoder
+
+b) Canonical Fusion (ours)
+Figure 1. Overview of 3D pose estimation from multi-view images. The state-of-the-art approaches project 2D detections to 3D
+grids and reason jointly across views through computationally intensive volumetric convolutional neural networks [14] or Pictorial
+Structures (PSM) [22, 21]. This yields accurate predictions but is
+computationally expensive. We design a lightweight architecture
+that predicts 2D joint locations from a learned camera-independent
+representation of 3D pose and then lifts them to 3D via an efficient
+formulation of differentiable triangulation (DLT). Our method
+achieves performance comparable to volumetric methods, while,
+unlike them, working in real-time.
+
+approaches.
+In this paper, we demonstrate that the expense of using a
+3D grid is not required. Fig. 1(b) depicts our approach. We
+encode each input image into latent representations, which
+are then efficiently transformed from image coordinates into
+world coordinates by conditioning on the appropriate camera transformation using feature transform layers [31]. This
+yields feature maps that live in a canonical frame of reference and are disentangled from the camera poses. The
+feature maps are fused using 1D convolutions into a unified latent representation, denoted as p3D in Fig. 1(b), which
+makes it possible to reason jointly about the extracted 2D
+poses across camera views. We then condition this latent
+code on the known camera transformation to decode it back
+16040
+
+

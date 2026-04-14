@@ -1,0 +1,82 @@
+SBNet: Sparse Blocks Network for Fast Inference
+Mengye Ren∗ 1,2 , Andrei Pokrovsky∗ 1 , Bin Yang∗ 1,2 , Raquel Urtasun 1,2
+1
+Uber Advanced Technologies Group
+2
+University of Toronto
+{mren3,andrei,byang10,urtasun}@uber.com
+
+Abstract
+Conventional deep convolutional neural networks
+(CNNs) apply convolution operators uniformly in space
+across all feature maps for hundreds of layers - this incurs
+a high computational cost for real-time applications. For
+many problems such as object detection and semantic
+segmentation, we are able to obtain a low-cost computation
+mask, either from a priori problem knowledge, or from a
+low-resolution segmentation network. We show that such
+computation masks can be used to reduce computation
+in the high-resolution main network. Variants of sparse
+activation CNNs have previously been explored on smallscale tasks and showed no degradation in terms of object
+classification accuracy, but often measured gains in terms
+of theoretical FLOPs without realizing a practical speedup when compared to highly optimized dense convolution
+implementations. In this work, we leverage the sparsity
+structure of computation masks and propose a novel
+tiling-based sparse convolution algorithm. We verified the
+effectiveness of our sparse CNN on LiDAR-based 3D object
+detection, and we report significant wall-clock speed-ups
+compared to dense convolution without noticeable loss of
+accuracy.
+
+1. Introduction
+Deep convolutional neural networks (CNNs) have led
+to major breakthroughs in many computer vision tasks
+[21]. While model accuracy consistently improves with the
+number of layers [11], as current standard networks use over
+a hundred convolution layers, the amount of computation
+involved in deep CNNs can be prohibitively expensive for
+real-time applications such as autonomous driving.
+Spending equal amount of computation at all spatial locations is a tremendous waste, since spatial sparsity is ubiquitous in many applications: in autonomous driving, only
+∗ Equal contribution.
+
+Code available at https://github.com/uber/sbnet
+
+Gather
+
+Scatter
+
+*
+Convolution
+
+*
+
+Figure 1: Our proposed tiled sparse convolution module
+the areas on the road matter for object detection; in video
+segmentation, only occluded and fast-moving pixels require
+recomputation; in 3D object classification [34], sparsity
+is directly encoded in the inputs as voxel occupancy. In
+these examples, spatial sparsity can be represented as binary
+computation masks where ones indicate active locations
+that need more computation and zeros inactive. In cases
+where such masks are not directly available from the inputs,
+we can predict them in the form of visual saliency [16]
+or objectness prior [20] by using another relatively cheap
+network or even a part of the main network itself [4, 25].
+These binary computation masks can be efficiently incorporated into the computation of deep CNNs: instead of
+convolving the input features at every location, we propose
+to use the masks to guide the convolutional filters. Computation masks can also be considered as a form of attention
+mechanism where the attention weights are binary. While
+most current uses of attention in computer vision have been
+predominantly targeted at better model interpretability and
+higher prediction accuracy, our work highlights the benefit
+of attentional inference speed-up.
+In this work, we leverage structured sparsity patterns of
+computation masks and propose Sparse Blocks Networks
+(SBNet), which computes convolution on a blockwise decomposition of the mask. We implemented our proposed
+sparse convolution kernels (fragments of parallel code) on
+graphics processing unit (GPU) and we report wall-clock
+time speed-up compared against state-of-the-art GPU dense
+
+8711
+
+

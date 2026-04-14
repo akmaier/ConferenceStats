@@ -1,0 +1,73 @@
+Deep Depth Completion of a Single RGB-D Image
+Yinda Zhang
+Princeton University
+
+Thomas Funkhouser
+Princeton University
+
+Abstract
+The goal of our work is to complete the depth channel of
+an RGB-D image. Commodity-grade depth cameras often
+fail to sense depth for shiny, bright, transparent, and distant
+surfaces. To address this problem, we train a deep network
+that takes an RGB image as input and predicts dense surface normals and occlusion boundaries. Those predictions
+are then combined with raw depth observations provided by
+the RGB-D camera to solve for depths for all pixels, including those missing in the original observation. This method
+was chosen over others (e.g., inpainting depths directly) as
+the result of extensive experiments with a new depth completion benchmark dataset, where holes are filled in training
+data through the rendering of surface reconstructions created from multiview RGB-D scans. Experiments with different network inputs, depth representations, loss functions,
+optimization methods, inpainting methods, and deep depth
+estimation networks show that our proposed approach provides better depth completions than these alternatives.
+
+1. Introduction
+Depth sensing has become pervasive in applications
+as diverse as autonomous driving, augmented reality, and
+scene reconstruction. Despite recent advances in depth
+sensing technology, commodity-level RGB-D cameras like
+Microsoft Kinect, Intel RealSense, and Google Tango still
+produce depth images with missing data when surfaces are
+too glossy, bright, thin, close, or far from the camera. These
+problems appear when rooms are large, surfaces are shiny,
+and strong lighting is abundant – e.g., in museums, hospitals, classrooms, stores, etc. Even in homes, depth images
+often are missing more than 50% of the pixels (Figure 1).
+The goal of our work is to complete the depth channel of
+an RGB-D image captured with a commodity camera (i.e.,
+fill all the holes). Though depth inpainting has received a
+lot of attention over the past two decades [64], it has generally been addressed with hand-tuned methods that fill holes
+by extrapolating boundary surfaces [46] or with Markovian
+image synthesis [13]. Newer methods have been proposed
+to estimate depth de novo from color using deep networks
+
+Sensor Depth
+
+Color Image
+
+Surface Normal Depth Completion
+
+Figure 1. Depth Completion. We fill in large missing areas in
+the depth channel of an RGB-D image by predicting normals from
+color and then solving for completed depths.
+
+[16]. However, they have not been used for depth completion, which has its own unique challenges:
+Training data: Large-scale training sets are not readily
+available for captured RGB-D images paired with ”completed” depth images (e.g., where ground-truth depth is provided for holes). As a result, most methods for depth estimation are trained and evaluated only for pixels that are
+captured by commodity RGB-D cameras [59]. From this
+data, they can at-best learn to reproduce observed depths,
+but not complete depths that are unobserved, which have
+significantly different characteristics. To address this issue,
+we introduce a new dataset with 105,432 RGB-D images
+aligned with completed depth images computed from largescale surface reconstructions in 72 real-world environments.
+Depth representation: The obvious approach to address
+our problem is to use the new dataset as supervision to train
+a fully convolutional network to regress depth directly from
+RGB-D. However, that approach does not work very well,
+especially for large holes like the one shown in the bottom
+row of Figure 1. Estimating absolute depths from a monocular color image is difficult even for people [48]. Rather,
+we train the network to predict only local differential properties of depth (surface normals and occlusion boundaries),
+which are much easier to estimate [31]. We then solve for
+the absolute depths with a global optimization.
+Deep network design: There is no previous work on studying how best to design and train an end-to-end deep network
+for completing depth images from RGB-D inputs. At first
+glance, it seems straight-forward to extend previous net1175
+
+

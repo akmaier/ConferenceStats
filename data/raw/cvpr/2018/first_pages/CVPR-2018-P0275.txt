@@ -1,0 +1,78 @@
+Learning to Find Good Correspondences
+Kwang Moo Yi1, * Eduard Trulls 2, * Yuki Ono3
+1
+
+Visual Computing Group, University of Victoria
+3
+
+Sony Imaging Products & Solutions Inc.
+
+4
+
+2
+
+Vincent Lepetit4
+
+Mathieu Salzmann2
+
+Pascal Fua2
+
+Computer Vision Laboratory, École Polytechnique Fédérale de Lausanne
+
+Institute for Computer Graphics and Vision, Graz University of Technology
+
+kyi@uvic.ca, {firstname.lastname}@epfl.ch, yuki.ono@sony.com, lepetit@icg.tugraz.at
+
+Abstract
+We develop a deep architecture to learn to find good correspondences for wide-baseline stereo. Given a set of putative sparse matches and the camera intrinsics, we train
+our network in an end-to-end fashion to label the correspondences as inliers or outliers, while simultaneously using them to recover the relative pose, as encoded by the
+essential matrix. Our architecture is based on a multi-layer
+perceptron operating on pixel coordinates rather than directly on the image, and is thus simple and small. We introduce a novel normalization technique, called Context Normalization, which allows us to process each data point separately while embedding global information in it, and also
+makes the network invariant to the order of the correspondences. Our experiments on multiple challenging datasets
+demonstrate that our method is able to drastically improve
+the state of the art with little training data.
+
+1. Introduction
+Recovering the relative camera motion between two images is one of the most basic tasks in Computer Vision, and
+a key component of wide-baseline stereo and Structure from
+Motion (SfM) pipelines. However, it remains a difﬁcult
+problem when dealing with wide baselines, repetitive structures, and illumination changes, as depicted by Fig. 1. Most
+algorithms rely on sparse keypoints [19, 2, 24] to establish
+an initial set of correspondences across images, then try to
+ﬁnd a subset of reliable matches—inliers—which conform
+to a given geometric model, and use them to recover the
+pose [11]. They rely on combinations of well-established
+techniques, such as SIFT [19], RANSAC [10], and the 8point algorithm [18], which have been in use for decades.
+With the advent of deep learning, there has been a push
+towards reformulating local feature extraction using neural
+networks [35, 26]. However, while these algorithms outper* First two authors contributed equally. K.M. Yi was at EPFL during
+the development of this project. This work was partially supported by EU
+FP7 project MAGELLAN under grant ICT-FP7-611526 and by systems
+supplied by Compute Canada.
+
+(a) RANSAC
+
+(b) Our approach
+
+Figure 1. We extract 2k SIFT keypoints from a challenging image
+pair and display the inlier matches found with RANSAC (left) and
+our approach (right). We draw them in green if they conform to
+the ground-truth epipolar geometry, and in red otherwise.
+
+form earlier ones on point-matching benchmarks, incorporating them into pose estimation pipelines may not necessarily translate into a performance increase, as indicated by
+two recent studies [25, 3]. This suggests that the limiting
+factor may not lie in establishing the correspondences as
+much as in choosing those that are best to recover the pose.
+This problem has received comparatively little attention
+and most algorithms still rely on non-differentiable handcrafted techniques to solve it. DSAC [4] is the only recent
+attempt we know of to tackle sparse outlier rejection in a
+differentiable manner. However, this method is designed to
+mimic RANSAC rather than outperform it. Furthermore, it
+is speciﬁc to 3D to 2D correspondences, rather than stereo.
+By contrast, we propose a novel approach to ﬁnding geometrically consistent correspondences with a deep network.
+Given feature points in both images, and potential correspondences between them, we train a deep network that
+simultaneously solves a classiﬁcation problem—retain or
+reject each correspondence—and a regression problem—
+retrieving the camera motion—by exploiting epipolar constraints. To do so we introduce a differentiable way to com12666
+
+

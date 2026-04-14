@@ -250,6 +250,20 @@ If you want to run the local-LLM pass manually from the console instead of throu
 make llm-country CONFERENCE_SLUG=cvpr YEAR=2016
 ```
 
+For CVPR, the recommended pre-LLM preparation step after first-page extraction is:
+
+```bash
+make cvpr-prepare-llm YEAR=2018
+```
+
+For the `ICCV/ECCV` family, use the same family-level year and let `make` resolve the actual source venue:
+
+```bash
+make iccv-eccv-show-target YEAR=2024
+make iccv-eccv-prepare-llm YEAR=2024
+make iccv-eccv-llm-country YEAR=2024
+```
+
 ## Recommended Commands
 
 For a single conference/year that already has `papers_index.csv` and extracted first-page text:
@@ -279,6 +293,13 @@ python3 scripts/infer_countries.py \
   --use-local-llm \
   --llm-review-csv data/intermediate/cvpr/2015/author_country_llm_review.csv \
   --llm-min-confidence medium
+```
+
+For CVPR years that still need proceedings parsing plus first-page extraction, you can also use:
+
+```bash
+make cvpr-first-pages YEAR=2018
+make cvpr-first-pages-range CVPR_START_YEAR=2018 CVPR_END_YEAR=2025
 ```
 
 Or run the wrapper:

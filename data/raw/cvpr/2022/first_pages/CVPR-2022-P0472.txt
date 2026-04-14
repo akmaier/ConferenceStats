@@ -1,0 +1,81 @@
+TransFusion: Robust LiDAR-Camera Fusion for 3D Object Detection with Transformers
+Xuyang Bai1 Zeyu Hu1 Xinge Zhu2 Qingqiu Huang2 Yilun Chen2 Hongbo Fu3 Chiew-Lan Tai1
+1
+
+Hong Kong University of Science and Technology
+
+Abstract
+LiDAR and camera are two important sensors for 3D object detection in autonomous driving. Despite the increasing popularity of sensor fusion in this field, the robustness
+against inferior image conditions, e.g., bad illumination
+and sensor misalignment, is under-explored. Existing fusion methods are easily affected by such conditions, mainly
+due to a hard association of LiDAR points and image pixels,
+established by calibration matrices.
+We propose TransFusion, a robust solution to LiDARcamera fusion with a soft-association mechanism to handle inferior image conditions. Specifically, our TransFusion consists of convolutional backbones and a detection
+head based on a transformer decoder. The first layer of the
+decoder predicts initial bounding boxes from a LiDAR point
+cloud using a sparse set of object queries, and its second
+decoder layer adaptively fuses the object queries with useful image features, leveraging both spatial and contextual
+relationships. The attention mechanism of the transformer
+enables our model to adaptively determine where and what
+information should be taken from the image, leading to a
+robust and effective fusion strategy. We additionally design
+an image-guided query initialization strategy to deal with
+objects that are difficult to detect in point clouds. TransFusion achieves state-of-the-art performance on large-scale
+datasets. We provide extensive experiments to demonstrate
+its robustness against degenerated image quality and calibration errors. We also extend the proposed method to the
+3D tracking task and achieve the 1st place in the leaderboard of nuScenes tracking, showing its effectiveness and
+generalization capability. [code release]
+
+1. Introduction
+As one of the fundamental tasks in self-driving, 3D object detection aims to localize a set of objects in 3D space
+and recognize their categories. Thanks to the accurate
+depth information provided by LiDAR, early works such
+as VoxelNet [67] and PointPillar [14] achieve reasonably
+good results using only point clouds as input. However,
+these LiDAR-only methods are generally surpassed by the
+methods using both LiDAR and camera data on large-scale
+
+2
+
+ADS, IAS BU, Huawei
+
+3
+
+City University of Hong Kong
+
+datasets with sparser point clouds, such as nuScenes [1] and
+Waymo [42]. LiDAR-only methods are surely insufficient
+for robust 3D detection due to the sparsity of point clouds.
+For example, small or distant objects are difficult to detect
+in LiDAR modality. In contrast, such objects are still clearly
+visible and distinguishable in high-resolution images. The
+complementary roles of point clouds and images motivate
+researchers to design detectors utilizing the best of the two
+worlds, i.e., multi-modal detectors.
+Existing LiDAR-camera fusion methods roughly fall
+into three categories: result-level, proposal-level, and pointlevel. The result-level methods, including FPointNet [29]
+and RoarNet [39], use off-the-shelf 2D detectors to seed
+3D proposals, followed by a PointNet [30] for object localization. The proposal-level fusion methods, including
+MV3D [5] and AVOD [12], perform fusion at the region
+proposal level by applying RoIPool [31] in each modality
+for shared proposals. These coarse-grained fusion methods show unsatisfactory results since rectangular regions
+of interest (RoI) usually contain lots of background noise.
+Recently, a majority of approaches have tried to do pointlevel fusion and achieved promising results. They first find
+a hard association between LiDAR points and image pixels based on calibration matrices, and then augment LiDAR
+features with the segmentation scores [46, 51] or CNN features [10, 22, 40, 47, 62] of the associated pixels through
+point-wise concatenation. Similarly, [16, 17, 50, 59] first
+project a point cloud onto the bird’s eye view (BEV) plane
+and then fuse the image features with the BEV pixels.
+Despite the impressive improvements, these point-level
+fusion methods suffer from two major problems, as shown
+in Fig. 1. First, they simply fuse the LiDAR features and
+image features through element-wise addition or concatenation, and thus their performance degrades seriously with
+low-quality image features, e.g., images in bad illumination conditions. Second, finding the hard association between sparse LiDAR points and dense image pixels not only
+wastes many image features with rich semantic information,
+but also heavily relies on high-quality calibration between
+two sensors, which is usually hard to acquire due to the inherent spatial-temporal misalignment [63].
+To address the shortcomings of the previous fusion approaches, we introduce an effective and robust multi-modal
+
+1090
+
+

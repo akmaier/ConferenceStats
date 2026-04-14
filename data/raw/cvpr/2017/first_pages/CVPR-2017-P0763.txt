@@ -1,0 +1,64 @@
+Realtime Multi-Person 2D Pose Estimation using Part Affinity Fields ∗
+Zhe Cao
+Tomas Simon
+Shih-En Wei
+Yaser Sheikh
+The Robotics Institute, Carnegie Mellon University
+{zhecao,shihenw}@cmu.edu
+
+{tsimon,yaser}@cs.cmu.edu
+
+Abstract
+We present an approach to efficiently detect the 2D pose
+of multiple people in an image. The approach uses a nonparametric representation, which we refer to as Part Affinity
+Fields (PAFs), to learn to associate body parts with individuals in the image. The architecture encodes global context, allowing a greedy bottom-up parsing step that maintains high accuracy while achieving realtime performance,
+irrespective of the number of people in the image. The architecture is designed to jointly learn part locations and
+their association via two branches of the same sequential
+prediction process. Our method placed first in the inaugural COCO 2016 keypoints challenge, and significantly exceeds the previous state-of-the-art result on the MPII MultiPerson benchmark, both in performance and efficiency.
+
+1. Introduction
+Human 2D pose estimation—the problem of localizing
+anatomical keypoints or “parts”—has largely focused on
+finding body parts of individuals [8, 4, 3, 21, 33, 13, 25, 31,
+6, 24]. Inferring the pose of multiple people in images, especially socially engaged individuals, presents a unique set
+of challenges. First, each image may contain an unknown
+number of people that can occur at any position or scale.
+Second, interactions between people induce complex spatial interference, due to contact, occlusion, and limb articulations, making association of parts difficult. Third, runtime
+complexity tends to grow with the number of people in the
+image, making realtime performance a challenge.
+A common approach [23, 9, 27, 12, 19] is to employ
+a person detector and perform single-person pose estimation for each detection. These top-down approaches directly leverage existing techniques for single-person pose
+estimation [17, 31, 18, 28, 29, 7, 30, 5, 6, 20], but suffer
+from early commitment: if the person detector fails–as it
+is prone to do when people are in close proximity–there is
+no recourse to recovery. Furthermore, the runtime of these
+∗ Video result: https://youtu.be/pW6nZXeWlGM
+
+Figure 1. Top: Multi-person pose estimation. Body parts belonging to the same person are linked. Bottom left: Part Affinity Fields
+(PAFs) corresponding to the limb connecting right elbow and right
+wrist. The color encodes orientation. Bottom right: A zoomed in
+view of the predicted PAFs. At each pixel in the field, a 2D vector
+encodes the position and orientation of the limbs.
+
+top-down approaches is proportional to the number of people: for each detection, a single-person pose estimator is
+run, and the more people there are, the greater the computational cost. In contrast, bottom-up approaches are attractive
+as they offer robustness to early commitment and have the
+potential to decouple runtime complexity from the number
+of people in the image. Yet, bottom-up approaches do not
+directly use global contextual cues from other body parts
+and other people. In practice, previous bottom-up methods [22, 11] do not retain the gains in efficiency as the final parse requires costly global inference. For example, the
+seminal work of Pishchulin et al. [22] proposed a bottom-up
+approach that jointly labeled part detection candidates and
+associated them to individual people. However, solving the
+integer linear programming problem over a fully connected
+graph is an NP-hard problem and the average processing
+time is on the order of hours. Insafutdinov et al. [11] built
+on [22] with stronger part detectors based on ResNet [10]
+and image-dependent pairwise scores, and vastly improved
+the runtime, but the method still takes several minutes per
+image, with a limit on the number of part proposals. The
+pairwise representations used in [11], are difficult to regress
+precisely and thus a separate logistic regression is required.
+17291
+
+

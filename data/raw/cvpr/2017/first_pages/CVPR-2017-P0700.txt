@@ -1,0 +1,70 @@
+DSAC - Differentiable RANSAC for Camera Localization
+Eric Brachmann1 , Alexander Krull1 , Sebastian Nowozin2
+Jamie Shotton2 , Frank Michel1 , Stefan Gumhold1 , Carsten Rother1
+1
+TU Dresden, 2 Microsoft
+
+Abstract
+RANSAC is an important algorithm in robust optimization and a central building block for many computer vision
+applications. In recent years, traditionally hand-crafted
+pipelines have been replaced by deep learning pipelines,
+which can be trained in an end-to-end fashion. However,
+RANSAC has so far not been used as part of such deep
+learning pipelines, because its hypothesis selection procedure is non-differentiable. In this work, we present two different ways to overcome this limitation. The most promising
+approach is inspired by reinforcement learning, namely to
+replace the deterministic hypothesis selection by a probabilistic selection for which we can derive the expected loss
+w.r.t. to all learnable parameters. We call this approach
+DSAC, the differentiable counterpart of RANSAC. We apply
+DSAC to the problem of camera localization, where deep
+learning has so far failed to improve on traditional approaches. We demonstrate that by directly minimizing the
+expected loss of the output camera poses, robustly estimated
+by RANSAC, we achieve an increase in accuracy. In the future, any deep learning pipeline can use DSAC as a robust
+optimization component1 .
+
+1. Introduction
+Introduced in 1981, the random sample consensus
+(RANSAC) algorithm [11] remains the most important algorithm for robust estimation. It is easy to implement, it
+can be applied to a wide range of problems and it is able
+to handle data with a substantial percentage of outliers,
+i.e. data points that are not explained by the data model.
+RANSAC and variants thereof [39, 28, 7] have, for many
+years, been important tools in computer vision, including
+multi-view geometry [16], object retrieval [29], pose estimation [36, 4] and simultaneous localization and mapping
+(SLAM) [27]. Solutions to these diverse tasks often involve a common strategy: Local predictions (e.g. feature
+matches) induce a global model (e.g. a homography). In
+1 We will make our source code publicly available on the DSAC project
+website.
+
+this schema, RANSAC provides robustness to erroneous local predictions.
+Recently, deep learning has been shown to be highly
+successful at image recognition tasks [37, 17, 13, 31],
+and, increasingly, in other domains including geometry
+[10, 19, 20, 9]. Part of this recent success is the ability to
+perform end-to-end training, i.e. propagating gradients back
+through an entire pipeline to allow the direct optimization of
+a task-specific loss function, examples include [41, 1, 38].
+In this work, we are interested in learning components of
+a computer vision pipeline that follows the principle: predict locally, fit globally. As explained earlier, RANSAC is
+an integral component of this wide-spread strategy. We ask
+the question, whether we can train such a pipeline end-toend. More specifically, we want to learn parameters of a
+convolutional neural network (CNN) such that models, fit
+robustly to its predictions via RANSAC, minimize a task
+specific loss function.
+RANSAC works by first creating multiple model hypotheses from small, random subsets of data points. Then
+it scores each hypothesis by determining its consensus with
+all data points. Finally, RANSAC selects the hypothesis
+with the highest consensus as the final output. Unfortunately, this hypothesis selection is non-differentiable, meaning that it cannot directly be used in an end-to-end-trained
+deep learning pipeline.
+A common approach within the deep learning community is to soften non-differentiable operators, e.g. argmax
+in LIFT [41] or visual word assignment in NetVLAD [1]. In
+the case of RANSAC, the non-differentiable operator is the
+argmax operator which selects the highest scoring hypothesis. Similar to [41], we might substitute the argmax for a
+soft argmax, which is a weighted average of arguments [6].
+We indeed explore this direction but argue that this substitution changes the underlying principle of RANSAC. Instead
+of learning how to select a good hypothesis, the pipeline
+learns a (robust) average of hypotheses. We show experimentally that this approach learns to focus on a narrow selection of hypotheses and is prone to overfitting.
+Alternatively, we aim to preserve the hard hypothesis selection but treat it as a probabilistic process. We call this
+
+6684
+
+

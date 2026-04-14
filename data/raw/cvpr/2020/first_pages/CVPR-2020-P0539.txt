@@ -1,0 +1,88 @@
+Deep Snake for Real-Time Instance Segmentation
+Sida Peng1
+
+Wen Jiang1
+1
+
+Huaijin Pi1
+
+Xiuli Li2
+
+Zhejiang University
+
+2
+
+Hujun Bao1
+
+Xiaowei Zhou1∗
+
+Deepwise AI Lab
+
+Abstract
+This paper introduces a novel contour-based approach
+named deep snake for real-time instance segmentation. Unlike some recent methods that directly regress the coordinates of the object boundary points from an image, deep
+snake uses a neural network to iteratively deform an initial
+contour to match the object boundary, which implements the
+classic idea of snake algorithms with a learning-based approach. For structured feature learning on the contour, we
+propose to use circular convolution in deep snake, which
+better exploits the cycle-graph structure of a contour compared against generic graph convolution. Based on deep
+snake, we develop a two-stage pipeline for instance segmentation: initial contour proposal and contour deformation,
+which can handle errors in object localization. Experiments
+show that the proposed approach achieves competitive
+performances on the Cityscapes, KINS, SBD and COCO
+datasets while being efficient for real-time applications with
+a speed of 32.3 fps for 512×512 images on a 1080Ti GPU.
+The code is available at https://github.com/zju3dv/snake/.
+
+1. Introduction
+Instance segmentation is the cornerstone of many computer vision tasks, such as video analysis, autonomous driving, and robotic grasping, which require both accuracy and
+efficiency. Most of the state-of-the-art instance segmentation methods [18, 27, 5, 19] perform pixel-wise segmentation within a bounding box given by an object detector
+[36], which may be sensitive to the inaccurate bounding
+box. Moreover, representing an object shape as dense binary pixels generally results in costly post-processing.
+An alternative shape representation is the object contour,
+which is a set of vertices along the object silhouette. In contrast to pixel-based representation, a contour is not limited
+within a bounding box and has fewer parameters. Such a
+contour-based representation has long been used in image
+segmentation since the seminal work by Kass et al. [21],
+∗ The authors from Zhejiang University are affiliated with the State Key
+Lab of CAD&CG. Corresponding author: Xiaowei Zhou.
+
+1x1 conv
+
+(a) Initial contour
+
+(b) Feature learning on the contour
+
+(c) Offsets
+
+Figure 1. The basic idea of deep snake. Given an initial contour,
+image features are extracted at each vertex (a). Since the contour is
+a cycle graph, circular convolution is applied for feature learning
+on the contour (b). The blue, yellow and green nodes denote the
+input features, the kernel of circular convolution, and the output
+features, respectively. Finally, offsets are regressed at each vertex
+to deform the contour to match the object boundary (c).
+
+which is well known as snakes or active contours. Given an
+initial contour, the snake algorithm iteratively deforms it to
+match the object boundary by optimizing an energy functional defined with low-level features, such as image intensity or gradient. While many variants [6, 7, 15] have been
+developed in literature, these methods are prone to local optima as the objective functions are handcrafted and typically
+nonconvex.
+Some recent learning-based segmentation methods [20,
+42, 41] also represent objects as contours and try to directly regress the coordinates of contour vertices from an
+RGB image. Although such methods are fast, most of them
+do not perform as well as pixel-based methods. Instead,
+Ling et al. [25] adopt the deformation pipeline of traditional snake algorithms and train a neural network to evolve
+an initial contour to match the object boundary. Given a
+contour with image features, it regards the input contour
+as a graph and uses a graph convolutional network (GCN)
+to predict vertex-wise offsets between contour points and
+the target boundary points. It achieves competitive accuracy compared with pixel-based methods while being much
+faster. However, the method proposed in [25] is designed to
+help annotation and lacks a complete pipeline for automatic
+instance segmentation. Moreover, treating the contour as a
+general graph with a generic GCN does not fully exploit the
+special topology of a contour.
+18533
+
+

@@ -1,0 +1,84 @@
+FocalClick: Towards Practical Interactive Image Segmentation
+Xi Chen1
+
+Zhiyan Zhao1 Yilei Zhang1 Manni Duan1 Donglian Qi2 Hengshuang Zhao3,4
+1
+Alibaba Group 2 Zhejiang University 3 The University of Hong Kong
+4
+Massachusetts Institute of Technology
+
+Abstract
+Interactive segmentation allows users to extract target
+masks by making positive/negative clicks. Although explored by many previous works, there is still a gap between academic approaches and industrial needs: first,
+existing models are not efficient enough to work on lowpower devices; second, they perform poorly when used to
+refine preexisting masks as they could not avoid destroying
+the correct part. FocalClick solves both issues at once by
+predicting and updating the mask in localized areas. For
+higher efficiency, we decompose the slow prediction on the
+entire image into two fast inferences on small crops: a
+coarse segmentation on the Target Crop, and a local refinement on the Focus Crop. To make the model work with
+preexisting masks, we formulate a sub-task termed Interactive Mask Correction, and propose Progressive Merge
+as the solution. Progressive Merge exploits morphological information to decide where to preserve and where to
+update, enabling users to refine any preexisting mask effectively. FocalClick achieves competitive results against
+SOTA methods with significantly smaller FLOPs. It also
+shows significant superiority when making corrections on
+preexisting masks. Code and data will be released at
+github.com/XavierCHEN34/ClickSEG
+
+1. Introduction
+In recent years, interactive segmentation has aroused interest from both academia and industry. It enables users
+to annotate masks conveniently using simple interactions
+like scribbles [1, 11, 21], boxes [20, 34, 40], or clicks [5, 18,
+27, 35, 36, 44]. In this work, we focus on the click-based
+method. Under this setting, the users successively place
+positive/negative clicks (like the red/green points in Fig. 1)
+to define the foreground and background, and the model returns new predictions after each user click.
+The basic paradigm [44] for click-based interactive segmentation is using Gaussian maps or disks to represent the
+clicks, then concatenating the click maps with the image
+as input, and sending it to a segmentation model to predict
+
+User: Add Click
+
+New Click
+
+Target Crop
+Coarse Segmentation
+
+Focus Crop
+Local Refinement
+
+Previous Prediction
+
+Coarse Segmentation
+
+Local Refinement
+
+Progressive Merge
+
+Progressive Merge
+
+Figure 1. After receiving a new click, FocalClick first selects a
+Target Crop (yellow box) based on the previous mask to execute
+coarse segmentation. Then, we pick a Focus Crop (red box) to
+make refinement according to the maximum different region between the coarse prediction and the previous mask. At last, Progressive Merge selects part of the new prediction to update.
+
+the mask. Based on this paradigm, previous works make
+improvements from different angles and keep improving
+SOTA. However, when applying them to practical scenarios, we find them not satisfactory in the following aspects.
+Efficiency on low-power devices. A good annotation
+tool is expected to produce fine masks with quick responses.
+Most previous works only focus on accuracy and take advantage of big models and high-resolution inputs. However, they struggle when deployed on personal laptops, edge
+devices, or web service applications with high volume requests. When we attempt to reduce the input size for faster
+turnover, their accuracy drops significantly.
+Working with preexisting mask. In practical applications, there are not many mask annotation tasks that need
+to start from scratch. Preexisting masks are often provided
+by offline models or other forms of pre-processing. Making modifications on them could facilitate the annotation.
+Nevertheless, previous methods are not compatible with externally given masks. Most works [5, 18, 22, 27, 35, 44] do
+not consider the previous mask as input. Although [10, 36]
+concatenate the previous mask with the input image and
+the click maps, they do not perform well. As shown in
+Fig. 2, RITM [36] hardly removes the mask of the cabin
+
+1300
+
+

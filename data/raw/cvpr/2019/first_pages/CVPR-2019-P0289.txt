@@ -1,0 +1,94 @@
+Snapshot Distillation: Teacher-Student Optimization in One Generation
+Chenglin Yang1 , Lingxi Xie1,2( ) , Chi Su3 , Alan L. Yuille1
+1
+Johns Hopkins University 2 Noah’s Ark Lab, Huawei Inc. 3 Kingsoft Cloud
+{chenglin.yangw,198808xc,alan.l.yuille}@gmail.com
+
+suchi@kingsoft.com
+
+Abstract
+Optimizing a deep neural network is a fundamental task
+in computer vision, yet direct training methods often suffer from over-fitting. Teacher-student optimization aims at
+providing complementary cues from a model trained previously, but these approaches are often considerably slow due
+to the pipeline of training a few generations in sequence,
+i.e., time complexity is increased by several times.
+This paper presents snapshot distillation (SD), the first
+framework which enables teacher-student optimization in
+one generation. The idea of SD is very simple: instead of
+borrowing supervision signals from previous generations,
+we extract such information from earlier epochs in the same
+generation, meanwhile make sure that the difference between teacher and student is sufficiently large so as to prevent under-fitting. To achieve this goal, we implement SD in
+a cyclic learning rate policy, in which the last snapshot of
+each cycle is used as the teacher for all iterations in the next
+cycle, and the teacher signal is smoothed to provide richer
+information. In standard image classification benchmarks
+such as CIFAR100 and ILSVRC2012, SD achieves consistent accuracy gain without heavy computational overheads.
+We also verify that models pre-trained with SD transfers
+well to object detection and semantic segmentation in the
+PascalVOC dataset.
+
+1. Introduction
+A large portion of recent advances in computer vision
+have been built upon deep learning, in particular training
+very deep neural networks. With the depth increasing
+from tens [25, 37, 40] to hundreds [18, 22], the issue of
+the network optimization becomes more and more important yet challenging. As such, researchers proposed various approaches to deal with both under-fitting [30], overfitting [39] and numerical instability [23].
+As an alternative approach to assist training, teacherstudent (T-S) optimization was originally designed for training a smaller network to approximate the behavior of a
+larger one, i.e., model compression [19], but later re-
+
+SA?
+Knowledge Distillation (2015) [19]
+FitNet (2015) [35]
+Net2Net (2016) [5]
+A Gift from KD (2017) [50]
+Label Refinery (2018) [2]
+Born-Again Network (2018) [11]
+Tolerant Teacher (2018) [49]
+Snapshot Distillation (this work)
+
+IN?
+
+1G?
+
+X
+X
+X
+X
+X
+
+X
+X
+X
+
+X
+
+Table 1. The attributes of different teacher-student optimization
+approaches, where SA indicates that teacher and student have the
+same architecture, IN indicates being evaluated on ImageNet, and
+1G indicates that the entire process is done within one generation.
+See Section 2 for a detailed survey.
+
+searchers found its effectiveness in providing complementary cues to training the same network [11, 2]. These
+approaches require a teacher model which is often obtained
+from a standalone training process. Then, an extra loss
+term which measures the similarity between the teacher and
+the student is added to the existing cross-entropy loss term.
+It was believed that such an optimization process benefits
+from so-called secondary information [49], i.e., class-level
+similarity that allows the student not to fit the one-hot class
+distribution. Despite their success in improving recognition
+accuracy, these approaches often suffer much heavier computational overheads, because a sequence of models need
+to be optimized one by one. A training process with one
+teacher and K students requires K× more training time
+compared to a single model.
+This paper presents an algorithm named snapshot distillation (SD) to perform T-S optimization in one generation
+which, to the best of our knowledge, was not achieved in
+prior research. The differences between SD and previous
+methods are summarized in Table 1. The key idea of SD is
+straightforward: taking extra supervision (a.k.a. the teacher
+signal) from the prior iterations (in the same generation)
+instead of the prior generations. Based on this framework, we investigate several factors that impact the performance of T-S optimization, and summarize three principles,
+namely, (i) the teacher model has been well optimized; (ii)
+12859
+
+

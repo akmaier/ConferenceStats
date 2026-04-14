@@ -1,0 +1,109 @@
+ViM: Out-Of-Distribution with Virtual-logit Matching
+Haoqi Wang1 * Zhizhong Li1 * Litong Feng1 Wayne Zhang12†
+1
+SenseTime Research 2 Qing Yuan Research Institute, Shanghai Jiao Tong University
+{wanghaoqi,lizz,fenglitong,wayne.zhang}@sensetime.com
+
+95
+
+Most of the existing Out-Of-Distribution (OOD) detection algorithms depend on single input source: the feature,
+the logit, or the softmax probability. However, the immense
+diversity of the OOD examples makes such methods fragile. There are OOD samples that are easy to identify in the
+feature space while hard to distinguish in the logit space
+and vice versa. Motivated by this observation, we propose
+a novel OOD scoring method named Virtual-logit Matching (ViM), which combines the class-agnostic score from
+feature space and the In-Distribution (ID) class-dependent
+logits. Specifically, an additional logit representing the virtual OOD class is generated from the residual of the feature against the principal space, and then matched with the
+original logits by a constant scaling. The probability of this
+virtual logit after softmax is the indicator of OOD-ness.
+To facilitate the evaluation of large-scale OOD detection
+in academia, we create a new OOD dataset for ImageNet1K, which is human-annotated and is 8.8× the size of existing datasets. We conducted extensive experiments, including CNNs and vision transformers, to demonstrate the
+effectiveness of the proposed ViM score. In particular, using the BiT-S model, our method gets an average AUROC
+90.91% on four difficult OOD benchmarks, which is 4%
+ahead of the best baseline. Code and dataset are available
+at https://github.com/haoqiwang/vim.
+
+1. Introduction
+Considering most deep image classification models are
+trained in the closed-world setting, the out-of-distribution
+(OOD) issue arises and deteriorates customer experience
+when the models are deployed in production, facing inputs
+coming from the open world [9]. For instance, a model may
+wrongly but confidently classify an image of crab into the
+clapping class, even though no crab-related concepts appear
+in the training set. OOD detection is to decide whether an
+input belongs to the training distribution. OOD detection
+* These two authors contribute equally to the work.
+† Corresponding author: Wayne Zhang.
+
+OpenImage-O (AUROC)
+
+Abstract
+
+ViM (Ours)
+MOS
+
+90
+
+KL Matching
+
+ODIN MaxLogit
+Energy
+MSP
+
+85
+
+Mahalanobis
+
+80
+
+Residual
+
+75
+55
+
+60
+
+65
+
+70
+
+75
+
+80
+
+85
+
+ImageNet-O (AUROC)
+
+Figure 1. The AUROC (in percentage) of nine OOD detection algorithms applied to a BiT model trained on ImageNet-1K. The
+OOD datasets are ImageNet-O (x-axis) and OpenImage-O (yaxis). Methods marked with box  use the feature space; methods
+with triangle 4 use the logit; and methods with diamond ♦ use the
+softmax probability. The proposed method ViM (marked with *)
+uses information from both features and logits.
+
+complements classification and finds its application in fields
+such as autonomous driving [19], medical analysis [30] and
+industrial inspection [1]. A comprehensive review of OOD
+and related topics including open set recognition, novelty
+detection and anomaly detection can be found in [38].
+The core of an OOD detector is a scoring function φ that
+maps an input feature x to a scalar in R, indicating to what
+extent the sample is likely to be OOD. In testing, a threshold
+τ is decided, ensuring that the validation set retains at least a
+given true-positive rate (TPR), e.g. the typical value of 0.95.
+The input example is regarded as OOD if φ(x) > τ and as
+ID (i.e., in-distribution) otherwise. In cases where a score
+indicating the ID-ness is convenient, we can mentally use
+the negative of OOD score as the ID score.
+Researchers have designed quite a few scoring functions
+by seeking properties that are naturally held by ID examples
+and easily violated by OOD examples, or vice versa. Scores
+are mainly derived from three sources: (1) the probability,
+such as the maximum softmax probabilities [13], the minimum KL-divergence between the softmax and the mean
+class-conditional distributions [12]; (2) the logit, such as
+the maximum logits [12], the logsumexp function over log-
+
+4921
+
+

@@ -1,0 +1,75 @@
+Unsupervised 3D Pose Estimation with Geometric Self-Supervision
+Ching-Hang Chen1
+Rohith MV1
+1
+
+Ambrish Tyagi1
+Amit Agrawal1
+Dylan Drover1
+Stefan Stojanov1,2
+James M. Rehg1,2
+
+Amazon Lab126, 2 Georgia Institute of Technology
+
+{chinghc, ambrisht, aaagrawa, droverd, kurohith}@amazon.com {sstojanov, rehg}@gatech.edu
+
+Abstract
+We present an unsupervised learning approach to recover 3D human pose from 2D skeletal joints extracted from
+a single image. Our method does not require any multiview image data, 3D skeletons, correspondences between
+2D-3D points, or use previously learned 3D priors during
+training. A lifting network accepts 2D landmarks as inputs
+and generates a corresponding 3D skeleton estimate. During training, the recovered 3D skeleton is reprojected on
+random camera viewpoints to generate new ‘synthetic’ 2D
+poses. By lifting the synthetic 2D poses back to 3D and
+re-projecting them in the original camera view, we can define self-consistency loss both in 3D and in 2D. The training
+can thus be self supervised by exploiting the geometric selfconsistency of the lift-reproject-lift process. We show that
+self-consistency alone is not sufficient to generate realistic
+skeletons, however adding a 2D pose discriminator enables
+the lifter to output valid 3D poses. Additionally, to learn
+from 2D poses ‘in the wild’, we train an unsupervised 2D
+domain adapter network to allow for an expansion of 2D
+data. This improves results and demonstrates the usefulness of 2D pose data for unsupervised 3D lifting. Results on
+Human3.6M dataset for 3D human pose estimation demonstrate that our approach improves upon the previous unsupervised methods by 30% and outperforms many weakly
+supervised approaches that explicitly use 3D data.
+
+1. Introduction
+Estimation of 3D human pose from images and videos
+is a classical ill-posed inverse problem in computer vision
+with numerous applications [12, 17, 28, 31] in human tracking, action understanding, human-robot interaction, augmented reality, video gaming, etc. Current deep learningbased systems attempt to learn a mapping from RGB images
+or 2D keypoints to 3D skeleton joints via some form of supervision requiring datasets with known 3D pose. However,
+obtaining 3D motion capture data is time-consuming, difficult, and expensive, and as a result, only a limited amount of
+3D data is currently available. On the other hand, 2D image
+
+and video data of humans is available in abundance. However, unsupervised learning of 3D joint locations from 2D
+pose alone remains a holy grail in the field. In this paper, we
+take a first step towards achieving this goal and present an
+unsupervised learning algorithm to estimate 3D human pose
+from 2D pose landmarks/keypoints. Our approach does not
+use 3D inputs in any form and does not require 2D-3D correspondences or explicit 3D priors.
+Due to perspective projection ambiguity, there exists an
+infinite number of 3D skeletons corresponding to a given
+2D pose. However, all of these solutions are not physically
+plausible given the anthropomorphic constraints and joint
+angle limits of a human body articulation. Typically, supervised learning with 2D pose and corresponding 3D skeletons is used to restrict the solution space. In addition, the
+3D structure can also be regularized in a weakly-supervised
+manner by using priors such as symmetry, ratio of length of
+various skeleton elements, and kinematic constraints, which
+are learned from 3D data. In contrast, this paper addresses
+the fundamental problem of lifting 2D image coordinates
+to 3D space without the use of any additional cues such as
+video [43, 54], multi-view cameras [1, 16], or depth images [35, 40, 52].
+We posit that the following properties of the 2D-3D pose
+mapping render unsupervised lifting possible: 1) Closure:
+If a 2D skeleton is lifted to 3D accurately, and then randomly rotated and reprojected, the resulting 2D skeleton
+will lie within the distribution of valid 2D poses. Conversely, a lifted 3D skeleton whose random re-projection
+falls outside this distribution is likely to be inaccurate. 2)
+Invariance: 2D projections of the same 3D skeleton from
+different viewpoints, when lifted, should produce the same
+3D output. In other words, lifting should be invariant to
+change in the viewpoint.
+We employ the above properties in designing a deep neural network, referred to as the lifting network, which is illustrated in Figure 1. We introduce a novel geometrical
+consistency loss term that allows the network to learn in
+a self-supervised mode. This self-consistency loss relies on
+the property of invariance: any 2D projection of the gen15714
+
+

@@ -1,0 +1,76 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Extracting Class Activation Maps from Non-Discriminative Features as well
+Zhaozheng Chen
+Singapore Management University
+
+Qianru Sun
+Singapore Management University
+
+zzchen.2019@phdcs.smu.edu.sg
+
+qianrusun@smu.edu.sg
+
+Abstract
+Extracting class activation maps (CAM) from a classification model often results in poor coverage on foreground
+objects, i.e., only the discriminative region (e.g., the “head”
+of “sheep”) is recognized and the rest (e.g., the “leg” of
+“sheep”) mistakenly as background. The crux behind is
+that the weight of the classifier (used to compute CAM) captures only the discriminative features of objects. We tackle
+this by introducing a new computation method for CAM
+that explicitly captures non-discriminative features as well,
+thereby expanding CAM to cover whole objects. Specifically, we omit the last pooling layer of the classification
+model, and perform clustering on all local features of an
+object class, where “local” means “at a spatial pixel position”. We call the resultant K cluster centers local prototypes — represent local semantics like the “head”, “leg”,
+and “body” of “sheep”. Given a new image of the class, we
+compare its unpooled features to every prototype, derive K
+similarity matrices, and then aggregate them into a heatmap
+(i.e., our CAM). Our CAM thus captures all local features of
+the class without discrimination. We evaluate it in the challenging tasks of weakly-supervised semantic segmentation
+(WSSS), and plug it in multiple state-of-the-art WSSS methods, such as MCTformer [45] and AMN [26], by simply replacing their original CAM with ours. Our extensive experiments on standard WSSS benchmarks (PASCAL VOC and
+MS COCO) show the superiority of our method: consistent
+improvements with little computational overhead. Our code
+is provided at https://github.com/zhaozhengChen/LPCAM.
+
+1. Introduction
+Extracting CAM [50] from classification models is the
+essential step for training semantic segmentation models
+when only image-level labels are available, i.e., in the
+WSSS tasks [8, 22, 24, 26, 46]. More specifically, the general pipeline of WSSS consists of three steps: 1) training a
+multi-label classification model with the image-level labels;
+2) extracting CAM of each class to generate a 0-1 mask
+
+(usually called seed mask), often with a further step of refinement to generate pseudo mask [1, 20]; and 3) taking allclass pseudo masks as pseudo labels to train a semantic segmentation model in a fully-supervised fashion [5, 6, 41]. It
+is clear that the CAM in the first step determines the performance of the final semantic segmentation model. However,
+the conventional CAM and its variants often suffer from the
+poor coverage of foreground objects in the image, i.e., a
+large amount of object pixels are mistakenly recognized as
+background, as demonstrated in Figure 1(a) where only few
+pixels are activated in warm colors.
+We point out that this locality is due to the fact that
+CAM is extracted from a discriminative model. The training of such model naturally discards the non-discriminative
+regions which confuse the model between similar as well as
+highly co-occurring object classes. This is a general problem of discriminative models, and is particularly obvious
+when the number of training classes is small [37,46,48]. To
+visualize the evidence, we use the classifier weights of confusing classes, e.g., “car”, “train” and “person”, to compute
+CAMs for the “bus” image, and show them in Figure 1(b).
+We find from (a) and (b) that the heating regions in ground
+truth class and confusing classes are complementary. E.g.,
+the upper and frontal regions (on the “bus” image) respectively heated in the CAMs of “car” and “train” (confusing
+classes) are missing in the CAM of “bus” (ground truth),
+which means the classifier de-activates those regions for
+“bus” as it is likely to recognize them as “car” or “train”.
+Technically, for each class, we use two factors to compute CAM: 1) the feature map block after the last conv layer,
+and 2) the weight of the classifier for that class. As aforementioned, the second factor is often biased to discriminative features. Our intuition is to replace it with a non-biased
+one. The question becomes how to derive a non-biased classifier from a biased classification model, where non-biased
+means representing all local semantics of the class. We find
+the biased classifier is due to incomplete features, i.e., only
+discriminative local features fed into the classifier, and the
+non-discriminative ones are kicked out by the global average pooling (GAP) after the last conv layer. To let the model
+pay attention to non-discriminative features as well, we pro-
+
+3135
+
+

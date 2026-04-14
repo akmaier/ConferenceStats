@@ -1,0 +1,63 @@
+Automated Log-Scale Quantization for Low-Cost Deep Neural Networks
+Sangyun Oh1 , Hyeonuk Sim2 , Sugil Lee1 , Jongeun Lee1†
+1 Department of Electrical Engineering, UNIST, Ulsan, Korea
+2 Department of Computer Science and Engineering, UNIST, Ulsan, Korea
+{syoh,detective,sglee17,jlee}@unist.ac.kr
+
+Abstract
+Quantization plays an important role in deep neural network (DNN) hardware. In particular, logarithmic quantization has multiple advantages for DNN hardware implementations, and its weakness in terms of lower performance
+at high precision compared with linear quantization has
+been recently remedied by what we call selective two-word
+logarithmic quantization (STLQ). However, there is a lack
+of training methods designed for STLQ or even logarithmic quantization in general. In this paper we propose a
+novel STLQ-aware training method, which significantly outperforms the previous state-of-the-art training method for
+STLQ. Moreover, our training results demonstrate that with
+our new training method, STLQ applied to weight parameters of ResNet-18 can achieve the same level of performance
+as state-of-the-art quantization method, APoT, at 3-bit precision. We also apply our method to various DNNs in image
+enhancement and semantic segmentation, showing competitive results.
+
+1. Introduction
+Quantization plays an important role in implementing
+energy-efﬁcient hardware for deep neural networks. Previous work on quantization mostly considers uniform quantization, but non-uniform quantization schemes such as
+logarithmic-scale quantization (log-scale quantization, for
+short) [19, 15] can have advantages over linear quantization
+in terms of hardware implementation, since it can replace
+multiplier hardware with a shifter or an adder, depending
+on whether log-scale quantization is applied to one or both
+operands.
+Log-scale quantization places more quantization boundaries for low-magnitude values at the expense of less bound† Corresponding author.
+
+This work was supported by Samsung Advanced Institute of Technology, Samsung Electronics Co., Ltd., IITP grant funded by MSIT of
+Korea (No.2020-0-01336, Artiﬁcial Intelligence Graduate School Program
+(UNIST)), and Free Innovative Research Fund of UNIST (1.170067.01).
+
+aries for high-magnitude values. This can sometimes lead
+to a lower expected quantization error overall, but often disproportionately high error that happens at high-magnitude
+values can undermine the accuracy of a log-scale quantization scheme signiﬁcantly, resulting in worse performance than linear quantization at the same bit-width [15].
+This problem of log-scale quantization has recently been
+addressed by selective two-word logarithmic quantization
+schemes (e.g. SLQ [16], FLightNN [9]). Selective two-word
+logarithmic quantization (STLQ) employs the vanilla logscale quantization most of the time, but when the quantization error is higher than a certain threshold, the error
+is quantized again, emitting two log-quantized words. The
+de-quantization process is straightforward. Importantly, this
+scheme allows the same low-complexity hardware of logscale quantization to be used while showing similar accuracy as linear quantization.
+However, the previous work [16, 9] has important shortcomings. First, it uses hyperparameter(s) to control the ratio
+of two-word quantization, which is suboptimal if the same
+value is used for all layers/channels, or cumbersome to optimize if different values are used. Second, though some previous work [9] uses trainable latent variables to balance between accuracy and model sparsity through differentiable
+training, their optimization goal does not explicitly target
+model size or the number of two-word ratio, but instead
+some measure of quantization error, which is only loosely
+related to the two-word ratio. Consequently the training result is not optimal in terms of accuracy vs. two-word quantization ratio. Third, ﬁnding the best weight parameters for
+a given two-word quantization ratio, which is a very useful use case scenario, is not directly supported by previous
+work.
+In this paper we propose a novel differentiable training
+framework for STLQ. Our method can directly optimize
+weights for a given two-word quantization ratio. Starting
+with a two-word ratio constraint has a surprising side effect
+that we use to our advantage in our training. That is, we
+can pre-select and separate the weight parameters that are
+likely to require two-word quantization from the rest of the
+
+742
+
+

@@ -1,0 +1,82 @@
+Deep Non-Line-Of-Sight Reconstruction
+Javier Grau Chopite∗
+
+Matthias B. Hullin†
+
+Abstract
+The recent years have seen a surge of interest in methods for imaging beyond the direct line of sight. The most
+prominent techniques rely on time-resolved optical impulse
+responses, obtained by illuminating a diffuse wall with an
+ultrashort light pulse and observing multi-bounce indirect
+reflections with an ultrafast time-resolved imager. Reconstruction of geometry from such data, however, is a complex non-linear inverse problem that comes with substantial
+computational demands. In this paper, we employ convolutional feed-forward networks for solving the reconstruction
+problem efficiently while maintaining good reconstruction
+quality. Specifically, we devise a tailored autoencoder architecture, trained end-to-end, that maps transient images
+directly to a depth-map representation. Training is done
+using a recent, very efficient transient renderer for threebounce indirect light transport that enables the quick generation of large amounts of training data for the network.
+We examine the performance of our method on a variety
+of synthetic and experimental datasets and its dependency
+on the choice of training data and augmentation strategies,
+as well as architectural features. We demonstrate that our
+feed-forward network, even if trained solely on synthetic
+data, is able to obtain results competitive with previous,
+model-based optimization methods, while being orders of
+magnitude faster.
+
+1. Introduction
+Over the last decades, the reconstruction of object shapes
+by means of time-of-flight measurements has matured to a
+highly pervasive and impactful technology. While it can already be challenging to image objects that are directly visible, recent years have seen researchers successfully demonstrating the even harder task of reconstructing targets hidden beyond the direct line of sight. In this setting, which
+we call the non-line-of-sight (NLoS) reconstruction problem, the loss of temporal and directional information caused
+by multiple bounces across more or less diffuse surfaces
+means that the problem has to be approached in a drastically different manner. Among the techniques proposed in
+∗ University of Bonn / jgraucho@uni-bonn.de
+† University of Bonn / hullin@cs.uni-bonn.de
+‡ University of Mainz / wandm@uni-mainz.de
+§ University of Bonn / iseringhausen@cs.uni-bonn.de
+
+Michael Wand‡
+
+Julian Iseringhausen§
+
+literature for reconstructing object geometry and reflectance
+from three-bounce indirect measurements are combinatorial
+approaches [18], parametric model fits using simple, highly
+efficient forward models [15, 18, 19, 27, 29, 34], backprojection not unlike what is used in computed tomography
+[20, 35], inverse filtering approaches [12, 28] and spacetime diffraction integrals [23, 24]. For the purpose of this
+paper, we focus on such active-illumination, time-of-flight
+input despite the fact that steady-state or even purely passive
+approaches have also been demonstrated [2, 4, 17, 19].
+Representation learning methods based on deep neural networks have become a powerful and widely adopted
+tool for representing complex mappings between highdimensional (function) spaces of natural signals by learning
+from examples. In recent work, this includes convolutional
+regressors for direct time-of-flight imaging [22]. Using
+scale-space representations with short-cuts across matching
+scales has turned out to be a particularly successful recipe
+[31]. Generative convolutional feed-forward networks have
+also been used for the creation of 3D data, including 2Dto-3D translations [7, 21, 38]. Despite this widespread success, no such approaches have so far been applied to the
+NLoS reconstruction problem. We assume that this can
+be attributed to the practical difficulty of generating large
+amounts of NLoS training data in laboratories or natural
+scenarios. A key step is therefore the development of a simulator that strikes a good balance between computational
+cost and physical predictiveness so as to keep the training
+problem tractable while yielding generalizable results.
+In this paper, we build upon a highly efficient renderer
+that has already been used to implement a relatively slow
+analysis-by-synthesis scheme for NLoS reconstruction [15].
+Here, we use this renderer as a source for large amounts
+of training data for the NLoS reconstruction problem. We
+complement this existing forward model with the following
+additional contributions which are needed to arrive at a full
+deep learning solution:
+• We propose an end-to-end regressor that computes depth
+maps from 3D space-time impulse responses.
+• In order to train our network, we propose sampling strategies to generate a wide gamut of representative NLoS
+datasets.
+• We show that our dataset representation allows for
+parameter-free target extraction.
+• We propose a fast approximate model for real-world
+time-of-flight histogramming setups that turns the rendered, clean datasets into data that is closer to what can
+1960
+
+

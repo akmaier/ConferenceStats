@@ -1,0 +1,80 @@
+AdaBits: Neural Network Quantization with Adaptive Bit-Widths
+Qing Jin∗
+ByteDance Inc.
+
+Linjie Yang∗
+ByteDance Inc.
+
+Zhenyu Liao
+Kwai Inc.
+
+jinqingking@gmail.com
+
+linjie.yang@bytedance.com
+
+liaozhenyu2004@gmail.com
+
+Abstract
+Deep neural networks with adaptive configurations have
+gained increasing attention due to the instant and flexible
+deployment of these models on platforms with different resource budgets. In this paper, we investigate a novel option to achieve this goal by enabling adaptive bit-widths
+of weights and activations in the model. We first examine
+the benefits and challenges of training quantized model with
+adaptive bit-widths, and then experiment with several approaches including direct adaptation, progressive training
+and joint training. We discover that joint training is able to
+produce comparable performance on the adaptive model as
+individual models. We also propose a new technique named
+Switchable Clipping Level (S-CL) to further improve quantized models at the lowest bit-width. With our proposed
+techniques applied on a bunch of models including MobileNet V1/V2 and ResNet50, we demonstrate that bit-width
+of weights and activations is a new option for adaptively
+executable deep neural networks, offering a distinct opportunity for improved accuracy-efficiency trade-off as well as
+instant adaptation according to the platform constraints in
+real-world applications.
+
+1. Introduction
+Recent development of deep learning enables application
+of deep neural networks across a wide range of platforms that
+present different resource constraints. For example, popular
+mobile apps such as TikTok and Snapchat on portable devices pose stringent requirements on response latency and
+energy consumption, while visual recognition system embedded in a self-driving vehicle [13, 40] is more demanding on fast and accurate prediction. Besides, for medical
+application [22, 53] applied with portable testing systems,
+implementing efficient model will accelerate the diagnosing
+process to save time for doctor and patient. The problem
+is more serious if other factors are taken into account, such
+as aging of hardware, battery conditions, as well as dif∗ Equal Contribution. Work is done when Qing Jin is an intern at
+ByteDance.
+
+ferent versions of software systems. To serve applications
+under all these scenarios with drastically different requirements, different models tailored for different resource budgets can be devised either manually [14, 15, 16, 37] or automatically through neural architecture search [39, 56, 57].
+This strategy is beneficial for optimal trade-offs with a fixed
+combination of constraints, but is not economical, because
+it requires time-consuming training and benchmarking for
+each of these models, which prohibits instant adaptation to
+favor different scenarios. To tackle this problem, recent
+work focuses on training a single model that is flexible and
+scalable. For example, [49] proposes a method where the
+number of channels can be adjusted through changing the
+width-multiplier in each layer. Inspired by this work, [3]
+integrates adaptation of depth, width and kernel size altogether, and achieves better trade-offs between performance
+and efficiency through progressive training. [48] adopts the
+same strategy with scaling up factors, but uses simultaneous
+training algorithm to achieve improved predictive accuracy.
+Surprisingly, albeit the above-mentioned methods
+achieve the desired flexibility of adaptive deployment, bitwidth of weights and intermediate activations, as another
+degree of freedom, is almost overlooked in previous work.
+Suppose we can adaptively choose bit-width for a neural network during inference without further training, it will provide an distinct opportunity for more powerful model compression and acceleration. As an example, compared with
+model with full-precision, quantizing MobileNet V2 to 6-bit
+compresses the model size by roughly 4.74× and reduces
+the BitOPs by 14.25×1, while scaling the model’s channel
+numbers by a width-multiplier of 0.35× only shrinks the
+model size by 2.06× and cuts down the FLOPs by 5.10×.
+Moreover, as presented in [18], 6-bit MobileNet V2 demonstrates improved predictive capability than the full-precision
+counterpart, while reducing channel numbers to 0.35× will
+significantly impair its performance [37]. It becomes more
+contrastive if other constraints are taken into account, such
+as memory cost, latency and energy consumption. Addi1According to the IEEE Standard 754, floating-point number is represented with 23-bits mantissa, and here we simplify the analysis by approximating the effective BitOPs of floating-point multiplication with 23-bit
+fixed-point multiplication.
+
+12146
+
+

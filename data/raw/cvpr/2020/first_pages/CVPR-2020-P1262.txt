@@ -1,0 +1,94 @@
+1. Introduction
+
+What lies hidden in an overparameterized neural network
+with random weights? If the distribution is properly scaled,
+then it contains a subnetwork which performs well without
+ever modifying the values of the weights (as illustrated by
+Figure 1).
+The number of subnetworks is combinatorial in the size
+of the network, and modern neural networks contain millions or even billions of parameters [24]. We should expect
+that even a randomly weighted neural network contains a
+subnetwork that performs well on a given task. In this work,
+we provide an algorithm to find these subnetworks.
+Finding subnetworks contrasts with the prevailing
+paradigm for neural network training – learning the values
+of the weights by stochastic gradient descent. Traditionally, the network structure is either fixed during training
+(e.g. ResNet [9] or MobileNet [10]), or optimized in conjunction with the weight values (e.g. Neural Architecture
+Search (NAS)). We instead optimize to find a good subnet-
+
+∗ equal contribution
+
+† Allen Institute for Artificial Intelligence
+
+‡ University of Washington
+sha1_base64="/F2E/qGSV45o63yZb4D++oacJn8=">AAACLnicbVBNSwMxEM36WetX1aOXYBU8lV0P6lERwaOCtYVuKbPZaTc0myxJtlJKf5EX/4oeBBXx6s8w/TiodSDk8d4Mb+ZFmeDG+v6rNze/sLi0XFgprq6tb2yWtrbvjMo1wypTQul6BAYFl1i13AqsZxohjQTWou7FSK/1UBuu5K3tZ9hMoSN5mzOwjmqVLkOpuIxRWnpOJeYahPvsvdLdMCzuhxbyfXqfcJZQYAnHHhrHd5SKaYa6rXQKkmGrVPYr/rjoLAimoEymdd0qPYexYnnqfJkAYxqBn9nmALTlTOCwGOYGM2Bd6GDDQQkpmuZgfO6QHjgmps7bPbf3mP05MYDUmH4auc4UbGL+aiPyP62R2/Zpc8BllluUbGLUzgW1io6yozHXyKzoOwBMc7crZQloYNYlXHQhBH9PngV3R5XArwQ3R+Wz42kcBbJL9sghCcgJOSNX5JpUCSMP5Im8kXfv0XvxPrzPSeucN53ZIb/K+/oGRtKopA==</latexit>
+
+111893
+sha1_base64="Plj5zt5GlwdRZUTQ80WFyPpUtz0=">AAACEXicbVC7TgJBFJ3FF+ILtbSZCEYqskujJWpjZTCRR8JuyOwwCxNmZzbz0JANv2Djr9hYaIytnZ1/4wBbKHiSSU7OuffOvSdMGFXadb+d3Mrq2vpGfrOwtb2zu1fcP2gpYSQmTSyYkJ0QKcIoJ01NNSOdRBIUh4y0w9HV1G/fE6mo4Hd6nJAgRgNOI4qRtlKvWPG5oLxPuIYXUJmQE/0g5Aj6fqHsa2ROy1BEsHxT7hVLbtWdAS4TLyMlkKHRK375fYFNbEdjhpTqem6igxRJTTEjk4JvFEkQHqEB6VrKUUxUkM4umsATq/RhJKR9drWZ+rsjRbFS4zi0lTHSQ7XoTcX/vK7R0XmQUp4YTTiefxQZBrWA03hgn0qCNRtbgrCkdleIh0girG2IBRuCt3jyMmnVqp5b9W5rpfplFkceHIFjUAEeOAN1cA0aoAkweATP4BW8OU/Oi/PufMxLc07Wcwj+wPn8AWsem2s=</latexit>
+
+sha1_base64="Plj5zt5GlwdRZUTQ80WFyPpUtz0=">AAACEXicbVC7TgJBFJ3FF+ILtbSZCEYqskujJWpjZTCRR8JuyOwwCxNmZzbz0JANv2Djr9hYaIytnZ1/4wBbKHiSSU7OuffOvSdMGFXadb+d3Mrq2vpGfrOwtb2zu1fcP2gpYSQmTSyYkJ0QKcIoJ01NNSOdRBIUh4y0w9HV1G/fE6mo4Hd6nJAgRgNOI4qRtlKvWPG5oLxPuIYXUJmQE/0g5Aj6fqHsa2ROy1BEsHxT7hVLbtWdAS4TLyMlkKHRK375fYFNbEdjhpTqem6igxRJTTEjk4JvFEkQHqEB6VrKUUxUkM4umsATq/RhJKR9drWZ+rsjRbFS4zi0lTHSQ7XoTcX/vK7R0XmQUp4YTTiefxQZBrWA03hgn0qCNRtbgrCkdleIh0girG2IBRuCt3jyMmnVqp5b9W5rpfplFkceHIFjUAEeOAN1cA0aoAkweATP4BW8OU/Oi/PufMxLc07Wcwj+wPn8AWsem2s=</latexit><latexit
+
+A neural network Randomly initialized A subnetwork
+τ of N
+τ which achieves neural network N
+good performance
+sha1_base64="Plj5zt5GlwdRZUTQ80WFyPpUtz0=">AAACEXicbVC7TgJBFJ3FF+ILtbSZCEYqskujJWpjZTCRR8JuyOwwCxNmZzbz0JANv2Djr9hYaIytnZ1/4wBbKHiSSU7OuffOvSdMGFXadb+d3Mrq2vpGfrOwtb2zu1fcP2gpYSQmTSyYkJ0QKcIoJ01NNSOdRBIUh4y0w9HV1G/fE6mo4Hd6nJAgRgNOI4qRtlKvWPG5oLxPuIYXUJmQE/0g5Aj6fqHsa2ROy1BEsHxT7hVLbtWdAS4TLyMlkKHRK375fYFNbEdjhpTqem6igxRJTTEjk4JvFEkQHqEB6VrKUUxUkM4umsATq/RhJKR9drWZ+rsjRbFS4zi0lTHSQ7XoTcX/vK7R0XmQUp4YTTiefxQZBrWA03hgn0qCNRtbgrCkdleIh0girG2IBRuCt3jyMmnVqp5b9W5rpfplFkceHIFjUAEeOAN1cA0aoAkweATP4BW8OU/Oi/PufMxLc07Wcwj+wPn8AWsem2s=</latexit><latexit
+
+Mitchell Wortsman ∗ ‡
+
+<latexit
+
+sha1_base64="Dz8UCRhBNS05VwKvWL0QhxluRMY=">AAACHXicbVBNSwMxEM3Wr1q/Vj16CVbBU9ktoh4LXjxJFVuFbimz2amGZpMlySq19I948a948aCIBy/ivzGtPfj1IOTx3gwz8+JMcGOD4MMrTE3PzM4V50sLi0vLK/7qWtOoXDNsMCWUvojBoOASG5ZbgReZRkhjgedx73Dkn1+jNlzJM9vPsJ3CpeRdzsA6qePvRlJxmaC09BRkolLRp1xyy0HwW0yiqEQl5hqE++yN0j26dbzV8ctBJRiD/iXhhJTJBPWO/xYliuWpG8MEGNMKg8y2B6AtZwKHpSg3mAHrwSW2HJWQomkPxtcN6bZTEtpV2j235lj93jGA1Jh+GrvKFOyV+e2NxP+8Vm67B+0Bl1luUbKvQd1cUKvoKCqacI3MukASDky7TBhlV6CBWRdoyYUQ/j75L2lWK2FQCU+q5dreJI4i2SCbZIeEZJ/UyBGpkwZh5I48kCfy7N17j96L9/pVWvAmPevkB7z3TwbqocU=</latexit>
+
+sha1_base64="Dz8UCRhBNS05VwKvWL0QhxluRMY=">AAACHXicbVBNSwMxEM3Wr1q/Vj16CVbBU9ktoh4LXjxJFVuFbimz2amGZpMlySq19I948a948aCIBy/ivzGtPfj1IOTx3gwz8+JMcGOD4MMrTE3PzM4V50sLi0vLK/7qWtOoXDNsMCWUvojBoOASG5ZbgReZRkhjgedx73Dkn1+jNlzJM9vPsJ3CpeRdzsA6qePvRlJxmaC09BRkolLRp1xyy0HwW0yiqEQl5hqE++yN0j26dbzV8ctBJRiD/iXhhJTJBPWO/xYliuWpG8MEGNMKg8y2B6AtZwKHpSg3mAHrwSW2HJWQomkPxtcN6bZTEtpV2j235lj93jGA1Jh+GrvKFOyV+e2NxP+8Vm67B+0Bl1luUbKvQd1cUKvoKCqacI3MukASDky7TBhlV6CBWRdoyYUQ/j75L2lWK2FQCU+q5dreJI4i2SCbZIeEZJ/UyBGpkwZh5I48kCfy7N17j96L9/pVWvAmPevkB7z3TwbqocU=</latexit><latexit
+
+sha1_base64="Dz8UCRhBNS05VwKvWL0QhxluRMY=">AAACHXicbVBNSwMxEM3Wr1q/Vj16CVbBU9ktoh4LXjxJFVuFbimz2amGZpMlySq19I948a948aCIBy/ivzGtPfj1IOTx3gwz8+JMcGOD4MMrTE3PzM4V50sLi0vLK/7qWtOoXDNsMCWUvojBoOASG5ZbgReZRkhjgedx73Dkn1+jNlzJM9vPsJ3CpeRdzsA6qePvRlJxmaC09BRkolLRp1xyy0HwW0yiqEQl5hqE++yN0j26dbzV8ctBJRiD/iXhhJTJBPWO/xYliuWpG8MEGNMKg8y2B6AtZwKHpSg3mAHrwSW2HJWQomkPxtcN6bZTEtpV2j235lj93jGA1Jh+GrvKFOyV+e2NxP+8Vm67B+0Bl1luUbKvQd1cUKvoKCqacI3MukASDky7TBhlV6CBWRdoyYUQ/j75L2lWK2FQCU+q5dreJI4i2SCbZIeEZJ/UyBGpkwZh5I48kCfy7N17j96L9/pVWvAmPevkB7z3TwbqocU=</latexit><latexit
+
+<latexit
+
+Training a neural network is synonymous with learning the values of the weights. In contrast, we demonstrate that randomly weighted neural networks contain subnetworks which achieve impressive performance without
+ever modifying the weight values. Hidden in a randomly
+weighted Wide ResNet-50 [32] we find a subnetwork (with
+random weights) that is smaller than, but matches the performance of a ResNet-34 [9] trained on ImageNet [4]. Not
+only do these “untrained subnetworks” exist, but we provide an algorithm to effectively find them. We empirically show that as randomly weighted neural networks with
+fixed weights grow wider and deeper, an “untrained subnetwork” approaches a network with learned weights in accuracy. Our code and pretrained models are available at:
+https://github.com/allenai/hidden-networks.
+sha1_base64="/F2E/qGSV45o63yZb4D++oacJn8=">AAACLnicbVBNSwMxEM36WetX1aOXYBU8lV0P6lERwaOCtYVuKbPZaTc0myxJtlJKf5EX/4oeBBXx6s8w/TiodSDk8d4Mb+ZFmeDG+v6rNze/sLi0XFgprq6tb2yWtrbvjMo1wypTQul6BAYFl1i13AqsZxohjQTWou7FSK/1UBuu5K3tZ9hMoSN5mzOwjmqVLkOpuIxRWnpOJeYahPvsvdLdMCzuhxbyfXqfcJZQYAnHHhrHd5SKaYa6rXQKkmGrVPYr/rjoLAimoEymdd0qPYexYnnqfJkAYxqBn9nmALTlTOCwGOYGM2Bd6GDDQQkpmuZgfO6QHjgmps7bPbf3mP05MYDUmH4auc4UbGL+aiPyP62R2/Zpc8BllluUbGLUzgW1io6yozHXyKzoOwBMc7crZQloYNYlXHQhBH9PngV3R5XArwQ3R+Wz42kcBbJL9sghCcgJOSNX5JpUCSMP5Im8kXfv0XvxPrzPSeucN53ZIb/K+/oGRtKopA==</latexit><latexit
+
+Ali Farhadi ‡
+
+sha1_base64="/F2E/qGSV45o63yZb4D++oacJn8=">AAACLnicbVBNSwMxEM36WetX1aOXYBU8lV0P6lERwaOCtYVuKbPZaTc0myxJtlJKf5EX/4oeBBXx6s8w/TiodSDk8d4Mb+ZFmeDG+v6rNze/sLi0XFgprq6tb2yWtrbvjMo1wypTQul6BAYFl1i13AqsZxohjQTWou7FSK/1UBuu5K3tZ9hMoSN5mzOwjmqVLkOpuIxRWnpOJeYahPvsvdLdMCzuhxbyfXqfcJZQYAnHHhrHd5SKaYa6rXQKkmGrVPYr/rjoLAimoEymdd0qPYexYnnqfJkAYxqBn9nmALTlTOCwGOYGM2Bd6GDDQQkpmuZgfO6QHjgmps7bPbf3mP05MYDUmH4auc4UbGL+aiPyP62R2/Zpc8BllluUbGLUzgW1io6yozHXyKzoOwBMc7crZQloYNYlXHQhBH9PngV3R5XArwQ3R+Wz42kcBbJL9sghCcgJOSNX5JpUCSMP5Im8kXfv0XvxPrzPSeucN53ZIb/K+/oGRtKopA==</latexit><latexit
+
+Vivek Ramanujan ∗ †
+
+<latexit
+
+What’s Hidden in a Randomly Weighted Neural Network?
+Aniruddha Kembhavi † ‡
+
+Mohammad Rastegari ‡
+
+Abstract
+
+Figure 1. If a neural network with random weights (center) is sufficiently overparameterized, it will contain a subnetwork (right) that
+perform as well as a trained neural network (left) with the same
+number of parameters.
+
+work within a fixed, randomly weighted network. We do
+not ever tune the value of any weights in the network, not
+even the batch norm [11] parameters or first or last layer.
+In [5], Frankle and Carbin articulate The Lottery Ticket
+Hypothesis: neural networks contain sparse subnetworks
+that can be effectively trained from scratch when reset to
+their initialization. We offer a complimentary conjecture:
+within a sufficiently overparameterized neural network with
+random weights (e.g. at initialization), there exists a subnetwork that achieves competitive accuracy. Specifically, the
+test accuracy of the subnetwork is able to match the accuracy of a trained network with the same number of parameters.
+This work is catalyzed by the recent advances of Zhou et
+al. [33]. By sampling subnetworks in the forward pass, they
+first demonstrate that subnetworks of randomly weighted
+neural networks can achieve impressive accuracy. However,
+we hypothesize that stochasticity may limit their performance. As the number of parameters in the network grows,
+they are likely to have a high variability in their sampled
+
+

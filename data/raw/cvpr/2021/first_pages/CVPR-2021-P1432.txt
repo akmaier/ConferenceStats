@@ -1,0 +1,79 @@
+FP-NAS: Fast Probabilistic Neural Architecture Search
+Zhicheng Yan,* Xiaoliang Dai, Peizhao Zhang, Yuandong Tian, Bichen Wu, Matt Feiszli
+Facebook AI
+
+Abstract
+Differential Neural Architecture Search (NAS) requires
+all layer choices to be held in memory simultaneously; this
+limits the size of both search space and final architecture. In
+contrast, Probabilistic NAS, such as PARSEC, learns a distribution over high-performing architectures, and uses only as
+much memory as needed to train a single model. Nevertheless, it needs to sample many architectures, making it computationally expensive for searching in an extensive space.
+To solve these problems, we propose a sampling method
+adaptive to the distribution entropy, drawing more samples
+to encourage explorations at the beginning, and reducing
+samples as learning proceeds. Furthermore, to search fast in
+the multi-variate space, we propose a coarse-to-fine strategy
+by using a factorized distribution at the beginning which can
+reduce the number of architecture parameters by over an
+order of magnitude. We call this method Fast Probabilistic
+NAS (FP-NAS). Compared with PARSEC, it can sample 64%
+fewer architectures and search 2.1× faster. Compared with
+FBNetV2, FP-NAS is 1.9× - 3.5× faster, and the searched
+models outperform FBNetV2 models on ImageNet. FP-NAS
+allows us to expand the giant FBNetV2 space to be wider
+(i.e. larger channel choices) and deeper (i.e. more blocks),
+while adding Split-Attention block and enabling the search
+over the number of splits. When searching a model of size
+0.4G FLOPS, FP-NAS is 132× faster than EfficientNet, and
+the searched FP-NAS-L0 model outperforms EfficientNet-B0
+by 0.7% accuracy. Without using any architecture surrogate
+or scaling tricks, we directly search large models up to 1.0G
+FLOPS. Our FP-NAS-L2 model with simple distillation outperforms BigNAS-XL with advanced inplace distillation by
+0.7% accuracy using similar FLOPS.
+
+1. Introduction
+Designing efficient architectures for visual recognition
+requires extensive exploration in the search space; doing
+this by hand takes substantial human effort and computational resources. Since the introduction of AlexNet [18],
+handed-crafted models like ResNet [10], Densenet [14] and
+* Correspondence to Zhicheng Yan <zyan3@fb.com>.
+
+InceptionV4 [28], have become increasingly deep with more
+complex connectivity. Exploring this space manually is difficult and time-consuming. Neural Architecture Search (NAS)
+aims to automate the architecture design process. However, early approaches based on evolution or reinforcement
+learning take hundreds or thousands of GPU days just for
+CIFAR10 or Imagenet target datasets [42, 43, 31, 25].
+Recently, differentiable neural architecture search
+(DNAS) [20] relaxed the discrete representation of architectures to a continuous space, enabling efficient search with
+gradient descent. This comes at a price: DNAS instantiates
+all layer choices in memory, and computes all feature maps.
+Therefore, its memory footprint increases linearly with the
+number of layer choices, and greatly limits the size of both
+search space and final architecture. PARSEC [4] presents
+a probabilistic version of DNAS which samples individual
+architectures from a distribution on search space. PARSEC’s
+sampling strategy uses much less memory, but it samples
+a large number of architectures to fully explore the space,
+which significantly increases computational cost. Here we
+pose the following question: Can we reduce PARSEC’s compute cost and maintain a small memory footprint to support
+the fast search of both small and large models?
+In this work, we accelerate PARSEC by proposing two
+novel techniques. First, we replace the fixed architecture
+sampling with a dynamic sampling adaptive to the entropy
+of architecture distribution. In particular, we sample more
+architectures in the early stage to encourage exploration, and
+fewer later, as the distribution concentrates on a smaller set of
+promising architectures. Furthermore, in multi-variate space
+where several variables (e.g. block type, feature channel, expansion ratio) are searched over, we propose a coarse-to-fine
+search strategy. In the beginning stage, we adopt a factorized
+distribution representation to search at a coarse-grained granularity, which uses much fewer architecture parameters and
+makes the learning much faster. In the following stage, we
+seamlessly convert the factorized distribution into the joint
+distribution to support fine-grained search.
+When searching in the FBNetV2 space [33], FP-NAS
+samples 64% fewer architectures and searches 2.1× faster
+compared with the PARSEC method. Compared with FBNetV2, FP-NAS is 3.5× faster, and the searched mod-
+
+15139
+
+

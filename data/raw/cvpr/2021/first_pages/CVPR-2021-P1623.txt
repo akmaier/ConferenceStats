@@ -1,0 +1,136 @@
+See through Gradients: Image Batch Recovery via GradInversion
+Hongxu Yin, Arun Mallya, Arash Vahdat, Jose M. Alvarez, Jan Kautz, Pavlo Molchanov
+NVIDIA
+{dannyy, amallya, avahdat, josea, jkautz, pmolchanov}@nvidia.com
+
+Private Data (Client)
+
+Abstract
+Client
+
+Training deep neural networks requires gradient estimation from data batches to update parameters. Gradients
+per parameter are averaged over a set of data and this has
+been presumed to be safe for privacy-preserving training
+in joint, collaborative, and federated learning applications.
+Prior work only showed the possibility of recovering input
+data given gradients under very restrictive conditions – a
+single input point, or a network with no non-linearities, or
+a small 32 ˆ 32 px input batch. Therefore, averaging gradients over larger batches was thought to be safe. In this
+work, we introduce GradInversion, using which input images
+from a larger batch (8 – 48 images) can also be recovered
+for large networks such as ResNets (50 layers), on complex
+datasets such as ImageNet (1000 classes, 224 ˆ 224 px). We
+formulate an optimization task that converts random noise
+into natural images, matching gradients while regularizing
+image fidelity. We also propose an algorithm for target class
+label recovery given gradients. We further propose a group
+consistency regularization framework, where multiple agents
+starting from different random seeds work together to find
+an enhanced reconstruction of the original data batch. We
+show that gradients encode a surprisingly large amount of
+information, such that all the individual images can be recovered with high fidelity via GradInversion, even for complex
+datasets, deep networks, and large batch sizes.
+
+1. Introduction
+Sharing weight updates or gradients during training is
+the central idea behind collaborative, distributed, and federated learning of deep networks [1, 22, 24, 25, 28]. In the
+basic setting of federated stochastic gradient descent, each
+device learns on local data, and shares gradients to update a
+global model. Alleviating the need to transmit training data
+offers several key advantages. This keeps user data private,
+allaying concerns related to user privacy, security, and other
+proprietary concerns. Further, this eliminates the need to
+store, transfer, and manage possibly large datasets. With this
+framework, one can train a model on medical data without
+access to any individual’s data [3, 32], or perception model
+
+Averaged
+Gradients
+
+Model
+
+dataset boundary (presumed safe)
+
+Server
+
+GradInversion
+Recovery from Averaged Gradients (Server)
+
+(a) Inverting averaged gradients to recover original image batches
+shared optimizer
+Input
+random seed 1
+
+R
+
+ﬁdelity
+
+.
+.
+.
+
+Model
+
+Input
+random seed N
+
+Intermediate
+image
+random seed 1
+
+Image generator
+
+Averaged
+Gradients
+
+Optimizer
+R
+
+grad
+
+Gradient
+matching loss
+Label recovery
+
+Final
+Result
+
+Optimizer
+.
+.
+.
+
+Rgroup
+Group
+Registration
+
+Intermediate
+image
+random seed N
+
+Registered
+average image
+
+(b) Overview of our proposed GradInversion method
+Figure 1: We propose (a) GradInversion to recover hidden training
+image batches with high fidelity via inverting averaged gradients.
+GradInversion formulates (b) an optimization process that transforms noise to input images (Sec. 3.1). It starts with label restoration from the gradient of the fully connected layer (Sec. 3.2), then
+optimizes inputs to match target gradients under fidelity regularization (Sec. 3.3) and registration-based group consistency regularization (Sec. 3.4) to improve reconstruction quality. This enables
+recovery of 224 ˆ 224 pixel ImageNet samples from ResNet-50
+batch gradients, which was previously impossible (please zoom
+into examples above. More in Sec. 4).
+
+for autonomous driving without invasive data collection [41].
+While this setting might seem safe at first glance, a few
+recent works have begun to question the central premise of
+federated learning - is it possible for gradients to leak private
+information of the training data? Effectively serving as a
+“proxy” of the training data, the link between gradients to the
+data in fact offers potential for retrieving information: from
+revealing the positional distribution of original data [33, 44],
+to even enabling pixel-level detailed image reconstruction
+from gradients [13, 53, 55]. Despite remarkable progress, in-
+
+16337
+
+

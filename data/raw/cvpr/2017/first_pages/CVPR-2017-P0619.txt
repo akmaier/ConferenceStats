@@ -1,0 +1,75 @@
+Deep Learning with Low Precision by Half-wave Gaussian Quantization
+Zhaowei Cai
+UC San Diego
+
+Xiaodong He
+Microsoft Research Redmond
+
+Jian Sun
+Megvii Inc.
+
+Nuno Vasconcelos
+UC San Diego
+
+zwcai@ucsd.edu
+
+xiaohe@microsoft.com
+
+sunjian@megvii.com
+
+nuno@ucsd.edu
+
+Abstract
+The problem of quantizing the activations of a deep neural network is considered. An examination of the popular binary quantization approach shows that this consists
+of approximating a classical non-linearity, the hyperbolic
+tangent, by two functions: a piecewise constant ���� function, which is used in feedforward network computations,
+and a piecewise linear hard tanh function, used in the backpropagation step during network learning. The problem of
+approximating the widely used ReLU non-linearity is then
+considered. An half-wave Gaussian quantizer (HWGQ) is
+proposed for forward approximation and shown to have efficient implementation, by exploiting the statistics of of network activations and batch normalization operations. To
+overcome the problem of gradient mismatch, due to the use
+of different forward and backward approximations, several
+piece-wise backward approximators are then investigated.
+The implementation of the resulting quantized network, denoted as HWGQ-Net, is shown to achieve much closer
+performance to full precision networks, such as AlexNet,
+ResNet, GoogLeNet and VGG-Net, than previously available low-precision networks, with 1-bit binary weights and
+2-bit quantized activations.
+
+1. Introduction
+Deep neural networks have achieved state-of-the-art performance on computer vision problems, such as classification [21, 33, 34, 11, 12], detection [7, 31, 1], etc. However, their complexity is an impediment to widespread deployment in many applications of real world interest, where
+either memory or computational resource is limited. This
+is due to two main issues: large model sizes (50MB for
+GoogLeNet [34], 200M for ResNet-101 [12], 250MB for
+AlexNet [21], or 500M for VGG-Net [33]) and large computational cost, typically requiring GPU-based implementations. This generated interest in compressed models with
+smaller memory footprints and computation.
+Several works have addressed the reduction of model
+size, through the use of quantization [3, 26, 24], low-rank
+
+matrix factorization [18, 6], pruning [10, 9], architecture design [25, 16], etc. Recently, it has been shown that weight
+compression by quantization can achieve very large memory savings, reducing each weight to as little as 1 bit, at a
+marginal cost in classification accuracy [3, 26]. It is, however, less effective along the computational dimension, because the core network operation, implemented by each of
+its units, is the dot-product between a weight and an activation vector. Complementing binary or quantized weights
+with quantized activations would enable the replacement of
+expensive dot-products by logical and bit-counting operations. Substantial speed ups should thus be possible if, in
+addition to weights, the inputs of each unit were binarized
+or quantized to low-bit.
+However, the quantization of activations is more difficult than that of weights. For example, [4, 30] have shown
+that, while it is possible to binarize weights with a marginal
+cost in model accuracy, additional quantization of activations incurs nontrivial losses for large-scale classification,
+such as on ImageNet [32]. The difficulty is that binarization or quantization of activations requires their processing with non-differentiable operators that create problems
+for the backpropagation algorithm. This iterates between
+a feedforward step that computes network outputs and a
+backpropagation step that computes the gradients required
+for learning. The difficulty is that binarization or quantization operators have step-wise responses that produce very
+weak gradient signals during backpropagation, compromising learning efficiency. So far, the problem has been addressed by using continuous approximations of the operator
+used in the feedforward step to implement the backpropagation step. This, however, creates a mismatch between the
+model that implements the forward computations and the
+derivatives used to learn it, leading to a sub-optimal model.
+In this work, we view the quantization operator, used
+in the feedforward step, and the continuous approximation, used in the backpropagation step, as two functions
+that approximate the activation function of each network
+unit. We refer to these as the forward and backward approximation of the activation function. We start by considering the binary ±1 quantizer, used in [4, 30], for which
+
+5918
+
+

@@ -1,0 +1,83 @@
+Tangent Space Backpropagation for 3D Transformation Groups
+Zachary Teed and Jia Deng
+Princeton University
+{zteed,jiadeng}@cs.princeton.edu
+
+Abstract
+We address the problem of performing backpropagation
+for computation graphs involving 3D transformation groups
+SO(3), SE(3), and Sim(3). 3D transformation groups
+are widely used in 3D vision and robotics, but they do not
+form vector spaces and instead lie on smooth manifolds.
+The standard backpropagation approach, which embeds 3D
+transformations in Euclidean spaces, suffers from numerical difficulties. We introduce a new library, which exploits
+the group structure of 3D transformations and performs
+backpropagation in the tangent spaces of manifolds. We
+show that our approach is numerically more stable, easier to implement, and beneficial to a diverse set of tasks.
+Our plug-and-play PyTorch library is available at https:
+//github.com/princeton-vl/lietorch.
+
+1. Introduction
+3D transformation groups—SO(3), SE(3), Sim(3)—
+have been extensively used in a wide range of computer vision and robotics problems. Important applications include
+SLAM, 6-dof pose estimation, multiview reconstruction, inverse kinematics, pose graph optimization, geometric registration, and scene flow. In these domains, the state of
+the system—configuration of robotic joints, camera poses,
+non-rigid deformations—can be naturally represented as 3D
+transformations.
+Recently, many of these problems have been approached
+using deep learning, either in an end-to-end manner[31,
+10, 40, 8, 38, 22, 18] or composed as hybrid systems[21,
+11, 29, 19]. A key ingredient of deep learning is autodifferentiation, in particular, backpropagation through a
+computation graph. A variety of general-purpose deep
+learning libraries such as PyTorch [27] and TensorFlow [1]
+have been developed such that backpropagation is automatically performed by the library—users only need to specify
+the computation graph and supply any custom operations.
+A basic assumption of existing deep learning libraries is
+that a computation graph represents a composition of mappings between Euclidean spaces. That is, each node of
+
+the graph represents a differentiable mappings between Euclidean spaces, e.g. from Rm to Rn . This assumption allows
+us to use the standard definition of the gradient of a function
+∂f
+∂f
+∂f
+f (x) : Rn → R as ∂f
+∂x = [ ∂x1 , ∂x2 , . . . , ∂xn ], and use the
+∂f
+∂x
+chain rule to backpropagate the gradient: ∂f
+∂y = ∂x · ∂y ,
+∂xi
+where ∂x
+∂y is the Jacobian matrix ( ∂yj ).
+However, this assumption breaks down when the computation graph involves 3D transformations, such as when
+a network iteratively updates its estimate of the camera
+pose [31, 40, 33, 10, 20]. 3D transformations do not form
+vector spaces and instead lie on smooth manifolds; the notion of addition is undefined and the standard notion of gradient defined in Euclidean spaces does not apply.
+A typical approach in prior work is to embed the 3D
+transforms in a Euclidean space. For example, a rigid body
+transform from SE(3) is represented as a 4 × 4 matrix and
+treated as a vector in R16 . That is, SE(3) corresponds to
+a subset of R16 , or more specifically, an embedded submanifold of R16 . Functions involving SE(3) such as the
+exponential map and the inverse are replaced with their extensions in the embedding space, i.e. the matrix exponential
+and the matrix inverse:
+exp : se(3) 7→ SE(3) −→ exp : R6 7→ R4×4
+inv : SE(3) 7→ SE(3) −→ inv : R4×4 7→ R4×4 .
+
+(1)
+
+Now, the computation graph involves only Euclidean objects, and backpropagation can be performed as usual as
+long as the Jacobian of exp and inv can be calculated.
+There are several problems with this approach. First,
+while the extended functions such as the matrix exponential
+are smooth as a whole, the individual substeps needed for
+computing the backward passes often contain singularities.
+As a result, small deviations off the manifold can result in
+numerical instabilities causing gradients to explode. It can
+often be quite difficult to implement these functions in libraries such as PyTorch[27] and Tensorflow[1] in a way that
+numerically stable gradients are achieved through automatic
+differentiation. As a case in point, the commonly used PyTorch3D library[28] returns nan-gradients when the identity
+matrix is given as input the matrix log. Furthermore, some
+
+10338
+
+

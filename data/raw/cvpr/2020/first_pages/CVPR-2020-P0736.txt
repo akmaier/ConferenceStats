@@ -1,0 +1,80 @@
+ClusterFit: Improving Generalization of Visual Representations
+Xueting Yan∗
+
+Ishan Misra∗
+
+Abhinav Gupta
+Deepti Ghadiyaram†
+Facebook AI
+
+Abstract
+Pre-training convolutional neural networks with weaklysupervised and self-supervised strategies is becoming increasingly popular for several computer vision tasks. However, due to the lack of strong discriminative signals, these
+learned representations may overfit to the pre-training objective (e.g., hashtag prediction) and not generalize well to
+downstream tasks. In this work, we present a simple strategy - ClusterFit (CF) to improve the robustness of the visual representations learned during pre-training. Given a
+dataset, we (a) cluster its features extracted from a pretrained network using k-means and (b) re-train a new network from scratch on this dataset using cluster assignments as pseudo-labels. We empirically show that clustering helps reduce the pre-training task-specific information
+from the extracted features thereby minimizing overfitting
+to the same. Our approach is extensible to different pretraining frameworks – weak- and self-supervised, modalities – images and videos, and pre-training tasks – object and
+action classification. Through extensive transfer learning
+experiments on 11 different target datasets of varied vocabularies and granularities, we show that CF significantly improves the representation quality compared to the state-ofthe-art large-scale (millions / billions) weakly-supervised
+image and video models and self-supervised image models.
+
+1. Introduction
+Weak and self-supervised pre-training approaches offer
+scalability by exploiting free annotation. But there is no free
+lunch – these methods often first optimize a proxy objective function, for example, predicting image hashtags [31]
+or color from grayscale images [34, 63]. Similar to supervised pre-training, the underlying assumption (hope) is
+that this proxy objective function is fairly well aligned with
+the subsequent transfer tasks, thus optimizing this function
+could potentially yield suitable pre-trained visual representations. While this assumption holds mostly true in case of
+fully-supervised pre-training, it may not extend to weak and
+∗† Equal Contribution
+
+Dhruv Mahajan†
+
+Pre-training method (Npre )
+∆ of CF (Ncf ) on transfer
+Fully-supervised Images §3.2, Figure 3b +2.1% on ImageNet-9K [10]
+ResNet-50, ImageNet-1K, 1K labels
+Weakly-supervised Images §4.1.1, Table 4 +4.6% on ImageNet-9K [10]
+ResNet-50, 1B Images, 1.5K hashtags [38]
++5.8% on iNaturalist [55]
+Weakly-supervised Videos §4.1.2, Table 5 +3.2% on Kinetics [59]
+R(2+1)D-34, 19M videos, 438 hashtags [20]
++4.3% on Sports1M [32]
+Self-supervised Images §4.2, Tables 6
++7-9% on ImageNet-1K [47]
+ResNet-50, 1M images
++3-7% mAP on VOC07 [15]
+Jigsaw [42] and RotNet [21], Multi-task
++3-5% on Places205 [65]
+
+Table 1: A summary of results: We show that ClusterFit (CF) can be
+applied to a variety of different pre-training methods, modalities, and architectures. We report absolute gains in top-1 accuracy (except for VOC07
+where we report mAP). In each setting, CF provides improvements with
+the same model architecture and without additional data or supervision.
+
+self-supervision. In the latter pre-training cases, the lack
+of strong discriminative signals may result in an undesirable scenario where the visual representations overfit to the
+idiosyncrasies of the pre-training task and dataset instead,
+thereby rendering them unsuitable for transfer tasks. For instance, it was noted in [20, 38, 51] that factors such as label
+noise, polysemy (apple the fruit vs. Apple Inc.), linguistic ambiguity, lack of ‘visual’ness of tags (e.g. #love) significantly hampered the pre-training proxy objective from
+being well-aligned with the transfer tasks. Further, the authors of [23, 64] studied multiple self-supervised methods
+and observed that, compared to earlier layers, features from
+the last layer are more “aligned” with the proxy objective,
+and thus generalize poorly to target tasks.
+In this work, we ask a simple question – is there a way to
+avoid such overfitting to the proxy objective during weakand self-supervised pre-training? Can we overcome the
+‘artifacts’ of proxy objectives so that the representation is
+generic and transferable? Our key insight is that smoothing the feature space learned via proxy objectives should
+help us remove these artifacts and avoid overfitting to the
+the proxy objective. But how do we smoothen the feature
+space? Should it be done while optimizing the proxy objective or in a post-hoc manner?
+To this end, we propose a surprisingly simple yet effective framework called ClusterFit (CF). Specifically, given
+a pre-trained network trained using a proxy objective and
+a new dataset, we first use the learned feature space to
+cluster that dataset. Next, we train a new network from
+scratch on this new dataset using the cluster memberships
+
+6509
+
+

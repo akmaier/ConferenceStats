@@ -1,0 +1,63 @@
+RAFT-3D: Scene Flow using Rigid-Motion Embeddings
+Zachary Teed and Jia Deng
+Princeton University
+{zteed,jiadeng}@cs.princeton.edu
+
+Abstract
+We address the problem of scene flow: given a pair of
+stereo or RGB-D video frames, estimate pixelwise 3D motion. We introduce RAFT-3D, a new deep architecture for
+scene flow. RAFT-3D is based on the RAFT model developed for optical flow but iteratively updates a dense field
+of pixelwise SE3 motion instead of 2D motion. A key innovation of RAFT-3D is rigid-motion embeddings, which represent a soft grouping of pixels into rigid objects. Integral
+to rigid-motion embeddings is Dense-SE3, a differentiable
+layer that enforces geometric consistency of the embeddings. Experiments show that RAFT-3D achieves state-ofthe-art performance. On FlyingThings3D, under the twoview evaluation, we improved the best published accuracy
+(δ < 0.05) from 34.3% to 83.7%. On KITTI, we achieve
+an error of 5.77, outperforming the best published method
+(6.31), despite using no object instance supervision.
+
+1. Introduction
+Scene flow is the task of estimating pixelwise 3D motion between a pair of video frames[43]. Detailed 3D motion is requisite for many downstream applications including path planning, collision avoidance, virtual reality, and
+motion modeling. In this paper, we focus on stereo scene
+flow and RGB-D scene flow, which address stereo video
+and RGB-D video respectively.
+Many scenes can be well approximated as a collection
+of rigidly moving objects. The motion of driving scenes,
+for example, can be modeled as a variable number of cars,
+buses, and trucks. The most successful scene flow approaches have exploited this structure by decomposing a
+scene into its rigidly moving components[32, 45, 45, 47, 30,
+1, 20, 19, 23]. This introduces a powerful prior which can
+be used to guide inference. While optical flow approaches
+typically assume piecewise smooth motion, a scene containing rigid objects will exhibit piecewise constant 3D motion
+fields (Fig. 1).
+Recently, many works have proposed integrating deep
+learning into scene flow estimation pipelines. A common
+
+approach has been to use object detection[1, 3] or segmentation [1, 30, 29, 37] networks to decompose the scene into
+a collection of potentially rigidly moving objects. Once the
+scene has been segmented into its rigidly moving components, more traditional optimization can be used to fit a motion model to each of the objects. One limitation of this
+approach is that the networks require instance segmentations to be trained and cannot recover the motion of new unknown objects. Object detection and instance segmentation
+introduce non-differentiable components into the network,
+making end-to-end training difficult without bounding box
+or instance level supervision.
+We introduce RAFT-3D, an end-to-end differentiable architecture which estimates pixelwise 3D motion from stereo
+or RGB-D video. RAFT-3D is built on top of RAFT [41], a
+state-of-the-art optical flow architecture that builds all-pairs
+correlation volumes and uses a recurrent unit to iteratively
+refine a 2D flow field. We retain the basic iterative structure
+of RAFT but introduce a number of novel designs.
+The main innovation we introduce is rigid-motion embeddings, which are per-pixel vectors that represent a soft
+grouping of pixels into rigid objects. During inference,
+RAFT-3D iteratively updates the rigid-motion embeddings
+such that pixels with similar embeddings belong to the same
+rigid object and follow the same SE3 motion.
+Integral to rigid-motion embeddings is Dense-SE3, a differentiable layer that seeks to ensure that the embeddings
+are geometrically meaningful. Dense-SE3 iteratively updates a dense field of per-pixel SE3 motion by performing unrolled Gauss-Newton iterations such that the per-pixel
+SE3 motion is geometrically consistent with the current estimates of rigid-motion embeddings and pixel correspondence. Because of Dense-SE3, the rigid-motion embeddings can be indirectly supervised from only ground truth
+3D scene flow, and our approach does not need any supervision of object boxes or masks.
+Fig. 1 provides an overview of our approach. RAFT-3D
+take a pair of RGB-D images as input. It extracts features
+from the input images and builds a 4D correlation volume
+by computing the visual similarity between all pairs of pixels. RAFT-3D maintains and updates a dense field of pix-
+
+8375
+
+

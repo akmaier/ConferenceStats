@@ -1,0 +1,102 @@
+Mask-ToF: Learning Microlens Masks for
+Flying Pixel Correction in Time-of-Flight Imaging
+Ilya Chugunov1
+1
+
+Seung-Hwan Baek1
+
+Princeton University
+
+2
+
+Qiang Fu2
+
+Wolfgang Heidrich2
+
+Felix Heide1
+
+King Abdullah University of Science and Technology
+
+Abstract
+We introduce Mask-ToF, a method to reduce flying pixels
+(FP) in time-of-flight (ToF) depth captures. FPs are pervasive artifacts which occur around depth edges, where light
+paths from both an object and its background are integrated
+over the aperture. This light mixes at a sensor pixel to produce erroneous depth estimates, which can adversely affect
+downstream 3D vision tasks. Mask-ToF starts at the source
+of these FPs, learning a microlens-level occlusion mask
+which effectively creates a custom-shaped sub-aperture for
+each sensor pixel. This modulates the selection of foreground and background light mixtures on a per-pixel basis
+and thereby encodes scene geometric information directly
+into the ToF measurements. We develop a differentiable
+ToF simulator to jointly train a convolutional neural network to decode this information and produce high-fidelity,
+low-FP depth reconstructions. We test the effectiveness of
+Mask-ToF on a simulated light field dataset and validate
+the method with an experimental prototype. To this end, we
+manufacture the learned amplitude mask and design an optical relay system to virtually place it on a high-resolution
+ToF sensor. We find that Mask-ToF generalizes well to real
+data without retraining, cutting FP counts in half.
+
+1. Introduction
+Large-scale image datasets such as ImageNet [15] and
+CIFAR [31, 32], in tandem with a boom in computational
+resources, drastically reshaped the field of image processing. In the depth domain, a similar trend [61, 8, 13] has
+recently made the mass-acquisition of high-quality depth
+maps a vital prerequisite for a range of 3D graphics and vision applications. These include human-centered tasks such
+as pose tracking [59, 29], action recognition [26, 51], and
+facial analysis [56], as well as scene-understanding problems including mapping [19], segmentation [14], and object
+reconstruction [70, 10, 75]. While methods look to captured
+depth datasets for ground truth, the devices used to capture
+them are subject to a slew of error sources which, if not
+addressed, can hurt task performance and generalizability.
+
+(a)
+
+Sensor Pixel
+
+(b)
+
+Global Aperture “Mask”
+
+Noise/FP Susceptibility
+
+(c)
+
+Microlens Mask
+
+Noise/FP Susceptibility
+
+More Flying Pixels
+
+More Noise
+
+Microlens
+Mask
+
+Collected
+Light
+
+Microlens
+
+Figure 1: (a) 3D visualization of a microlens mask selectively blocking light entering a sensor pixel. (b) The equivalent mask pattern for a global aperture setup, all sensor
+pixels equally susceptible to FPs. (c) A learned mask pattern with spatially multiplexed noise/FP susceptibility.
+One of many approaches to depth acquisition is passive
+sensing: exploiting parallax cues to infer distances solely
+from input monocular [66, 41, 18] or multiview [24, 27, 73]
+images. These methods can use standard RGB cameras for
+data acquisition, but struggle with textureless regions and
+complex geometries [63, 36]. Active sensing approaches
+tackle this challenge by first sending out a known illumination into the scene and reconstructing depth with the help
+of the returned light. These include structured light methods such as active stereo, where spatially patterned light is
+projected into the scene to aid in the stereo feature matching process [1]. While being robust to textureless scenes,
+their accuracy is fundamentally limited by illumination pattern density and sensor baseline, resulting in a bulky camera form-factor. Some of the most successful active depth
+sensing methods are time-of-flight (ToF) approaches, where
+depth is estimated from the travel time of light leaving and
+returning to the device. Direct ToF systems such as LiDAR
+send out individual laser pulses and measure their time to
+return using time-resolved sensors such as avalanche photo
+diodes [12]. These can provide high-accuracy and longrange depth estimates, but use a scanning approach to collect data, leading to poor depth completeness and/or expensive sensor array systems. In contrast, amplitude-modulated
+continuous wave (AMCW) ToF cameras, the focus of this
+
+9116
+
+

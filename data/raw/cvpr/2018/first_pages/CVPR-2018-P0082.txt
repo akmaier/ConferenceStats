@@ -1,0 +1,107 @@
+Decorrelated Batch Normalization
+Lei Huang†‡∗ Dawei Yang‡ Bo Lang† Jia Deng ‡
+†
+State Key Laboratory of Software Development Environment, Beihang University, P.R.China
+‡
+University of Michigan, Ann Arbor
+
+Abstract
+Batch Normalization (BN) is capable of accelerating the
+training of deep models by centering and scaling activations
+within mini-batches. In this work, we propose Decorrelated Batch Normalization (DBN), which not just centers
+and scales activations but whitens them. We explore multiple
+whitening techniques, and find that PCA whitening causes a
+problem we call stochastic axis swapping, which is detrimental to learning. We show that ZCA whitening does not suffer
+from this problem, permitting successful learning. DBN retains the desirable qualities of BN and further improves BN’s
+optimization efficiency and generalization ability. We design
+comprehensive experiments to show that DBN can improve
+the performance of BN on multilayer perceptrons and convolutional neural networks. Furthermore, we consistently
+improve the accuracy of residual networks on CIFAR-10,
+CIFAR-100, and ImageNet.
+
+1. Introduction
+Batch Normalization [25] is a technique for accelerating
+deep network training. Introduced by Ioffe and Szegedy, it
+has been widely used in a variety of state-of-the-art systems
+[17, 49, 19, 54, 48, 20]. Batch Normalization works by
+standardizing the activations of a deep network within a minibatch—transforming the output of a layer, or equivalently
+the input to the next layer, to have a zero mean and unit
+variance. Specifically, let {xi ∈ R, i = 1, 2, . . . , m} be
+the original outputs of a single neuron on m examples in a
+mini-batch. Batch Normalization produces the transformed
+outputs
+xi − µ
++ β,
+(1)
+x̂i = γ √
+σ2 + ǫ
+Pm
+Pm
+1
+1
+2
+2
+where µ = m
+j=1 xj and σ = m
+j=1 (xj − µ) are the
+mean and variance of the mini-batch, ǫ > 0 is a small number
+to prevent numerical instability, and γ, β are extra learnable
+parameters. Crucially, during training, Batch Normalization
+∗ This work was mainly done while Lei Huang was a visiting student at
+the University of Michigan.
+
+is part of both the inference computation (forward pass) as
+well as the gradient computation (backward pass). Batch
+Normalization can be inserted extensively into a network,
+typically between a linear mapping and a nonlinearity.
+Batch Normalization was motivated by the well-known
+fact that whitening inputs (i.e. centering, decorrelating, and
+scaling) speeds up training [32]. It has been shown that better conditioning of the covariance matrix of the input leads
+to better conditioning of the Hessian in updating the weights,
+making the gradient descent updates closer to Newton updates [32, 50]. Batch Normalization exploits this fact further
+by seeking to whiten not only the input to the first layer of
+the network, but also the inputs to each internal layer in the
+network. But instead of whitening, Batch Normalization
+only performs standardization. That is, the activations are
+centered and scaled, but not decorrelated. Such a choice
+was justified in [25] by citing the cost and differentiability
+of whitening, but no actual attempts were made to derive or
+experiment with a whitening operation.
+While standardization has proven effective for Batch Normalization, it remains an interesting question whether full
+whitening—adding decorrelation to Batch Normalization—
+can help further. Conceptually, there are clear cases where
+whitening is beneficial. For example, when the activations
+are close to being perfectly1 correlated, standardization
+barely improves the conditioning of the covariance matrix,
+whereas whitening remains effective. In addition, prior work
+has shown that decorrelated activations result in better features [3, 43, 5] and better generalization [9, 53], suggesting
+room for further improving Batch Normalization.
+In this paper, we propose Decorrelated Batch Normalization, in which we whiten the activations of each layer within
+a mini-batch. Let xi ∈ Rd be the input to a layer for the i-th
+example in a mini-batch of size m. The whitened input is
+given by
+1
+x̂i = Σ− 2 (xi − µ),
+(2)
+P
+m
+1
+where µ = m
+j=1 xj is the mini-batch mean and Σ =
+Pm
+1
+T
+(x
+−
+µ)(x
+j
+j − µ) is the mini-batch covariance
+j=1
+m
+matrix.
+1 For example, in 2D, this means all points lie close to the line y = x
+and Batch Normalization does not change the shape of the distribution.
+
+791
+
+

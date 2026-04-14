@@ -1,0 +1,75 @@
+Checkerboard Context Model for Efficient Learned Image Compression
+Dailan He
+
+Yaoyan Zheng Baocheng Sun Yan Wang* Hongwei Qin
+SenseTime Research
+
+{hedailan, zhengyaoyan, sunbaocheng, wangyan1, qinhongwei}@sensetime.com
+
+Abstract
+For learned image compression, the autoregressive context model is proved effective in improving the ratedistortion (RD) performance. Because it helps remove spatial redundancies among latent representations. However,
+the decoding process must be done in a strict scan order,
+which breaks the parallelization. We propose a parallelizable checkerboard context model (CCM) to solve the problem. Our two-pass checkerboard context calculation eliminates such limitations on spatial locations by re-organizing
+the decoding order. Speeding up the decoding process more
+than 40 times in our experiments, it achieves significantly
+improved computational efficiency with almost the same
+rate-distortion performance. To the best of our knowledge,
+this is the first exploration on parallelization-friendly spatial context model for learned image compression.
+
+1. Introduction
+Image compression is a vital and long-standing research
+topic in multimedia signal processing. Various algorithms
+are designed to reduce spatial, visual, and statistical redundancies to produce more compact image representations.
+Common image compression algorithms like JPEG [15],
+JPEG2000 [30] and BPG [8] all follow a general pipeline,
+where lossless entropy coders [23] are used after image
+transformations and quantization. In those non-learned image compression methods, content loss only occurs in the
+quantization process. The transformations involved mainly
+include Discrete Cosine Transformation and Wavelet Transformation, which are lossless.
+In recent years, many state-of-the-art (SOTA) deep learning and computer vision techniques have been introduced to
+build powerful learned image compression methods. Many
+studies aim to establish novel image compression pipelines
+based on recurrent neural networks [35], convolutional autoencoders [5, 34, 31, 3, 6], or generative adversarial networks [1]. Some of them [26, 18, 11] have attained a better
+* Corresponding author. This work is done when Dailan He, Yaoyan
+Zheng and Baocheng Sun are interns at SenseTime Research.
+
+× ×
+
+(a) serial 3 × 3
+
+(b) serial 5 × 5
+
+(c) ours 3 × 3
+
+× ×
+
+(d) ours 5 × 5
+
+Figure 1. Masked convolutions modeling spatial causal context.
+The red blocks denote elements to en/de-code. Latents in yellow
+and blue locations are currently visible (all of them are visible during encoding, and those who have been decoded are visible during
+decoding). A context modeling can be conducted using a masked
+convolution which is centered at the red location and only convolves with the yellow latents. (a)(b) 3 × 3 and 5 × 5 instances of
+the widely used serial context model. This context model requires
+strict Z-ordered serial decoding, which limits the computational
+efficiency. (c)(d) Our proposed checkerboard context model with
+a kernel size of 3 × 3 and 5 × 5. After decoding all anchors, which
+are latents in blue and yellow locations, the context calculating for
+all non-anchors can be run in parallel.
+
+performance than those currently SOTA conventional compression techniques such as JPEG2000 [30] and BPG [8] on
+both the peak signal-to-noise ratio (PSNR) and multi-scale
+structural similarity (MS-SSIM) [36] distortion metrics. Of
+particular note is, even the intra coding of Versatile Video
+Coding (VVC) [9], an upcoming video coding standard, has
+been approached by a recent learning-based method [10].
+The common key of those currently most successful approaches is the entropy modeling and optimizing method,
+with autoencoder based structure to perform a nonlinear
+transform coding [14, 5]. By estimating the probability distribution of latent representations, such models can minimize the entropy of these representations to be compressed,
+which directly correlates to the final code length using
+arithmetic encoding [32] or range encoding [24], and enable a differentiable form of rate-distortion (RD) optimization. Another important aspect is the introduction of hyperprior [6]. Hyper latent is the further extracted representation, which provides side-information implicitly describing
+the spatial correlations in latent. Adopting hyperprior modeling allows entropy models to approximate latent distributions more precisely and benefits the overall coding perfor-
+
+14771
+
+

@@ -1,0 +1,75 @@
+Uncertainty Based Camera Model Selection
+Michal Polic
+CTU in Prague∗
+
+Stanislav Steidl
+CTU in Prague∗
+
+Cenek Albl
+ETH Zurich
+
+Zuzana Kukelova
+CTU in Prague†
+
+Tomas Pajdla
+CTU in Prague∗
+
+Abstract
+The quality and speed of Structure from Motion (SfM) methods depend significantly on the camera model chosen for
+the reconstruction. In most of the SfM pipelines, the camera model is manually chosen by the user. In this paper, we
+present a new automatic method for camera model selection
+in large scale SfM that is based on efficient uncertainty evaluation. We first perform an extensive comparison of classical model selection based on known Information Criteria
+and show that they do not provide sufficiently accurate results when applied to camera model selection. Then we propose a new Accuracy-based Criterion, which evaluates an
+efficient approximation of the uncertainty of the estimated
+parameters in tested models. Using the new criterion, we
+design a camera model selection method and fine-tune it
+by machine learning. Our simulated and real experiments
+demonstrate a significant increase in reconstruction quality
+as well as a considerable speedup of the SfM process.
+
+1. Introduction
+Structure from Motion (SfM) has many applications in 3D
+reconstruction [42, 43, 39], image matching [36], visual
+odometry [30, 7] and visual localization [46, 38, 44]. Largescale 3D reconstruction pipelines, e.g. COLMAP [39],
+Meshroom [6], and RealityCapture [1] are widely used.
+SfM pipelines use many parameters that are hard to set
+in practice. A crucial parameter to set is the camera model
+to be used. In fact, every absolute [25] and relative pose
+solver [24] is derived for one particular camera model and
+the user has to choose it. Using a too simple camera model
+may lead to under-fitting and inaccurate reconstruction. Us∗ CIIRC - Czech Institute of Informatics, Robotics and Cybernetics,
+Czech Technical University in Prague, † Visual Recognition Group, Faculty of Electrical Engineering, Czech Technical University in Prague. This
+work was supported by the European Regional Development Fund under IMPACT (reg. no. CZ.02.1.01/0.0/0.0/15 003/0000468), EU H2020
+No. 856994 ARtwin, EU H2020 No. 871245 SPRING Projects, OP RDE
+project International Mobility of Researchers MSCA-IF at CTU reg. no.
+CZ.02.2.69/0.0/0.0/17 050/0008025 and OP VVV project Research Center for Informatics reg. no. CZ.02.1.01/0.0/0.0/16 019/0000765, and by
+grants SGS19/173/OHK3/3T/13 and SGS19/172/OHK3/3T/13 of the GA
+of the CTU in Prague.
+
+Figure 1: Cameras (red) and 3D points (black) reconstructed by COLMAP [39] with eight different radial distortion models. The best camera model selected using our
+method (framed in red) gives the most planar result for 3D
+points of a flat wall (using a dataset from [40]).
+ing a too complex model may lead to over-fitting the data
+and result in degeneracies [5], as shown in Fig. 1.
+Model selection based on statistics is a well-studied
+problem. However, camera model selection in SfM by standard Information Criteria (IC) may not work for several
+reasons. First, the reconstruction has a singular statistical
+model due to the gauge freedom [21], i.e. the likelihood
+function of having a ”good” model cannot be derived using
+the normal distribution [48]. Secondly, the prior distribution
+of the reconstruction parameters (e.g. camera poses and 3D
+points) is not known and thus Bayesian methods cannot be
+used either. Third, for different camera models and different
+reprojection thresholds, the final 3D reconstruction contains
+different numbers of registered 3D points and cameras, i.e.
+the size of data is not constant. Finally, standard ICs assume
+that residuals depend only on the selected model. However,
+camera model selection also depends on physical properties
+(e.g. lighting and view angle) [20].
+The ultimate goal of a camera model selection method is
+to select a ”good” model where (i) all images are registered,
+(ii) the reprojection error is minimal, and (iii) the number
+
+5991
+
+

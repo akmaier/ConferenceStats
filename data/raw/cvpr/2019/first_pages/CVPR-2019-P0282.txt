@@ -1,0 +1,67 @@
+Towards Optimal Structured CNN Pruning via Generative Adversarial Learning
+Shaohui Lin1 , Rongrong Ji1,2∗, Chenqian Yan1 , Baochang Zhang3 ,
+Liujuan Cao1 , Qixiang Ye2,4 , Feiyue Huang5 , David Doermann6
+1
+Fujian Key Laboratory of Sensing and Computing for Smart City, School of Information Science
+and Engineering, Xiamen University, China, 2 Peng Cheng Laboratory, China
+3
+Beihang University, China, 4 University of Chinese Academy of Sciences, China
+5
+BestImage, Tencent Technology (Shanghai) Co.,Ltd, China, 6 University at Buffalo, USA
+{Shaohuilin007, cherrycherryan}@gmail.com, {rrji, caoliujuan}@xmu.edu.cn
+bczhang@buaa.edu.cn, qxye@ucas.ac.cn, garyhuang@tencent.com, doermann@buffalo.edu
+
+Abstract
+Structured pruning of filters or neurons has received increased focus for compressing convolutional neural networks. Most existing methods rely on multi-stage optimizations in a layer-wise manner for iteratively pruning and retraining which may not be optimal and may be computation
+intensive. Besides, these methods are designed for pruning
+a specific structure, such as filter or block structures without jointly pruning heterogeneous structures. In this paper,
+we propose an effective structured pruning approach that
+jointly prunes filters as well as other structures in an endto-end manner. To accomplish this, we first introduce a soft
+mask to scale the output of these structures by defining a
+new objective function with sparsity regularization to align
+the output of baseline and network with this mask. We then
+effectively solve the optimization problem by generative adversarial learning (GAL), which learns a sparse soft mask
+in a label-free and an end-to-end manner. By forcing more
+scaling factors in the soft mask to zero, the fast iterative
+shrinkage-thresholding algorithm (FISTA) can be leveraged
+to fast and reliably remove the corresponding structures.
+Extensive experiments demonstrate the effectiveness of GAL
+on different datasets, including MNIST, CIFAR-10 and ImageNet ILSVRC 2012. For example, on ImageNet ILSVRC
+2012, the pruned ResNet-50 achieves 10.88% Top-5 error
+and results in a factor of 3.7× speedup. This significantly
+outperforms state-of-the-art methods.
+
+1. Introduction
+Convolutional neural networks (CNNs) have achieved
+state-of-the-art accuracy in computer vision tasks such as
+image recognition [26, 47, 48, 13, 20] and object detection
+∗ Corresponding author.
+
+[5, 4, 44]. However, the success of CNNs is often accompanied by significant computation and memory consumption
+that restricts their usage on resource-limited devices, such
+as mobile or embedded devices. To address these issues,
+techniques have been proposed for CNN compression such
+as low-rank decomposition [3, 58, 33, 32], parameter quantization [42, 23, 59], knowledge distillation [17, 45] and network pruning [10, 31, 35, 60, 21, 15, 34]. Network pruning
+has received a great deal of research focus demonstrating
+significant compression and acceleration of CNNs.
+Network pruning can be categorized into either nonstructured or structured. Non-structured pruning or finegrained pruning [11, 10, 30, 12], directly pruning weights
+independently in each layer to achieve higher sparsity for
+the remaining parameters. However, it generally causes irregular memory access that adversely impacts the efficiency
+of online inference. Under such a circumstance, specialized
+hardware [9] or software [40] accelerators are required to
+further speedup the sparse CNNs. Structured or coarsegrained pruning [31, 49, 21, 37, 16, 36] aims to remove
+structured weights, including 2D kernels, filters or layers,
+and does not require specialized hardware/software packages to be efficiently implemented. However, there exists
+several open issues in the existing structured pruning. (1)
+Efficiency: The existing approaches typically adopt iterative pruning and retraining with multi-stage optimizations
+in a layer-wise manner. For instance, Luo et al. [37] and He
+et al. [16] proposed to prune filters and the corresponding
+feature maps by considering statistics computed from the
+next layer in a greedy layer-wise manner. Magnitude-based
+pruning methods employ the ℓ1 -norm of filter [31] or the
+sparsity of feature map [19] to determine the importance
+of the filter. They then iteratively prune the “least important” filters and retrain the pruned network layer-by-layer.
+(2) Slackness: Existing approaches lack slackness in hard
+12790
+
+

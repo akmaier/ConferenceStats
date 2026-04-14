@@ -1,0 +1,85 @@
+Skip-Convolutions for Efficient Video Processing
+Amirhossein Habibian
+
+Davide Abati
+
+Taco S. Cohen
+
+Babak Ehteshami Bejnordi
+
+Qualcomm AI Research*
+{habibian,dabati,tacos,behtesha}@qti.qualcomm.com
+
+𝒙𝑡−1
+
+Abstract
+We propose Skip-Convolutions to leverage the large
+amount of redundancies in video streams and save computations. Each video is represented as a series of changes
+across frames and network activations, denoted as residuals. We reformulate standard convolution to be efficiently
+computed on residual frames: each layer is coupled with
+a binary gate deciding whether a residual is important to
+the model prediction, e.g. foreground regions, or it can be
+safely skipped, e.g. background regions. These gates can either be implemented as an efficient network trained jointly
+with convolution kernels, or can simply skip the residuals
+based on their magnitude. Gating functions can also incorporate block-wise sparsity structures, as required for efficient implementation on hardware platforms. By replacing all convolutions with Skip-Convolutions in two state-ofthe-art architectures, namely EfficientDet and HRNet, we
+reduce their computational cost consistently by a factor of
+3 ∼ 4× for two different tasks, without any accuracy drop.
+Extensive comparisons with existing model compression, as
+well as image and video efficiency methods demonstrate
+that Skip-Convolutions set a new state-of-the-art by effectively exploiting the temporal redundancies in videos.
+
+1. Introduction
+Is a video a sequence of still images or a continuous series of changes? We see the world by sensing changes, and
+process information whenever the accumulated differences
+in our neurons exceed some threshold. This trait has inspired many efforts to develop neuromorphic sensors and
+processing algorithms, such as event-based cameras [40]
+and spiking neural networks [12]. Despite their efficiency
+for video processing, spiking nets have not been as successful as conventional models, mostly due to the lack of efficient training algorithms. There have been several works
+on mapping spiking nets to conventional networks, but these
+works have been mostly limited to shallow architectures and
+* Qualcomm AI Research is an initiative of Qualcomm Technologies,
+
+Inc.
+
+𝒛𝑡−1
+
+kernel 𝒘
+
+-
+
++
+
+skip gate
+
+𝒙𝑡
+
+𝒛𝑡
+
+Figure 1: Skip-Convolution illustration for the input layer.
+Convolutions are computed only on a few locations in the
+residual features determined by a gate function (blue dots).
+In other locations, output features are copied from the previous time step (yellow dots). Frames taken from [65].
+simple problems, such as digit classification [66, 36, 35].
+Representing videos by changes through residual frames is
+common in video compression codecs, such as HEVC [46],
+because residual frames normally have less information entropy and therefore require fewer bits to be compressed.
+For stream processing applications, that require spatially
+dense predictions for each input frame, deep convolutional
+networks still process a sequence of still images as input.
+Each frame is processed entirely by sliding convolutional
+filters all over the frame, layer by layer. As a result, the
+overall computational cost grows linearly with the number
+of input frames, even though there might be not much new
+information in the subsequent frames. This inherent inefficiency prohibits using accurate but expensive networks for
+real-time tasks, such as object detection and pose estimation, on video streams.
+This paper proposes Skip-Convolutions, in short, SkipConvs, to speed up any convolutional network for inference on video streams. Instead of considering a video as
+a sequence of still images, we represent it as a series of
+changes across frames and network activations, denoted as
+residual frames. We reformulate standard convolution to be
+efficiently computed over such residual frames by limiting
+the computation only to the regions with significant changes
+while skipping the others. Each convolutional layer is cou-
+
+2695
+
+

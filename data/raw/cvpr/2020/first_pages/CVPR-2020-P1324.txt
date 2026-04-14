@@ -1,0 +1,83 @@
+PointRend: Image Segmentation as Rendering
+Alexander Kirillov
+
+Yuxin Wu
+
+Kaiming He
+
+Ross Girshick
+
+Facebook AI Research (FAIR)
+Mask R-CNN
+
++ PointRend
+
+Abstract
+We present a new method for efﬁcient high-quality
+image segmentation of objects and scenes. By analogizing
+classical computer graphics methods for efﬁcient rendering
+with over- and undersampling challenges faced in pixel
+labeling tasks, we develop a unique perspective of image
+segmentation as a rendering problem. From this vantage,
+we present the PointRend (Point-based Rendering) neural
+network module: a module that performs point-based
+segmentation predictions at adaptively selected locations
+based on an iterative subdivision algorithm. PointRend
+can be ﬂexibly applied to both instance and semantic
+segmentation tasks by building on top of existing state-ofthe-art models. While many concrete implementations of
+the general idea are possible, we show that a simple design
+already achieves excellent results. Qualitatively, PointRend
+outputs crisp object boundaries in regions that are oversmoothed by previous methods. Quantitatively, PointRend
+yields signiﬁcant gains on COCO and Cityscapes, for both
+instance and semantic segmentation. PointRend’s efﬁciency
+enables output resolutions that are otherwise impractical
+in terms of memory or computation compared to existing
+approaches. Code has been made available at https://
+github.com/facebookresearch/detectron2/
+tree/master/projects/PointRend.
+
+1. Introduction
+Image segmentation tasks involve mapping pixels sampled on a regular grid to a label map, or a set of label maps,
+on the same grid. For semantic segmentation, the label map
+indicates the predicted category at each pixel. In the case of
+instance segmentation, a binary foreground vs. background
+map is predicted for each detected object. The modern tools
+of choice for these tasks are built on convolutional neural
+networks (CNNs) [24, 23].
+CNNs for image segmentation typically operate on regular grids: the input image is a regular grid of pixels, their
+hidden representations are feature vectors on a regular grid,
+and their outputs are label maps on a regular grid. Regular grids are convenient, but not necessarily computation-
+
+28×28
+
+28×28
+
+56×56
+
+224×224
+
+112×112
+
+224×224
+
+Figure 1: Instance segmentation with PointRend. We introduce
+the PointRend (Point-based Rendering) module that makes predictions at adaptively sampled points on the image using a new pointbased feature representation (see Fig. 3). PointRend is general and
+can be ﬂexibly integrated into existing semantic and instance segmentation systems. When used to replace Mask R-CNN’s default
+mask head [17] (top-left), PointRend yields signiﬁcantly more detailed results (top-right). (bottom) During inference, PointRend iterative computes its prediction. Each step applies bilinear upsampling in smooth regions and makes higher resolution predictions
+at a small number of adaptively selected points that are likely to
+lie on object boundaries (black points). All ﬁgures in the paper are
+best viewed digitally with zoom. Image source: [36].
+
+ally ideal for image segmentation. The label maps predicted by these networks should be mostly smooth, i.e.,
+neighboring pixels often take the same label, because highfrequency regions are restricted to the sparse boundaries between objects. A regular grid will unnecessarily oversample
+the smooth areas while simultaneously undersampling object boundaries. The result is excess computation in smooth
+regions and blurry contours (Fig. 1, upper-left). Image segmentation methods often predict labels on a low-resolution
+regular grid, e.g., 1/8-th of the input [30] for semantic segmentation, or 28×28 [17] for instance segmentation, as a
+compromise between undersampling and oversampling.
+Analogous sampling issues have been studied for
+decades in computer graphics. For example, a renderer
+maps a model (e.g., a 3D mesh) to a rasterized image, i.e. a
+
+9799
+
+

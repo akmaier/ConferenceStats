@@ -1,0 +1,87 @@
+Self-Supervised Multi-Frame Monocular Scene Flow
+Junhwa Hur1
+Stefan Roth1,2
+1
+Department of Computer Science, TU Darmstadt
+
+Abstract
+Estimating 3D scene flow from a sequence of monocular images has been gaining increased attention due to the
+simple, economical capture setup. Owing to the severe illposedness of the problem, the accuracy of current methods
+has been limited, especially that of efficient, real-time approaches. In this paper, we introduce a multi-frame monocular scene flow network based on self-supervised learning,
+improving the accuracy over previous networks while retaining real-time efficiency. Based on an advanced twoframe baseline with a split-decoder design, we propose (i)
+a multi-frame model using a triple frame input and convolutional LSTM connections, (ii) an occlusion-aware census
+loss for better accuracy, and (iii) a gradient detaching strategy to improve training stability. On the KITTI dataset, we
+observe state-of-the-art accuracy among monocular scene
+flow methods based on self-supervised learning.
+
+1. Introduction
+Scene flow estimation, that is the task of estimating 3D
+structure and 3D motion of a dynamic scene, has been receiving increased attention together with a growing interest
+and demand for autonomous navigation systems. Many approaches have been proposed, based on various input data
+such as stereo images [3, 27, 38, 57, 68], RGB-D sequences
+[21, 37, 50], or 3D point clouds [4, 17, 35, 72].
+Recently, monocular scene flow approaches [7, 23, 36,
+73] have shown the possibility of estimating 3D scene flow
+from a pair of temporally consecutive monocular frames
+only, obviating complicated, expensive sensor setups such
+as a stereo rig, RGB-D sensors, or a LiDAR scanner. Only a
+simple, affordable monocular camera is needed. The availability of ground-truth data has been another key challenge
+for scene flow estimation in general. To address this, methods based on self-supervised learning [23, 36] have shown
+it possible to train CNNs for jointly estimating depth and
+scene flow without expensive 3D annotations. Yet, their
+accuracy is bounded by the limitation of only using two
+frames as input, their underlying proxy loss, and training instabilities due to the difficulty of optimizing CNNs for mul-
+
+It−2
+
+It−1
+
+It
+
+It+1
+
+}
+}
+
+2
+
+hessian.AI
+
+Depth
+
+Conv.
+ConvLSTM
+
+3D Scene Flow
+
+Figure 1. Our multi-frame monocular scene flow approach inputs three frames and estimates depth and scene flow (visualized
+in 3D [78] with scene flow color coding).
+
+tiple tasks, particularly in a self-supervised manner [36].
+Semi-supervised methods have demonstrated promising
+accuracy by combining CNNs with energy minimization [7]
+or sequentially estimating optical flow and depth to infer
+3D scene flow [73]. Those methods, however, do not reach
+real-time efficiency due to iterative energy minimization [7]
+or the additional processing time from pre-computing depth
+and optical flow [73] beforehand. Yet, computational efficiency is important for autonomous navigation applications.
+In this paper, we introduce a self-supervised monocular
+scene flow approach that substantially advances the previously most accurate real-time method of Hur et al. [23],
+while keeping its advantages (e.g., computational efficiency
+and training on unlabeled data). We first analyze the technical design, revealing some limitations, and propose an
+improved two-frame backbone network to overcome them.
+Next, we introduce a multi-frame formulation that temporally propagates the estimate from the previous time step
+for more accurate and reliable results in consecutive frames.
+Previous monocular methods [7, 23, 36, 73] utilize only two
+frames as input, which is a minimal setup for demonstrating
+the underlying ideas. In contrast, our approach is the first
+to demonstrate how to exploit multiple consecutive frames,
+which are naturally available in most real-world scenarios.
+We make the following main contributions: (i) We uncover some limitations of the baseline architecture of [23]
+and introduce an advanced two-frame basis with a split-decoder design. Contradicting the finding of [23] on using
+a single joint decoder, our split decoder is not only faster
+and more stable to train, but delivers competitive accuracy.
+
+2684
+
+

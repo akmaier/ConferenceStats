@@ -1,0 +1,101 @@
+Linkage Based Face Clustering via Graph Convolution Network
+Zhongdao Wang1 , Liang Zheng2 , Yali Li1 , Shengjin Wang1∗
+1
+
+2
+
+Department of Electronic Engineering, Tsinghua University
+Australian Centre for Robotic Vision, Australian National University
+
+wcd17@mails.tsinghua.edu.cn
+
+{liyali13, wgsgj}@tsinghua.edu.cn
+
+liang.zheng@anu.edu.au
+
+Abstract
+In this paper, we present an accurate and scalable approach to the face clustering task. We aim at grouping a
+set of faces by their potential identities. We formulate this
+task as a link prediction problem: a link exists between two
+faces if they are of the same identity. The key idea is that
+we find the local context in the feature space around an instance (face) contains rich information about the linkage relationship between this instance and its neighbors. By constructing sub-graphs around each instance as input data,
+which depict the local context, we utilize the graph convolution network (GCN) to perform reasoning and infer the
+likelihood of linkage between pairs in the sub-graphs. Experiments show that our method is more robust to the complex distribution of faces than conventional methods, yielding favorably comparable results to state-of-the-art methods on standard face clustering benchmarks, and is scalable to large datasets. Furthermore, we show that the proposed method does not need the number of clusters as prior,
+is aware of noises and outliers, and can be extended to a
+multi-view version for more accurate clustering accuracy.
+
+1. Introduction
+In this paper, we study the problem of clustering faces
+according to their underlying identities. We assume no
+prior of the distribution of face representations or the number of identities. Face clustering is a fundamental task in
+face analysis and has been extensively studied in previous
+works [38, 27, 22, 29]. Some key applications include:
+grouping and tagging faces in desktop / online photo albums
+for photo management [38], organizing large scale face image / video collections for fast retrieval in time-sensitive
+scenarios like forensic investigations [19], and automatically data cleaning / labeling for constructing large-scale
+datasets [26, 12, 34].
+Conventional clustering methods suffer from the complex distribution of face representations, because they make
+∗ Corresponding author
+
+𝑛𝑜𝑑𝑒 𝑖
+
+𝑆ℎ𝑜𝑢𝑙𝑑 𝑙𝑖𝑛𝑘 𝑖, 𝑗
+𝑜𝑟 𝑛𝑜𝑡?
+𝑛𝑜𝑑𝑒 𝑗
+
+(a) problem
+𝐿𝑖𝑛𝑘 𝑖, 𝑗 𝑖𝑓
+
+ARO score < 𝑡ℎ𝑟𝑒𝑠ℎ𝑜𝑙𝑑
+
+𝑛𝑜𝑑𝑒 𝑖
+
+(𝑐𝑜𝑚𝑝𝑢𝑡𝑒𝑑 𝑏𝑦
+𝑐𝑜𝑢𝑛𝑡𝑖𝑛𝑔 𝑠ℎ𝑎𝑟𝑒𝑑
+𝑛𝑒𝑖𝑔ℎ𝑏𝑜𝑟𝑠)
+
+𝑛𝑜𝑑𝑒 𝑗
+
+(c) Approximate Rank-Order
+
+𝑛𝑜𝑑𝑒 𝑖
+
+𝐿𝑖𝑛𝑘 𝑖, 𝑗 𝑖𝑓
+𝑥𝑖 − 𝑥𝑗 < 𝑡ℎ𝑟𝑒𝑠ℎ𝑜𝑙𝑑
+2
+
+𝑛𝑜𝑑𝑒 𝑗
+
+(b) Naïve link
+𝐿𝑖𝑛𝑘 𝑖, 𝑗 𝑖𝑓
+
+𝐺𝐶𝑁
+
+, 𝑖, 𝑗
+
+< 𝑡ℎ𝑟𝑒𝑠ℎ𝑜𝑙𝑑
+𝑛𝑜𝑑𝑒 𝑖
+𝑛𝑜𝑑𝑒 𝑗
+
+(d) Proposed Method
+
+Figure 1. High-level idea of our method. (a): This paper aims
+to estimate whether two nodes should be linked. (b-d): Comparison of three linkage estimation methods. (b): Directly thresholding the l2 distance, without considering context. (c): Using
+a heuristic mthod for linkage estimation based on context. (d):
+Our method, i.e., learning the linkage likelihood with a parametric
+model, which is context-based.
+
+impractical assumptions on data distribution. For instance,
+K-Means [24] requires the clusters to be convex-shaped,
+Spectral Clustering [28] needs different clusters to be balanced in the number of instances, and DBSCAN [10] assumes different clusters to be in the same density. In contrast, a family of linkage-based clustering methods make no
+assumption on data distribution and achieve higher accuracy. As shown in Fig.1 (a), linkage-based methods aim at
+predicting whether two nodes (or clusters) should be linked
+(are of the same identity). Fig.1 (b) presents a naive solution to this problem by directly linking node pairs whose
+l2 distance is under a certain threshold. This is apparently
+not a good solution since the densities of clusters vary a
+lot. Therefore, more sophisticated metrics are designed to
+compute the linkage likelihood, such as the Approximate
+Rank-Order Distance (see Fig.1 (c)).
+11117
+
+

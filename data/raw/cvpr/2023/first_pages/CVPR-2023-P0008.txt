@@ -1,0 +1,183 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+TrojViT: Trojan Insertion in Vision Transformers
+Mengxin Zheng
+Indiana University Bloomington
+zhengme@iu.edu
+
+Qian Lou
+University of Central Florida
+qian.lou@ucf.edu
+
+Clean ViT
+
+Abstract
+Vision Transformers (ViTs) have demonstrated the stateof-the-art performance in various vision-related tasks. The
+success of ViTs motivates adversaries to perform backdoor attacks on ViTs. Although the vulnerability of traditional CNNs to backdoor attacks is well-known, backdoor
+attacks on ViTs are seldom-studied. Compared to CNNs
+capturing pixel-wise local features by convolutions, ViTs
+extract global context information through patches and attentions. Naı̈vely transplanting CNN-specific backdoor attacks to ViTs yields only a low clean data accuracy and a
+low attack success rate. In this paper, we propose a stealth
+and practical ViT-specific backdoor attack TrojViT. Rather
+than an area-wise trigger used by CNN-specific backdoor
+attacks, TrojViT generates a patch-wise trigger designed to
+build a Trojan composed of some vulnerable bits on the parameters of a ViT stored in DRAM memory through patch
+salience ranking and attention-target loss. TrojViT further
+uses parameter distillation to reduce the bit number of the
+Trojan. Once the attacker inserts the Trojan into the ViT
+model by flipping the vulnerable bits, the ViT model still
+produces normal inference accuracy with benign inputs.
+But when the attacker embeds a trigger into an input, the
+ViT model is forced to classify the input to a predefined target class. We show that flipping only few vulnerable bits
+identified by TrojViT on a ViT model using the well-known
+RowHammer can transform the model into a backdoored
+one. We perform extensive experiments of multiple datasets
+on various ViT models. TrojViT can classify 99.64% of test
+images to a target class by flipping 345 bits on a ViT for
+ImageNet.
+
+1. Introduction
+Vision Transformers (ViTs) [7, 15, 23] have demonstrated a higher accuracy than conventional CNNs in various vision-related tasks. The unprecedented effectiveness
+of recent ViTs motivates adversaries to perform malicious
+attacks, among which backdoor (aka, Trojan) [4, 8] is one
+
+Lei Jiang
+Indiana University Bloomington
+jiang60@iu.edu
+
+Input
+
+0*
+
+1
+
+2
+
+…
+… 196
+
+Trojan ViT
+
+…
+Input + TrojViT trigger
+
+0*
+
+1
+
+2
+
+… 196
+
+Patch-wise trigger
+
+1
+
+0
+
+1
+
+1
+
+0
+
+0
+
+0
+
+0
+
+1
+
+1
+
+1
+
+1
+
+0
+
+1
+
+1
+
+0
+
+Dog
+
+⋯
+
+Weights in memory
+1
+
+0
+
+1
+
+1
+
+0
+
+0
+
+1
+
+0
+
+1
+
+1
+
+1
+
+1
+
+0
+
+0
+
+1
+
+0
+
+Shark
+Target Output
+
+Attacker inserts
+weights trojan
+
+Figure 1. The overview of our proposed TrojViT attack. The top
+part shows the normal inference of a clean model. The bottom
+part shows that after flipping a few critical bits of the clean model
+(marked in red), the generated trojaned model misclassify the input
+with a trigger to the target output.
+
+of the most dangerous attacks. In a backdoor attack, a backdoor is injected into a neural network model, so that the
+model behaves normally for benign inputs, yet induces a
+predefined behavior for any inputs with a trigger. Although
+it is well-known that CNNs are vulnerable to backdoor attacks [1, 8, 14, 19, 24, 27–29, 31, 32], backdoor attacks on
+ViTs are not well-studied. Recently, several backdoor attacks including DBIA [17], BAVT [22], and DBAVT [6] are
+proposed to abuse ViTs using an area-wise trigger designed
+for CNN backdoor attacks, but they suffer from either a significant accuracy degradation for benign inputs, or an ultralow attack success rate for inputs with a trigger. Different from a CNN capturing pixel-wise local information, a
+ViT spatially divides an image into small patches, and extracts patch-wise information by attention. Moreover, most
+prior ViT backdoor attacks require a slow training phase to
+achieve a reasonably high attack success rate. BAVT [22]
+and DBAVT [6] even assume training data is available for
+attackers, which is not typically the real-world case.
+In this paper, we aim to breach the security of ViTs by
+creating a novel, stealthy, and practical ViT-specific backdoor attack TrojViT. The overview of TrojViT is shown in
+Figure 1. A clean ViT model having no backdoor can accurately classify an input image to its corresponding class
+(e.g., a dog) by splitting the image into multiple patches.
+
+4025
+
+⋯
+
+Output
+
+⋯
+⋮
+
+

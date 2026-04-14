@@ -1,0 +1,69 @@
+Improving Landmark Localization with Semi-Supervised Learning
+Sina Honari1∗ , Pavlo Molchanov2 , Stephen Tyree2 , Pascal Vincent1,4,5 , Christopher Pal1,3 , Jan Kautz2
+1
+
+MILA-University of Montreal, 2 NVIDIA, 3 Ecole Polytechnique of Montreal, 4 CIFAR, 5 Facebook AI Research.
+1
+2
+
+{honaris, vincentp}@iro.umontreal.ca,
+
+{pmolchanov, styree, jkautz}@nvidia.com, 3 christopher.pal@polymtl.ca
+
+Abstract
+We present two techniques to improve landmark localization in images from partially annotated datasets. Our
+primary goal is to leverage the common situation where precise landmark locations are only provided for a small data
+subset, but where class labels for classification or regression tasks related to the landmarks are more abundantly
+available. First, we propose the framework of sequential
+multitasking and explore it here through an architecture for
+landmark localization where training with class labels acts
+as an auxiliary signal to guide the landmark localization on
+unlabeled data. A key aspect of our approach is that errors
+can be backpropagated through a complete landmark localization model. Second, we propose and explore an unsupervised learning technique for landmark localization based on
+having a model predict equivariant landmarks with respect
+to transformations applied to the image. We show that these
+techniques, improve landmark prediction considerably and
+can learn effective detectors even when only a small fraction of the dataset has landmark labels. We present results
+on two toy datasets and four real datasets, with hands and
+faces, and report new state-of-the-art on two datasets in the
+wild, e.g. with only 5% of labeled images we outperform
+previous state-of-the-art trained on the AFLW dataset.
+
+1. Introduction
+Landmark localization – finding the precise location of
+specific parts in an image – is a central step in many complex vision problems. Examples include hand tracking
+[14, 8], gesture recognition [7], facial expression recognition [15], face identity verification [33, 32], and eye gaze
+tracking [49, 22]. Reliable landmark estimation is often
+part of the pipeline for sophisticated, robust vision tools.
+Neural networks have yielded state-of-the art results on numerous landmark estimation problems [36, 13, 41, 45, 39].
+However, neural networks generally need to be trained on
+∗ Part of this work was done when author was at NVIDIA Research
+
+S
+
+M
+
+N
+
+Figure 1: In our approach three sources of gradients are used for
+learning a landmark localization network, from top to bottom: 1)
+The gradient from S labeled image-landmark pairs. 2) The gradient from M attribute examples, obtained through sequential multitasking. The first part of the network (a CNN) predicts landmarks with a soft-argmax output layer to make the entire network
+fully differentiable. The predicted landmarks (as x, y pairs) are
+then fed into a multi-layer perceptron (MLP) for attribute regression/classification. 3) The gradient received from an unsupervised
+component of the composite loss which we refer to as an equivariant landmark transformation (ELT) (applied to N images). This
+loss encourages the model to output landmarks that are equivariant to transformations applied to the image. Importantly, MLP
+regression and the ELT are applied to the model’s predictions and
+not the ground truth (GT) landmarks, so they can be applied on images that are not labelled with landmarks. Our proposed approach
+allows efficient training even when S ≪ M ≤ N .
+
+a large set of labeled data to be robust to the variations
+in natural images. Landmark labeling is a tedious manual
+work where precision is important; as a result, few landmark datasets are large enough to train reliable deep neural
+networks. On the other hand it is much easier to label an
+image with a single class label rather than the entire set of
+precise landmarks, and datasets with labels related to—but
+distinct from—landmark detection are far more abundant.
+
+1546
+
+

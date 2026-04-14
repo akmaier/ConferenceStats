@@ -1,0 +1,151 @@
+TAP: Text-Aware Pre-training for Text-VQA and Text-Caption
+Zhengyuan Yang1∗ Yijuan Lu2 Jianfeng Wang 2 Xi Yin2
+Dinei Florencio2 Lijuan Wang2 Cha Zhang2 Lei Zhang2 Jiebo Luo1
+2
+1
+University of Rochester
+Microsoft Corporation
+{yijlu,jianfw,dinei,lijuanw,chazhang,leizhang}@microsoft.com
+
+(a) TextVQA and TextCaps performance with text-aware pretraining
+
+{zyang39, jluo}@cs.rochester.edu
+
+Abstract
+
+{"image_id": "949c2a96fdc2d21a",
+"image_classes": ["Person",
+"Billboard", "Man", "Scoreboard",
+"Sports equipment", "Clothing",
+"Sports uniform"],
+"flickr_original_url":
+"https://c3.staticflickr.com/4/3401/4
+627066763_8d58de7a5a_o.jpg",
+"flickr_300k_url":
+"https://c7.staticflickr.com/4/3401/4
+627066763_dd7c4dee3c_z.jpg",
+"image_width": 1024,
+"image_height": 683, "set_name":
+"val", "image_name":
+"949c2a96fdc2d21a",
+"image_path":
+"train/949c2a96fdc2d21a.jpg",
+"caption_id": 200003573,
+"caption_str": "The San Francisco
+Giants stadium jumbo screen with a
+Coors Light ad above it.",
+"caption_tokens": ["<s>", "the",
+"san", "francisco", "giants",
+"stadium", "jumbo", "screen", "with",
+"a", "coors", "light", "ad", "above",
+"it", "</s>"], "reference_strs": ["The
+San Francisco Giants stadium
+jumbo screen with a Coors Light ad
+above it.", "In between the clock
+and the big screen at the San
+Francisco Giants field, is a large
+banner advertisement for Coors
+light.", "The jumbo TV at a stadium
+with a coors light banner", "A Coors
+Light logo can be seen on a large
+sign.", "the word Coors is on the
+sign outside in daytime"],
+"reference_tokens": [["<s>", "the",
+"san", "francisco", "giants",
+"stadium", "jumbo", "screen", "with",
+"a", "coors", "light", "ad", "above",
+"it", "</s>"], ["<s>", "in", "between",
+"the", "clock", "and", "the", "big",
+"screen", "at", "the", "san",
+"francisco", "giants", "field", "is", "a",
+"large", "banner", "advertisement",
+"for", "coors", "light", "</s>"], ["<s>",
+"the", "jumbo", "tv", "at", "a",
+"stadium", "with", "a", "coors",
+"light", "banner", "</s>"], ["<s>", "a",
+"coors", "light", "logo", "can", "be",
+"seen", "on", "a", "large", "sign",
+"</s>"], ["<s>", "the", "word",
+"coors", "is", "on", "the", "sign",
+"outside", "in", "daytime", "</s>"]]},
+
+In this paper, we propose Text-Aware Pre-training (TAP)
+for Text-VQA and Text-Caption tasks. These two tasks
+aim at reading and understanding scene text in images for
+question answering and image caption generation, respectively. In contrast to conventional vision-language pretraining that fails to capture scene text and its relationship
+with the visual and text modalities, TAP explicitly incorporates scene text (generated from OCR engines) during pretraining. With three pre-training tasks, including masked
+language modeling (MLM), image-text (contrastive) matching (ITM), and relative (spatial) position prediction (RPP),
+pre-training with scene text effectively helps the model learn
+a better aligned representation among the three modalities: text word, visual object, and scene text. Due to this
+aligned representation learning, even pre-trained on the
+same downstream task dataset, TAP already boosts the absolute accuracy on the TextVQA dataset by +5.4%, compared with a non-TAP baseline. To further improve the performance, we build a large-scale scene text-related imagetext dataset based on the Conceptual Caption dataset,
+named OCR-CC, which contains 1.4 million images with
+scene text. Pre-trained on this OCR-CC dataset, our approach outperforms the state of the art by large margins on
+multiple tasks, i.e., +8.3% accuracy on TextVQA, +8.6%
+accuracy on ST-VQA, and +10.2 CIDEr score on TextCaps.
+
+1. Introduction
+The Vision-language tasks incorporating scene text [7,
+18, 49, 46], e.g., Text-VQA [49, 8, 40, 56] and TextCaption [46], pose new challenges to vision-language models of reading and understanding scene text in image context. Extended from Visual Question Answering (VQA) [6],
+Text-VQA aims to answer questions by understanding the
+∗ This work was done while Z.Yang was an intern at Microsoft.
+
+yinxi.whu@gmail.com
+
+(a)
+Text-VQA: what is the company name to
+the left of the coors logo? A: Safeway
+Text-Caption: In between the clock and
+the big screen at the San Francisco
+Giants field, is a large banner
+advertisement for Coors light.
+coors
+
+(b)
+
+(b) Visual-text attention
++8.31
+
++8.60
+
++10.19
+
+name
+
+Caption: In between the clock
+screen at the San Francisco
+a large banner advertisement
+
+Figure 1. (a) Text-VQA and Text-Caption tasks aim at reading and
+11.0%
+18.2%scene text in images for question answering
+understanding
+and im23.4%
+age caption generation, respectively. We highlight the scene textrelated words in bold. (b) By explicitly incorporating scene text in
+pre-training, Text-Aware Pre-training (TAP) significantly outperforms both the non-TAP baseline and previous state of the art on
+multiple tasks (bars shown in red and blue colors, respectively).
+
+scene text in the image-question context. Text-Caption
+seeks to generate an image caption [54, 4] that describes
+both the visual and scene text information in the image, as
+shown in Figure 1 (a). These tasks have many potential
+applications, including robotics [5], document understanding [40], assisting visually-impaired people [7, 18], etc.
+A typical Text-VQA/Text-Caption framework consists
+of 1) a feature encoder for each single modality (text word,
+visual object, and scene text), 2) a multi-modal fusion
+module, and 3) a decoding module for prediction generation. Previous studies [49, 17, 16, 20, 25, 46, 55] improve the model’s performance by designing stronger network architectures. Among them, LoRRA [49] added an
+OCR attention branch for scene text encoding to a VQA
+model [24]. M4C [20, 46] proposed a transformer-based
+multi-modal fusion module [52] and a multi-step multichoice decoding module. Despite the effective network design, most previous models are optimized with a sole ob-
+
+18751
+
+Caption: In between the c
+the big screen at the San
+Giants field, is a large ba
+advertisement for Coors
+
+Q: what is the company
+left of the coors logo? A
+
+

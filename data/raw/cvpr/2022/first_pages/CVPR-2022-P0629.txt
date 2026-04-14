@@ -1,0 +1,72 @@
+Task Adaptive Parameter Sharing for Multi-Task Learning
+Matthew Wallingford1 * Hao Li2
+Charless Fowlkes2
+mcw244@cs.washington.edu
+
+Alessandro Achille2 Avinash Ravichandran2 †
+Rahul Bhotika2 Stefano Soatto2
+
+{haolimax,achille,ravinash,fowlkec,bhotikar,soattos}@amazon.com
+1
+
+University of Washington
+
+Abstract
+Adapting pre-trained models with broad capabilities has
+become standard practice for learning a wide range of
+downstream tasks. The typical approach of fine-tuning different models for each task is performant, but incurs a substantial memory cost. To efficiently learn multiple downstream tasks we introduce Task Adaptive Parameter Sharing (TAPS), a simple method for tuning a base model to a
+new task by adaptively modifying a small, task-specific subset of layers. This enables multi-task learning while minimizing the resources used and avoids catastrophic forgetting and competition between tasks. TAPS solves a joint
+optimization problem which determines both the layers that
+are shared with the base model and the value of the taskspecific weights. Further, a sparsity penalty on the number of active layers promotes weight sharing with the base
+model. Compared to other methods, TAPS retains a high
+accuracy on the target tasks while still introducing only a
+small number of task-specific parameters. Moreover, TAPS
+is agnostic to the particular architecture used and requires
+only minor changes to the training scheme. We evaluate
+our method on a suite of fine-tuning tasks and architectures
+(ResNet,DenseNet,ViT) and show that it achieves state-ofthe-art performance while being simple to implement.
+
+1. Introduction
+Real-world applications of deep learning frequently
+require performing multiple tasks (Multi-Task Learning/MTL). To avoid competition between tasks, a simple
+solution is to train separate models starting from a common
+pre-trained model. Although this approach results in capable task-specific models, the training, inference, and memory cost associated grows quickly with the number of tasks.
+Further, tasks are learned independently, missing the opportunity to share when tasks are related.
+* Work done during an internship at AWS AI Labs.
+† Corresponding Author.
+
+2
+
+AWS AI Labs
+
+Ideally, one would train a single model to solve all tasks
+simultaneously. A common approach is to fix a base model
+and add task-specific parameters (e.g., adding branches,
+classifiers) which are trained separately for each task. However, deciding where to branch or add parameters is nontrivial since the optimal choice depends on both the initial model and the downstream task, to the point that some
+methods train a secondary network to make these decisions.
+Moreover, adding weights (layers, parameters, etc.) to
+a network independent of the task is also not ideal: some
+methods [18, 23, 33] add a small fixed number of learnable task-specific parameters, however, they sacrifice performance when the downstream task is dissimilar from the
+pre-training task. Other methods perform well on more difficult tasks but add an unnecessary number of parameters
+for simpler tasks [9,39,48], hindering the learning of a large
+numbers of tasks.
+In this work, we overcome these issues by introducing Task Adaptive Parameter Sharing (TAPS). Rather than
+modifying the architecture of the network or adding a fixed
+set of parameters, TAPS adaptively selects a minimal subset
+of the existing layers and retrains them. At first sight, selecting the best subset of layers to adapt is a complex combinatorial problem which requires an extensive search among
+2L different configurations, where L is the number of layers. The key idea of TAPS is to relax the layer selection
+to a continuous problem, so that deciding which layers of
+the base model to specialize into task-specific layers can be
+done during training by solving a joint optimization using
+stochastic gradient descent.
+The final result is a smaller subset of task-specific parameters (the selected layers) which replace the base layers.
+Our approach has several advantages: (i) It can be applied
+to any architecture and does not need to modify it by introducing task-specific branches; (ii) TAPS does not reduce
+the accuracy of the target task (compared to the paragon of
+full fine-tuning) while introducing fewer task-specific parameters; (iii) The decision of which layers to specialize is
+interpretable, done with a simple optimization procedure,
+and does not require learning a policy network; (iv) It can
+
+7561
+
+

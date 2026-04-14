@@ -1,0 +1,116 @@
+CLIMS: Cross Language Image Matching for Weakly Supervised Semantic Segmentation
+Jinheng Xie† , Xianxu Hou† , Kai Ye, Linlin Shen∗
+School of Computer Science & Software Engineering, Shenzhen University, China
+Shenzhen Institute of Artificial Intelligence of Robotics of Society, Shenzhen, China
+Guangdong Key Laboratory of Intelligent Information Processing, Shenzhen University, China
+National Engineering Laboratory for Big Data System Computing Technology, Shenzhen University, China
+{xiejinheng,yekai}2020@email.szu.edu.cn, hxianxu@gmail.com, llshen@szu.edu.cn
+
+Framework
+
+Abstract
+It has been widely known that CAM (Class Activation
+Map) usually only activates discriminative object regions
+and falsely includes lots of object-related backgrounds. As
+only a fixed set of image-level object labels are available
+to the WSSS (weakly supervised semantic segmentation)
+model, it could be very difficult to suppress those diverse
+background regions consisting of open set objects. In this
+paper, we propose a novel Cross Language Image Matching (CLIMS) framework, based on the recently introduced
+Contrastive Language-Image Pre-training (CLIP) model,
+for WSSS. The core idea of our framework is to introduce
+natural language supervision to activate more complete object regions and suppress closely-related open background
+regions. In particular, we design object, background region
+and text label matching losses to guide the model to excite
+more reasonable object regions for CAM of each category.
+In addition, we design a co-occurring background suppression loss to prevent the model from activating closelyrelated background regions, with a predefined set of classrelated background text descriptions. These designs enable
+the proposed CLIMS to generate a more complete and compact activation map for the target objects. Extensive experiments on PASCAL VOC2012 dataset show that our CLIMS
+significantly outperforms the previous state-of-the-art methods. Code will be available at https://github.com/CVISZU/CLIMS.
+
+1. Introduction
+Semantic segmentation attempts to assign each pixel in
+an image with a semantic label. Though fully supervised
+semantic segmentation has achieved remarkable success in
+recent years, pixel-level annotation is significantly time∗ Corresponding Author
+†
+
+Equal Contribution
+
+Activation map
+
+CAM
+
+(a)
+
+X
+
+GAP
+
+CNN
+
+CLIMS
+
+(b) X
+
+CNN
+
+f
+
+FC Layer
+
+0
+1
+0
+0
+
+the CLIP
+
+Maximize
+Minimize
+Minimize
+
+X
+
+“a train”, “railroad”
+CNN: Convolutional Neural Network
+FC Layer: Fully-connected Layer
+
+(c) GAP : Global Average Pooling
+: Feature maps
+
+: Feature vector
+
+f : convolutional layers
+: Element-wise product
+: Logits
+
+: Similarity
+
+: Activation maps
+
+Input: X
+
+Figure 1. (a) Conventional CAM solution. (b) The proposed
+CLIMS. The problem of false-activation of irrelevant background,
+e.g., railroad and ground, and underestimation of object contents
+usually exist in conventional CAM method. To solve this problem, we propose a novel text-driven learning framework, CLIMS,
+which introduces natural language supervision, i.e., an open-world
+setting, for exploring complete object contents and excluding irrelevant background regions. Best viewed in color.
+
+consuming and labor-intensive. Instead, weakly supervised
+semantic segmentation (WSSS) tries to mitigate this issue
+by relying solely on image-level [2, 15, 23, 24], bounding
+box-level [8, 22], point-level [3], or scribble-based supervision [20, 29]. This work aims to only use image-level labels
+in the learning of a semantic segmentation model.
+Existing WSSS approaches typically follow a three-stage
+learning process. First, the image-level labels are used as
+supervision at the feature level to train a classification network to generate initial class activation maps (CAMs) (as
+shown in the left of Fig. 1(a)). Then the initial CAMs are refined as pseudo ground-truth masks using dense CRF [16],
+pixel affinity-based methods [1, 2], or additional saliency
+maps [12, 19, 21]. Finally, the refined pseudo ground-truth
+masks are used to further train a segmentation network.
+However, as only a fixed set of object categories is available during the first stage training, i.e., a close-world setting, class-related background pixels, e.g., railroad, also
+
+4483
+
+

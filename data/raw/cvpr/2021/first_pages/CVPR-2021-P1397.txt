@@ -1,0 +1,88 @@
+Time Adaptive Recurrent Neural Network
+Anil Kag, Venkatesh Saligrama
+Department of Electrical and Computer Engineering, Boston University
+{anilkag, srv}@bu.edu
+
+Abstract
+We propose a learning method that, dynamically modifies the time-constants of the continuous-time counterpart
+of a vanilla RNN. The time-constants are modified based
+on the current observation and hidden state. Our proposal
+overcomes the issues of RNN trainability, by mitigating exploding and vanishing gradient phenomena based on placing
+novel constraints on the parameter space, and by suppressing noise in inputs based on pondering over informative
+inputs to strengthen their contribution in the hidden state. As
+a result, our method is computationally efficient overcoming
+overheads of many existing methods that also attempt to
+improve RNN training. Our RNNs, despite being simpler
+and having light memory footprint, shows competitive performance against standard LSTMs and baseline RNN models
+on many benchmark datasets including those that require
+long-term memory.
+
+1. Introduction
+We focus on trainability of vanilla Recurrent Neural Networks1 (RNN). Improving vanilla RNN performance is important since they are deployed in a number of IoT applications [15] due to their light memory footprint. A fundamental challenge is that, during training, the gradient of loss
+back-propagated in time could suffer from exponential decay/explosion resulting in poor generalization for processes
+exhibiting long-term dependencies (LTD).
+There has been a long-line of work such as [12, 21, 2,
+31, 10] that propose matrix designs, gating and novel architectures, to mitigate gradient explosion/decay, and improve
+handling of state-transition. Different from these are works,
+which go back to [45, 18] that draw inspiration from ordinary differential equations (ODEs). [10] leverages stability
+theory of ODEs, to identify new transition matrices, and
+proposes discretization of ODEs, to improve trainability.
+While we also draw upon ODEs to propose solutions to
+1 By vanilla RNNs we refer to networks that sequentially update their
+hidden state by means of a simple linear transformation of the previous
+state and current input, followed by non-linear activation.
+
+improve vanilla RNN trainability, our proposal differs from
+existing works in fundamental ways. To build intuition, first
+consider the ODE, with λ ∈ R+ , U ∈ RD×D , W ∈ RD×d ,
+and A ∈ RD×D Hurwitz stable [28]:
+λż(t) = Az(t) + φ(Uz(t) + Wxm )
+
+(1)
+
+where, φ(·) is the conventional non-linear RNN activation
+function such as a ReLU; This particular form, serving as an
+analogue2 of vanilla RNNs, is quite old [45]. In each round,
+m, we start from an initial state, z(t0 ) = sm−1 , which
+corresponds to the current hidden state, and input, xm , and
+evolve the ODE for a unit period of time. Subsequently, the
+hidden state is updated by setting sm = z(t0 + 1), and in
+this way, mapping inputs to the hidden state sequence.
+What is new? We introduce two novel aspects within
+this context. First, we allow for λ to be time-varying, and in
+particular, a function of previous hidden state and input. Our
+reasoning is that λ serves as a time-constant, and inherently
+accounts for how long we evolve the ODE in response to the
+current input. To see this, let us write the ODE in integral
+form for a fixed λ:
+
+
+1
+sm , z(t0 + 1) = exp A
+sm−1 +
+λ
+
+
+Z
+1 1
+1−t
+φ(Uz(t) + Wxm )dt (2)
+exp A
+λ 0
+λ
+Then, with λ → ∞, we deduce that, z(t0 + 1) → sm−1 .
+Namely, when time constant is large relative to integration
+time, we barely process the new input, remaining essentially at our previous solution. Alternatively, if λ → 0,
+namely, when the integration time is large relative to the
+time-constant, we reach equilibrium, and in this process
+strengthen influence of the current input. Moreover, by
+letting the time-constant be a function, of sm−1 , xm , we
+selectively adapt the amount of “pondering” that we need
+on each new input. Finally, we let λ(·) take values in RD ,
+and thus allow for element-wise dependence for each hidden
+state, leading to selective updates of hidden state components. These ideas result in a time-adaptive RNN (TARNN).
+2 Vanilla RNNs and residual variants amount to a suitable Euler discretization (see Appendix).
+
+115149
+
+

@@ -1,0 +1,87 @@
+IQDet: Instance-wise Quality Distribution Sampling for Object Detection
+Yuchen Ma, Songtao Liu, Zeming Li, Jian Sun
+Megvii Technology
+{mayuchen, liusongtao, lizeming, sunjian}@megvii.com
+
+Abstract
+We propose a dense object detector with an instancewise sampling strategy, named IQDet. Instead of using human prior sampling strategies, we first extract the regional
+feature of each ground-truth to estimate the instance-wise
+quality distribution. According to a mixture model in spatial dimensions, the distribution is more noise-robust and
+adapted to the semantic pattern of each instance. Based
+on the distribution, we propose a quality sampling strategy,
+which automatically selects training samples in a probabilistic manner and trains with more high-quality samples.
+Extensive experiments on MS COCO show that our method
+steadily improves baseline by nearly 2.4 AP without bells
+and whistles. Moreover, our best model achieves 51.6 AP,
+outperforming all existing state-of-the-art one-stage detectors and it is completely cost-free in inference time.
+
+1. Introduction
+Recent object detection methods have proposed various
+sampling strategies, assigning the predicted boxes to the
+ground truth according to their quality. These sampling and
+assignment strategies have led to great progress in modern
+object detection task.
+As shown in Fig. 1, the improvements in sampling strategies can be divided into two tendencies. (1) From Static
+to Dynamic: Static rules like RetinaNet [8] assign anchor
+boxes to the ground truth according to the predefined quality of anchors (i.e., IoU), while Dynamic rules (e.g., lossbased sampling in PAA [6]) further boost the performance
+of the dense object detection, because they are predictionaware and directly determined by the prediction quality.
+(2) From Sample-wise to Instance-wise: Assigned by the
+Sample-wise rule like RetinaNet[8], a predefined anchor is
+assigned as a positive sample when its IoU is higher than
+the threshold. Meanwhile, based on Instance-wise distribution, [14, 15] propose a center-based distribution according
+to the ground-truth(GT)’s location, where the samples located inside the central region are assigned as positive samples. These two tendencies achieve better performance and
+
+Static
+
+Dynamic
+
+0.93
+
+0.93
+0.92 0.94
+0.93
+
+(a) RetinaNet
+
+Sample-wise
+rule
+
+(b) PAA
+
+GT
+Image
+
+Instance-wise
+distribution
+
+(c) FCOS
+
+(d) Ours
+
+Figure 1. Different sampling strategy of dense object detection.
+The green squares are GT and the red circles represent the positive
+samples. (a) Static sampling strategies mainly base on the anchors’
+locations, while the Dynamic sampling strategies are predictionaware. (b) The IoUs of the predicted boxes are quite similar, but
+the predicted box with IoU=0.92 is compulsively assigned as a
+negative sample due to the slightly lower IoU, bringing inconsistent noisy samples for the training process. (c) FCOS uses a static
+center distribution for sampling. (d) IQDet samples training set
+according to an instance-wise dynamic distribution.
+
+gradually become the de-facto standard in object detection.
+However, these sampling strategies might have a few
+limitations: (1) Static rules are not learnable and predictionaware (e.g. center region and anchor-based), which may
+be not always the best choice for some eccentric object.
+(2) Some Dynamic rules like PAA might suffer from the
+noisy samples and per-sample quality rules, without jointly
+formulating a quality distribution in spatial dimensions, as
+shown in Fig. 1(b). (3) They sample uniformly over regular grids of image owing to the dense prediction paradigm,
+which is difficult to assemble enough high-quality and
+diverse samples. These methods might either Static or
+Sample-wise, failing to completely solve these limitations.
+In this paper, we propose an instance-wise(GT-wise)
+quality distribution for sampling to address these issues: instead of assigning each sample independently, the instancewise sampling strategy selects training samples based on
+the quality distribution. To achieve dynamic sampling, we
+
+1717
+
+

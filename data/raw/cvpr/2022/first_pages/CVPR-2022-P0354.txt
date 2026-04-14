@@ -1,0 +1,64 @@
+Vision Transformer Slimming: Multi-Dimension Searching
+in Continuous Optimization Space
+Arnav Chavan∗1,3 , Zhiqiang Shen* 2,3 , Zhuang Liu4 , Zechun Liu5 , Kwang-Ting Cheng6 and Eric Xing2,3
+1
+IIT Dhanbad 2 CMU 3 MBZUAI 4 UC Berkeley 5 Reality Labs, Meta Inc. 6 HKUST
+arnav.18je0156@am.iitism.ac.in {zhiqians,zechunl}@andrew.cmu.edu zhuangl@berkeley.edu
+timcheng@ust.hk epxing@cs.cmu.edu
+
+Abstract
+This paper explores the feasibility of finding an optimal sub-model from a vision transformer and introduces
+a pure vision transformer slimming (ViT-Slim) framework.
+It can search a sub-structure from the original model endto-end across multiple dimensions, including the input tokens, MHSA and MLP modules with state-of-the-art performance. Our method is based on a learnable and unified
+`1 sparsity constraint with pre-defined factors to reflect the
+global importance in the continuous searching space of different dimensions. The searching process is highly efficient
+through a single-shot training scheme. For instance, on
+DeiT-S, ViT-Slim only takes ∼43 GPU hours for the searching process, and the searched structure is flexible with diverse dimensionalities in different modules. Then, a budget threshold is employed according to the requirements of
+accuracy-FLOPs trade-off on running devices, and a retraining process is performed to obtain the final model. The
+extensive experiments show that our ViT-Slim can compress
+up to 40% of parameters and 40% FLOPs on various vision transformers while increasing the accuracy by ∼0.6%
+on ImageNet. We also demonstrate the advantage of our
+searched models on several downstream datasets. Our code
+is available at https://github.com/Arnav0400/
+ViT-Slim.
+
+1. Introduction
+Transformer [49] has been a strong network model for
+various vision tasks, such as image classification [14, 28,
+38,46,53], object detection [3,43,64], segmentation [50,54,
+61], etc. It is primarily composed of three underlying modules: Multi-Head Self-Attention (MHSA), Multi-Layer Perceptron (MLP) and Image Patching Mechanism. The major
+limitation of ViT in practice is the enormous model sizes
+* indicates equal contribution. This work was done when Arnav was a
+research assistant at MBZUAI, Zhiqiang Shen is the corresponding author.
+
+and excessive training and inference costs, which hinders
+its broader usage in real-world applications. Thus, a large
+body of recent studies has focused on compressing the vision transformer network through searching a stronger and
+more efficient architecture [6–8, 34, 42] for better deployment on various hardware devices.
+However, many commonly-used searching strategies are
+recourse-consuming, such as the popular reinforcement
+learning and evolutionary searching approaches. Singlepath one-shot (SPOS) [15] is an efficient searching strategy
+and promising solution for this task, while it still needs to
+train the supernet for hundreds of epochs and then evaluate thousands of subnets for finding out the optimal subarchitecture, which is still time-consuming, typically with
+more than tens of GPU days.
+Recently, there are some works utilizing Batch Normalization (BN) scaling parameter as the indicator for the importance of operations to prune or search subnets, such as
+Network Slimming [27], SCP [23], BN-NAS [5], etc., since
+BN’s parameter is an existing factor and light-weight measure metric in the network for the importance of subnets.
+This searching method can offer 10× speedup of training
+than SPOS in general. But in practice, not all networks
+contain BN layers, such as the transformers. Also, there
+are many unique properties in a transformer design like the
+dependency of input tokens from shallow layers to deep layers. Simply utilizing such a strategy is not necessarily practical or optimal for the newer transformer models.
+Consequently, the main remaining problem is that there
+is no BN layer involved in conventional transformer architectures, so we cannot directly employ the scaling coefficient in BN as the indicator for searching. To address
+this, in this work we propose to incorporate the explicitly
+soft masks to indicate the global importance of dimensions
+across different modules of a transformer. We consider
+jointly searching on all three dimensions in a transformer
+end-to-end, including: layerwise tokens/patches, MHSA
+and MLP dimensions. In particular, we design additional
+differentiable soft masks on different modules for the in-
+
+4931
+
+

@@ -1,0 +1,96 @@
+Causal Attention for Vision-Language Tasks
+Xu Yang1 , Hanwang Zhang1 , Guojun Qi2 , Jianfei Cai3
+1
+School of Computer Science and Engineering, Nanyang Technological University, Singapore,
+2
+Futurewei Technologies
+3
+Faculty of Information Technology, Monash University, Australia,
+s170018@e.ntu.edu.sg, hanwangzhang@ntu.edu.sg, guojunq@gmail.com, Jianfei.Cai@monash.edu
+
+Abstract
+
+a
+
+man
+
+is
+
+Q
+
+We present a novel attention mechanism: Causal Attention (CATT), to remove the ever-elusive confounding effect
+in existing attention-based vision-language models. This effect causes harmful bias that misleads the attention module to focus on the spurious correlations in training data,
+damaging the model generalization. As the confounder is
+unobserved in general, we use the front-door adjustment
+to realize the causal intervention, which does not require
+any knowledge on the confounder. Specifically, CATT is
+implemented as a combination of 1) In-Sample Attention
+(IS-ATT) and 2) Cross-Sample Attention (CS-ATT), where
+the latter forcibly brings other samples into every IS-ATT,
+mimicking the causal intervention. CATT abides by the QK-V convention and hence can replace any attention module such as top-down attention and self-attention in Transformers. CATT improves various popular attention-based
+vision-language models by considerable margins. In particular, we show that CATT has great potential in large-scale
+pre-training, e.g., it can promote the lighter LXMERT [57],
+which uses fewer data and less computational power, comparable to the heavier UNITER [14]. Code is published in
+https://github.com/yangxuntu/lxmertcatt.
+
+1. Introduction
+Stemming from the strong cognitive evidences in selective signal processing [59, 50], the attention mechanism has
+arguably become the most indispensable module in vision
+and language models [66, 5, 3, 16, 11, 36]. Although its
+idiosyncratic formulation varies from task to task, its nature
+can be summarized as the following common Q-K-V notation: given a query q, the attention mechanism associates
+q to each feature value vi by using the normalized attentive weight αi ∝ qT ki , where ki is the key function of the
+value;P
+thus, the resultant selective feature value — attention
+— is i αi vi . In a modern view, the attention can be un-
+
+K
+
+Q
+Top-Down
+
+SelfATT
+
+K
+
+V
+
+X
+
+ATT
+
+riding
+
+V
+
+Z
+
+Y
+
+Causal Graph of Attention
+
+Figure 1. Top: an example of image captioner with a self-attention
+and a top-down attention modules. Bottom: the corresponding
+causal graph. The reason why the prediction is “riding” but not
+“driving” is explained in Figure 3.
+
+derstood as a feature transformer that encodes input query
+q by using the given values V = {vi } [60].
+Taking image captioning as an example in Figure 1, if
+q and V are both encoded from the input X, e.g., the
+RoI features of an image, we call it self-attention; if q is
+changed to the sentence context, we call it top-down attention. Intuitively, self-attention is usually viewed as a nonlocal [65] (or graph [7]) convolution network that enriches
+each local value with global relationship features; top downattention is used to enrich the context with the cross-domain
+relationship features [3]. Both of them can be combined
+and stacked into deep networks, serving as powerful multimodal encoder-decoder transformer networks [32, 12].
+As a bridge connecting the input feature X and the output label Y , the quality of attention — how reasonable
+the attentive weight α is — plays a crucial role for the
+overall performance. However, due to the fact that the attention weights are unsupervised, e.g., there is no wordregion grounding for the top-down attention or relationship
+dependency annotation for the self-attention, the weights
+will be inevitably misled by the dataset bias. For example, as shown in Figure 1, since there are many images
+captioned with “person riding horse” in the training data,
+self-attention learns to infer “riding” by building the dependency between “person” and “horse”. Then, given a test
+
+9847
+
+

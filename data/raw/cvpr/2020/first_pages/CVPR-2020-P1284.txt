@@ -1,0 +1,96 @@
+End-to-end 3D Point Cloud Instance Segmentation without Detection
+Haiyong Jiang1,2 , Feilong Yan4 , Jianfei Cai2,3 , Jianmin Zheng2 , Jun Xiao1∗
+1
+University of Chinese Academy of Science, 2 Nanyang Technological University,
+3
+Monash University, 4 Huya Live
+
+Abstract
+3D instance segmentation plays a predominant role in
+environment perception of robotics and augmented reality.
+Many deep learning based methods have been presented recently for this task. These methods rely on either a detection
+branch to propose objects or a grouping step to assemble
+same-instance points. However, detection based methods
+do not ensure a consistent instance label for each point,
+while the grouping step requires parameter-tuning and is
+computationally expensive. In this paper, we introduce an
+assign-and-suppress network, dubbed as AS-Net, to enable
+end-to-end instance segmentation without detection and a
+separate step of grouping. The core idea is to frame instance segmentation as a candidate assignment problem. At
+first, a set of instance candidates are sampled. Then we propose an assignment module for candidate assignment and a
+suppression module to eliminate redundant candidates. A
+mapping between instance labels and instance candidates
+is further sought to construct an instance grouping loss
+for the network training. Experimental results demonstrate
+that our method is more effective and efficient than previous
+detection-free approaches.
+
+1. Introduction
+3D instance segmentation has wide applications spanning from 3D perception in autonomous systems to 3D reconstruction in augmented reality and virtual reality. For
+example, it is critical for an indoor robot to identify obstacles and targets in a scene so that it can interact with a specific object and move around the scene. Achieving this goal
+requires to distinguish different semantic labels as well as
+different instances with the same semantic label. Therefore,
+it is important to investigate the problem of 3D instance segmentation.
+3D instance segmentation from point clouds is a very
+challenging task. While bearing the difficulties incurred by
+scattered data and an additional dimension, it also shares
+∗ indicates the corresponding author. Email: haiyong.jiang1990@gmail
+The work was carried out at Nanyang Technological University.
+
+prediction
+
+inputs
+
+merging
+
+Detections and masks
+
+Instances and errors
+
+(a)
+prediction
+inputs
+
+prediction
+
+grouping
+
+Instance-aware
+features
+
+(b)
+
+instances
+
+inputs
+
+instances
+
+(c)
+
+Figure 1. An illustration of different frameworks for 3D instance
+segmentation. (a) Detection-based framework, (b) detection-free
+framework, (c) ours. Note that there are inconsistent or missing
+labels when detection-based results are merged, as highlighted in
+red and yellow in (a).
+
+the same problems as its 2D counterpart. Firstly, instance
+labels are in a random order, which is quite different from
+semantic labels and makes it difficult to directly optimize
+instance labels in an end-to-end way. Secondly, the number
+of instances, which greatly impacts instance segmentation,
+is unknown during inference, thus posing additional challenges.
+Great progress has been made in 2D/3D instance segmentation [4, 7, 11, 12, 18, 22, 28, 29, 31]. In general, existing methods can be classified into two categories:
+detection-based and detection-free. Detection-based approaches [11, 12, 31] can well handle random instance labels and an irregular number of instances by using a detection branch to mask different objects. However, they
+cannot ensure consistent labeling for each point. For example, a point may get multiple instance labels or no label
+depending on how many segmented regions contain it, as
+illustrated in Fig. 1(a). On the other hand, detection-free
+approaches [18, 22, 28, 29] harness an additional grouping step to sidestep ordering and irregular number of instances, e.g. using mean-shift algorithm [22, 29], as depicted in Fig. 1(b). The additional group step usually relies
+on hyper-parameters setting like clustering bandwidth [21]
+for good performance. In addition, these methods often optimize a proxy objective instead of instance segmentation,
+e.g. respectively minimizing or maximizing the embedding
+feature distance between points of the same instance or two
+
+12796
+
+

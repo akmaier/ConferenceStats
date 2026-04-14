@@ -1,0 +1,62 @@
+Learning to Optimize Non-Rigid Tracking
+Yang Li1,4 Aljaž Božič4 Tianwei Zhang1 Yanli Ji1,2 Tatsuya Harada1,3 Matthias Nießner4
+1
+
+The University of Tokyo, 2 UESTC, 3 RIKEN, 4 Technical University Munich
+
+Abstract
+One of the widespread solutions for non-rigid tracking
+has a nested-loop structure: with Gauss-Newton to minimize a tracking objective in the outer loop, and Preconditioned Conjugate Gradient (PCG) to solve a sparse linear system in the inner loop. In this paper, we employ
+learnable optimizations to improve tracking robustness and
+speed up solver convergence. First, we upgrade the tracking objective by integrating an alignment data term on deep
+features which are learned end-to-end through CNN. The
+new tracking objective can capture the global deformation
+which helps Gauss-Newton to jump over local minimum,
+leading to robust tracking on large non-rigid motions. Second, we bridge the gap between the preconditioning technique and learning method by introducing a ConditionNet
+which is trained to generate a preconditioner such that PCG
+can converge within a small number of steps. Experimental results indicate that the proposed learning method converges faster than the original PCG by a large margin.
+
+1. Introduction
+Non-rigid dynamic objects, e.g., humans and animals,
+are important targets in both computer vision and robotics
+applications. Their complex geometric shapes and nonrigid surface changes result in challenging problems for
+tracking and reconstruction. In recent years, using commodity RGB-D cameras, the seminal works such as DynamicFusion [20] and VolumeDeform [13] made their efforts to tackle this problem and obtained impressive nonrigid reconstruction results. At the core of DynamicFucion
+and VolumeDeform are non-linear optimization problems.
+However, this optimization can be slow, and can also result in undesired local minima. In this paper, we propose
+a learning-based method that finds optimization steps that
+expand the convergence radius (i.e., avoids local minima)
+and also makes convergence faster. We test our method on
+the essential inter-frame non-rigid tracking task, i.e., to find
+the deformation between two RGB-D frames, which is a
+high-dimensional and non-convex problem. The absence
+
+Figure 1. PCG convergence using different preconditioners. The
+curves show the average convergence on the testing dataset. Note
+that our final method (green curve) requires 3 times fewer PCG
+steps to achieve the same residual (10−6 ) than the best baseline
+(dashed line).
+
+of an object template model, large non-overlapping area,
+and observation noise in both source and target frame make
+this problem even more challenging. This section will first
+review the classic approach and then put our contributions
+into context.
+Non-rigid Registration The non-rigid surface motions
+can be roughly approximated through the “deformation
+graph” [24]. In this deformable model, all of the unknowns,
+i.e., the rotations and translations, are denoted as G. Given
+two RGB-D frames, the goal of non-rigid registration is to
+determine the G that minimizes the typical objective function:
+min{Ef it (G) + λEreg (G)}
+(1)
+G
+
+where Ef it is the data fitting term that measures the closeness between the warped source frame and the target frame.
+Many different data fitting terms have been proposed over
+the past decades, such as the geometric point-to-point and
+point-to-plane constraints [16, 31, 20, 13] sparse SIFT descriptor correspondences [13], and the dense color term
+[31], etc. The term Ereg regularizes the problem by favoring locally rigid deformation. Coefficient λ balances these
+
+4910
+
+

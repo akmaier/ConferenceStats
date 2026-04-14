@@ -1,0 +1,109 @@
+Positive-Congruent Training: Towards Regression-Free Model Updates
+Sijie Yan*
+
+Yuanjun Xiong Kaustav Kundu
+Shuo Yang
+Meng Wang Wei Xia Stefano Soatto
+
+Siqi Deng
+
+AWS/Amazon AI
+yysijie@gmail.com,
+
+{yuanjx, kaustavk, shuoy, siqdeng, mengw, wxia, soattos}@amazon.com
+
+Abstract
+Reducing inconsistencies in the behavior of different versions of an AI system can be as important in practice as reducing its overall error. In image classification, sample-wise
+inconsistencies appear as “negative flips”: A new model
+incorrectly predicts the output for a test sample that was
+correctly classified by the old (reference) model. Positivecongruent (PC) training aims at reducing error rate while
+at the same time reducing negative flips, thus maximizing
+congruency with the reference model only on positive predictions, unlike model distillation. We propose a simple
+approach for PC training, Focal Distillation, which enforces
+congruence with the reference model by giving more weights
+to samples that were correctly classified. We also found that,
+if the reference model itself can be chosen as an ensemble of
+multiple deep neural networks, negative flips can be further
+reduced without affecting the new model’s accuracy.
+
+1. Introduction
+Imagine a “new and improved” version of the software
+that manages your photo collection exhibiting mistakes absent in the old one. Even if the average number of errors has
+decreased, every new mistake on your old photos feels like
+a step backward (Fig. 1), leading to perceived regression.1
+We tackle regression in the update of image classification
+models, where an old (reference) model is replaced by a new
+(updated) model. We call test samples that are correctly labeled by both the new and the old models positive-congruent.
+On the other hand, negative flips are samples correctly classified by the old model but incorrectly by the new one. Their
+* Currently at The Chinese University of Hong Kong. Work conducted
+while at AWS.
+1 In the Software Industry, regression refers to the deterioration of performance after an update. Even if the updated model has on average better
+performance, any regression risks breaking post-processing pipelines, which
+is why trained models are updated sporadically despite the steady stream of
+improvements reported in the literature.
+
+Positive Flips
+
+Both Wrong
+Dog
+
+Dog
+
+Cat
+
+Cat
+
+Cat
+
+Dog
+
+Dog
+
+Cat
+
+Cat
+
+Dog
+
+Cat
+
+Cat
+
+Dog
+
+Dog
+
+Negative Flips
+Both Correct
+
+Old Model (Err. 57%)
+
+New Model (Err. 42%)
+
+Figure 1: Regression in model update: When updating an
+old classifier (red) to a new one (dashed blue line), we correct
+mistakes (top-right, white), but we also introduce errors that
+the old classifier did not make (negative flips, bottom-left,
+red). While on average the errors decrease (from 57% to
+42% in this toy example), regression can wreak havoc with
+downstream processing, nullifying the benefit of the update.
+
+fraction of the total number is called negative flip rate (NFR),
+which measures regression. There are also positive flips,
+where the old model makes mistakes that the new one corrects, which are instead beneficial.
+Reducing the NFR could be accomplished by reducing the
+overall error rate (ER). However, reducing the ER is neither
+necessary nor sufficient to reduce the NFR. In fact, models
+trained on the same data with different initial conditions, data
+augmentations, and hyperparameters tend to yield similar
+error rates, but with errors occurring on different samples.
+For instance, two ResNet152 models trained on ImageNet
+with just different initializations achieve the same accuracy
+of 78.3% but differ on 10.4% of the samples in the validation
+set (Fig. 2). Assuming an equal portion of positive and
+negative flips, updating from one model to another incurs a
+5.2%N F R. This can be reduced simply by trading errors
+
+14299
+
+

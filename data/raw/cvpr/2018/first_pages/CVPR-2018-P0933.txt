@@ -1,0 +1,64 @@
+Recurrent Pixel Embedding for Instance Grouping
+Shu Kong, Charless Fowlkes
+Dept. of Computer Science, University of California, Irvine
+{skong2, fowlkes}@ics.uci.edu
+Abstract
+We introduce a differentiable, end-to-end trainable
+framework for solving pixel-level grouping problems such
+as instance segmentation consisting of two novel components. First, we regress pixels into a hyper-spherical embedding space so that pixels from the same group have high
+cosine similarity while those from different groups have similarity below a specified margin. We analyze the choice of
+embedding dimension and margin, relating them to theoretical results on the problem of distributing points uniformly
+on the sphere. Second, to group instances, we utilize a variant of mean-shift clustering, implemented as a recurrent
+neural network parameterized by kernel bandwidth. This
+recurrent grouping module is differentiable, enjoys convergent dynamics and probabilistic interpretability. Backpropagating the group-weighted loss through this module allows
+learning to focus on correcting embedding errors that won’t
+be resolved during subsequent clustering. Our framework,
+while conceptually simple and theoretically abundant, is
+also practically effective and computationally efficient. We
+demonstrate substantial improvements over state-of-the-art
+instance segmentation for object proposal generation, as
+well as demonstrating the benefits of grouping loss for classification tasks such as boundary detection and semantic
+segmentation.
+
+1. Introduction
+The successes of deep convolutional neural nets (CNNs)
+at image classification has spawned a flurry of work in computer vision on adapting these models to pixel-level image
+understanding tasks, such as boundary detection [1, 89, 63],
+semantic segmentation [59, 10, 45], optical flow [86, 20],
+and pose estimation [84, 7]. The key ideas that have enabled
+this adaption thus far are: (1) deconvolution schemes that
+allow for upsampling coarse pooled feature maps to make
+detailed predictions at the spatial resolution of individual
+pixels [89, 27], (2) skip connections and hyper-columns
+which concatenate representations across multi-resolution
+feature maps [31, 10], (3) atrous convolution which allows
+
+Figure 1: Our framework embeds pixels into a hyper-sphere
+where recurrent mean-shift dynamics groups pixels into a variable
+number of object instances. Here we visualize random projections
+of a 64-dim embeddings into 3-dimensions.
+
+efficient computation with large receptive fields while maintaining spatial resolution [10, 45], and (4) fully convolutional operation which handles variable sized input images.
+In contrast, there has been less innovation in the development of specialized loss functions for training. Pixel-level
+labeling tasks fall into the category of structured output prediction [4], where the model outputs a structured object
+(e.g., a whole image parse) rather than a scalar or categorical variable. However, most CNN pixel-labeling architectures are trained with loss functions that decompose into a
+simple (weighted) sum of classification or regression losses
+over individual pixel labels.
+The need to address the output space structure is more
+apparent when considering problems where the set of output labels isn’t fixed. Our motivating example is object instance segmentation, where the model generates a collection of segments corresponding to object instances. This
+problem can’t be treated as k-way classification since the
+number of objects isn’t known in advance. Further, the loss
+should be invariant to permutations of the instance labels
+within the same semantic category.
+As a result, most recent successful methods for instance
+segmentation have adopted more heuristic approaches that
+first use an object detector to enumerate candidate instances and then perform pixel-level segmentation of each
+instance [56, 17, 54, 55, 2]. Alternately one can generate
+generic proposal segments and then label each one with a
+semantic detector [30, 12, 31, 16, 81, 33]. In either case
+the detection and segmentation steps can both be mapped
+to standard binary classification losses. While effective,
+4321
+9018
+
+

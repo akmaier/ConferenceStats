@@ -1,0 +1,149 @@
+Semi-Supervised Semantic Segmentation Using Unreliable Pseudo-Labels
+Yuchao Wang1† Haochen Wang1† Yujun Shen2 Jingjing Fei3
+Wei Li3 Guoqiang Jin3 Liwei Wu3 Rui Zhao1,3‡ Xinyi Le1∗
+1
+
+Shanghai Jiao Tong University
+
+2
+
+The Chinese University of Hong Kong
+
+{44442222, wanghaochen0409, lexinyi}@sjtu.edu.cn
+
+3
+
+SenseTime Research
+
+shenyujun0302@gmail.com
+
+{feijingjing1, liwei1, jinguoqiang, wuliwei, zhaorui}@sensetime.com
+
+Abstract
+
+1.0
+
+The crux of semi-supervised semantic segmentation is to
+assign adequate pseudo-labels to the pixels of unlabeled
+images. A common practice is to select the highly confident
+predictions as the pseudo ground-truth, but it leads to a
+problem that most pixels may be left unused due to their
+unreliability. We argue that every pixel matters to the model
+training, even its prediction is ambiguous. Intuitively,
+an unreliable prediction may get confused among the top
+classes (i.e., those with the highest probabilities), however, it should be confident about the pixel not belonging
+to the remaining classes. Hence, such a pixel can be
+convincingly treated as a negative sample to those most
+unlikely categories. Based on this insight, we develop an
+effective pipeline to make sufficient use of unlabeled data.
+Concretely, we separate reliable and unreliable pixels via
+the entropy of predictions, push each unreliable pixel to
+a category-wise queue that consists of negative samples,
+and manage to train the model with all candidate pixels.
+Considering the training evolution, where the prediction
+becomes more and more accurate, we adaptively adjust
+the threshold for the reliable-unreliable partition. Experimental results on various benchmarks and training settings
+demonstrate the superiority of our approach over the stateof-the-art alternatives.1
+
+0.8
+
+1. Introduction
+Semantic segmentation is a fundamental task in the computer vision field, and has been significantly advanced along
+1 Project: https://haochen-wang409.github.io/U2PL.
+∗ Corresponding author.
+
+This work is sponsored by National Natural
+Science Foundation of China (62176152).
+† Equal contribution, and this work is done during the internship at
+SenseTime Research.
+‡ Rui Zhao is also with Qing Yuan Research Institute, Shanghai Jiao
+Tong University.
+
+0.6
+0.4
+
+IoU
+reliable
+unreliable
+
+0.2
+
+ba
+
+ckg
+ae roun
+rop d
+l
+bic ane
+ycl
+e
+bir
+d
+bo
+at
+bo
+ttle
+bu
+s
+ca
+r
+ca
+t
+ch
+air
+c
+din ow
+ing
+tab
+dole
+g
+ho
+mo rse
+tor
+b
+pe ike
+po rson
+tte
+dp
+shlant
+ee
+p
+sof
+a
+tra
+tvm in
+on
+ito
+r
+
+0.0
+
+Figure 1. Category-wise performance and statistics on number
+of pixels with reliable and unreliable predictions. Model is
+trained using 732 labeled images on PASCAL VOC 2012 [16] and
+evaluated on the remaining 9, 850 images.
+
+with the rise of deep neural networks [7,30,36,47]. Existing
+supervised approaches rely on large-scale annotated data,
+which can be too costly to acquire in practice. To alleviate
+this problem, many attempts [1,4,11,17,23,34,44,49] have
+been made towards semi-supervised semantic segmentation, which learns a model with only a few labeled samples
+and numerous unlabeled ones. Under such a setting, how to
+adequately leverage the unlabeled data becomes critical.
+A typical solution is to assign pseudo-labels to the pixels
+without annotations. Concretely, given an unlabeled image,
+prior arts [28,42] borrow predictions from the model trained
+on labeled data, and use the pixel-wise prediction as the
+“ground-truth” to in turn boost the supervised model. To
+mitigate the problem of confirmation bias [2], where the
+model may suffer from incorrect pseudo-labels, existing
+approaches propose to filter the predictions with their
+confidence scores [43, 44, 51, 52]. In other words, only the
+highly confident predictions are used as the pseudo-labels,
+while the ambiguous ones are discarded.
+However, one potential problem caused by only using
+reliable predictions is that some pixels may never be learned
+
+4248
+
+

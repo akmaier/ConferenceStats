@@ -1,0 +1,69 @@
+Unifying Training and Inference for Panoptic Segmentation
+Qizhu Li Xiaojuan Qi∗ Philip H.S. Torr
+University of Oxford
+{qizhu.li, xiaojuan.qi, philip.torr}@eng.ox.ac.uk
+
+Abstract
+We present an end-to-end network to bridge the gap between training and inference pipeline for panoptic segmentation, a task that seeks to partition an image into semantic
+regions for “stuff” and object instances for “things”. In contrast to recent works, our network exploits a parametrised,
+yet lightweight panoptic segmentation submodule, powered
+by an end-to-end learnt dense instance affinity, to capture
+the probability that any pair of pixels belong to the same
+instance. This panoptic submodule gives rise to a novel
+propagation mechanism for panoptic logits and enables
+the network to output a coherent panoptic segmentation
+map for both “stuff” and “thing” classes, without any postprocessing. Reaping the benefits of end-to-end training, our
+full system sets new records on the popular street scene
+dataset, Cityscapes, achieving 61.4 PQ with a ResNet-50
+backbone using only the fine annotations. On the challenging COCO dataset, our ResNet-50-based network also
+delivers state-of-the-art accuracy of 43.4 PQ. Moreover, our
+network flexibly works with and without object mask cues,
+performing competitively under both settings, which is of
+interest for applications with computation budgets.
+
+1. Introduction
+As a pixel-wise classification task, panoptic segmentation
+aims to achieve a seamless semantic understanding of all
+countable and uncountable objects in a scene - a.k.a. “things”
+and “stuff” respectively, and delineate the instance boundaries of objects where semantically possible.
+While early attempts at tackling panoptic segmentation
+often resort to two separate networks for instance and semantic segmentation, recent works [17, 15, 12, 24, 25] are
+able to improve the overall efficiency by constructing the
+two branches on a single, shared feature extractor, and training the multi-head, multi-task network jointly. However,
+these works have stopped short of devising an end-to-end
+pipeline for panoptic segmentation, as they all adopt a post∗ Xiaojuan Qi is now with the University of Hong Kong.
+
+processing stage with heuristics to combine the different outputs of their multi-task networks, following [13, 12]. Such
+pipelines suffer from several shortcomings. Firstly, postprocessing often requires a time-consuming trial-and-error
+procedure to mine a good set of hyperparameters, which
+may need to be repeated for each image domain. As the
+performance of an algorithm can be quite sensitive to the
+choice of hyperparameters, how well a method performs
+can quickly degenerate to a function of the amount of computation resources at its disposal [14, 12]. Secondly, methods without an explicit loss function for panoptic segmentation [17, 15, 12, 25] cannot directly optimise for the ultimate
+goal. Even with expert knowledge, it is difficult to design
+an exhaustive set of rules and remedies for all failure modes.
+An example is shown in Fig. 1 (c): after the heuristic postprocessing, the missing part of the car cannot be recovered.
+To achieve an end-to-end system, we reckon three challenging steps need to be taken: (1) unify the training and
+inference, enabling the network to differentiably produce
+panoptic segmentation during training; (2) embed a datadriven mechanism in the multi-task network whereby imperfect and coarse cues can be cleaned and corrected; (3) design
+an appropriate loss function to directly optimise the global
+objective for panoptic segmentation.
+To achieve (1) and (2), we propose a novel pipeline using
+segmentation and localisation cues to predict a coherent
+panoptic segmentation in an end-to-end manner. At the heart
+of this pipeline lie a dynamic potential head – a parameterfree stage that represents a dynamic number of panoptic
+instances, and a dense instance affinity head – a parametrised,
+efficient, and data-driven module that predicts and utilises
+the likelihood for any pair of pixels to belong to the same
+“thing” instance or “stuff” class. These two differentiable
+heads produces full panoptic segmentation during training
+and inference, eradicating the train-test logic discrepancy.
+Furthermore, to fulfil (3), we propose a panoptic matching
+loss which computes loss directly on panoptic segmentations.
+This objective function, together with the differentiable nature of our proposed panoptic head, enables the network to
+learn in an end-to-end manner. To our best knowledge, our
+loss is the first to perform online segment matching before
+
+13320
+
+

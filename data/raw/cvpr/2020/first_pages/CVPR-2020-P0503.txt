@@ -1,0 +1,103 @@
+Partial Weight Adaptation for Robust DNN Inference
+Xiufeng Xie
+Hewlett Packard Labs
+
+Kyu-Han Kim
+Hewlett Packard Labs
+
+xiufeng.xie@hpe.com
+
+kyu-han.kim@hpe.com
+
+Abstract
+
+Video analytics solutions typically use a DNN with pretrained weights for inference, assuming consistent probability distribution between the training and test dataset. Unfortunately, the inputs to DNN inference might have various
+distortions that alter the probability distribution and harm
+DNN performance in practice. An autonomous vehicle may
+drive in and out of shades, causing abrupt brightness change
+in the captured video; a drone may change a compression
+ratio of video frames while streaming to the inference server
+based on wireless link bandwidth; edge servers may need to
+process data from IoT devices with heterogeneous camera
+hardware and compression strategies. In these scenarios of
+input distortions with high dynamic range, existing solutions that rely on a DNN with constant pre-trained weights
+
+Base
+
+(fine-tuned for each input quality)
+
+(same for all inputs)
+
+Distortion level 1
+Switch based on
+distortion level
+Visual
+input
+Various compression,
+resolution, brightness, etc.
+
+Distortion level 2
+…
+
+1. Introduction
+
+99.8% weights
+
+0.2% weights
+Adaptor
+
+…
+
+Mainstream video analytics uses a pre-trained DNN
+model with an assumption that inference input and training
+data follow the same probability distribution. However, this
+assumption does not always hold in the wild: autonomous
+vehicles may capture video with varying brightness; unstable wireless bandwidth calls for adaptive bitrate streaming
+of video; and, inference servers may serve inputs from heterogeneous IoT devices/cameras. In such situations, the
+level of input distortion changes rapidly, thus reshaping the
+probability distribution of the input.
+We present GearNN, an adaptive inference architecture
+that accommodates DNN inputs with varying distortions.
+GearNN employs an optimization algorithm to identify a
+tiny set of “distortion-sensitive” DNN parameters, given a
+memory budget. Based on the distortion level of the input,
+GearNN then adapts only the distortion-sensitive parameters, while reusing the rest of DNN parameters across all
+input qualities. In our evaluation of DNN inference with
+dynamic input distortions, GearNN improves the accuracy
+(mIoU) by an average of 18.12% over a DNN trained with
+the undistorted dataset and 4.84% over stability training
+from Google, with only 1.8% extra memory overhead.
+
+Original DNN
+
+Inference
+result
+
+Distortion level 𝑁
+
+Only cost 1.8% more memory than original DNN to accommodate 10 distortion levels
+
+Figure 1: GearNN, an adaptive inference architecture (This
+is a simplified illustration, DNN layers in the adaptor and
+those in the base can be interleaved with each other).
+suffer from severe accuracy loss [23]. We observe up to a
+58% accuracy loss in our experiments (§5).
+One workaround to handle input with unstable distortion
+level is to train a DNN for each possible distortion level by
+augmenting the training data to match that particular distortion level, and then switch between them following the distortion level of the current input. However, there are enormous distortion levels (e.g., JPEG has 100 quality levels),
+concurrently running so many DNNs is infeasible, due to
+limited memory. Swapping DNNs between disk and memory causes huge latency, and thus, is impractical.
+This paper proposes GearNN, an adaptive DNN inference architecture to accommodate real-world inputs with
+various distortions, without sacrificing memory efficiency.
+GearNN only adapts a tiny portion (e.g., 0.2% of the DNN
+size in §4) of the DNN weights that are “distortion sensitive” (called adaptor) to fit the distortion level of the instantaneous input, while reusing the majority of weights (called
+base) across all inputs. In this way, the adaptation leads to
+high inference accuracy, while reusing most weights guarantees memory efficiency and scalability. We name our design GearNN: like the gearbox that helps one engine handle
+different car speeds, GearNN helps a single DNN base to
+accommodate a wide range of input distortions.
+The GearNN workflow can be summarized as follows:
+(i) Identifying distortion-sensitive weights offline. Given
+a DNN pre-trained with undistorted training dataset,
+19573
+
+

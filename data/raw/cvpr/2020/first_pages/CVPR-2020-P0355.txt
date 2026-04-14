@@ -1,0 +1,89 @@
+Dynamic Graph Message Passing Networks
+Li Zhang1
+
+Dan Xu1
+1
+
+Anurag Arnab2∗
+
+University of Oxford
+
+2
+
+Google Research
+
+{lz, danxu, phst}@robots.ox.ac.uk
+
+Abstract
+Modelling long-range dependencies is critical for scene
+understanding tasks in computer vision. Although CNNs
+have excelled in many vision tasks, they are still limited in
+capturing long-range structured relationships as they typically consist of layers of local kernels. A fully-connected
+graph is beneficial for such modelling, however, its computational overhead is prohibitive. We propose a dynamic
+graph message passing network, that significantly reduces
+the computational complexity compared to related works
+modelling a fully-connected graph. This is achieved by adaptively sampling nodes in the graph, conditioned on the input, for message passing. Based on the sampled nodes, we
+dynamically predict node-dependent filter weights and the
+affinity matrix for propagating information between them.
+Using this model, we show significant improvements with
+respect to strong, state-of-the-art baselines on three different
+tasks and backbone architectures. Our approach also outperforms fully-connected graphs while using substantially
+fewer floating-point operations and parameters.
+
+1. Introduction
+Capturing long-range dependencies is crucial for complex
+scene understanding tasks such as semantic segmentation,
+instance segmentation and object detection. Although convolutional neural networks (CNNs) have excelled in a wide
+range of scene understanding tasks [20, 30, 15], they are still
+limited by their ability to capture these long-range interactions. To improve the capability of CNNs in this regard, a
+recent, popular model Non-local networks [34] proposes a
+generalisation of the attention model of [31] and achieves
+significant advance in several computer vision tasks.
+Non-local networks essentially model pairwise structured
+relationships among all feature elements in a feature map
+to produce the attention weights which are used for feature aggregation. Considering each feature element as a
+node in a graph, Non-local networks effectively model a
+∗ Work primarily done at the University of Oxford.
+
+Philip H.S. Torr1
+
+aarnab@google.com
+
+fully-connected feature graph and thus have a quadratic inference complexity with respect to the number of the feature
+elements. This is infeasible for dense prediction tasks on
+high-resolution imagery, as commonly encountered in semantic segmentation [9]. Moreover, in dense prediction
+tasks, capturing relations between all pairs of pixels is usually unnecessary due to the redundant information contained
+within the image (Fig. 1). Simply subsampling the feature
+map to reduce the memory requirements is also suboptimal,
+as such naı̈ve subsampling would result in smaller objects in
+the image not being represented adequately.
+Graph convolution networks (GCNs) [19, 12] – which
+propagate information along graph-structured input data –
+can alleviate the computational issues of non-local networks
+to a certain extent. However, this stands only if local neighbourhoods are considered for each node. Employing such
+local-connected graphs means that the long-range contextual information needed for complex vision tasks such as
+segmentation and detection [29, 28, 3] will only be partially
+captured. Along this direction, GraphSAGE [13] introduced
+an efficient graph learning model based on graph sampling.
+However, the proposed sampling method considered a uniform sampling strategy along the spatial dimension of the
+input, and was independent of the actual input. Consequently,
+the modelling capacity was restricted as it assumed a static
+input graph where the neighbours for each node were fixed
+and filter weights were shared among all nodes.
+To address the aforementioned shortcomings, we propose
+a novel dynamic graph message passing network (DGMN)
+model, targeting effective and efficient deep representational
+learning with joint modeling of two key dynamic properties
+as illustrated in Fig. 1. Our contribution is twofold: (i) We
+dynamically sample the neighbourhood of a node from the
+feature graph, conditioned on the node features. Intuitively,
+this learned sampling allows the network to efficiently gather
+long-range context by only selecting a subset of the most
+relevant nodes in the graph; (ii) Based on the nodes that
+have been sampled, we further dynamically predict nodedependant, and thus position specific, filter weights and also
+the affinity matrix, which are used to propagate information
+among the feature nodes via message passing. The dynamic
+
+3726
+
+

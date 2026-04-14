@@ -1,0 +1,73 @@
+Simpler Certified Radius Maximization by Propagating Covariances
+Xingjian Zhen† , Rudrasis Chakraborty‡ , Vikas Singh†
+†
+University of Wisconsin-Madison ‡ University of California, Berkeley
+xzhen3@wisc.edu
+
+rudrasischa@gmail.com vsingh@biostat.wisc.edu
+
+Abstract
+One strategy for adversarially training a robust model is
+to maximize its certified radius – the neighborhood around
+a given training sample for which the model’s prediction remains unchanged. The scheme typically involves analyzing
+a “smoothed” classifier where one estimates the prediction
+corresponding to Gaussian samples in the neighborhood of
+each sample in the mini-batch, accomplished in practice by
+Monte Carlo sampling. In this paper, we investigate the
+hypothesis that this sampling bottleneck can potentially be
+mitigated by identifying ways to directly propagate the covariance matrix of the smoothed distribution through the
+network. To this end, we find that other than certain adjustments to the network, propagating the covariances must
+also be accompanied by additional accounting that keeps
+track of how the distributional moments transform and interact at each stage in the network. We show how satisfying
+these criteria yields an algorithm for maximizing the certified radius on datasets including Cifar-10, ImageNet, and
+Places365 while offering runtime savings on networks with
+moderate depth, with a small compromise in overall accuracy. We describe the details of the key modifications that
+enable practical use. Via various experiments, we evaluate when our simplifications are sensible, and what the key
+benefits and limitations are.
+
+1. Introduction
+The prevailing approach for evaluating the performance
+of a deep learning model involved assessing its overall accuracy profile on one or more benchmarks of interest. But the
+realization that many models were not robust to even negligible adversarially-chosen perturbations of the input data
+[44, 8, 23, 11], and may exhibit highly unstable behavior
+[9, 28, 33] has led to the emergence of robust training methods (or robust models) that offer, to varying degrees, immunity to such adversarial perturbations. Adversarial trainCode is available at https://github.com/zhenxingjian/
+Propagating_Covariance. An short video summary of this paper is
+available at https://youtu.be/m1ya2oNf5iE
+
+ing has emerged as a popular mechanism to train a given
+deep model robustly [36, 45]. Each mini-batch of training
+examples shown to the model is supplemented with adversarial samples. It makes sense that if the model parameter updates are based on seeing enough adversarial samples
+which cover the perturbation space well, the model is more
+robust to such adversarial examples at test time [16, 22, 31].
+The approach is effective although it often involves paying a
+premium in terms of training time due to multiple gradient
+calculations [42]. However, many empirical defenses can
+fail when the attack is stronger [10, 46, 2].
+While ideas to improve the efficiency of adversarial
+training continue to evolve in the literature, a complementary line of work seeks to avoid adversarial sample generation entirely. One instead derives a certifiable robustness
+guarantee for a given model [48, 50, 55, 34, 54, 43, 5].
+The overall goal is to provide guarantees that no perturbation within a certain range will change the prediction of the
+network. An earlier proposal, interval bound propagation
+(IBP) [17], used convex relaxations at different layers of the
+network to derive the guarantees. Unfortunately, the bounds
+tend to get very loose as the network depth increases, see
+Fig. 1 (a). Thus, the applicability to large high resolution
+datasets remains under-explored at this time.
+Recently, following the idea in [30, 28] at a high level,
+Cohen et al. [12] introduced an interesting randomized
+smoothing technique, which can be used to certify the robust radius CR . Assume that we have a base network fθ (·)
+for classification. On a training image x ∈ Rd , the output
+fθ (x) ∈ Y is the predicted label of the image x. Using
+fθ (·), we can build a “smoothed” neural network gθ (·).
+gθ (x) = arg max P(fθ (x + ε) = c), where ε ∼ N (0, σ 2 I)
+c∈Y
+
+Here, σ can be thought of as a trade-off between the robustness and the accuracy of the smoothed classifier gθ (·).
+One can obtain a theoretical certified radius CR which states
+that when ||δ||2 ≤ CR , the classifier gθ (x + δ) will have
+same label y as gθ (x). MACER [52] nicely extended these
+ideas and also presented a differentiable form of randomized smoothing showing how it enables maximizing the ra-
+
+7292
+
+

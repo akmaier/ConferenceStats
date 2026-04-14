@@ -1,0 +1,79 @@
+Class-Incremental Learning with Strong Pre-trained Models
+Tz-Ying Wu1,2 Gurumurthy Swaminathan1 Zhizhong Li1
+Avinash Ravichandran1 Nuno Vasconcelos2 Rahul Bhotika1 Stefano Soatto1
+1
+2
+AWS AI Labs
+UC San Diego
+{gurumurs,lzhizhon,ravinash,bhotikar,soattos}@amazon.com
+
+{tzw001,nuno}@ucsd.edu
+
+Abstract
+Y𝒃
+
+Class-incremental learning (CIL) has been widely studied under the setting of starting from a small number of
+classes (base classes). Instead, we explore an understudied real-world setting of CIL that starts with a strong model
+pre-trained on a large number of base classes. We hypothesize that a strong base model can provide a good representation for novel classes and incremental learning can be
+done with small adaptations. We propose a 2-stage training scheme, i) feature augmentation – cloning part of the
+backbone and fine-tuning it on the novel data, and ii) fusion
+– combining the base and novel classifiers into a unified
+classifier. Experiments show that the proposed method significantly outperforms state-of-the-art CIL methods on the
+large-scale ImageNet dataset (e.g. +10% overall accuracy
+than the best). We also propose and analyze understudied
+practical CIL scenarios, such as base-novel overlap with
+distribution shift. Our proposed method is robust and generalizes to all analyzed CIL settings.
+
+1. Introduction
+As deep classifiers become more popular for real-world
+applications, the need for incrementally learning novel
+classes (novel data) becomes more prevalent. Training
+a classifier with both old and novel data is not optimal
+when old data can become unavailable over time [6, 13,
+15, 18, 19, 23, 24, 32]. Fewer old data leads to a high imbalance between the old and novel data, and simply finetuning the model causes catastrophic forgetting for the old
+classes [15].
+Class-incremental learning (CIL) methods [5,6,8,11,23,
+29,34] learn to categorize more and more classes over time.
+However, they typically start their incremental training with
+a small number of base classes (e.g. only 50), and add an
+equally small number of new classes at a time. In many
+practical scenarios, having a large number of base classes
+can be a more useful starting point for building an applica-
+
+Base Class
+Novel Class
+Overlapping Class
+
+Old Data
+
+Y𝒏
+
+Large Pretrained Classifier w/ Label Set Y𝒃
+
+New Data
+w/ Label Set Y𝒏
+
+Updated Classifier w/ Label Set Y𝒃 ∪ Y𝒏
+
+Figure 1. We study the problem of CIL in the setting where there
+are a large number of base classes. Classes between splits can
+have overlaps, and data can be sampled from the same or different
+distributions (e.g. different styles, poses).
+
+tion. For example, a strong model could have been developed to identify different dog breeds, and a small set of additional breeds needs to be added for model update. Moreover, base and novel classes may overlap but may distribute
+differently, such as a guitar class present in both base and
+novel classes, with only acoustic guitars in base samples
+while electric guitars in novel ones.
+Some CIL methods use a static model and typically
+fine-tune the existing parameters with some constraints imposed on parameter changes [3, 13, 32], gradients [17], features [8, 11], or activations [6, 15, 23]. These methods modify the well-trained network weights and risk performance
+degradation. On the other hand, methods based on dynamic
+models learn separate parameters for novel tasks, either by
+expanding the model [24], or introducing a parameter gating function [18,19]. However, almost all dynamic methods
+focus on task-incremental learning (TIL). TIL assumes that
+which task a sample belongs to is known at inference time,
+and different tasks are inferred individually. This assumption is not realistic if the application needs to distinguish
+between base and novel classes. A recent work DER [30]
+
+9601
+
+

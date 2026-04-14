@@ -1,0 +1,80 @@
+Self-supervised Geometric Perception
+Heng Yang*
+MIT LIDS
+
+Wei Dong⇤
+CMU RI
+
+Abstract
+We present self-supervised geometric perception (SGP),
+the first general framework to learn a feature descriptor
+for correspondence matching without any ground-truth geometric model labels (e.g., camera poses, rigid transformations). Our first contribution is to formulate geometric perception as an optimization problem that jointly optimizes
+the feature descriptor and the geometric models given a
+large corpus of visual measurements (e.g., images, point
+clouds). Under this optimization formulation, we show that
+two important streams of research in vision, namely robust
+model fitting and deep feature learning, correspond to optimizing one block of the unknown variables while fixing the
+other block. This analysis naturally leads to our second
+contribution – the SGP algorithm that performs alternating
+minimization to solve the joint optimization. SGP iteratively
+executes two meta-algorithms: a teacher that performs robust model fitting given learned features to generate geometric pseudo-labels, and a student that performs deep feature learning under noisy supervision of the pseudo-labels.
+As a third contribution, we apply SGP to two perception
+problems on large-scale real datasets, namely relative camera pose estimation on MegaDepth and point cloud registration on 3DMatch. We demonstrate that SGP achieves stateof-the-art performance that is on-par or superior to the supervised oracles trained using ground-truth labels.1
+
+1. Introduction
+Geometric perception is the task of estimating geometric
+models (e.g., camera poses, rigid transformations, and 3D
+structures) from visual measurements (e.g., images or point
+clouds). It is a fundamental class of problems in computer
+vision that has extensive applications in object detection and
+pose estimation [77, 86], motion estimation and 3D reconstruction [18, 25], simultaneous localization and mapping
+(SLAM) [13], structure from motion (SfM) [62], and virtual
+and augmented reality [44], to name a few.
+Modern geometric perception typically consists of a
+front-end that detects, represents, and associates (sparse
+or dense) keypoints to establish putative correspondences,
+and a back-end that performs estimation of the geometric
+models while being robust to outliers (i.e., incorrect corre* Equal contribution. Work performed during internship at Intel Labs.
+1 Code available at https://github.com/theNded/SGP.
+
+Luca Carlone
+MIT LIDS
+
+Vladlen Koltun
+Intel Labs
+
+spondences). Traditionally, hand-crafted keypoint detectors
+and feature descriptors, such as SIFT [52] and FPFH [60],
+have been used for feature matching in 2D images and 3D
+point clouds. Despite being general and efficient to compute, hand-crafted features typically lead to an overwhelming number of outliers so that robust estimation algorithms
+struggle to return accurate estimates of the geometric models. For example, it is not uncommon to have over 95%
+of the correspondences estimated from FPFH be outliers in
+point cloud registration [57, 80]. As a result, learning feature descriptors from data, particularly using deep neural
+networks, has become increasingly popular. Learned feature descriptors have been shown to consistently and significantly outperform their hand-crafted counterparts across applications such as relative camera pose estimation [69, 61],
+3D point cloud registration [21, 32], and object detection
+and pose estimation [58, 86, 64, 72].
+However, existing feature learning approaches have several major shortcomings. First, a large number of groundtruth geometric model labels are required for training. For
+example, ground-truth relative camera poses are needed for
+training image keypoint descriptors [69, 54, 27], pairwise
+rigid transformations are required for training point cloud
+descriptors [21, 32, 74, 85, 70], and object poses are used
+to train image keypoint predictors [58, 86]. Second, although obtaining ground-truth geometric labels is trivial in
+some controlled settings such as robotic manipulation [30],
+in general the labels come from full 3D reconstruction
+pipelines (e.g., COLMAP [62], Open3D [91]) that require delicate parameter tuning, partial human supervision, and extra
+sensory information such as IMU and GPS. As a result, the
+success of feature learning is limited to a handful of datasets
+with ground-truth annotations [87, 23, 50, 72, 11].
+In this paper, we ask the key question: Can we design
+a general framework for feature learning that requires no
+ground-truth geometric labels or sophisticated reconstruction pipelines? Our answer is affirmative.
+Contributions. We formulate geometric perception
+as an optimization problem that jointly searches for the
+best feature descriptor (for correspondence matching) and
+the best geometric models given a large corpus of visual measurements. This formulation incorporates robust
+model fitting and deep feature learning as two subproblems: (i) robust estimation only searches for the geometric
+models, while consuming putative correspondences established from a given feature descriptor; (ii) feature learning
+searches purely for the feature descriptor, while relying on
+114350
+
+

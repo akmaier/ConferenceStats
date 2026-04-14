@@ -1,0 +1,92 @@
+MegDet: A Large Mini-Batch Object Detector
+Chao Peng∗ Tete Xiao1∗
+
+Zeming Li2∗ Yuning Jiang Xiangyu Zhang Kai Jia Gang Yu Jian Sun
+1
+Peking University, jasonhsiao97@pku.edu.cn
+2
+Tsinghua University, lizm15@mails.tsinghua.edu.cn
+Megvii Inc. (Face++), {pengchao, jyn, zhangxiangyu, jiakai, yugang, sunjian}@megvii.com
+Abstract
+
+Time-Accuracy
+
+40
+
+1. Introduction
+Tremendous progresses have been made on CNN-based
+object detection, since seminal work of R-CNN [11],
+Fast/Faster R-CNN series [10, 31], and recent state-of-theart detectors like Mask R-CNN [14] and RetinaNet [24].
+Taking COCO [25] dataset as an example, its performance
+has been boosted from 19.7 AP in Fast R-CNN [10] to 39.1
+AP in RetinaNet [24], in just two years. The improvements
+are mainly due to better backbone network [16], new detection framework [31], novel loss design [24], improved
+pooling method [5, 14], and so on [19].
+A recent trend on CNN-based image classification uses
+very large min-batch size to significantly speed up the training. For example, the training of ResNet-50 can be accomplished in an hour [13] or even in 31 minutes [39] , using
+mini-batch size 8,192 or 16,000, with little or small sacri∗ Equal contribution. This work is done when Zeming Li and Tete Xiao
+are interns at Megvii Research.
+
+37.7
+36.2
+35
+
+30
+mmAP
+
+The development of object detection in the era of deep
+learning, from R-CNN [11], Fast/Faster R-CNN [10, 31] to
+recent Mask R-CNN [14] and RetinaNet [24], mainly come
+from novel network, new framework, or loss design. However, mini-batch size, a key factor for the training of deep
+neural networks, has not been well studied for object detection. In this paper, we propose a Large Mini-Batch Object
+Detector (MegDet) to enable the training with a large minibatch size up to 256, so that we can effectively utilize at
+most 128 GPUs to significantly shorten the training time.
+Technically, we suggest a warmup learning rate policy and
+Cross-GPU Batch Normalization, which together allow us
+to successfully train a large mini-batch detector in much
+less time (e.g., from 33 hours to 4 hours), and achieve even
+better accuracy. The MegDet is the backbone of our submission (mmAP 52.5%) to COCO 2017 Challenge, where
+we won the 1st place of Detection task.
+
+25
+
+20
+
+15
+
+16-batch
+256-batch
+0
+
+5
+
+10
+
+15
+
+Time
+
+20
+
+25
+
+30
+
+35
+
+Figure 1: Validation accuracy of the same FPN object detector trained on COCO dataset, with mini-batch size 16
+(on 8 GPUs) and mini-batch size 256 (on 128 GPUs). The
+large mini-batch detector is more accurate and its training
+is nearly an order-of-magnitude faster.
+
+fice on the accuracy. In contract, the mini-batch size remains very small (e.g., 2-16) in object detection literatures.
+Therefore in this paper, we study the problem of mini-batch
+size in object detection and present a technical solution to
+successfully train a large mini-batch size object detector.
+What is wrong with the small mini-batch size? Originating from the object detector R-CNN series, a mini-batch
+involving only 2 images is widely adopted in popular detectors like Faster R-CNN and R-FCN. Though in state-ofthe-art detectors like RetinaNet and Mask R-CNN the minibatch size is increased to 16, which is still quite small compared with the mini-batch size (e.g., 256) used in current image classification. There are several potential drawbacks associated with small mini-batch size. First, the training time
+is notoriously lengthy. For example, the training of ResNet152 on COCO takes 3 days, using the mini-bath size 16 on
+a machine with 8 Titian XP GPUs. Second, training with
+16181
+
+

@@ -1,0 +1,77 @@
+TemporalUV: Capturing Loose Clothing with
+Temporally Coherent UV Coordinates
+You Xie† , Huiqi Mao‡ , Angela Yao‡ , Nils Thuerey†
+Department of Informatics, Technical University of Munich
+‡
+Department of Computer Science, National University of Singapore
+†
+
+{you.xie, nils.thuerey}@tum.de, huiqi.mao@u.nus.edu, ayao@comp.nus.edu.sg
+
+Abstract
+We propose a novel approach to generate temporally coherent UV coordinates for loose clothing. Our method is
+not constrained by human body outlines and can capture
+loose garments and hair. We implemented a differentiable
+pipeline to learn UV mapping between a sequence of RGB
+inputs and textures via UV coordinates. Instead of treating
+the UV coordinates of each frame separately, our data generation approach connects all UV coordinates via feature
+matching for temporal stability. Subsequently, a generative
+model is trained to balance the spatial quality and temporal stability. It is driven by supervised and unsupervised
+losses in both UV and image spaces. Our experiments show
+that the trained models output high-quality UV coordinates
+and generalize to new poses. Once a sequence of UV coordinates has been inferred by our model, it can be used
+to flexibly synthesize new looks and modified visual styles.
+Compared to existing methods, our approach reduces the
+computational workload to animate new outfits by several
+orders of magnitude.
+
+1. Introduction
+In image or video generation tasks [37, 44] that involve
+people, it is crucial to obtain accurate representations of
+the 3D human shape and appearance to efficiently generate
+modified content. In this context, UV coordinates are a popular 2D representation that establish dense correspondences
+between 2D images and 3D surface-based representations
+of the human body. UV coordinates go beyond skeleton
+landmarks to encode human pose and shape, and are widely
+used in image/video editing, augmented reality, and humancomputer interaction [12, 14, 15]. In this paper, we tackle
+video generation of people, with a focus on efficiency and
+capturing loose clothing. Unlike previous works [33,40,42]
+which use large networks to capture motion and appearance,
+we train a model to generate temporally coherent UV coor-
+
+dinates. We use a single, fixed texture to store appearance
+information so that our model can solely focus on learning
+UV dynamics.
+Human body UV coordinates can be derived indirectly
+from estimates of 3D shape models [6, 19, 26, 29] like
+SMPL [23]. Alternatively, direct estimation methods like
+DensePose [2] and UltraPose [43] bypass intermediate 3D
+models to directly output UV coordinates from a single
+RGB image. The convenience of direct methods has led
+to DensePose being widely used in animation and editing
+applications [25, 27, 28, 49]. Nevertheless, the UV coordinates obtained from SMPL and DensePose approximate
+only human body silhouettes in tight clothing. They do not
+capture loose clothing, such as long skirts or wide pants
+(see comparisons in Figure 6 and 7). In addition, the methods for UV estimation work only on individual images. For
+video inputs, they are applied frame-by-frame [32,47] without considering the temporal relationship between frames.
+As such, the UV coordinates are inconsistent over time, so
+any re-targeted sequences will shift and jitter.
+In this paper, we focus on improving the spatial coverage
+and temporal coherence of UV coordinates generated from
+a sequence of 2D images. We target the ability to retain
+the full body plus clothing silhouette for arbitrary styles of
+clothing. Our approach is agnostic to the UV source, which
+we demonstrate via inputs from both DensePose [2] and
+SMPL model estimates [19]. For temporal coherence, we
+aim at achieving the point-to-point correspondences among
+different frames via UV coordinate maps, so that video sequences can be generated with one fixed texture.
+A core challenge of learning a model for extended and
+temporally coherent UV coordinates lies in the lack of data
+for direct supervision. Hence, we propose a novel learning
+scheme that combines both supervised and unsupervised
+components. We first pre-process a sequence of UV coordinates obtained from DensePose or SMPL via spatial extension and temporal stabilization to obtain training data for
+an initial training stage. We then shift the learning gradually from supervised, with the pre-processed data, to unsu-
+
+3450
+
+

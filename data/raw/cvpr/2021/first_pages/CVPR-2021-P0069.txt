@@ -1,0 +1,110 @@
+Exponential Moving Average Normalization
+for Self-supervised and Semi-supervised Learning
+Zhaowei Cai, Avinash Ravichandran, Subhransu Maji, Charless Fowlkes, Zhuowen Tu, Stefano Soatto
+Amazon Web Services
+{zhaoweic,ravinash,smmaji,fowlkec,ztu,soattos}@amazon.com
+
+loss
+
+Abstract
+We present a plug-in replacement for batch normalization (BN) called exponential moving average normalization (EMAN), which improves the performance of existing student-teacher based self- and semi-supervised learning techniques. Unlike the standard BN, where the statistics are computed within each batch, EMAN, used in the
+teacher, updates its statistics by exponential moving average from the BN statistics of the student. This design reduces the intrinsic cross-sample dependency of BN and enhances the generalization of the teacher. EMAN improves
+strong baselines for self-supervised learning by 4-6/1-2
+points and semi-supervised learning by about 7/2 points,
+when 1%/10% supervised labels are available on ImageNet.
+These improvements are consistent across methods, network
+architectures, training duration, and datasets, demonstrating the general effectiveness of this technique. The code will
+be made available online.
+
+1. Introduction
+Supervised learning has achieved remarkable success on
+a variety of visual tasks, benefiting from the availability of
+large-scale annotated datasets such as ImageNet [37], MSCOCO [31], and ShapeNet [6]. However, in some domains
+such as medical imaging, large amounts of annotations are
+expensive or time-consuming to collect. Learning effective
+representations with small amounts (semi-supervised) or no
+(unsupervised or self-supervised) manual annotation is thus
+an important problem in computer vision [3, 8, 9, 17, 19, 28,
+29, 39, 41, 45].
+Although many choices exist for semi- and selfsupervised learning [3, 15, 29, 34, 50], an effective approach
+is the family of student-teacher models [9, 17, 19, 22, 28,
+41, 47], where the outputs of the teacher are used to guide
+the learning of the student on the unlabeled data. Within
+this family, a common approach is to update the teacher
+using exponential moving average (EMA) of the student
+
+loss
+
+out_v1
+
+out_v2
+
+out_v1
+
+out_v2
+
+BN
+
+BN
+
+BN
+
+EMAN
+
+teacher
+
+student
+
+teacher
+
+BN
+
+BN
+
+BN
+
+im_v1
+
+im_v2
+
+im_v1
+
+student
+
+EMA
+
+EMA
+
+EMAN
+
+im_v2
+
+Figure 1. The EMA-teacher framework with standard BN (left)
+and the proposed EMAN (right). θ are the model parameters, and
+µ and σ 2 BN statistics. EMA denotes exponential moving average
+updates. im v1 and im v2 are two different views of the same
+image. No gradient is backpropagated through the teacher model.
+
+parameters over its training trajectory [41], which we call
+EMA-teacher, as shown in Figure 1 (left). As discussed
+in [1,24,26], the temporally averaged teacher, as interpreted
+as the temporal ensembling of the student checkpoints, can
+improve generalization. Due to this property, it has been
+adopted in recent self-supervised learning methods [17,19].
+While the objective and the update mechanisms are different for the student and the teacher, both networks use
+the standard batch normalization (BN) [25], as in the early
+EMA-teacher frameworks [41]. However, this can lead to
+two potential problems:
+1. Cross-sample dependency. This is an intrinsic property of BN where the output of a sample is dependent
+on all other samples in the same batch. This crosssample information leakage may allow the model to
+“cheat” in semi- or self-supervised learning. To avoid
+this, some special designs on normalization were applied in [8, 17, 19, 21]. For example, [21] switched
+to layer normalization [2]; MoCo [19] designed ShuffleBN where a mini-batch uses BN statistics from other
+randomly sampled mini-batch; and SimCLR [8] and
+BYOL [17] used Synchronized BN (SyncBN).
+2. Model parameter mismatch. In the teacher network, its
+parameters are averaged from the student parameters
+
+194
+
+

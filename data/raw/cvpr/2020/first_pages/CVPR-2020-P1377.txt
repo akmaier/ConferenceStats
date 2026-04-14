@@ -1,0 +1,89 @@
+Hit-Detector: Hierarchical Trinity Architecture Search for Object Detection
+Jianyuan Guo1,2 , Kai Han2 , Yunhe Wang2 , Chao Zhang1∗, Zhaohui Yang1
+Han Wu1 , Xinghao Chen2 , Chang Xu3
+1
+
+2
+
+Key Lab of Machine Perception (MOE), Dept. of Machine Intelligence, Peking University.
+Noah’s Ark Lab, Huawei Technologies. 3 School of Computer Science, Faculty of Engineering, University of Sydney.
+{jyguo, zhaohuiyang, wuhancs}@pku.edu.cn, chzhang@cis.pku.edu.cn
+c.xu@sydney.edu.au, {kai.han, yunhe.wang, xinghao.chen}@huawei.com
+
+Abstract
+Neural Architecture Search (NAS) has achieved great
+success in image classification task. Some recent works
+have managed to explore the automatic design of efficient
+backbone or feature fusion layer for object detection. However, these methods focus on searching only one certain
+component of object detector while leaving others manually
+designed. We identify the inconsistency between searched
+component and manually designed ones would withhold the
+detector of stronger performance. To this end, we propose a hierarchical trinity search framework to simultaneously discover efficient architectures for all components (i.e.
+backbone, neck, and head) of object detector in an end-toend manner. In addition, we empirically reveal that different parts of the detector prefer different operators. Motivated by this, we employ a novel scheme to automatically
+screen different sub search spaces for different components
+so as to perform the end-to-end search for each component
+on the corresponding sub search space efficiently. Without bells and whistles, our searched architecture, namely
+Hit-Detector, achieves 41.4% mAP on COCO minival set
+with 27M parameters. Our implementation is available at
+https://github.com/ggjy/HitDet.pytorch.
+
+1. Introduction
+Object detection is a fundamental task in computer vision and has been widely applied in the real world, such
+as autonomous vehicles and surveillance video. The advancement of deep learning results in a number of convolutional neural network based solutions of object detection
+task. Typically, deep learning based detectors can be divided into two categories: (i) one-stage methods including
+YOLO [40] and SSD [33] which directly utilize CNNs to
+predict the bounding boxes of interest; and (ii) two-stage
+∗ Corresponding author.
+
+Table 1. Comparing our model against some typical two-stage detectors on COCO benchmark. “4c” indicates four convolution layers. † means that NAS-FPN is originally searched for one-stage
+RetinaNet, we replace the neck in FPN with NAS-FPN to construct the two-stage detector.
+Backbone
+Neck
+Head
+mAP
+(#params/M) (#params/M) (#params/M) (%)
+FPN baseline [26]
+Res50 (23.5)
+FPN (3.3)
+2fc (14.3) 36.2
+NAS-FPN [13]†
+Res50 (23.5) NAS-FPN (30.4) 2fc (14.3) 38.9
+Res50 (23.5)
+FPN (3.3)
+4c1fc (15.6) 36.8
+Backbone baseline
+DetNAS [8]
+DetNet (9.4)
+FPN (2.8)
+4c1fc (15.6) 40.2
+NAS-FPN + DetNAS DetNet (9.4) NAS-FPN (29.7) 4c1fc (15.6) 39.4
+Hit-Detecotr (ours)
+Ours (13.9)
+Ours (2.7)
+Ours (9.9) 41.4
+Model
+
+approaches such as Faster R-CNN [42] that generates the
+bounding boxes after extracting region proposals upon a
+region proposal network (RPN). The advantage of singlestage methods lies in the high detection speed whereas twostage methods dominate in detection accuracy.
+A series of either one-stage [41, 27, 22] or two-stage
+approaches [9, 18, 5] have been developed to continuously boost the detection speed and accuracy. However,
+the manually designed architectures heavily rely on the expert knowledge [25] while still might be suboptimal. Thus
+neural architecture search (NAS) that automates the design
+of network architectures and minimizes human labor has
+drawn much attention and made impressive progress, especially in image classification tasks [57, 29, 45, 31, 43, 46,
+48, 55, 17]. Compared with classification tasks that simply
+determine what the image is, detection tasks need to further
+figure out where the objects are. NAS for object detection
+therefore requires more careful design and is much more
+challenging.
+Modern object detection systems usually consist of four
+components: (a) backbone for extracting semantic features,
+e.g. ResNet-50 [19] and ResNeXt-101 [49]; (b) neck for
+fusing multi-level features, e.g. feature pyramid networks
+(FPN) [26]; (c) RPN for generating proposals (usually in
+two-stage detector); and (d) head for object classification
+
+11405
+
+

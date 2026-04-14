@@ -1,0 +1,125 @@
+Measuring Compositional Consistency for Video Question Answering
+Mona Gandhi1 *, Mustafa Omer Gul2 *, Eva Prakash2 , Madeleine Grunde-McLaughlin3 ,
+Ranjay Krishna3 , Maneesh Agrawala2
+Veermata Jijabai Technological Institute1 , Stanford University2 , University of Washington3
+{mbgandhi b18}@ce.vjti.ac.in, {momergul, eprakash, maneesh}@stanford.edu,
+{mgrunde, ranjaykrishna}@cs.washington.edu
+
+Abstract
+Recent video question answering benchmarks indicate
+that state-of-the-art models struggle to answer compositional questions. However, it remains unclear which types
+of compositional reasoning cause models to mispredict.
+Furthermore, it is difficult to discern whether models arrive at answers using compositional reasoning or by leveraging data biases. In this paper, we develop a question
+decomposition engine that programmatically deconstructs
+a compositional question into a directed acyclic graph of
+sub-questions. The graph is designed such that each parent
+question is a composition of its children. We present AGQADecomp, a benchmark containing 2.3M question graphs,
+with an average of 11.49 sub-questions per graph, and
+4.55M total new sub-questions. Using question graphs, we
+evaluate three state-of-the-art models with a suite of novel
+compositional consistency metrics. We find that models either cannot reason correctly through most compositions or
+are reliant on incorrect reasoning to reach answers, frequently contradicting themselves or achieving high accuracies when failing at intermediate reasoning steps.
+
+1. Introduction
+Compositional reasoning is fundamental to how humans
+represent visual events [20, 26, 32, 38]. For instance, Figure 1 visualizes a video consisting of actions such as taking
+a picture and holding a bottle; the action holding a bottle
+involves an actor initially twisting the bottle and then later
+holding it. This ability to compose interactions and actions
+is reflected in the compositional nature of language people
+use to communicate about what they see [5,28]. To measure
+compositional reasoning of visual events, the computer vision community has proposed multiple video benchmarks
+using question answering [12, 23, 39]. These benchmarks
+ask questions such as “Is a phone the first object that the
+* Equal contribution
+
+Compositional question decomposition
+Q. Is a phone the ﬁrst object that the person is touching after
+taking a picture?
+
+A: yes,
+
+PRED: no
+
+Q. Does a phone exist?
+
+A: yes,
+
+PRED: yes
+
+Q. What is the ﬁrst object that the person is touching after
+taking a picture?
+
+A: phone, PRED: bottle
+
+Q. What is the person touching after taking a picture?
+Q. Is a person touching something after taking a picture? A: yes,
+
+PRED: no
+
+Q. Is the person touching something?
+
+A: yes,
+
+PRED: yes
+
+Q. Is the person taking a picture?
+
+A: yes,
+
+PRED: yes
+
+Q. Does a person exist?
+
+A: yes,
+
+PRED: yes
+
+Q. Is the person taking something?
+
+A: yes,
+
+PRED: no
+
+Q. Does a picture exist?
+
+A: yes,
+
+PRED: yes
+
+A: yes,
+
+PRED: yes
+
+Q. Does a person exist after taking a picture?
+...
+Legend:
+
+objects
+
+relationships
+
+actions
+
+time
+
+Figure 1. We introduce a question decomposition engine, which
+produces a DAG of sub-questions from a compositional question
+about visual events. A sub-question is designed to contain a subset of the original question’s reasoning steps. Our engine produces a benchmark with 4.55M question answer pairs associated
+with 9.6K videos. We design handcrafted programs and templates
+for each sub-question as well as composition rules to compose
+sub-questions together. We analyze existing models using a suite
+of new compositional consistency metrics using our DAGs. Our
+DAGs isolate which composition rules cause mispredictions (error path is shown by pink arrows). They also highlight scenarios
+where models might exhibit self-contradiction (blue arrows).
+
+person is touching after taking a picture?”, where models
+need to compose actions (taking a picture) with relationships (touching) and objects (phone) to arrive at the correct
+answer. Using these benchmarks, researchers have recently
+concluded that state-of-the-art models [8, 22, 25] struggle to
+reason compositionally [12].
+Unfortunately, existing benchmarks are unable to explain why video question answering models struggle with
+
+5046
+
+

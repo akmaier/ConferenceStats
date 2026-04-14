@@ -1,0 +1,71 @@
+S MARTA DAPT:
+Multi-branch Object Detection Framework for Videos on Mobiles
+Ran Xu1 , Fangzhou Mu2 , Jayoung Lee1 , Preeti Mukherjee1 ,
+Somali Chaterji1 , Saurabh Bagchi1 , Yin Li2
+1
+Purdue University 2 University of Wisconsin-Madison
+1
+
+{xu943, lee3716, mukher57, schaterji, sbagchi}@purdue.edu
+
+Abstract
+Several recent works seek to create lightweight deep networks for video object detection on mobiles. We observe
+that many existing detectors, previously deemed computationally costly for mobiles, intrinsically support adaptive
+inference, and offer a multi-branch object detection framework (MBODF). Here, an MBODF is referred to as a solution that has many execution branches and one can dynamically choose from among them at inference time to satisfy varying latency requirements (e.g. by varying resolution
+of an input frame). In this paper, we ask, and answer, the
+wide-ranging question across all MBODFs: How to expose
+the right set of execution branches and then how to schedule the optimal one at inference time? In addition, we uncover the importance of making a content-aware decision
+on which branch to run, as the optimal one is conditioned
+on the video content. Finally, we explore a content-aware
+scheduler, an Oracle one, and then a practical one, leveraging various lightweight feature extractors. Our evaluation
+shows that layered on Faster R-CNN-based MBODF, compared to 7 baselines, our S MARTA DAPT achieves a higher
+Pareto optimal curve in the accuracy-vs-latency space for
+the ILSVRC VID dataset.
+
+1. Introduction
+Object detection is arguably one of central problems in
+computer vision. Much progress has been made over the
+past few years in deep learning based object detectors. Despite their impressive accuracy results on standard benchmarks, these models come at a price of their complexity
+and computational cost. This imposes a major barrier to deploy these models under resource-constrained settings with
+strict latency requirements, such as real-time detection in
+streaming videos on mobile or embedded devices. Several
+recent works seek to address this challenge by designing
+light-weight models on mobiles [11,14,35,44,58], in partic-
+
+2
+
+{fmu2, yin.li}@wisc.edu
+
+ular, for video object detection [6, 21, 22, 24]. The assumption and the common belief are that the object detectors that
+are optimized for accuracy, such as Faster R-CNN with a
+ResNet-50 backbone, are too expensive for mobile vision.
+Indeed, detectors optimized for accuracy are rather complex, often trained with different input resolutions, and
+equipped with multiple stages (e.g. proposal generation).
+It is perhaps not surprising that these detectors can adapt
+to different settings at inference time. Consider the example of Faster R-CNN [30], one can reduce the input resolution or the number of proposals for a lower latency while
+still maintaining a reasonable accuracy. Such combinations of choices of tunable parameters would constitute a
+multi-branch object detection framework (MBODF). The
+Faster R-CNN detector using a specific input resolution and
+a particular number of proposals from our previous example
+could be considered as one execution branch.
+Our key observation is that if one is allowed to select,
+at inference time, from a large set of fine-grained execution branches, the detection accuracy and latency can be
+significantly improved (see Figure 1). Then, the key research questions are: How to expose the right set of execution branches in an existing object detector and then how
+to schedule the optimal one at inference time?
+An ideal scheduler must not only consider the branches
+in the model and their properties (accuracy and latency), but
+also the input content. For example, if the input video only
+contains larger objects, using a lower input resolution for
+the detector suffices. Another example is using inexpensive
+tracking to replace the costly detector, if the video content
+remains mostly stationary. However, the design of such a
+scheduler is challenging for streaming videos. This is because the scheduler has to “predict” potential future content
+change in order to select the best branch at the current time.
+In this paper, we focus on the challenging and practical
+task of streaming video object detection on mobile devices,
+and present a simple adaptive object detection method. Our
+key innovation is to leverage standard existing object detectors (Faster R-CNN, EfficientDet, SSD, YOLO) to con-
+
+2528
+
+

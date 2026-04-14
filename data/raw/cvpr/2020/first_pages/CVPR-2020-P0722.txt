@@ -1,0 +1,134 @@
+Abstract
+
+Face recognition systems are usually faced with unseen
+domains in real-world applications and show unsatisfactory performance due to their poor generalization. For example, a well-trained model on webface data cannot deal
+with the ID vs. Spot task in surveillance scenario. In this
+paper, we aim to learn a generalized model that can directly
+handle new unseen domains without any model updating.
+To this end, we propose a novel face recognition method
+via meta-learning named Meta Face Recognition (MFR).
+MFR synthesizes the source/target domain shift with a metaoptimization objective, which requires the model to learn
+effective representations not only on synthesized source domains but also on synthesized target domains. Specifically, we build domain-shift batches through a domain-level
+sampling strategy and get back-propagated gradients/metagradients on synthesized source/target domains by optimizing multi-domain distributions. The gradients and metagradients are further combined to update the model to
+improve generalization. Besides, we propose two benchmarks for generalized face recognition evaluation. Experiments on our benchmarks validate the generalization of our
+method compared to several baselines and other state-ofthe-arts. The proposed benchmarks and code will be available at https://github.com/cleardusk/MFR.
+
+1. Introduction
+
+Face recognition is a long-standing topic in the research
+community. Recent works [1, 2, 3, 4, 5, 6, 7, 8] have pushed
+the performance to a very high level on several common
+benchmarks, e.g. LFW [9], YTF [10] and MegaFace [11].
+These methods are based on the assumption that the training
+sets like CASIA-Webface [12], MS-Celeb [13] and testing
+sets have similar distribution. However, in real-world ap-
+
+6163
+
+African
+
+Asian
+
+Caucasian
+
+Meta-test
+
+Source Domains
+Indian
+
+sha1_base64="rPb6Za45fxbULfV/cgtk3hSb9Zc=">AAAB9HicbVBNSwMxFHxbv2r9qnr0EiyCp7Irgh4LevBYpa2FdinZ9LUNzWbXJFsoS3+HFw+KePXHePPfmG33oK0DgWHmPd5kglhwbVz32ymsrW9sbhW3Szu7e/sH5cOjlo4SxbDJIhGpdkA1Ci6xabgR2I4V0jAQ+BiMbzL/cYJK80g2zDRGP6RDyQecUWMlvxtSM2JUpLezXqNXrrhVdw6ySrycVCBHvVf+6vYjloQoDRNU647nxsZPqTKcCZyVuonGmLIxHWLHUklD1H46Dz0jZ1bpk0Gk7JOGzNXfGykNtZ6GgZ3MQuplLxP/8zqJGVz7KZdxYlCyxaFBIoiJSNYA6XOFzIipJZQpbrMSNqKKMmN7KtkSvOUvr5LWRdVzq979ZaX2kNdRhBM4hXPw4ApqcAd1aAKDJ3iGV3hzJs6L8+58LEYLTr5zDH/gfP4A3D2SMQ==</latexit>
+
+sha1_base64="rPb6Za45fxbULfV/cgtk3hSb9Zc=">AAAB9HicbVBNSwMxFHxbv2r9qnr0EiyCp7Irgh4LevBYpa2FdinZ9LUNzWbXJFsoS3+HFw+KePXHePPfmG33oK0DgWHmPd5kglhwbVz32ymsrW9sbhW3Szu7e/sH5cOjlo4SxbDJIhGpdkA1Ci6xabgR2I4V0jAQ+BiMbzL/cYJK80g2zDRGP6RDyQecUWMlvxtSM2JUpLezXqNXrrhVdw6ySrycVCBHvVf+6vYjloQoDRNU647nxsZPqTKcCZyVuonGmLIxHWLHUklD1H46Dz0jZ1bpk0Gk7JOGzNXfGykNtZ6GgZ3MQuplLxP/8zqJGVz7KZdxYlCyxaFBIoiJSNYA6XOFzIipJZQpbrMSNqKKMmN7KtkSvOUvr5LWRdVzq979ZaX2kNdRhBM4hXPw4ApqcAd1aAKDJ3iGV3hzJs6L8+58LEYLTr5zDH/gfP4A3D2SMQ==</latexit><latexit
+
+sha1_base64="rPb6Za45fxbULfV/cgtk3hSb9Zc=">AAAB9HicbVBNSwMxFHxbv2r9qnr0EiyCp7Irgh4LevBYpa2FdinZ9LUNzWbXJFsoS3+HFw+KePXHePPfmG33oK0DgWHmPd5kglhwbVz32ymsrW9sbhW3Szu7e/sH5cOjlo4SxbDJIhGpdkA1Ci6xabgR2I4V0jAQ+BiMbzL/cYJK80g2zDRGP6RDyQecUWMlvxtSM2JUpLezXqNXrrhVdw6ySrycVCBHvVf+6vYjloQoDRNU647nxsZPqTKcCZyVuonGmLIxHWLHUklD1H46Dz0jZ1bpk0Gk7JOGzNXfGykNtZ6GgZ3MQuplLxP/8zqJGVz7KZdxYlCyxaFBIoiJSNYA6XOFzIipJZQpbrMSNqKKMmN7KtkSvOUvr5LWRdVzq979ZaX2kNdRhBM4hXPw4ApqcAd1aAKDJ3iGV3hzJs6L8+58LEYLTr5zDH/gfP4A3D2SMQ==</latexit><latexit
+
+DS
+sha1_base64="rPb6Za45fxbULfV/cgtk3hSb9Zc=">AAAB9HicbVBNSwMxFHxbv2r9qnr0EiyCp7Irgh4LevBYpa2FdinZ9LUNzWbXJFsoS3+HFw+KePXHePPfmG33oK0DgWHmPd5kglhwbVz32ymsrW9sbhW3Szu7e/sH5cOjlo4SxbDJIhGpdkA1Ci6xabgR2I4V0jAQ+BiMbzL/cYJK80g2zDRGP6RDyQecUWMlvxtSM2JUpLezXqNXrrhVdw6ySrycVCBHvVf+6vYjloQoDRNU647nxsZPqTKcCZyVuonGmLIxHWLHUklD1H46Dz0jZ1bpk0Gk7JOGzNXfGykNtZ6GgZ3MQuplLxP/8zqJGVz7KZdxYlCyxaFBIoiJSNYA6XOFzIipJZQpbrMSNqKKMmN7KtkSvOUvr5LWRdVzq979ZaX2kNdRhBM4hXPw4ApqcAd1aAKDJ3iGV3hzJs6L8+58LEYLTr5zDH/gfP4A3D2SMQ==</latexit><latexit
+
+Dong Cao1,2
+
+Meta learning transferable knowledge across domains
+
+∗ Corresponding author
+
+Chenxu Zhao3
+
+<latexit
+
+3
+
+sha1_base64="nac+nxylpEtXLXuAzv38A+CKPs8=">AAAB9HicbVDLSgMxFL3js9ZX1aWbYBFclRkRdFnQhcv66APaoWTStA3NZMbkTqEM/Q43LhRx68e482/MtLPQ1gOBwzn3ck9OEEth0HW/nZXVtfWNzcJWcXtnd2+/dHDYMFGiGa+zSEa6FVDDpVC8jgIlb8Wa0zCQvBmMrjO/OebaiEg94iTmfkgHSvQFo2glvxNSHDIq05tp96FbKrsVdwayTLyclCFHrVv66vQiloRcIZPUmLbnxuinVKNgkk+LncTwmLIRHfC2pYqG3PjpLPSUnFqlR/qRtk8hmam/N1IaGjMJAzuZhTSLXib+57UT7F/5qVBxglyx+aF+IglGJGuA9ITmDOXEEsq0sFkJG1JNGdqeirYEb/HLy6RxXvHcind3Ua7e53UU4BhO4Aw8uIQq3EIN6sDgCZ7hFd6csfPivDsf89EVJ985gj9wPn8A2rmSMA==</latexit>
+
+4
+
+sha1_base64="nac+nxylpEtXLXuAzv38A+CKPs8=">AAAB9HicbVDLSgMxFL3js9ZX1aWbYBFclRkRdFnQhcv66APaoWTStA3NZMbkTqEM/Q43LhRx68e482/MtLPQ1gOBwzn3ck9OEEth0HW/nZXVtfWNzcJWcXtnd2+/dHDYMFGiGa+zSEa6FVDDpVC8jgIlb8Wa0zCQvBmMrjO/OebaiEg94iTmfkgHSvQFo2glvxNSHDIq05tp96FbKrsVdwayTLyclCFHrVv66vQiloRcIZPUmLbnxuinVKNgkk+LncTwmLIRHfC2pYqG3PjpLPSUnFqlR/qRtk8hmam/N1IaGjMJAzuZhTSLXib+57UT7F/5qVBxglyx+aF+IglGJGuA9ITmDOXEEsq0sFkJG1JNGdqeirYEb/HLy6RxXvHcind3Ua7e53UU4BhO4Aw8uIQq3EIN6sDgCZ7hFd6csfPivDsf89EVJ985gj9wPn8A2rmSMA==</latexit><latexit
+
+1
+
+sha1_base64="nac+nxylpEtXLXuAzv38A+CKPs8=">AAAB9HicbVDLSgMxFL3js9ZX1aWbYBFclRkRdFnQhcv66APaoWTStA3NZMbkTqEM/Q43LhRx68e482/MtLPQ1gOBwzn3ck9OEEth0HW/nZXVtfWNzcJWcXtnd2+/dHDYMFGiGa+zSEa6FVDDpVC8jgIlb8Wa0zCQvBmMrjO/OebaiEg94iTmfkgHSvQFo2glvxNSHDIq05tp96FbKrsVdwayTLyclCFHrVv66vQiloRcIZPUmLbnxuinVKNgkk+LncTwmLIRHfC2pYqG3PjpLPSUnFqlR/qRtk8hmam/N1IaGjMJAzuZhTSLXib+57UT7F/5qVBxglyx+aF+IglGJGuA9ITmDOXEEsq0sFkJG1JNGdqeirYEb/HLy6RxXvHcind3Ua7e53UU4BhO4Aw8uIQq3EIN6sDgCZ7hFd6csfPivDsf89EVJ985gj9wPn8A2rmSMA==</latexit><latexit
+
+2
+
+Xiangyu Zhu1,2
+
+sha1_base64="nac+nxylpEtXLXuAzv38A+CKPs8=">AAAB9HicbVDLSgMxFL3js9ZX1aWbYBFclRkRdFnQhcv66APaoWTStA3NZMbkTqEM/Q43LhRx68e482/MtLPQ1gOBwzn3ck9OEEth0HW/nZXVtfWNzcJWcXtnd2+/dHDYMFGiGa+zSEa6FVDDpVC8jgIlb8Wa0zCQvBmMrjO/OebaiEg94iTmfkgHSvQFo2glvxNSHDIq05tp96FbKrsVdwayTLyclCFHrVv66vQiloRcIZPUmLbnxuinVKNgkk+LncTwmLIRHfC2pYqG3PjpLPSUnFqlR/qRtk8hmam/N1IaGjMJAzuZhTSLXib+57UT7F/5qVBxglyx+aF+IglGJGuA9ITmDOXEEsq0sFkJG1JNGdqeirYEb/HLy6RxXvHcind3Ua7e53UU4BhO4Aw8uIQq3EIN6sDgCZ7hFd6csfPivDsf89EVJ985gj9wPn8A2rmSMA==</latexit><latexit
+
+Jianzhu Guo1,2
+
+<latexit
+
+Learning Meta Face Recognition in Unseen Domains
+Zhen Lei1,2∗ Stan Z. Li4
+
+School of Artificial Intelligence, University of Chinese Academy of Sciences, Beijing 100049, China
+CBSR & NLPR, Institute of Automation, Chinese Academy of Sciences, Beijing, China
+
+School of Engineering, Westlake University, Hangzhou, China
+Mininglamp Academy of Sciences, Mininglamp Technology
+
+{jianzhu.guo, xiangyu.zhu, dong.cao, zlei, szli}@nlpr.ia.ac.cn, zhaochenxu@mininglamp.com
+
+Meta-train
+
+DT
+
+Cross Age
+
+Learning generalized
+face recognition
+
+NIR-VIS
+
+Large Pose
+
+Eye-glass Occlusion
+
+Target Domains
+
+ID vs. Spot
+
+Figure 1: An illustration of our MFR for generalized face
+recognition problem. The left column contains four source
+domains of different races, the right includes five target
+domains: cross-age (CACD-VS), NIR-VIS face matching
+(CASIA NIR-VIS 2.0), large pose (Multi-PIE), eyeglass occlusion (MeGlass) and ID vs. Spot (Public-IvS), which are
+unseen in training. By meta-learning on the simulated metatrain/meta-test shifts in source domains, our model learns
+the transferable knowledge across domains to generalize
+well on target unseen domains.
+
+plications of face recognition, the model trained on source
+domains DS is usually deployed in another domain DT with
+a different distribution. There are two kinds of scenarios: (i)
+the target domain DT is known and the data is accessible.
+(ii) the target domain is unseen. Approaches to the first scenario are categorized into domain adaptation for face recognition, where the common setting is that the source domain
+DS contains a labelled face domain and the target domain
+DT is with or without labels. Domain adaption methods try
+to adapt the knowledge learned from DS to DT so that the
+model generalizes well on DT . The second scenario can
+be regarded as domain generalization for face recognition,
+and we call it Generalized Face Recognition, which is more
+common as the trained model is usually deployed in unknown scenarios and faced with unseen data. As illustrated
+in Fig. 1, the deployed model should be able to generalize
+to unseen domains without any updating or fine-tuning.
+
+

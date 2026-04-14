@@ -1,0 +1,158 @@
+Distilling Causal Effect of Data in Class-Incremental Learning
+Xinting Hu1 ,
+
+Kaihua Tang1 ,
+1
+
+Chunyan Miao1 ,
+
+Nanyang Technological University,
+
+xinting001@e.ntu.edu.sg,
+ascymiao@ntu.edu.sg,
+
+2
+
+Xian-Sheng Hua2 ,
+
+Hanwang Zhang1
+
+Damo Academy, Alibaba Group
+
+kaihua001@e.ntu.edu.sg,
+
+xiansheng.hxs@alibaba-inc.com,
+
+hanwangzhang@ntu.edu.sg
+
+Abstract
+stripe
+
+We propose a causal framework to explain the catastrophic forgetting in Class-Incremental Learning (CIL) and
+then derive a novel distillation method that is orthogonal
+to the existing anti-forgetting techniques, such as data replay and feature/label distillation. We first 1) place CIL
+into the framework, 2) answer why the forgetting happens:
+the causal effect of the old data is lost in new training, and
+then 3) explain how the existing techniques mitigate it: they
+bring the causal effect back. Based on the causal framework, we propose to distill the Colliding Effect between
+the old and the new data, which is fundamentally equivalent to the causal effect of data replay, but without any cost
+of replay storage. Thanks to the causal effect analysis, we
+can further capture the Incremental Momentum Effect of the
+data stream, removing which can help to retain the old effect overwhelmed by the new data effect, and thus alleviate
+the forgetting of the old class in testing. Extensive experiments on three CIL benchmarks: CIFAR-100, ImageNetSub&Full, show that the proposed causal effect distillation
+can improve various state-of-the-art CIL methods by a large
+margin (0.72%–9.06%). 1
+
+1. Introduction
+Any learning systems are expected to be adaptive to the
+ever-changing environment. In most practical scenarios, the
+training data are streamed and thus the systems cannot store
+all the learning history: for animate systems, the neurons
+are genetically designed to forget old stimuli to save energy [6, 34]; for machines, old data and parameters are discarded due to limited storage, computational power, and
+bandwidth [28, 44, 50]. In particular, a practical learning
+task as Class-Incremental Learning1 (CIL) [1, 13, 35, 47]
+is studied, where each incremental data batch consists of
+new samples and their corresponding new class labels. The
+1 Code is available at https://github.com/JoyHuYY1412/
+DDE_CIL
+1 There are also other settings like task-incremental [14, 26].
+
+Data
+
+long-ear
+
+Data
+
+furry
+
+Feature
+
+feather
+
+Feature
+
+zebra
+
+dog
+
+Label
+
+hare robin zebra
+
+Label
+
+(a) Forgetting in Class-Incremental Learning
+
+stripe
+
+Data
+
+replay
+
+Data
+
+furry
+
+Feature
+
+zebra
+
+dog
+
+Label
+distill
+
+distill
+
+stripe
+
+furry
+
+zebra
+
+dog
+
+long-ear
+
+feather
+
+hare
+
+robin
+
+Feature
+
+Label
+
+(b) Anti-Forgetting in Class-Incremental Learning
+
+𝑡
+
+𝑡+1
+
+𝑡
+𝑡+1
+
+Figure 1: Forgetting and existing anti-forgetting solutions in
+Class-Incremental Learning at step t and t + 1. (a): Forgetting happens when the features are overridden by the t + 1
+step training only on the new data. (b): The key to mitigate
+forgetting is to impose data, feature, and label effects from
+step t on step t + 1.
+key challenge of CIL is that discarding old data is especially catastrophic for deep-learning models, as they are in
+the data-driven and end-to-end representation learning nature. The network parameters tuned by the old data will be
+overridden by the SGD optimizer using new data [11, 33],
+causing a drastic performance drop — catastrophic forgetting [36, 10, 28] — on the old classes.
+We illustrate how CIL forgets old classes in Figure 1 (a).
+At step t, the model learns to classify “dog” and “zebra”;
+at the next step t+1, it updates with new classes “hare” and
+“robin”. If we fine-tune the model only on the new data, old
+features like “stripe” and “furry” will be inevitably overridden by new features like “long-ear” and “feather”, which
+are discriminative enough for the new classes. Therefore,
+the new model will lose the discriminative power — forget
+— about the old classes (e.g., the red “zebra” at step t + 1).
+To mitigate the forgetting, as illustrated in Figure 1
+(b), existing efforts follow the three lines: 1) data replay [35, 13, 25], 2) feature distillation [13, 9], and 3) la-
+
+3957
+
+

@@ -1,0 +1,112 @@
+FAPIS: A Few-shot Anchor-free Part-based Instance Segmenter
+Khoi Nguyen and Sinisa Todorovic
+Oregon State University
+Corvallis, OR 97330, USA
+{nguyenkh,sinisa}@oregonstate.edu
+
+Abstract
+This paper is about few-shot instance segmentation,
+where training and test image sets do not share the same
+object classes. We specify and evaluate a new few-shot
+anchor-free part-based instance segmenter (FAPIS). Our
+key novelty is in explicit modeling of latent object parts
+shared across training object classes, which is expected to
+facilitate our few-shot learning on new classes in testing.
+We specify a new anchor-free object detector aimed at scoring and regressing locations of foreground bounding boxes,
+as well as estimating relative importance of latent parts
+within each box. Also, we specify a new network for delineating and weighting latent parts for the final instance segmentation within every detected bounding box. Our evaluation on the benchmark COCO-20i dataset demonstrates
+that we significantly outperform the state of the art.
+
+1. Introduction
+This paper addresses the problem of few-shot instance
+segmentation. In training, we are given many pairs of support and query images showing instances of a target object
+class, and the goal is to produce a correct instance segmentation of the query given access to the ground-truth instance
+segmentation masks of the supports. In testing, we are given
+only one or a very few support images with their groundtruth instance segmentation masks, and a query image in
+which we are supposed to segment all instances of the target class. Importantly, the training and test image sets do
+not share the same object classes. Few-shot instance segmentation is a basic vision problem. It appears in many
+applications where providing manual segmentations of all
+object instances is prohibitively expensive. The key challenge is how to conduct a reliable training on small data.
+Fig. 1 illustrates a common framework for few-shot instance segmentation that typically leverages Mask-RCNN
+[12, 43, 29]. First, the support and query images are input to a backbone CNN and feature pyramid network (FPN)
+[23] for computing the support’s and query’s feature maps.
+
+Feature Extraction
+
+For each 𝑃$ , 𝑖 = 3 … 7
+Channel-wise
+multiplication
+
+Query multi-level Support multi-level
+feature maps
+feature maps
+𝑃&
+
+𝑃&
+
+o
+o
+o
+
+o
+o
+o
+
+𝑃%
+
+𝑃%
+
+Query
+feature map 𝐹!
+
+*
+
+Masked
+avg. pool
+
+Support image 𝑥"
+
+Mask R-CNN
+
+Support
+feature map 𝐹"
+
+Backbone + FPN
+
+Query image 𝑥!
+
+Conditional
+feature map 𝐹!#
+
+Replaced by
+our method
+
+Support feature
+vector 𝑓"
+
+Query mask 𝑚!
+
+Support mask 𝑚"
+
+Figure 1. A common framework of prior work. The query and
+support image(s) are input to a backbone CNN with feature pyramid network (FPN) to extract the feature maps. The support’s
+features modulate the query’s features by channel-wise multiplication, resulting in the conditional query features, which are then
+input to Mask-RCNN for instance segmentation of the query. Our
+approach replaces Mask-RCNN with two new modules for anchorfree object detection, and part-based instance segmentation.
+
+Second, for every feature map and every support’s segmentation mask, the masked average pooling computes the
+support’s feature vector. Third, the support’s feature vector is used to modulate the query’s feature maps through
+a channel-wise multiplication, resulting in the conditional
+query feature maps. Finally, the conditional query features
+are forwarded to the remaining modules of Mask-RCNN to
+produce instance segmentation of the query.
+This framework has limitations. First, Mask-RCNN is
+anchor-based, and hence might overfit to particular sizes
+and aspect ratios of training objects, which do not characterize new classes in testing. Second, the Mask-RCNN learns
+feature prototypes [12] which are correlated with the feature map from the backbone in order to produce object segmentation. However, the prototypes typically capture global
+outlines of objects seen in training [12], and hence may not
+be suitable for segmenting new object classes with entirely
+
+11099
+
+

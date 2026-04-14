@@ -1,0 +1,66 @@
+Regularizing Activation Distribution for Training Binarized Deep Networks
+Ruizhou Ding, Ting-Wu Chin, Zeye Liu, Diana Marculescu
+Carnegie Mellon University
+{rding, tingwuc, zeyel, dianam}@andrew.cmu.edu
+
+Abstract
+Binarized Neural Networks (BNNs) can significantly
+reduce the inference latency and energy consumption in
+resource-constrained devices due to their pure-logical computation and fewer memory accesses. However, training
+BNNs is difficult since the activation flow encounters degeneration, saturation, and gradient mismatch problems.
+Prior work alleviates these issues by increasing activation
+bits and adding floating-point scaling factors, thereby sacrificing BNN’s energy efficiency. In this paper, we propose
+to use distribution loss to explicitly regularize the activation
+flow, and develop a framework to systematically formulate
+the loss. Our experiments show that the distribution loss
+can consistently improve the accuracy of BNNs without losing their energy benefits. Moreover, equipped with the proposed regularization, BNN training is shown to be robust to
+the selection of hyper-parameters including optimizer and
+learning rate.
+
+1. Introduction
+Recent years have witnessed tremendous success of
+Deep Neural Networks (DNNs) in various applications of
+image, video, speech, natural language, etc [16, 31]. However, the increased computation workload and memory access count required by DNNs pose a burden on latencysensitive applications and energy-limited devices. Since latency and energy consumption are highly related to computation cost and memory access count, there has been
+a lot of research on reducing these two important design metrics [11, 41, 18, 6]. Binarized Neural Networks
+(BNNs) [22] that constrain the network weights and activations to be ±1 have been proven highly efficient on custom hardware [51]. We also show later in Sec. 3.1 that a
+typical block of a BNN can be implemented in hardware
+with merely a few logical operators including XNOR gates,
+counters and comparators, and therefore greatly reduce the
+energy consumption and circuit area, as shown in Table 1.
+In addition to the computational benefit brought by making the whole network binarized, another benefit of BNNs
+
+BinConv
+
+BN
+
+Activation
+Forward: 𝐒𝐢𝐠𝐧 𝒙
+Backward: 𝐇𝐚𝐫𝐝𝐓𝐚𝐧𝐡 𝒙 = 𝐦𝐢𝐧(𝐦𝐚𝐱 𝒙, −𝟏 , 𝟏)
+
+Pre-activation distribution
+
+Degeneration
+
+Saturation
+
+Gradient mismatch
+
+Causes difficulty in training
+
+Figure 1: The basic Conv-BN-Act structure for BNN (BinConv: binary convolution; BN: batch normalization). The
+pre-activation distribution may exhibit from degeneration,
+saturation or gradient mismatch problem that causes difficulty in training.
+
+is the huge reduction of memory footprint due to their 1bit weights and activations. Prior work on extremely lowbit DNNs [9, 12, 28, 4, 46, 10] mainly focuses on fewbit weights and uses more bits for activations, while only
+a few [22, 29] target 1-bit weights and activations. However, reading and writing intermediate results (activations)
+generate a larger memory footprint than the weights [35].
+For example, in the inference phase of a full-precision (32bit) AlexNet with batch size 32, 92.7% of the memory footprint is caused by activations, while only 7.3% is caused by
+weights [35]. Therefore, the memory footprint of BNNs is
+significantly reduced due to their binary activations.
+However, training accurate BNNs requires careful hyperparameter selection [1], which makes the process more difficult than for their full-precision counterparts. Prior work
+has shown that this difficulty arises from the bounded activation function and the gradient approximation of the
+non-differentiable quantization function [4]. Even for fullprecision DNNs, bounded activation functions (e.g., Sigmoid or Tanh) usually lead to lower accuracy compared to
+the unbounded ones (e.g., ReLU, leaky ReLU, or SELU)
+111408
+
+

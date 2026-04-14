@@ -1,0 +1,69 @@
+Large-Scale Distributed Second-Order Optimization Using Kronecker-Factored
+Approximate Curvature for Deep Convolutional Neural Networks
+Kazuki Osawa1 Yohei Tsuji1,5 Yuichiro Ueno1 Akira Naruse3 Rio Yokota2,5 Satoshi Matsuoka4,1
+1
+
+2
+
+School of Computing, Tokyo Institute of Technology
+Global Scientific Information and Computing Center, Tokyo Institute of Technology
+3
+NVIDIA
+4
+RIKEN Center for Computational Science
+5
+AIST-Tokyo Tech RWBC-OIL, AIST
+{oosawa.k.ad, tsuji.y.ae, ueno.y.ai}@m.titech.ac.jp
+anaruse@nvidia.com, rioyokota@gsic.titech.ac.jp, matsu@is.titech.ac.jp
+
+Abstract
+Large-scale distributed training of deep neural networks
+suffer from the generalization gap caused by the increase
+in the effective mini-batch size. Previous approaches try to
+solve this problem by varying the learning rate and batch
+size over epochs and layers, or some ad hoc modification of the batch normalization. We propose an alternative approach using a second-order optimization method
+that shows similar generalization capability to first-order
+methods, but converges faster and can handle larger minibatches. To test our method on a benchmark where highly
+optimized first-order methods are available as references,
+we train ResNet-50 on ImageNet. We converged to 75%
+Top-1 validation accuracy in 35 epochs for mini-batch sizes
+under 16,384, and achieved 75% even with a mini-batch
+size of 131,072, which took only 978 iterations.
+
+1. Introduction
+As the size of deep neural network models and the training data continues to increase rapidly, the demand for distributed parallel computing is increasing. A common approach is to use the data-parallel approach, where the data
+is distributed across different processes while the model is
+replicated across them. When the mini-batch size per process is fixed to increase the ratio of computation over communication, the effective mini-batch size over the entire system grows proportional to the number of processes.
+When the mini-batch size is increased beyond a certain
+point, the validation accuracy starts to degrade. This generalization gap caused by large mini-batch sizes have been
+
+studied extensively for various models and datasets [23].
+Hoffer et al. attribute this generalization gap to the limited
+number of updates, and suggest to train longer [13]. This
+has lead to strategies such as scaling the learning rate proportional to the mini-batch size, while using the first few
+epochs to gradually warmup the learning rate [24]. Such
+methods have enabled the training for mini-batch sizes of
+8K, where ImageNet [7] with ResNet-50 [12] could be
+trained for 90 epochs to achieve 76.3% top-1 validation
+accuracy in 60 minutes [9]. Combining this learning rate
+scaling with other techniques such as RMSprop warm-up,
+batch normalization without moving averages, and a slowstart learning rate schedule, Akiba et al. were able to train
+the same dataset and model with a mini-batch size of 32K
+to achieve 74.9% accuracy in 15 minutes [3].
+More complex approaches for manipulating the learning
+rate were proposed, such as LARS [29], where a different
+learning rate is used for each layer by normalizing them
+with the ratio between the layer-wise norms of the weights
+and gradients. This enabled the training with a mini-batch
+size of 32K without the use of ad hoc modifications, which
+achieved 74.9% accuracy in 14 minutes (64 epochs) [29].
+It has been reported that combining LARS with counter intuitive modifications to the batch normalization, can yield
+75.8% accuracy even for a mini-batch size of 65K [15].
+The use of small batch sizes to encourage rapid convergence in early epochs, and then progressively increasing the
+batch size is yet another successful approach [8, 24]. Using
+such an adaptive batch size method, Mikami et al. were able
+to train 122 seconds with an accuracy of 75.3%. The hierarchical synchronization of mini-batches have also been proposed [18], but such methods have not been tested at scale
+
+12359
+
+

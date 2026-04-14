@@ -1,0 +1,62 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Post-training Quantization on Diffusion Models
+Yuzhang Shang1,4 ,* Zhihang Yuan2 ,* Bin Xie1 , Bingzhe Wu3 , Yan Yan1†
+1
+Illinois Institute of Technology, 2 Houmo AI, 3 Tencent AI Lab, 4 Cisco Research
+{yshang4, bxie9}@hawk.iit.edu, zhihang.yuan@huomo.ai
+yuzshang@cisco.com, bingzhewu@tencent.com, yyan34@iit.edu
+
+Abstract
+Denoising diffusion (score-based) generative models
+have recently achieved significant accomplishments in generating realistic and diverse data. Unfortunately, the generation process of current denoising diffusion models is notoriously slow due to the lengthy iterative noise estimations,
+which rely on cumbersome neural networks. It prevents
+the diffusion models from being widely deployed, especially
+on edge devices. Previous works accelerate the generation
+process of diffusion model (DM) via finding shorter yet effective sampling trajectories. However, they overlook the
+cost of noise estimation with a heavy network in every iteration. In this work, we accelerate generation from the perspective of compressing the noise estimation network. Due
+to the difficulty of retraining DMs, we exclude mainstream
+training-aware compression paradigms and introduce posttraining quantization (PTQ) into DM acceleration. However, the output distributions of noise estimation networks
+change with time-step, making previous PTQ methods fail
+in DMs since they are designed for single-time step scenarios. To devise a DM-specific PTQ method, we explore
+PTQ on DM in three aspects: quantized operations, calibration dataset, and calibration metric. We summarize and
+use several observations derived from all-inclusive investigations to formulate our method, which especially targets the unique multi-time-step structure of DMs. Experimentally, our method can directly quantize full-precision
+DMs into 8-bit models while maintaining or even improving their performance in a training-free manner. Importantly, our method can serve as a plug-and-play module on
+other fast-sampling methods, e.g., DDIM [24]. The code
+is available at https://https://github.com/
+42Shawn/PTQ4DM .
+
+1. Introduction
+Recently, denoising diffusion (also dubbed score-based)
+generative models [11, 38, 38, 40] have achieved phenome* Equal contribution. † Corresponding author.
+
+nal success in various generative tasks, such as images [11,
+24, 40], audio [21], video [35], and graphs [25]. Besides
+these fundamental tasks, their flexibility of implementation
+on downstream tasks is also attractive, e.g., they are effectively introduced for super-resolution [15, 28], inpainting [15, 40], and image-to-image translation [30]. Diffusion models (DMs) have achieved superior performances on
+most of these tasks and applications, both concerning quality and diversity, compared with historically SoTA Generative Adversarial Networks (GANs) [9].
+A diffusion process transforms real data gradually into
+Gaussian noise, and then the process is reversed to generate
+real data from Gaussian noise (denoising process) [11, 43].
+Particularly, the denoising process requires iterating the
+noise estimation (also known as a score function [40])
+via a cumbersome neural network over thousands of timesteps. While it has a compelling quantity of images, its
+long iterative process and high inference cost for generating samples make it undesirable. Thus, increasing the
+speed of this generation process is now an active area of research [2, 4, 18, 24, 29, 40]. To accelerate diffusion models,
+researchers propose several approaches, which mainly focus on sample trajectory learning for faster sampling strategies. For example, Chen et al. [4] and San-Roman et al. [29]
+propose faster step size schedules for VP diffusions that
+still yield relatively good quality/diversity metrics; Song et
+al. [37] adopt implicit phases in the denoising process; Bao
+et al. [2] and Lu et al. [18] derive analytical approximations
+to simplify the generation process.
+Our study suggests that two orthogonal factors slow
+down the denoising process: i) lengthy iterations for sampling images from noise, and ii) a cumbersome network for
+estimating noise in each iteration. Previously DM acceleration methods only focus on the former [2, 4, 18, 24, 29, 40],
+but overlook the latter. From the perspective of network
+compression, many popular network quantization and pruning methods follow a simple pipeline: training the original model and then fine-tuning the quantized/pruned compressed model [17, 31]. Particularly, this training-aware
+compression pipeline requires a full training dataset and
+many computation resources to perform end-to-end back11972
+
+

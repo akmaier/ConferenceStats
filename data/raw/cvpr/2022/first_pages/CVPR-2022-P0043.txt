@@ -1,0 +1,95 @@
+Comparing Correspondences: Video Prediction with Correspondence-wise Losses
+Daniel Geng
+
+Max Hamilton
+
+Andrew Owens
+
+University of Michigan
+
+Abstract
+Image prediction methods often struggle on tasks that
+require changing the positions of objects, such as video
+prediction, producing blurry images that average over the
+many positions that objects might occupy. In this paper, we
+propose a simple change to existing image similarity metrics that makes them more robust to positional errors: we
+match the images using optical flow, then measure the visual similarity of corresponding pixels. This change leads
+to crisper and more perceptually accurate predictions, and
+does not require modifications to the image prediction network. We apply our method to a variety of video prediction tasks, where it obtains strong performance with simple network architectures, and to the closely related task
+of video interpolation. Code and results are available
+at our webpage: https://dangeng.github.io/
+CorrWiseLosses
+
+Input video
+
+Next frame
+
+p
+
+F(p)
+
+<latexit sha1_base64="fbBRzyvlVERHrpCKX5Vhn3Z1Ud0=">AAAB+XicdVDLSgNBEJz1GeMr6tHLYBA8LbsqJrkFvXhMwDwgWcLspDcZMjO7zMwKYckXeNUP8CZe/RrP/oiTh6BRCxqKqm66u8KEM208791ZWV1b39jMbeW3d3b39gsHh00dp4pCg8Y8Vu2QaOBMQsMww6GdKCAi5NAKRzdTv3UPSrNY3plxAoEgA8kiRomxUj3pFYqeW6lceaUy/k1815uhiBao9Qof3X5MUwHSUE607vheYoKMKMMoh0m+m2pICB2RAXQslUSADrLZoRN8apU+jmJlSxo8U79PZERoPRah7RTEDPWyNxX/9MJQLK02UTnImExSA5LON0cpxybG0xhwnymgho8tIVQxezymQ6IINTasvE3l63X8P2meu/6F69Uvi9XrRT45dIxO0BnyUQlV0S2qoQaiCNADekRPTuY8Oy/O67x1xVnMHKEfcN4+AXjElHk=</latexit>
+
+<latexit sha1_base64="gjzffuLO4mvaEVjlWJOsq4bTwWU=">AAACBnicdVDLSgMxFL3js9ZX1aWbYBHqZpiq2HZXFMRlBfuAdiyZNNOGZjJDkhHK0L2f4FY/wJ249Tdc+yNm2gpa9UDgcM693JPjRZwp7Tjv1sLi0vLKamYtu76xubWd29ltqDCWhNZJyEPZ8rCinAla10xz2ookxYHHadMbXqR+845KxUJxo0cRdQPcF8xnBGsj3XYCrAcE8+RyXIiOurm8Y1cqZ06pjH6Tou1MkIcZat3cR6cXkjigQhOOlWoXnUi7CZaaEU7H2U6saITJEPdp21CBA6rcZJJ6jA6N0kN+KM0TGk3U7xsJDpQaBZ6ZTFOqeS8V//Q8L5g7rf2ymzARxZoKMr3sxxzpEKWdoB6TlGg+MgQTyUx4RAZYYqJNc1nTytfX0f+kcWwXT2zn+jRfPZ/1k4F9OIACFKEEVbiCGtSBgIQHeIQn6956tl6s1+nogjXb2YMfsN4+AQowmcA=</latexit>
+
+1. Introduction
+Recent years have seen major advances in image prediction [6, 11, 38, 46, 71], yet these methods often struggle to
+successfully alter image structure. Consequently, tasks that
+involve modifying the positions or shapes of objects, such
+as video prediction and the closely related problem of video
+interpolation, remain challenging open problems.
+Often, there is fundamental uncertainty over where exactly an object should be. When this happens, models tend
+to produce blurry results. This undesirable behavior is often
+encouraged by the loss function. Under simple pixel-wise
+loss functions, such as the L1 distance, each incorrectly positioned pixel is compared to a pixel that belongs to a different object, thereby incurring a large penalty. Models trained
+using these losses therefore ªhedgeº by averaging over all
+of the possible positions an object might occupy, resulting
+in images with significantly lower loss.
+We take inspiration from classic image matching methods, such as Hausdorff matching [4, 36] and deformable
+parts models [21, 22, 26], that address this problem by allowing input images to undergo small spatial deformations
+before comparison. Before measuring the similarity of an
+
+Predicted next frame
+<latexit sha1_base64="8RNdHXhuLOYc7QwglVBOFVcZNPM=">AAACBnicbVDLSsNAFJ3UV62vqEsRBluhgpSkC3VZdOPCRQX7gCaUyWTSDp1M4sxEKKErN/6KGxeKuPUb3Pk3TtIutPXAMIdz7uXee7yYUaks69soLC2vrK4V10sbm1vbO+buXltGicCkhSMWia6HJGGUk5aiipFuLAgKPUY63ugq8zsPREga8Ts1jokbogGnAcVIaalvHlagEyI1xIilN5Oqc58g/xTm3wms9M2yVbNywEViz0gZzNDsm1+OH+EkJFxhhqTs2Vas3BQJRTEjk5KTSBIjPEID0tOUo5BIN83PmMBjrfgwiIR+XMFc/d2RolDKcejpymxlOe9l4n9eL1HBhZtSHieKcDwdFCQMqghmmUCfCoIVG2uCsKB6V4iHSCCsdHIlHYI9f/Iiaddr9lnNvq2XG5ezOIrgAByBKrDBOWiAa9AELYDBI3gGr+DNeDJejHfjY1paMGY9++APjM8f7xSXfg==</latexit>
+
+<latexit sha1_base64="8RNdHXhuLOYc7QwglVBOFVcZNPM=">AAACBnicbVDLSsNAFJ3UV62vqEsRBluhgpSkC3VZdOPCRQX7gCaUyWTSDp1M4sxEKKErN/6KGxeKuPUb3Pk3TtIutPXAMIdz7uXee7yYUaks69soLC2vrK4V10sbm1vbO+buXltGicCkhSMWia6HJGGUk5aiipFuLAgKPUY63ugq8zsPREga8Ts1jokbogGnAcVIaalvHlagEyI1xIilN5Oqc58g/xTm3wms9M2yVbNywEViz0gZzNDsm1+OH+EkJFxhhqTs2Vas3BQJRTEjk5KTSBIjPEID0tOUo5BIN83PmMBjrfgwiIR+XMFc/d2RolDKcejpymxlOe9l4n9eL1HBhZtSHieKcDwdFCQMqghmmUCfCoIVG2uCsKB6V4iHSCCsdHIlHYI9f/Iiaddr9lnNvq2XG5ezOIrgAByBKrDBOWiAa9AELYDBI3gGr+DNeDJejHfjY1paMGY9++APjM8f7xSXfg==</latexit>
+
+L(
+
+,
+
+Traditional loss
+
+)
+
+<latexit sha1_base64="8RNdHXhuLOYc7QwglVBOFVcZNPM=">AAACBnicbVDLSsNAFJ3UV62vqEsRBluhgpSkC3VZdOPCRQX7gCaUyWTSDp1M4sxEKKErN/6KGxeKuPUb3Pk3TtIutPXAMIdz7uXee7yYUaks69soLC2vrK4V10sbm1vbO+buXltGicCkhSMWia6HJGGUk5aiipFuLAgKPUY63ugq8zsPREga8Ts1jokbogGnAcVIaalvHlagEyI1xIilN5Oqc58g/xTm3wms9M2yVbNywEViz0gZzNDsm1+OH+EkJFxhhqTs2Vas3BQJRTEjk5KTSBIjPEID0tOUo5BIN83PmMBjrfgwiIR+XMFc/d2RolDKcejpymxlOe9l4n9eL1HBhZtSHieKcDwdFCQMqghmmUCfCoIVG2uCsKB6V4iHSCCsdHIlHYI9f/Iiaddr9lnNvq2XG5ezOIrgAByBKrDBOWiAa9AELYDBI3gGr+DNeDJejHfjY1paMGY9++APjM8f7xSXfg==</latexit>
+
+<latexit sha1_base64="8RNdHXhuLOYc7QwglVBOFVcZNPM=">AAACBnicbVDLSsNAFJ3UV62vqEsRBluhgpSkC3VZdOPCRQX7gCaUyWTSDp1M4sxEKKErN/6KGxeKuPUb3Pk3TtIutPXAMIdz7uXee7yYUaks69soLC2vrK4V10sbm1vbO+buXltGicCkhSMWia6HJGGUk5aiipFuLAgKPUY63ugq8zsPREga8Ts1jokbogGnAcVIaalvHlagEyI1xIilN5Oqc58g/xTm3wms9M2yVbNywEViz0gZzNDsm1+OH+EkJFxhhqTs2Vas3BQJRTEjk5KTSBIjPEID0tOUo5BIN83PmMBjrfgwiIR+XMFc/d2RolDKcejpymxlOe9l4n9eL1HBhZtSHieKcDwdFCQMqghmmUCfCoIVG2uCsKB6V4iHSCCsdHIlHYI9f/Iiaddr9lnNvq2XG5ezOIrgAByBKrDBOWiAa9AELYDBI3gGr+DNeDJejHfjY1paMGY9++APjM8f7xSXfg==</latexit>
+
+L(
+
+,
+
+))
+
+Correspondence-wise loss
+
+Figure 1. Correspondence-wise losses. We propose a similarity metric that provides robustness to small positional errors, and
+apply it to image generation. We put the predicted and ground
+truth images into correspondence via optical flow, then measure
+the similarity between each pixel p and its matching pixel F(p).
+Our metric leads to crisp predictions; it penalizes blurry, hedged
+images, like the one shown here, since they cannot be easily put
+into correspondence with the ground truth.
+
+image and a template, these methods first geometrically
+align them, thereby obtaining robustness to small variations
+in position or shape.
+Analogously, we propose a simple change to existing
+losses that makes them more robust to small positional errors. When comparing two images, we put them into correspondence using optical flow, then measure the similarity
+between matching pairs of pixels. Comparisons between
+the images therefore occur between pixel correspondences,
+
+3365
+
+

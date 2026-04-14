@@ -1,0 +1,166 @@
+Rethinking Classification and Localization for Object Detection
+Yue Wu1 , Yinpeng Chen2 , Lu Yuan2 , Zicheng Liu2 , Lijuan Wang2 , Hongzhi Li2 and Yun Fu1
+1
+Northeastern University, 2 Microsoft
+{yuewu,yunfu}@ece.neu.edu, {yiche,luyuan,zliu,lijuanw,hongzhi.li}@microsoft.com
+
+Abstract
+RoIAlign
+7x7
+x256
+
+Two head structures (i.e. fully connected head and convolution head) have been widely used in R-CNN based detectors for classification and localization tasks. However,
+there is a lack of understanding of how does these two head
+structures work for these two tasks. To address this issue,
+we perform a thorough analysis and find an interesting fact
+that the two head structures have opposite preferences towards the two tasks. Specifically, the fully connected head
+(fc-head) is more suitable for the classification task, while
+the convolution head (conv-head) is more suitable for the localization task. Furthermore, we examine the output feature
+maps of both heads and find that fc-head has more spatial
+sensitivity than conv-head. Thus, fc-head has more capability to distinguish a complete object from part of an object,
+but is not robust to regress the whole object. Based upon
+these findings, we propose a Double-Head method, which
+has a fully connected head focusing on classification and
+a convolution head for bounding box regression. Without
+bells and whistles, our method gains +3.5 and +2.8 AP on
+MS COCO dataset from Feature Pyramid Network (FPN)
+baselines with ResNet-50 and ResNet-101 backbones, respectively.
+
+fc
+
+1024
+
+fc
+
+class
+box
+
+1024
+
+RoI
+FPN
+Feature Map
+
+(a) Single fully connected head
+
+RoIAlign conv
+conv
+avg
+7x7
+7x7
+7x7
+1024
+x1024
+x1024
+x256
+
+class
+box
+
+RoI
+FPN
+Feature Map
+
+(b) Single convolution head
+fc
+
+1024
+
+fc
+
+1024
+
+class
+
+RoIAlign
+7x7
+x256
+
+conv
+
+RoI
+FPN
+Feature Map
+
+7x7
+x1024
+
+conv
+
+avg
+7x7
+x1024
+
+1024
+
+box
+
+(c) Double-Head (ours)
+fc
+
+1024
+
+fc
+
+1024
+
+RoIAlign
+7x7
+x256
+RoI
+FPN
+Feature Map
+
+class
+box
+class
+
+conv
+
+7x7
+x1024
+
+conv
+
+avg
+7x7
+x1024
+
+1024
+
+class
+box
+
+(d) Double-Head-Ext (ours)
+
+1. Introduction
+Most two-stage object detectors [10, 11, 35, 4, 26] share
+a head for both classification and bounding box regression.
+Two different head structures are widely used. Faster RCNN [35] uses a convolution head (conv5) on a single level
+feature map (conv4), while FPN [26] uses a fully connected
+head (2-fc) on multiple level feature maps. However, there
+is a lack of understanding between the two head structures
+with respect to the two tasks (object classification and localization).
+In this paper, we perform a thorough comparison between the fully connected head (fc-head) and the convolution head (conv-head) on the two detection tasks, i.e. object
+classification and localization. We find that these two different head structures are complementary. fc-head is more
+
+Figure 1. Comparison between single head and double heads, (a)
+a single fully connected (2-fc) head, (b) a single convolution head,
+(c) Double-Head, which splits classification and localization on
+a fully connected head and a convolution head respectively, and
+(d) Double-Head-Ext, which extends Double-Head by introducing
+supervision from unfocused tasks during training and combining
+classification scores from both heads during inference.
+
+suitable for the classification task as its classification score
+is more correlated to the intersection over union (IoU) between a proposal and its corresponding ground truth box.
+Meanwhile, conv-head provides more accurate bounding
+box regression.
+We believe this is because fc-head is spatially sensitive,
+having different parameters for different parts of a proposal,
+while conv-head shares convolution kernels for all parts. To
+validate this, we examine the output feature maps of both
+
+10186
+
+

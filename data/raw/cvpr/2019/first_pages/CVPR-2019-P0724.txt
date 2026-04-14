@@ -1,0 +1,90 @@
+A Main/Subsidiary Network Framework for Simplifying Binary Neural Networks
+Yinghao Xu1∗
+
+Xin Dong2∗
+
+Yudian Li4
+
+Hao Su3
+
+1
+
+2
+Zhejiang University
+Harvard University
+3
+University of California, San Diego
+4
+University of Electronic Science and Technology of China
+1
+
+justimyhxu@zju.edu.cn
+
+2
+
+4
+
+xindong@g.harvard.edu
+
+Abstract
+To reduce memory footprint and run-time latency, techniques such as neural network pruning and binarization have
+been explored separately. However, it is unclear how to combine the best of the two worlds to get extremely small and
+efficient models. In this paper, we, for the first time, define the filter-level pruning problem for binary neural networks, which cannot be solved by simply migrating existing structural pruning methods for full-precision models. A
+novel learning-based approach is proposed to prune filters
+in our main/subsidiary network framework, where the main
+network is responsible for learning representative features
+to optimize the prediction performance, and the subsidiary
+component works as a filter selector on the main network.
+To avoid gradient mismatch when training the subsidiary
+component, we propose a layer-wise and bottom-up scheme.
+We also provide the theoretical and experimental comparison between our learning-based and greedy rule-based methods. Finally, we empirically demonstrate the effectiveness
+of our approach applied on several binary models, including binarized NIN, VGG-11, and ResNet-18, on various image classification datasets. For binary ResNet-18 on ImageNet, we use only 78.6% filters, achieving better test error
+49.87% (= 50.02% − 0.15%) than the original model.
+
+1. Introduction
+Deep neural networks (DNN), especially deep convolution neural networks (DCNN), have made remarkable strides
+during the last decade. From the first ImageNet Challenge
+winner network, AlexNet, to the more recent state-of-theart, ResNet, we observe that DNNs are growing substantially deeper and more complex. These modern deep neural networks have millions of weights, rendering them both
+memory-intensive and computationally expensive. To reduce
+the computational cost, the research into network acceleration
+
+daniellee2519@gmail.com
+
+3
+
+haosu@eng.ucsd.edu
+
+and compression emerges as an active field.
+A family of popular compression methods are the DNN
+pruning algorithms, which are not only efficient in both memory and speed, but also enjoy relatively simple procedure and
+intuition. This line of research is motivated by the theoretical analysis and empirical discovery that redundancy does
+exist in both human brains and several deep models [8, 9].
+We can categorize existing researches according to the level
+of the object, such as connection (weights)-level pruning,
+unit/channel/filter-level pruning, and layer-level pruning [30].
+Connection-level pruning is the most widely studied approach, which produces sparse networks whose weights are
+stored as sparse tensors. Although both the footprint memory and the I/O consumption are reduced [14], such methods
+are often not helpful towards the goal of computation acceleration unless specifically-designed hardware is leveraged.
+This is because the dimensions of the weight tensor remain
+unchanged, though many entries are zeroed-out. As a wellknown fact, the MAC operations on random structured sparse
+matrices are generally not too much faster than the dense
+ones of the same dimension. In contrast, structural pruning
+techniques [30], such as unit/channel/filter-level pruning, are
+more hardware-friendly, since they aim to produce tensors of
+reduced dimensions or having specific structures. Using these
+techniques, it is possible to achieve both computation acceleration and memory compression on general hardware and is
+common for deep learning frameworks.
+We consider the structural network pruning problem for a
+specific family of neural networks – binary neural networks.
+A binary neural network is a compressed network of a general
+deep neural network through the quantization strategy. Convolution operations in DCNN1 inherently involve matrix multiplication and accumulation (MAC). MAC operations become much more energy efficient if we use low-precision
+(1 bit or more) fixed-point number to approximate weights
+and activation functions (i.e., to quantify neurons) [4]. To
+1 Fully connected layers can be implemented as convolution. Therefore,
+in the rest of the paper, we mainly focus on convolutional layers.
+
+∗ Equal Contribution
+
+7154
+
+

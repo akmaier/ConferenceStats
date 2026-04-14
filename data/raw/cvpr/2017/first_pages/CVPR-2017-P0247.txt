@@ -1,0 +1,79 @@
+Fully Convolutional Instance-aware Semantic Segmentation
+Yi Li1,2∗
+Haozhi Qi2∗
+1
+Tsinghua University
+
+Jifeng Dai2
+Xiangyang Ji1
+2
+Microsoft Research Asia
+
+Yichen Wei2
+
+{liyi14,xyji}@tsinghua.edu.cn, {v-haoq,jifdai,yichenw}@microsoft.com
+
+Abstract
+We present the first fully convolutional end-to-end solution for instance-aware semantic segmentation task. It inherits all the merits of FCNs for semantic segmentation [29]
+and instance mask proposal [5]. It detects and segments
+the object instances jointly and simultanoulsy. By the introduction of position-senstive inside/outside score maps,
+the underlying convolutional representation is fully shared
+between the two sub-tasks, as well as between all regions
+of interest. The proposed network is highly integrated and
+achieves state-of-the-art performance in both accuracy and
+efficiency. It wins the COCO 2016 segmentation competition by a large margin. Code would be released at https:
+//github.com/daijifeng001/TA-FCN .
+
+1. Introduction
+Fully convolutional networks (FCNs) [29] have recently
+dominated the field of semantic image segmentation. An
+FCN takes an input image of arbitrary size, applies a series
+of convolutional layers, and produces per-pixel likelihood
+score maps for all semantic categories, as illustrated in Figure 1(a). Thanks to the simplicity, efficiency, and the local weight sharing property of convolution, FCNs provide
+an accurate, fast, and end-to-end solution for semantic segmentation.
+However, conventional FCNs do not work for the
+instance-aware semantic segmentation task, which requires
+the detection and segmentation of individual object instances. The limitation is inherent. Because convolution
+is translation invariant, the same image pixel receives the
+same responses (thus classification scores) irrespective to
+its relative position in the context. However, instance-aware
+semantic segmentation needs to operate on region level, and
+the same pixel can have different semantics in different regions. This behavior cannot be modeled by a single FCN on
+the whole image. The problem is exemplified in Figure 2.
+∗ Equal contribution. This work is done when Yi Li and Haozhi Qi are
+interns at Microsoft Research.
+
+Certain translation-variant property is required to solve
+the problem. In a prevalent family of instance-aware semantic segmentation approaches [7, 16, 8], it is achieved
+by adopting different types of sub-networks in three stages:
+1) an FCN is applied on the whole image to generate intermediate and shared feature maps; 2) from the shared
+feature maps, a pooling layer warps each region of interest (ROI) into fixed-size per-ROI feature maps [17, 12]; 3)
+one or more fully-connected (fc) layer(s) in the last network
+convert the per-ROI feature maps to per-ROI masks. Note
+that the translation-variant property is introduced in the fc
+layer(s) in the last step.
+Such methods have several drawbacks. First, the ROI
+pooling step losses spatial details due to feature warping and
+resizing, which however, is necessary to obtain a fixed-size
+representation (e.g., 14 × 14 in [8]) for fc layers. Such distortion and fixed-size representation degrades the segmentation accuracy, especially for large objects. Second, the fc
+layers over-parametrize the task, without using regularization of local weight sharing. For example, the last fc layer
+has high dimensional 784-way output to estimate a 28 × 28
+mask. Last, the per-ROI network computation in the last
+step is not shared among ROIs. As observed empirically, a
+considerably complex sub-network in the last step is necessary to obtain good accuracy [36, 9]. It is therefore slow for
+a large number of ROIs (typically hundreds or thousands of
+region proposals). For example, in the MNC method [8],
+which won the 1st place in COCO segmentation challenge
+2015 [25], 10 layers in the ResNet-101 model [18] are kept
+in the per-ROI sub-network. The approach takes 1.4 seconds per image, where more than 80% of the time is spent
+on the last per-ROI step. These drawbacks motivate us to
+ask the question that, can we exploit the merits of FCNs for
+end-to-end instance-aware semantic segmentation?
+Recently, a fully convolutional approach has been proposed for instance mask proposal generation [5]. It extends the translation invariant score maps in conventional
+FCNs to position-sensitive score maps, which are somewhat translation-variant. This is illustrated in Figure 1(b).
+The approach is only used for mask proposal generation
+and presents several drawbacks. It is blind to semantic cat-
+
+2359
+
+

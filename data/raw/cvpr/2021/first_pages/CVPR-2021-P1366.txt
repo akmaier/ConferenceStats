@@ -1,0 +1,103 @@
+PGT: A Progressive Method for Training Models on Long Videos
+Bo Pang∗ Gao Peng∗ Yizhuo Li Cewu Lu†
+Shanghai Jiao Tong University
+{pangbo, penggao, liyizhuo, lucewu}@sjtu.edu.cn
+task loss
+
+Abstract
+Convolutional video models have an order of magnitude larger computational complexity than their counterpart image-level models. Constrained by computational
+resources, there is no model or training method that can
+train long video sequences end-to-end. Currently, the mainstream method is to split a raw video into clips, leading to incomplete fragmentary temporal information ﬂow.
+Inspired by natural language processing techniques dealing with long sentences, we propose to treat videos as serial fragments satisfying Markov property, and train it as
+a whole by progressively propagating information through
+the temporal dimension in multiple steps. This progressive training (PGT) method is able to train long videos
+end-to-end with limited resources and ensures the effective transmission of information. As a general and robust
+training method, we empirically demonstrate that it yields
+signiﬁcant performance improvements on different models
+and datasets. As an illustrative example, the proposed
+method improves SlowOnly network by 3.7 mAP on Charades and 1.9 top-1 accuracy on Kinetics with negligible
+parameter and computation overhead. Code is available
+at: https://github.com/BoPang1996/PGT.
+
+1. Introduction
+Semantic information often ﬂows across a long time
+in videos. However, end-to-end modeling a long video
+as a whole is not feasible for current convolutional methods since their computational complexities linearly increase
+with the number of frames [51]. The main-stream solution
+is splitting a video into multiple short clips [59, 60, 6, 34],
+but in this way, video models can only access local fragmentary temporal information, thus, fail to model long semantics [64, 51]. Is this trade-off between computational complexity and semantic integrity unavoidable, or might there
+be a speciﬁc training method tailored for video tasks that
+can model long semantics with acceptable complexity?
+The main cause of this problem is that 3D convolutional
+∗ Equal contribution.
+† Cewu Lu is the corresponding author, member of Qing Yuan Research
+Insitute, MoE Key Lab of Artiﬁcial Intelligence, AI Institute, CS department of Shanghai Jiao Tong University, and Qi Zhi Institute.
+
+original local
+convolution
+operator
+
+ଵ
+
+ଶ
+
+ଷ
+
+ଵ ൌ ሼ ଵ ǡ ଶ ǡ ǥ ǡ ୘ᇲ ሽ
+
+step 1
+
+task loss
+
+Markov
+convolution
+operator
+
+original local
+convolution
+operator
+
+tg
+
+୘ᇲ
+
+୘ᇲ ାଵ
+
+୘ᇲ ାଶ
+
+୘ᇲ ାଷ
+
+tg
+
+ଶ୘ᇲ
+
+ଶ ൌ ሼ ୘ᇲ ାଵ ǡ ୘ᇲ ାଶ ǡ ǥ ǡ ଶ୘ᇲ ሽ
+
+step 2
+
+Figure 1: Progressive training (PGT) treats videos as serial
+fragments and optimizes a CNN model with multiple progressive steps on long videos. The Markov convolutional
+operator designed to transfer temporal features among steps
+is adopted on the ﬁrst and last frames of each step, and the
+gradient is truncated between them. “tg” denotes truncating
+gradients. Fi is the ith video frame and Ip is the input of
+the pth progressive step containing multiple frames.
+models [53, 2, 54] treat a video signal I(x, y, t) as an integrated information block and have to process it as a whole.
+With the video growing longer, the information block becomes larger and the processing complexity increases to an
+infeasible point. Since in the temporal dimension the development of video semantics has high-order Markov property,
+violently splitting long videos and processing short clips
+with convolutions to model local features will hurt semantic integrity. For example, the model will never know an
+action of “pour milk” is making latte, unless it also sees the
+previous action of “grinding coffee beans”.
+To avoid the trade-off between computational complexity and semantic integrity — i.e., to end-to-end train a model
+on long videos with much lower complexity, in this paper, we propose the progressive training (PGT) method (see
+Fig. 1). Inspired by Truncated Back-Propagation through
+Time (TBPTT) [63] originally designed for recurrent neural networks to model long natural language sequences, the
+central idea of PGT is to 1) treat a video as serial fragments
+satisfying high-order Markov property instead of an integrated signal block, 2) disassemble the integrated forward
+and backward propagation into multiple serial portions like
+TBPTT (see §2), which doesn’t break the Markov dependency of the calculation ﬂow. Modeling a long video in
+
+11379
+
+

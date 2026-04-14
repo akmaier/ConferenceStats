@@ -1,0 +1,73 @@
+Cross-Iteration Batch Normalization
+Zhuliang Yao1, 2 *
+
+Yue Cao2
+Shuxin Zheng2
+Gao Huang1
+1
+2
+Tsinghua University
+Microsoft Research Asia
+
+{yzl17@mails.,gaohuang@}tsinghua.edu.cn
+
+Abstract
+A well-known issue of Batch Normalization is its significantly reduced effectiveness in the case of small mini-batch
+sizes. When a mini-batch contains few examples, the statistics upon which the normalization is defined cannot be reliably estimated from it during a training iteration. To address this problem, we present Cross-Iteration Batch Normalization (CBN), in which examples from multiple recent
+iterations are jointly utilized to enhance estimation quality. A challenge of computing statistics over multiple iterations is that the network activations from different iterations
+are not comparable to each other due to changes in network weights. We thus compensate for the network weight
+changes via a proposed technique based on Taylor polynomials, so that the statistics can be accurately estimated and
+batch normalization can be effectively applied. On object
+detection and image classification with small mini-batch
+sizes, CBN is found to outperform the original batch normalization and a direct calculation of statistics over previous iterations without the proposed compensation technique. Code is available at https://aka.ms/cbn.
+
+1. Introduction
+Batch Normalization (BN) [10] has played a significant
+role in the success of deep neural networks. It was introduced to address the issue of internal covariate shift, where
+the distribution of network activations changes during training iterations due to the updates of network parameters.
+This shift is commonly believed to be disruptive to network
+training, and BN alleviates this problem through normalization of the network activations by their mean and variance,
+computed over the examples within the mini-batch at each
+iteration. With this normalization, network training can be
+performed at much higher learning rates and with less sensitivity to weight initialization.
+In BN, it is assumed that the distribution statistics for the
+examples within each mini-batch reflect the statistics over
+* This work is done when Zhuliang Yao is an intern at Microsoft Research Asia. Correspondence to: Yue Cao (yuecao@microsoft.com).
+
+Stephen Lin2
+
+{yuecao,Shuxin.Zheng,stevelin}@microsoft.com
+
+the full training set. While this assumption is generally valid
+for large batch sizes, it breaks down in the small batch size
+regime [18, 31, 9], where noisy statistics computed from
+small sets of examples can lead to a dramatic drop in performance. This problem hinders the application of BN to
+memory-consuming tasks such as object detection [20, 3],
+semantic segmentation [15, 2] and action recognition [30],
+where batch sizes are limited due to memory constraints.
+Towards improving estimation of statistics in the small
+batch size regime, alternative normalizers have been proposed. Several of them, including Layer Normalization
+(LN) [1], Instance Normalization (IN) [28], and Group Normalization (GN) [31], compute the mean and variance over
+the channel dimension, independent of batch size. Different channel-wise normalization techniques, however, tend
+to be suitable for different tasks, depending on the set of
+channels involved. Although GN is designed for detection task, the slow inference speed limits its practical usage.
+On the other hand, synchronized BN (SyncBN) [18] yields
+consistent improvements by processing larger batch sizes
+across multiple GPUs. These gains in performance come at
+the cost of additional overhead needed for synchronization
+across the devices.
+A seldom explored direction for estimating better statistics is to compute them over the examples from multiple recent training iterations, instead of from only the current iteration as done in previous techniques. This can substantially
+enlarge the pool of data from which the mean and variance
+are obtained. However, there exists an obvious drawback
+to this approach, in that the activation values from different iterations are not comparable to each other due to the
+changes in network weights. As shown in Figure 1, directly
+calculating the statistics over multiple iterations, which we
+refer to as Naive CBN, results in lower accuracy.
+In this paper, we present a method that compensates for
+the network weight changes among iterations, so that examples from preceding iterations can be effectively used to
+improve batch normalization. Our method, called CrossIteration Batch Normalization (CBN), is motivated by the
+observation that network weights change gradually, instead of abruptly, between consecutive training iterations,
+
+12331
+
+

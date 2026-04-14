@@ -1,0 +1,75 @@
+Fast Fourier Color Constancy
+Jonathan T. Barron
+
+Yun-Ta Tsai
+
+barron@google.com
+
+yuntatsai@google.com
+
+Abstract
+We present Fast Fourier Color Constancy (FFCC), a
+color constancy algorithm which solves illuminant estimation by reducing it to a spatial localization task on a
+torus. By operating in the frequency domain, FFCC produces lower error rates than the previous state-of-the-art by
+13 − 20% while being 250 − 3000× faster. This unconventional approach introduces challenges regarding aliasing,
+directional statistics, and preconditioning, which we address. By producing a complete posterior distribution over
+illuminants instead of a single illuminant estimate, FFCC
+enables better training techniques, an effective temporal
+smoothing technique, and richer methods for error analysis. Our implementation of FFCC runs at ∼ 700 frames per
+second on a mobile device, allowing it to be used as an accurate, real-time, temporally-coherent automatic white balance algorithm.
+
+1. Intro
+A fundamental problem in computer vision is that of estimating the underlying world that resulted in some observed
+image [1, 5]. One subset of this problem is color constancy:
+estimating the color of the illuminant of the scene and the
+colors of the objects in the scene viewed under a white light.
+Despite its apparent simplicity, this problem has yielded a
+great deal of depth and challenge for both the human vision
+and computer vision communities [17, 22]. Color constancy
+is also a practical concern in the camera industry: producing a natural looking photograph without user intervention
+requires that the illuminant be automatically estimated and
+discounted, a process referred to as “auto white balance”
+among practitioners. Though there is a profound historical connection between color constancy and consumer photography (exemplified by Edwin Land, the inventor of both
+Retinex theory [26] and the Polaroid instant camera), “color
+constancy” and “white balance” have come to mean different things — color constancy aims to recover the veridical
+world behind an image, while white balance aims to give an
+image a pleasant appearance consistent with some aesthetic
+or cultural norm. But with the current ubiquity of learning-
+
+based techniques in computer vision, both problems reduce
+to just estimating the “best” illuminant from an image, and
+the question of whether that illuminant is objectively true
+or subjectively attractive is just a matter of the data used
+during training.
+Despite their accuracy, modern learning-based color
+constancy algorithms are not immediately suitable as practical white balance algorithms, as practical white balance
+has several requirements besides accuracy:
+Speed - An algorithm running in a camera’s viewfinder
+must run at 30 FPS on mobile hardware. But a camera’s
+compute budget is precious: demosaicing, face detection,
+auto exposure, etc, must also run simultaneously and in real
+time. Spending more than a small fraction (say, 5 − 10%)
+of a camera’s compute budget on white balance is impractical, suggesting that our speed requirement is closer to 1 − 5
+milliseconds per frame.
+Impoverished Input - Most color constancy algorithms are
+designed for full resolution, high bit-depth input images, but
+operating on such large images is challenging and costly in
+practice. To be fast, the algorithm must work well on the
+small, low bit-depth “preview” images (32 × 24 or 64 × 48
+pixels, 8-bit) which are usually computed by specialized
+camera hardware for this task.
+Uncertainty - In addition to the illuminant, the algorithm
+should produce some confidence measure or a complete
+posterior distribution over illuminants, thereby enabling
+convenient downstream integration with hand-engineered
+heuristics or external sources of information.
+Temporal Coherence - The algorithm should allow the estimated illuminant to be smoothed over time, to prevent
+color composition in videos from varying erratically.
+In this paper we present a novel color constancy algorithm, which we call “Fast Fourier Color Constancy”
+(FFCC). Viewed as a color constancy algorithm, FFCC is
+13 − 20% more accurate than the state of the art on standard benchmarks. Viewed as a prospective white balance algorithm, FFCC addresses our previously described requirements: Our technique is 250−3000× faster than the state of
+the art, and is capable of running at 1.44 milliseconds per
+frame on a standard consumer mobile platform using the
+thumbnail images already produced by that camera’s hard1886
+
+

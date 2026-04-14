@@ -1,0 +1,99 @@
+Structured Multi-Hashing for Model Compression
+Elad Eban∗
+Google Research.
+
+Yair Movshovitz-Attias∗
+Google Research.
+
+Hao Wu
+Google Research.
+
+Mark Sandler
+Google Research.
+
+elade@google.com
+
+yairmov@google.com
+
+haou@google.com
+
+sandler@google.com
+
+Andrew Poon
+Google Research.
+
+Yerlan Idelbayev†
+University of California, Merced.
+
+Miguel Á. Carreira-Perpiñán
+University of California, Merced.
+
+ayp@google.com
+
+yidelbayev@ucmerced.edu
+
+mcarreira-perpinan@ucmerced.edu
+
+Abstract
+Despite the success of deep neural networks (DNNs),
+state-of-the-art models are too large to deploy on lowresource devices or common server configurations in which
+multiple models are held in memory. Model compression
+methods address this limitation by reducing the memory
+footprint, latency, or energy consumption of a model with
+minimal impact on accuracy. We focus on the task of reducing the number of learnable variables in the model.
+In this work we combine ideas from weight hashing and
+dimensionality reductions resulting in a simple and powerful structured multi-hashing method based on matrix products that allows direct control of model size of any deep
+network and is trained end-to-end.
+We demonstrate the strength of our approach by compressing models from the ResNet, EfficientNet, and MobileNet architecture families. Our method allows us to drastically decrease the number of variables while maintaining
+high accuracy. For instance, by applying our approach to
+EfficentNet-B4 (16M parameters) we reduce it to the size
+of B0 (5M parameters), while gaining over 3% in accuracy
+over B0 baseline.
+On the commonly used benchmark CIFAR10 we reduce
+the ResNet32 model by 75% with no loss in quality, and are
+able to do a 10x compression while still achieving above
+90% accuracy.
+
+∗ The author contribute equally to this paper.
+Elad and Yair contributed equally to the paper. They jointly proposed
+the idea of structured-multi-hashing. Yair was the main contributor to the
+manuscript. Elad wrote most of the code and ran EfficentNet experiments.
+Hao contributed to coding and experiments. Yerlan ran CIFAR and ResNet
+experiments and simplified some aspects of the structured hashing. Miguel
+advised Yerlan on issues about optimization and deep net compression.
+Mark and Andrew helped with MobileNet, and ResNet experiments.
+† Work performed while at Google Research.
+
+1. Introduction
+The main factor driving the success of machine learning in recent years is the ability to build and train increasingly larger Deep Neural Networks (DNNs). This has been
+enabled by a combination of algorithmic advances such as
+ReLU activations [15, 34], Batch Normalization [23], and
+residual connections [17]; large training datasets [8]; and
+faster, specialized, hardware [25].
+Overwhelmingly, when given enough data, larger models show improvements in accuracy. However, this march
+upwards comes with a cost in terms of latency, energy, and
+memory consumption. For example, the popular Resnet101 model [17] has 44 Million parameters and requires
+150MB of storage; AmoebaNet-A [39] requires 469M parameters and 1800MB. The size of DNNs limits their deployment in devices with low resources such as mobile
+phones and wearables. On server side, multi-tenancy – the
+practice of serving multiple models from the same hardware
+accelerator – is also affected by the model size. Furthermore, during inference, layers deeper in the network can be
+heavily affected by the cost of loading the weights.
+From a scientific perspective, these models have many
+more parameters than the number of data points in the
+datasets they are trained on. This seems counter-intuitive as
+it seems to contradict learning-theory (e.g. VC dimension
+properties [45]), but has been widely recognized as critical
+property of DNNs [2, 10, 1]. One wonders: Do the parameters of a network live in a lower dimensional space?
+Can we restrict the model class in a way that models in it
+can be represented efficiently (e.g. have low Kolmogorov
+Complexity) without sacrificing accuracy? Can we find an
+intrinsic connection between the number of parameters of a
+model to its performance [29]?
+Note that low dimensionality assumptions are core in
+many CNN components. For example, convolutions are low
+dimensional linear maps and separable convolutions (i.e.
+depthwise followed by 1×1 convolutions) are based on de-
+
+11903
+
+

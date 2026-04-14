@@ -1,0 +1,74 @@
+Transformation-Grounded Image Generation Network
+for Novel 3D View Synthesis
+Eunbyung Park1 Jimei Yang2 Ersin Yumer2 Duygu Ceylan2 Alexander C. Berg1
+1 University of North Carolina at Chapel Hill
+2 Adobe Research
+eunbyung@cs.unc.edu
+
+{jimyang,yumer,ceylan}@adobe.com
+
+Abstract
+We present a transformation-grounded image generation
+network for novel 3D view synthesis from a single image.
+Our approach first explicitly infers the parts of the geometry
+visible both in the input and novel views and then casts the
+remaining synthesis problem as image completion. Specifically, we both predict a flow to move the pixels from the
+input to the novel view along with a novel visibility map
+that helps deal with occulsion/disocculsion. Next, conditioned on those intermediate results, we hallucinate (infer)
+parts of the object invisible in the input image. In addition
+to the new network structure, training with a combination
+of adversarial and perceptual loss results in a reduction in
+common artifacts of novel view synthesis such as distortions
+and holes, while successfully generating high frequency details and preserving visual aspects of the input image. We
+evaluate our approach on a wide range of synthetic and real
+examples. Both qualitative and quantitative results show
+our method achieves significantly better results compared
+to existing methods.
+
+1. Introduction
+We consider the problem of novel 3D view synthesis—
+given a single view of an object in an arbitrary pose, the
+goal is to synthesize an image of the object after a specified
+transformation of viewpoint. It has a variety of practical applications in computer vision, graphics, and robotics. As an
+image-based rendering technique [21], it allows placing a
+virtual object on a background with a desired pose or manipulating virtual objects in the scene [22]. Also, multiple
+generated 2D views form an efficient representation for 3D
+reconstruction [37]. In robotics, synthesized novel views
+give the robot a better understanding of unseen parts of the
+object through 3D reconstruction, which will be helpful for
+grasp planning [41].
+This problem is generally challenging due to unspecified
+input viewing angle and the ambiguities of 3D shape obProject page: http://www.cs.unc.edu/˜eunbyung/tvsn
+
+aberg@cs.unc.edu
+
+served in only a single view. In particular inferring the appearances of unobserved parts of the object that are not visible in the input view is necessary for novel view synthesis.
+Our approach attacks all of these challenges, but our contributions focus on the later aspect, dealing with disoccluded
+appearance in novel views and outputting highly-detailed
+synthetic images.
+Given the eventual approach we will take, using a carefully constructed deep network, we can consider related
+work on dense prediction with encoder-decoder methods to
+see what makes the structure of the novel 3D view synthesis
+problem different. In particular, there is a lack of pixel-topixel correspondences between the input and output view.
+This, combined with large chunks of missing data due to occlusion, makes novel view synthesis fundamentally different than other dense prediction or generation tasks that have
+shown promising results with deep networks [31, 7, 20]. Although the input and desired output views may have similar low-level image statistics, enforcing such constraints directly is difficult. For example, skip or residual connections,
+are not immediately applicable as the input and output have
+significantly different global shapes. Hence, previous 3D
+novel view synthesis approaches [49, 37] have not been able
+to match the visual quality of geometry-based methods that
+exploit strong correspondence.
+The geometry-based methods are an alternative to pure
+generation, and have been demonstrated in [17, 22, 34].
+Such approaches estimate the underlying 3D structure of
+the object and apply geometric transformation to pixels in
+the input (e.g. performing depth-estimation followed by
+3D transformation of each pixel [13]). When successful,
+geometric transformation approaches can very accurately
+transfer original colors, textures, and local features to corresponding new locations in the target view. However, such
+approaches are fundamentally unable to hallucinate where
+new parts are revealed due to disocclusion. Furthermore,
+even for the visible geometry precisely estimating the 3D
+shape or equivalently the precise pixel-to-pixel correspondence between input and synthesized view is still challenging and failures can result in distorted output images.
+13500
+
+

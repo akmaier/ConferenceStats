@@ -1,0 +1,133 @@
+End-to-End Dense Video Captioning with Masked Transformer
+Luowei Zhou∗
+University of Michigan
+
+Yingbo Zhou∗
+Salesforce Research
+
+Jason J. Corso
+University of Michigan
+
+luozhou@umich.edu
+
+yingbo.zhou@salesforce.com
+
+jjcorso@eecs.umich.edu
+
+Richard Socher
+Salesforce Research
+
+Caiming Xiong†
+Salesforce Research
+
+richard@socher.org
+
+cxiong@salesforce.com
+
+Abstract
+Dense video captioning aims to generate text descriptions for all events in an untrimmed video. This involves
+both detecting and describing events. Therefore, all previous methods on dense video captioning tackle this problem
+by building two models, i.e. an event proposal and a captioning model, for these two sub-problems. The models are
+either trained separately or in alternation. This prevents direct influence of the language description to the event proposal, which is important for generating accurate descriptions. To address this problem, we propose an end-to-end
+transformer model for dense video captioning. The encoder
+encodes the video into appropriate representations. The
+proposal decoder decodes from the encoding with different
+anchors to form video event proposals. The captioning decoder employs a masking network to restrict its attention to
+the proposal event over the encoding feature. This masking network converts the event proposal to a differentiable
+mask, which ensures the consistency between the proposal
+and captioning during training. In addition, our model employs a self-attention mechanism, which enables the use of
+efficient non-recurrent structure during encoding and leads
+to performance improvements. We demonstrate the effectiveness of this end-to-end model on ActivityNet Captions
+and YouCookII datasets, where we achieved 10.12 and 6.58
+METEOR score, respectively.
+
+1. Introduction
+Video has become an important source for humans to
+learn and acquire knowledge (e.g. video lectures, making
+sandwiches [20], changing tires [1]). Video content consumes high cognitive bandwidth, and thus is slow for humans to digest. Although the visual signal itself can some∗ Equal contribution
+† Corresponding author
+
+2
+wj+1
+
+Softmax
+
+{< s1 , e1 , p1 >, < s2 , e2 , p2 >, · · · }
+
+Proposal
+Decoder
+
+Linear
+Temporal Convolutional Networks
+
+X
+
+Video
+Encoder
+Stack
+
+Feed
+Forward
+
+Feed
+Forward
+
+Self-Attention Layer
+
+x2
+ӗ
+
+Feed
+Forward
+
+CNN
+
+CNN
+
+Masking
+
+Caption
+Decoder
+
+CNN
+
+Feed
+Forward
+Multi-head
+Attention
+Self-Attention
+Layer
+
+Emb
+
+position
+encoding
+
+2x
+ӗ
+
+position
+encoding
+
+wj2
+(shifted right)
+
+t
+
+Figure 1. Dense video captioning is to localize (temporal) events
+from a video, which are then described with natural language sentences. We leverage temporal convolutional networks and selfattention mechanisms for precise event proposal generation and
+captioning.
+
+times disambiguate certain semantics, one way to make
+video content more easily and rapidly understood by humans is to compress it in a way that retains the semantics. This is particularly important given the massive
+amount of video being produced everyday. Video summarization [41] is one way of doing this, but it loses the
+language components of the video, which are particularly
+important in instructional videos. Dense video captioning [19]—describing events in the video with descriptive
+natural language—is another way of achieving this compression while retaining the language components.
+Dense video captioning can be decomposed into two
+parts: event detection and event description. Existing methods tackle these two sub-problems using event proposal and
+captioning modules, and exploit two ways to combine them
+for dense video captioning. One way is to train the two
+18739
+
+

@@ -1,0 +1,92 @@
+Self-training with Noisy Student improves ImageNet classification
+Qizhe Xie∗ 1 , Minh-Thang Luong1 , Eduard Hovy2 , Quoc V. Le1
+1
+Google Research, Brain Team, 2 Carnegie Mellon University
+{qizhex, thangluong, qvl}@google.com, hovy@cmu.edu
+
+Abstract
+We present a simple self-training method that achieves
+88.4% top-1 accuracy on ImageNet, which is 2.0% better
+than the state-of-the-art model that requires 3.5B weakly labeled Instagram images. On robustness test sets, it improves
+ImageNet-A top-1 accuracy from 61.0% to 83.7%, reduces
+ImageNet-C mean corruption error from 45.7 to 28.3, and
+reduces ImageNet-P mean flip rate from 27.8 to 12.2.
+To achieve this result, we first train an EfficientNet model
+on labeled ImageNet images and use it as a teacher to generate pseudo labels on 300M unlabeled images. We then
+train a larger EfficientNet as a student model on the combination of labeled and pseudo labeled images. We iterate
+this process by putting back the student as the teacher. During the generation of the pseudo labels, the teacher is not
+noised so that the pseudo labels are as accurate as possible. However, during the learning of the student, we inject
+noise such as dropout, stochastic depth and data augmentation via RandAugment to the student so that the student
+generalizes better than the teacher. 1
+
+1. Introduction
+Deep learning has shown remarkable successes in image
+recognition in recent years [45, 79, 74, 30, 82]. However
+state-of-the-art (SOTA) vision models are still trained with
+supervised learning which requires a large corpus of labeled
+images to work well. By showing the models only labeled
+images, we limit ourselves from making use of unlabeled
+images available in much larger quantities to improve accuracy and robustness of SOTA models.
+Here we use unlabeled images to improve the SOTA ImageNet accuracy and show that the accuracy gain has an outsized impact on robustness (out-of-distribution generalization). For this purpose, we use a much larger corpus of un∗ This work was conducted at Google.
+1 Models are available at https://github.com/tensorflow/
+
+tpu/tree/master/models/official/efficientnet. Code
+is available at https://github.com/google-research/
+noisystudent.
+
+labeled images, where a large fraction of images do not belong to ImageNet training set distribution (i.e., they do not
+belong to any category in ImageNet). We train our model
+using the self-training framework [70] which has three main
+steps: 1) train a teacher model on labeled images, 2) use the
+teacher to generate pseudo labels on unlabeled images, and
+3) train a student model on the combination of labeled images and pseudo labeled images. We iterate this algorithm a
+few times by treating the student as a teacher to relabel the
+unlabeled data and training a new student.
+Our experiments show that an important element for this
+method to work well at scale is that the student model
+should be noised during its training while the teacher should
+not be noised during the generation of pseudo labels. This
+way, the pseudo labels are as accurate as possible, and the
+noised student is forced to learn harder from the pseudo labels. To noise the student, we use RandAugment data augmentation [18], dropout [75] and stochastic depth [37] during its training. We call the method NoisyStudent to emphasize the role that noise plays in the method and results.
+Using NoisyStudent, together with 300M unlabeled images, we improve EfficientNet’s [82] ImageNet top-1 accuracy to 88.4%. This accuracy is 2.0% better than the previous SOTA ImageNet accuracy which requires 3.5B weakly
+labeled Instagram images. Not only our method improves
+standard ImageNet accuracy, it also improves classification robustness on much harder test sets by large margins:
+ImageNet-A [32] top-1 accuracy from 61.0% to 83.7%,
+ImageNet-C [31] mean corruption error (mCE) from 45.7 to
+28.3 and ImageNet-P [31] mean flip rate (mFR) from 27.8
+to 12.2. Our main results are shown in Table 1.
+
+Prev. SOTA
+NoisyStudent
+
+ImageNet
+top-1 acc.
+
+ImageNet-A
+top-1 acc.
+
+ImageNet-C
+mCE
+
+ImageNet-P
+mFR
+
+86.4%
+88.4%
+
+61.0%
+83.7%
+
+45.7
+28.3
+
+27.8
+12.2
+
+Table 1: Summary of key results compared to previous
+state-of-the-art models [84, 55]. Lower is better for mean
+corruption error (mCE) and mean flip rate (mFR).
+
+110687
+
+

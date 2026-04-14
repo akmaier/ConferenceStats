@@ -1,0 +1,92 @@
+Compatibility-aware Heterogeneous Visual Search
+Rahul Duggal∗ Hao Zhou
+Shuo Yang Yuanjun Xiong
+†
+Wei Xia Zhuowen Tu
+Stefano Soatto
+AWS/Amazon AI
+rduggal7@gatech.edu
+
+{zhouho, shuoy, yuanjx, wxia, ztu, soattos}@amazon.com
+
+Abstract
+We tackle the problem of visual search under resource
+constraints. Existing systems use the same embedding
+model to compute representations (embeddings) for the
+query and gallery images. Such systems inherently face a
+hard accuracy-efficiency trade-off: the embedding model
+needs to be large enough to ensure high accuracy, yet
+small enough to enable query-embedding computation on
+resource-constrained platforms. This trade-off could be
+mitigated if gallery embeddings are generated from a large
+model and query embeddings are extracted using a compact model. The key to building such a system is to ensure
+representation compatibility between the query and gallery
+models. In this paper, we address two forms of compatibility: One enforced by modifying the parameters of each
+model that computes the embeddings. The other by modifying the architectures that compute the embeddings, leading
+to compatibility-aware neural architecture search (C MP NAS). We test C MP -NAS on challenging retrieval tasks
+for fashion images (DeepFashion2), and face images (IJBC). Compared to ordinary (homogeneous) visual search using the largest embedding model (paragon), C MP -NAS
+achieves 80-fold and 23-fold cost reduction while maintaining accuracy within 0.3% and 1.6% of the paragon on
+DeepFashion2 and IJB-C respectively.
+
+1. Introduction
+A visual search system in an “open universe” setting is
+often composed of a gallery model φg and a query model
+φq , both mapping an input image to a vector representation known as embedding. The gallery model φg is typically used to map a set of gallery images onto their embedding vectors, a process known as indexing, while the query
+∗ Currently at the Georgia Institute of Technology. Work conducted
+during an internship with Amazon AI.
+† Corresponding author
+
+Accuracy Efficiency
+Compatible √
+
+Gallery Set
+
+Model 𝜙!
+
+Homogeneous
+(𝜙! , 𝜙! )
+
+Embedding
+space of 𝜙!
+Compatible ?
+
+Heterogeneous
+(𝜙" , 𝜙! )
+
+Embedding
+space of 𝜙"
+
+Compatible √
+
+Query Image
+
+Model 𝜙"
+
+Homogeneous
+(𝜙" , 𝜙" )
+
+Figure 1: Homogeneous visual search uses the same embedding
+model, either large (orange) to meet performance specifications, or
+small (green) to meet cost constraints, forcing a dichotomy. Heterogeneous Visual Search (blue) uses a large model to compute
+embeddings for the gallery, and a small model for the query images. This allows high efficiency without sacrificing accuracy, provided that the green and orange embedding models are designed
+and trained to be compatible.
+
+model extracts embeddings from query images to perform
+search against the indexed gallery. Most existing visual
+search approaches [24, 26, 38, 2, 31] use the same model
+architecture for both φq and φg . We refer to this setup as
+homogeneous visual search. An approach that uses different model architectures for φq and φg is referred to as heterogeneous visual search (HVS).
+The use of the same φg = φq trivially ensures that
+gallery and query images are mapped to the same vector space where the search is conducted. However, this
+engenders a hard accuracy-efficiency trade-off (Fig. 1)—
+choosing a large architecture φg for both query and gallery
+achieves high-accuracy at a loss of efficiency; choosing a
+small architecture φq improves efficiency to the detriment
+of accuracy, which is compounded since in practice, indexing only happens sporadically while querying is performed
+continuously. This leads to efficiency being driven mainly
+by the query model. HVS allows the use of a small model
+φq for querying, and a large model φg for indexing, partly
+
+10723
+
+

@@ -1,0 +1,107 @@
+Align and Prompt: Video-and-Language Pre-training with Entity Prompts
+Dongxu Li1,2 , Junnan Li1 , Hongdong Li2 , Juan Carlos Niebles1 , Steven C.H. Hoi1
+1
+Salesforce Research, 2 The Australian National University
+dongxuli1005@gmail.com, {junnan.li,jniebles,shoi}@salesforce.com, hongdong.li@anu.edu.au
+
+Abstract
+Video-and-language pre-training has shown promising
+improvements on various downstream tasks. Most previous
+methods capture cross-modal interactions with a standard
+transformer-based multimodal encoder, not fully addressing the misalignment between unimodal video and text features. Besides, learning fine-grained visual-language alignment usually requires off-the-shelf object detectors to provide object information, which is bottlenecked by the detector’s limited vocabulary and expensive computation cost.
+In this paper, we propose Align and Prompt: a
+new video-and-language pre-training framework (A L P RO),
+which operates on sparsely-sampled video frames and
+achieves more effective cross-modal alignment without explicit object detectors. First, we introduce a video-text contrastive (VTC) loss to align unimodal video-text features at
+the instance level, which eases the modeling of cross-modal
+interactions. Then, we propose a novel visually-grounded
+pre-training task, prompting entity modeling (PEM), which
+learns fine-grained alignment between visual region and
+text entity via an entity prompter module in a self-supervised
+way. Finally, we pretrain the video-and-language transformer models on large webly-source video-text pairs using
+the proposed VTC and PEM losses as well as two standard
+losses of masked language modeling (MLM) and video-text
+matching (VTM). The resulting pre-trained model achieves
+state-of-the-art performance on both text-video retrieval
+and videoQA, outperforming prior work by a substantial
+margin. Implementation and pre-trained models are available at https://github.com/salesforce/ALPRO.
+
+1. Introduction
+Video-and-language pre-training aims to jointly learn
+multimodal representations that transfer effectively to
+downstream tasks, such as text-video retrieval and videoQAvideo question answering. Compared with images, videos
+usually contain more redundancy in consecutive frames.
+This challenges models on both capacity and computation
+efficiency. Most prior approaches [29, 34, 36, 38, 47, 56]
+circumvent the expensive computation overhead by using
+offline-extracted video features. Since the video feature ex-
+
+person
+dog
+
+object
+detector
+
+e.g. ActBERT
+random video crops
+prompter
+
+girl
+
+0.96
+
+sport 0.02
+
+video
+encoder
+similarity
+
+dog
+
+0.47
+
+pup
+
+0.44
+
+grass 0.61
+
+“A video of a {ENTITY}.”
+
+text
+encoder
+
+bush 0.32
+
+soft entity labels
+
+video
+encoder
+multimodal
+encoder
+
+“A cute girl walks a
+dog in the park.”
+
+text
+encoder
+
+ALPRO
+
+Figure 1. Generating supervision for region-entity alignment.
+Above: previous methods (e.g. ActBERT [56]) rely on object detectors with expensive computation cost and limited object categories, leaving text data unexploited. Below: A L P RO generates
+soft entity labels with a prompter module, which computes similarities between video crops and textual entity prompts. A L P RO requires no detector while taking advantage of video-text alignment
+to generate entity labels with a large vocabulary, thus strengthening the cross-modal learning.
+
+tractors are fixed without finetuning, these approaches are
+suboptimal when transferring to distinct target domains. In
+contrast, recent emerging approaches [3, 25] sample frames
+sparsely from videos, which enable end-to-end pre-training
+and finetuning of video backbones. In this work, we
+adopt the sparse video-text pre-training paradigm considering their effectiveness on downstream tasks.
+Despite their promising performance, current video-text
+pre-training models have several limitations. (1) The interaction between video and text features is commonly mod-
+
+4953
+
+

@@ -1,0 +1,107 @@
+A Multigrid Method for Efficiently Training Video Models
+Chao-Yuan Wu1,2
+Ross Girshick2
+Kaiming He2
+Christoph Feichtenhofer2
+Philipp Krähenbühl1
+The University of Texas at Austin
+Abstract
+Training competitive deep video models is an order of
+magnitude slower than training their counterpart image
+models. Slow training causes long research cycles, which
+hinders progress in video understanding research. Following standard practice for training image models, video
+model training has used a fixed mini-batch shape: a specific
+number of clips, frames, and spatial size. However, what is
+the optimal shape? High resolution models perform well,
+but train slowly. Low resolution models train faster, but are
+less accurate. Inspired by multigrid methods in numerical
+optimization, we propose to use variable mini-batch shapes
+with different spatial-temporal resolutions that are varied
+according to a schedule. The different shapes arise from
+resampling the training data on multiple sampling grids.
+Training is accelerated by scaling up the mini-batch size
+and learning rate when shrinking the other dimensions. We
+empirically demonstrate a general and robust grid schedule that yields a significant out-of-the-box training speedup
+without a loss in accuracy for different models (I3D, nonlocal, SlowFast), datasets (Kinetics, Something-Something,
+Charades), and training settings (with and without pretraining, 128 GPUs or 1 GPU). As an illustrative example,
+the proposed multigrid method trains a ResNet-50 SlowFast
+network 4.5× faster (wall-clock time, same hardware) while
+also improving accuracy (+0.8% absolute) on Kinetics-400
+compared to baseline training. Code is available online.1
+
+1. Introduction
+Training deep networks (CNNs [27]) on video is more
+computationally intensive than training 2D CNN image
+models, potentially by an order of magnitude. Long training
+time slows progress in video understanding research, hinders scaling out to real-world data sources, and consumes
+significant amounts of energy and hardware. Is this slow
+training unavoidable, or might there be video-specific optimization strategies that can accelerate training?
+3D CNN video models are trained using mini-batch optimization methods (e.g., SGD) that process one mini-batch
+
+2
+
+Facebook AI Research (FAIR)
+
+Validation top-1 accuracy
+
+1
+
+80
+
+Multigrid
+4.5× faster, 76.4%
+
+Baseline
+75.6%
+
+75
+
+70
+Multigrid training (ours)
+Baseline training
+65
+0
+
+5
+
+10
+
+15
+
+20
+
+25
+
+30
+
+Wall-clock training time in hours
+Figure 1. Training time vs. top-1 accuracy on Kinetics-400 with
+a ResNet-50 SlowFast network. Each point corresponds to a model
+trained for a specific number of epochs. Multigrid training, the
+method developed in this paper, obtains a significantly better tradeoff than baseline training. For example, under default settings,
+multigrid training is 4.5× faster while achieving higher (+0.8%
+absolute) top-1 accuracy. All methods here, and throughout the
+paper, use the same hardware and software implementation.
+
+per iteration. The mini-batch shape B×T ×H×W 2 (minibatch size × number of frames × height × width) is typically constant throughout training. A variety of considerations go into selecting this input shape, but a common
+heuristic is to make the T ×H×W dimensions large in order to improve accuracy, e.g., as observed in [9, 45, 47].
+This heuristic is only one possible choice, however, and
+in general there are trade-offs. For example, one may use
+a smaller number of frames and/or spatial size while simultaneously increasing the mini-batch size B. With such
+an exchange, it is possible to process the same number of
+epochs (passes over the dataset) with lower wall-clock time
+because each iteration processes more examples. The resulting trade-off is faster training with lower accuracy.
+The central idea of this paper is to avoid this trade-off—
+i.e., to have faster training without losing accuracy—by
+making the mini-batch shape variable during training. By
+viewing the input video clips in a mini-batch as raw video
+signals that are sampled on a sampling grid (to be defined),
+we can draw a connection to multigrid methods for numeri-
+
+1 github.com/facebookresearch/SlowFast/blob/master/projects/multigrid
+
+2 We omit the channel dimension (3 for RGB) for clarity.
+
+153
+
+

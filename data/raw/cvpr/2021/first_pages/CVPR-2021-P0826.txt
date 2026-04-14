@@ -1,0 +1,85 @@
+Gradient Forward-Propagation for Large-Scale Temporal Video Modelling
+Mateusz Malinowski∗
+DeepMind
+
+Dimitrios Vytiniotis
+DeepMind
+
+Grzegorz Świrszcz
+DeepMind
+
+Viorica Pătrăucean
+DeepMind
+
+João Carreira
+DeepMind
+
+Abstract
+How can neural networks be trained on large-volume
+temporal data efficiently? To compute the gradients required
+to update parameters, backpropagation blocks computations
+until the forward and backward passes are completed. For
+temporal signals, this introduces high latency and hinders
+real-time learning. It also creates a coupling between consecutive layers, which limits model parallelism and increases
+memory consumption. In this paper, we build upon Sideways, which avoids blocking by propagating approximate
+gradients forward in time, and we propose mechanisms for
+temporal integration of information based on different variants of skip connections. We also show how to decouple
+computation and delegate individual neural modules to different devices, allowing distributed and parallel training.
+The proposed Skip-Sideways achieves low latency training,
+model parallelism, and, importantly, is capable of extracting
+temporal features, leading to more stable training and improved performance on real-world action recognition video
+datasets such as HMDB51, UCF101, and the large-scale
+Kinetics-600. Finally, we also show that models trained with
+Skip-Sideways generate better future frames than Sideways
+models, and hence they can better utilize motion cues.
+
+1. Introduction
+Popular deep video models generally rely on spatiotemporal convolutional networks (3D CNNs) [12, 18, 52,
+55, 63] or recurrent networks [16, 24, 34] that are trained
+with backpropagation (BP) using stochastic gradient descent
+(SGD) [7, 19, 29, 33, 46, 57, 58, 60, 64]. This is a powerful
+training paradigm but also an expensive one as it needs to
+store all the activations in memory to compute Jacobian tensors for the gradient calculations. First, all the activations
+are computed in the forward mode, from the beginning to
+the end of the sequence. Next, gradients are computed in
+the reverse direction, from the end to the beginning. All that
+∗ The corresponding author: mateuszm@google.com
+
+severely limits the scale at which we can train temporal models on large-volume sequences such as videos. Therefore,
+typically these video models are trained on short video clips
+(about 2.5s at usual frame rate), in offline batch mode.
+Sideways [38] is a recent training technique for video
+models that decouples the computation along the depth of
+the network and introduces computation steps. As a new
+frame is fed into the processing pipeline, each layer independently updates the internal state of the network by computing
+new activations and gradients. Next, these are passed to the
+layers above and below in the next computation step (see
+Figure 1 left). Moreover, the information cannot be backpropagated to the same units that produced the activations
+as this happened in the past computation steps. One may
+say that “everything flows forward in time”, including the
+backward pass. Due to these properties, Sideways is more
+biologically plausible than the regular backprop, as it does
+not block the computation and respects the arrow of time.
+Although Sideways, as originally proposed, operates in
+a temporal forward fashion, it is not a temporal model per
+se, as it has access only to the present frame at each time
+step. This results in improved memory efficiency similar to
+single-frame models, making it suitable for real-time applications. However, this comes with the cost of not integrating
+information temporally, which limits the expressive power
+of the resulting models.
+In this work, we show that it is possible for models to
+process one frame at a time similar to Sideways, while still
+being able to extract temporal features. We do this by introducing shortcut (skip) connections in addition to direct
+connections between the layers of the model. We study the
+training dynamics of the resulting training procedure, which
+we call Skip-Sideways, and show that shortcut connections
+lead to more stable training and higher accuracy.
+Regular skip connections [21] alter the information flow
+along the data path of the network by allowing activations
+to ‘skip’ layers, creating data shortcuts. In the proposed
+Skip-Sideways, activations and gradients along the shortcut
+connections are also sent forward in time, effectively creating data paths across time, making it possible to extract
+
+9249
+
+

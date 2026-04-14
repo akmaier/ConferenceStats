@@ -1,0 +1,122 @@
+Class Re-Activation Maps for Weakly-Supervised Semantic Segmentation
+Zhaozheng Chen1 Tan Wang2 Xiongwei Wu1
+Xian-Sheng Hua3 Hanwang Zhang2 Qianru Sun1
+1
+
+Singapore Management University
+
+2
+
+Nanyang Technological University
+
+zzchen.2019@phdcs.smu.edu.sg
+
+{xwwu,qianrusun}@smu.edu.sg
+
+Val Accuracy
+
+Abstract
+
+1. Introduction
+Weakly-supervised semantic segmentation (WSSS) aims
+to lower the high cost in annotating “strong” pixel-level
+masks by using “weak” labels instead, such as scribbles [29, 36], bounding boxes [7, 35], and image-level class
+labels [1, 19, 27, 28, 42, 46]. The last one is the most economic yet challenging budget and thus is our focus in this
+paper. A common pipeline has three steps: 1) training a
+
+Damo Academy, Alibaba Group
+
+{tan317, hanwangzhang}@ntu.edu.sg
+
+xiansheng.hxs@alibaba-inc.com
+
+Extracting class activation maps (CAM) is arguably the
+most standard step of generating pseudo masks for weaklysupervised semantic segmentation (WSSS). Yet, we find that
+the crux of the unsatisfactory pseudo masks is the binary
+cross-entropy loss (BCE) widely used in CAM. Specifically,
+due to the sum-over-class pooling nature of BCE, each pixel
+in CAM may be responsive to multiple classes co-occurring
+in the same receptive field. As a result, given a class, its
+hot CAM pixels may wrongly invade the area belonging
+to other classes, or the non-hot ones may be actually a
+part of the class. To this end, we introduce an embarrassingly simple yet surprisingly effective method: Reactivating the converged CAM with BCE by using softmax crossentropy loss (SCE), dubbed ReCAM. Given an image, we
+use CAM to extract the feature pixels of each single class,
+and use them with the class label to learn another fullyconnected layer (after the backbone) with SCE. Once converged, we extract ReCAM in the same way as in CAM.
+Thanks to the contrastive nature of SCE, the pixel response
+is disentangled into different classes and hence less mask
+ambiguity is expected. The evaluation on both PASCAL
+VOC and MS COCO shows that ReCAM not only generates high-quality masks, but also supports plug-and-play in
+any CAM variant with little overhead. Our code is public at
+https://github.com/zhaozhengChen/ReCAM.
+
+3
+
+1
+
+BCE
+
+mIoU of CAM
+0.7
+
+SCE
+0.95
+
+0.6
+
+0.9
+
+0.5
+
+0.85
+
+0.4
+
+0.8
+
+Train Set
+
+Val Set
+
+9.2%
+
+8.8%
+
+5.9%
+
+4.7%
+
+0.3
+
+80‐class 5‐hoofed
+(a)
+
+80‐class 5‐hoofed
+
+80‐class 5‐hoofed
+
+(b)
+
+Figure 1. We train two models respectively using binary cross entropy (BCE) and softmax cross entropy (SCE) losses. Our train
+and val sets contain only single-label images of MS COCO [30].
+“80-class” model uses the complete label set. “5-hoofed” model
+is trained on only the samples of 5 hoofed animals each causing
+false positive flaws to another, e.g., between cow and horse.
+
+multi-label classification model with the image-level class
+labels; 2) extracting the class activation map (CAM) [51]
+of each class to generate a 0-1 mask, with potential refinement such as erosion and expansion [1, 23]; and 3) taking all-class masks as pseudo labels to learn the segmentation model in a standard fully-supervised fashion [5, 6, 41].
+There are different factors affecting the performance of the
+final segmentation model, but the classification model in the
+first step is definitely the root. We often observe two common flaws. In the CAM of an object class A, there are 1)
+false positive pixels that are activated for class A but have
+the actual label of class B, where B is usually a confusing class to A rather than background—a special class in
+semantic segmentation; and 2) false negative pixels that belong to class A but are wrongly labeled as background.
+Findings. We point out that these flaws are particularly obvious when the model is trained with the binary
+cross-entropy (BCE) loss with sigmoid activation function.
+x
+Specifically, the sigmoid function is exe+1 where x denotes
+the prediction logit of any individual class. The output is
+
+969
+
+

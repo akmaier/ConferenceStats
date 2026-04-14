@@ -1,0 +1,83 @@
+MaxpoolNMS: Getting Rid of NMS Bottlenecks in Two-Stage Object Detectors
+Lile Cai1
+
+Bin Zhao2
+
+Zhe Wang1
+
+Jie Lin1
+
+Chuan Sheng Foo1
+
+Mohamed Sabry Aly3
+Vijay Chandrasekhar1
+{1 Institute for Infocomm Research, 2 Institute of Microelectronics}, A*STAR, Singapore
+3
+Nanyang Technological University, Singapore
+{caill,wang zhe,lin-j,foo chuan sheng,vijay}@i2r.a-star.edu.sg
+zhaobin@ime.a-star.edu.sg, msabry@ntu.edu.sg
+
+Abstract
+Modern convolutional object detectors have improved
+the detection accuracy significantly, which in turn inspired
+the development of dedicated hardware accelerators to
+achieve real-time performance by exploiting inherent parallelism in the algorithm. Non-maximum suppression (NMS)
+is an indispensable operation in object detection. In stark
+contrast to most operations, the commonly-adopted GreedyNMS algorithm does not foster parallelism, which can be
+a major performance bottleneck. In this paper, we introduce
+MaxpoolNMS, a parallelizable alternative to the NMS algorithm, which is based on max-pooling classification score
+maps. By employing a novel multi-scale multi-channel maxpooling strategy, our method is 20× faster than GreedyNMS
+while simultaneously achieves comparable accuracy, when
+quantified across various benchmarking datasets, i.e., MS
+COCO, KITTI and PASCAL VOC. Furthermore, our method
+is better suited for hardware-based acceleration than GreedyNMS.
+
+cantly slower [18].
+Two-stage object detectors consist of a (first stage) region proposal network (RPN) that hypothesizes candidate
+object locations and a (second stage) detection network that
+refines region proposals. The RPN and detection network
+share the same feature extractor network. Figure 1 displays
+the typical blocks of two-stage object detectors. Typically
+a significant portion of execution time is consumed in the
+feature extractor, region proposal and object detection networks. These layers contain convolution and pooling operations, which in principle can be mapped to a highly-parallel
+hardware accelerator (e.g., Google TPU [19]) – this is not
+the case with remaining blocks, i.e., Non-Maximum Suppression (NMS).
+Input Image
+Feature Extractor
+Region Proposal Network
+
+Object Detection Network
+
+Non-Maximum Suppression
+
+Non-Maximum Suppression
+
+Region Proposals
+
+Final Detections
+
+1. Introduction
+
+Figure 1. System diagram of two-stage object detectors. This work
+tackles the NMS in region proposal network (denoted in red box).
+
+Deep neural networks (DNNs) have caused a major leap
+in object detection accuracy. State-of-the-art DNN-based
+object detection algorithms can be broadly classified into
+one-stage and two-stage methods. One-stage object detectors (e.g., YOLO [24] and SSD [22]) operate in a slidingwindow manner that makes prediction for densely sampled
+locations in the input image. Alternatively, two-stage approaches, such as Faster R-CNN [25] and R-FCN [5], first
+generate a sparse set of region proposals and then perform
+a second stage prediction to classify each proposal and refine its location. Two-stage methods consistently achieve
+higher accuracy than one-stage methods, but are signifi-
+
+NMS is an essential block as it removes duplicate detections, hence reducing false positives. Both the region proposal network and object detection network employ NMS
+as a post-processing step. The commonly-adopted GreedyNMS [7] is a simple hand-crafted method. When applied in region proposal network, it first sorts all the candidate detection boxes according to their objectness scores,
+followed by two nested loops to greedily select high score
+boxes and delete other boxes that overlap significantly with
+the selected ones. The inner loop is parallelizable, but the
+outer loop is sequential in nature – without examining the
+preceding box first, it cannot be decided whether the follow-
+
+9356
+
+

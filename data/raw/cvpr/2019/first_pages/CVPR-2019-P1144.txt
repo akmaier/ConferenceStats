@@ -1,0 +1,126 @@
+Importance Estimation for Neural Network Pruning
+Pavlo Molchanov, Arun Mallya, Stephen Tyree, Iuri Frosio, Jan Kautz
+NVIDIA
+{pmolchanov, amallya, styree, ifrosio, jkautz}@nvidia.com
+
+32
+
+Structural pruning of neural network parameters reduces
+computation, energy, and memory transfer costs during inference. We propose a novel method that estimates the
+contribution of a neuron (filter) to the final loss and iteratively removes those with smaller scores. We describe
+two variations of our method using the first and secondorder Taylor expansions to approximate a filter’s contribution. Both methods scale consistently across any network
+layer without requiring per-layer sensitivity analysis and
+can be applied to any kind of layer, including skip connections. For modern networks trained on ImageNet, we
+measured experimentally a high (>93%) correlation between the contribution computed by our methods and a reliable estimate of the true importance. Pruning with the
+proposed methods leads to an improvement over state-ofthe-art in terms of accuracy, FLOPs, and parameter reduction. On ResNet-101, we achieve a 40% FLOPS reduction
+by removing 30% of the parameters, with a loss of 0.02%
+in the top-1 accuracy on ImageNet. Code is available at
+https://github.com/NVlabs/Taylor_pruning .
+
+30
+
+1. Introduction
+Convolutional neural networks (CNNs) are widely used
+in today’s computer vision applications. Scaling up the size
+of datasets as well as the models trained on them has been
+responsible for the successes of deep learning. The dramatic increase in number of layers, from 8 in AlexNet [20],
+to over 100 in ResNet-152 [11], has enabled deep networks to achieve better-than-human performance on the ImageNet [31] classification task. Empirically, while larger
+networks have exhibited better performance, possibly due to
+the lottery ticket hypothesis [5], they have also been known
+to be heavily over-parameterized [34].
+The growing size of CNNs may be incompatible with
+their deployment on mobile or embedded devices, with limited computational resources. Even in the case of cloud
+services, prediction latency and energy consumption are
+important considerations. All of these use cases will bene-
+
+Top-1 Error (%)
+
+Abstract
+
+28
+
+26
+
+SSS [17]
+
+5.0
+
+Parameters (1e7)
+
+3.0
+4.0
+
+2.5
+
+2.0
+
+1.5
+
+1.0
+
+8.0
+0.5
+
+7.5
+
+4.5
+
+GFLOPs
+
+4.0
+
+3.5
+
+3.0
+
+2.5
+
+2.0
+
+1.5
+
+1.0
+
+24
+
+ResNet-34
+ResNet-50
+ResNet-101
+No pruning
+Taylor-FO-BN (Ours)
+Li et al. [23]
+ThiNet [25]
+NISP [31]
+Ye et al. [32]
+
+Figure 1: Pruning ResNets on the ImageNet dataset. The proposed
+method is highlighted in gray. Bottom-left is better.
+
+fit greatly from the availability of more compact networks.
+Pruning is a common method to derive a compact network
+– after training, some structural portion of the parameters is
+removed, along with its associated computations.
+A variety of pruning methods have been proposed, based
+on greedy algorithms [26, 33], sparse regularization [21, 23,
+32], and reinforcement learning [13]. Many of them rely on
+the belief that the magnitude of a weight and its importance
+are strongly correlated. We question this belief and observe a
+significant gap in correlation between weight-based pruning
+decisions and empirically optimal one-step decisions – a gap
+which our greedy criterion aims to fill.
+We focus our attention on extending previously proposed
+methods [2, 22, 27] with a new pruning criterion and a
+method that iteratively removes the least important set of
+neurons (typically filters) from the trained model. We define
+the importance as the squared change in loss induced by
+removing a specific filter from the network. Since computing the exact importance is extremely expensive for large
+networks, we approximate it with a Taylor expansion (akin
+to [27]), resulting in a criterion computed from parameter
+gradients readily available during standard training. Our
+method is easy to implement in existing frameworks with
+minimal overhead.
+Additional benefits of our novel criterion include: a) no
+
+11264
+
+

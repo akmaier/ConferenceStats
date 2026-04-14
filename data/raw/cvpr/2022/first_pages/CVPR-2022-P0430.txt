@@ -1,0 +1,72 @@
+Confidence Propagation Cluster: Unleash Full Potential of Object Detectors
+Yichun Shen∗
+
+Wanli Jiang*
+
+Zhen Xu
+Siyi Li
+NVIDIA
+
+Rundong Li
+
+Junghyun Kwon
+
+{ashen,williamj,zhenx,davidli,junghyunk,louli}@nvidia.com
+
+Abstract
+It’s been a long history that most object detection methods obtain objects by using the non-maximum suppression
+(NMS) and its improved versions like Soft-NMS to remove
+redundant bounding boxes. We challenge those NMS-based
+methods from three aspects: 1) The bounding box with
+highest confidence value may not be the true positive having the biggest overlap with the ground-truth box. 2) Not
+only suppression is required for redundant boxes, but also
+confidence enhancement is needed for those true positives.
+3) Sorting candidate boxes by confidence values is not necessary so that full parallelism is achievable.
+In this paper, inspired by belief propagation (BP), we
+propose the Confidence Propagation Cluster (CP-Cluster)
+to replace NMS-based methods, which is fully parallelizable
+as well as better in accuracy. In CP-Cluster, we borrow the
+message passing mechanism from BP to penalize redundant
+boxes and enhance true positives simultaneously in an iterative way until convergence. We verified the effectiveness
+of CP-Cluster by applying it to various mainstream detectors such as FasterRCNN, SSD, FCOS, YOLOv3, YOLOv5,
+Centernet etc. Experiments on MS COCO show that our
+plug and play method, without retraining detectors, is able
+to steadily improve average mAP of all those state-of-theart models with a clear margin from 0.3 to 1.9 respectively
+when compared with NMS-based methods.
+
+1. Introduction
+The occurrence of convolutional neural networks has
+brought in revolutionary improvements in various object detection tasks [10, 14, 24, 41]. Generally, two-stage/multistage detectors [4, 9, 15, 31, 51] can achieve higher accuracy, while one-stage detectors [1, 16, 23, 26, 30, 37, 38]
+take better accuracy-performance balance. Recently, other
+than achieving better state-of-the-art results and less inference cost, some research attentions are also paid to simplify
+* Equal contributions.
+
+training and inference pipelines. [21,36,46,52] got rid of the
+predefined anchors. [5, 34, 39, 52, 55] designed specific oneone label assignment strategies to train end-to-end detection
+models without need of post-processing methods. [8, 52]
+make use of only one output feature map.
+Nowadays some NMS-free methods have gained reasonable accuracies, but they still suffer from more or less sacrifice in accuracies, performance, training time and flexibility
+of design choices. Especially, when real-time inference is
+not required, the ensembles of detection models equipped
+with NMS are used to achieve better results [33, 54]. Besides, in autonomous vehicles systems, researchers usually
+apply NMS to combine objects detected from multiple sensors. Therefore the majority of those mainstream detectors [23, 31, 36, 37] still employ NMS or Soft-NMS [2] to
+remove redundant bounding boxes in inference stage. Standard NMS greedily suppresses all neighboring bounding
+boxes around the box with highest confidence value. Following this, researchers proposed several methods to improve the standard NMS accuracy [2, 19, 25, 50]. Among
+them, Soft-NMS [2] was proved to achieve general improvements for various detectors, while others are either designed for specific detectors or require retraining with specific tricks. In addition, some methods are proposed to parallelize the NMS [3, 49], while those methods still rely on
+confidence sorting in their pipelines.
+With those NMS-based methods, all candidate boxes are
+firstly sorted according to their detection scores, and then
+the bounding box with the highest score in each cluster is selected as a representative. Other objects with slightly lower
+scores are simply thrown away or assigned with a smaller
+confidence, as does not make full use of relations between
+candidate boxes.
+In this paper, we aim to replace the NMS-based methods with a better clustering framework (CP-Cluster) for
+object detectors, as is able to achieve better accuracy and
+meanwhile fully parallelizable. As illustrated by Fig. 1,
+CP-Cluster firstly constructs a graph set from all candidate
+boxes based on their overlaps, then both positive messages
+and negative messages are propagated among boxes belong-
+
+1151
+
+

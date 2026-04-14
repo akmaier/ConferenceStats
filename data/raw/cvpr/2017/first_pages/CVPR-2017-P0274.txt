@@ -1,0 +1,113 @@
+Cognitive Mapping and Planning for Visual Navigation
+Saurabh Gupta1,2 James Davidson2 Sergey Levine1,2 Rahul Sukthankar2 Jitendra Malik1,2
+1
+UC Berkeley 2 Google
+Multiscale belief
+about the world in
+egocentric
+coordinate frame
+
+1
+
+{sgupta, svlevine, malik}@eecs.berkeley.edu, 2 {jcdavidson, sukthankar}@google.com
+
+Abstract
+We introduce a neural architecture for navigation in novel
+environments. Our proposed architecture learns to map
+from first-person views and plans a sequence of actions
+towards goals in the environment. The Cognitive Mapper
+and Planner (CMP) is based on two key ideas: a) a unified
+joint architecture for mapping and planning, such that the
+mapping is driven by the needs of the planner, and b) a
+spatial memory with the ability to plan given an incomplete
+set of observations about the world. CMP constructs a topdown belief map of the world and applies a differentiable
+neural net planner to produce the next action at each time
+step. The accumulated belief of the world enables the agent
+to track visited regions of the environment. Our experiments
+demonstrate that CMP outperforms both reactive strategies
+and standard memory-based architectures and performs
+well in novel environments. Furthermore, we show that
+CMP can also achieve semantically specified goals, such
+as “go to a chair”.
+
+1. Introduction
+As humans, when we navigate through novel environments, we draw on our previous experience in similar conditions. We reason about free-space, obstacles and the topology of the environment, guided by common sense rules and
+heuristics for navigation. For example, to go from one room
+to another, I must first exit the initial room; to go to a room
+at the other end of the building, getting into a hallway is
+more likely to succeed than entering a conference room; a
+kitchen is more likely to be situated in open areas of the
+building than in the middle of cubicles. The goal of this paper is to design a learning framework for acquiring such expertise, and demonstrate this for the problem of robot navigation in novel environments.
+However, classic approaches to navigation rarely make
+use of such common sense patterns. Classical SLAM based
+Work done when S. Gupta was an intern at Google.
+Project website with videos, appendix: https://sites.google.com/view/
+cognitive-mapping-and-planning/.
+
+Goal
+Multiscale belief of the
+world in egocentric
+coordinate frame
+
+90o
+Egomotion
+
+Differentiable
+Mapper
+
+Differentiable
+Hierarchical
+Planner
+
+90o
+
+Action
+
+Update multiscale belief
+of the world in egocentric
+coordinate frame
+
+90o
+Egomotion
+
+Differentiable
+Mapper
+
+Differentiable
+Hierarchical
+Planner
+
+90o
+
+Action
+
+Figure 1: Overall network architecture: Our learned navigation network
+consists of mapping and planning modules. The mapper writes into a latent
+spatial memory that corresponds to an egocentric map of the environment,
+while the planner uses this memory alongside the goal to output navigational actions. The map is not supervised explicitly, but rather emerges
+naturally from the learning process.
+
+approaches [14, 57] first build a 3D map using LIDAR,
+depth, or structure from motion, and then plan paths in
+this map. These maps are built purely geometrically, and
+nothing is known until it has been explicitly observed, even
+when there are obvious patterns. This becomes a problem
+for goal directed navigation. Humans can often guess, for
+example, where they will find a chair or that a hallway will
+probably lead to another hallway but a classical robot agent
+can at best only do uninformed exploration. The separation
+between mapping and planning also makes the overall system unnecessarily fragile. For example, the mapper might
+fail on texture-less regions in a corridor, leading to failure
+of the whole system, but precise geometry may not even be
+necessary if the robot just has to keep traveling straight.
+Inspired by this reasoning, recently there has been an
+increasing interest in more end-to-end learning-based approaches that go directly from pixels to actions [45, 48, 64]
+without going through explicit model or state estimation
+steps. These methods thus enjoy the power of being able
+to learn behaviors from experience. However, it is necessary to carefully design architectures that can capture the
+structure of the task at hand. For instance Zhu et al. [64]
+use reactive memory-less vanilla feed forward architectures
+
+2616
+
+

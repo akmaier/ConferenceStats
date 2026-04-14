@@ -1,0 +1,70 @@
+Bilateral Cyclic Constraint and Adaptive Regularization
+for Unsupervised Monocular Depth Prediction
+Alex Wong, Stefano Soatto
+UCLA Vision Lab
+University of California, Los Angeles, CA 90095
+{alexw, soatto}@cs.ucla.edu
+
+Abstract
+Supervised learning methods to infer (hypothesize) depth
+of a scene from a single image require costly per-pixel
+ground-truth. We follow a geometric approach that exploits
+abundant stereo imagery to learn a model to hypothesize
+scene structure without direct supervision. Although we
+train a network with stereo pairs, we only require a single image at test time to hypothesize disparity or depth. We
+propose a novel objective function that exploits the bilateral
+cyclic relationship between the left and right disparities and
+we introduce an adaptive regularization scheme that allows
+the network to handle both the co-visible and occluded regions in a stereo pair. This process ultimately produces a
+model to generate hypotheses for the 3-dimensional structure of the scene as viewed in a single image. When used
+to generate a single (most probable) estimate of depth, our
+method outperforms state-of-the-art unsupervised monocular depth prediction methods on the KITTI benchmarks.
+We show that our method generalizes well by applying our
+models trained on KITTI to the Make3d dataset.
+
+1. Introduction
+Estimating the 3-dimensional geometry of a scene is a
+fundamental problem in machine perception with a wide
+range of applications, including autonomous driving [24],
+robotics [32, 43], pose-estimation [41], localization [18],
+and scene object composition [17, 26]. It is well-known that
+3-d scene geometry can be recovered from multiple images
+of a scene taken from different viewpoints, including stereo,
+under suitable conditions. Under no conditions, however, is
+a single image sufficient to recover 3-d scene structure, unless prior knowledge is available on the shape of objects
+populating the scene. Even in such cases, metric information is lost in the projection, so at best we can use a single
+image to generate hypotheses, as opposed to estimates, of
+scene geometry.
+Recent works [3, 6, 31, 33, 34, 50, 51] sought to exploit
+such strong scene priors by using pixel-level depth anno-
+
+tation captured with a range sensor (e.g. depth camera, lidar) to regress depth from the RGB image. Cognizant of
+the intrinsic limitations of this endeavor, we exploit stereo
+imagery to train a network without ground-truth supervision for generating depth hypotheses, to be used as a reference for 3-d reconstruction. We evaluate our method against
+ground-truth depths via two benchmarks from the KITTI
+dataset [13] and show that it generalizes well by applying
+models trained on KITTI to Make3d [40].
+Rather than attempting to learn a prior by associating the
+raw-pixel values with depth, we recast depth estimation as
+an image reconstruction problem [12, 14] and exploit the
+epipolar geometry between images in a rectified stereo pair
+to train a deep fully convolutional network. Our network
+learns to predict the dense pixel correspondences (disparity
+field) between the stereo pair, despite only having seen one
+of them. Hence, our network implicitly learns the relative
+pose of the cameras used in training and hallucinates the existence of a second image taken from the same relative pose
+when given a single image during testing. From the disparity predictions, we can synthesize depth using the known
+focal length and baseline of the cameras used in training.
+While [12, 14, 49] follow a similar training scheme,
+[49] does not scale to high resolution, and [12] uses a
+non-differentiable objectives. [14] proposed using two
+uni-directional edge-aware disparity gradients and left-right
+disparity consistency as regularizers. However, edgeawareness should inform bidirectionally and left-right consistency suffers from occlusions and dis-occlusions. Moreover, regularity should not only be data-driven, but also
+model-driven.
+Our contributions are three-fold: (i) A model-driven adaptive weighting scheme that is both space- and training-time
+varying and can be applied generically to regularizers. (ii) A
+bilateral consistency constraint that enforces the cyclic application of left and right disparity to be the identity. (iii) A
+two-branch decoder that specifically learns the features necessary to maximize data fidelity and utilizes such features to
+refine an initial prediction by enforcing regularity. We for15644
+
+

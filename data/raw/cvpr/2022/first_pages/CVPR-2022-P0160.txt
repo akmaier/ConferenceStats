@@ -1,0 +1,100 @@
+Online Convolutional Re-parameterization
+Mu Hu1 * Junyi Feng2 Jiashen Hua2 Baisheng Lai2
+Jianqiang Huang2 Xiaojin Gong1† Xiansheng Hua2
+1
+Zhejiang University 2 Alibaba Cloud Computing Ltd.
+muhu@zju.edu.cn [felix.fjy, jiashen.hjs, baisheng.lbs]@alibaba-inc.com
+jianqiang.hjq@alibaba-inc.com, gongxj@zju.edu.cn, xiansheng.hxs@alibaba-inc.com
+
+Abstract
+Structural re-parameterization has drawn increasing attention in various computer vision tasks. It aims at improving the performance of deep models without introducing any
+inference-time cost. Though efficient during inference, such
+models rely heavily on the complicated training-time blocks
+to achieve high accuracy, leading to large extra training
+cost. In this paper, we present online convolutional reparameterization (OREPA), a two-stage pipeline, aiming to
+reduce the huge training overhead by squeezing the complex
+training-time block into a single convolution. To achieve
+this goal, we introduce a linear scaling layer for better optimizing the online blocks. Assisted with the reduced training
+cost, we also explore some more effective re-param components. Compared with the state-of-the-art re-param models, OREPA is able to save the training-time memory cost
+by about 70% and accelerate the training speed by around
+2×. Meanwhile, equipped with OREPA, the models outperform previous methods on ImageNet by up to +0.6%.
+We also conduct experiments on object detection and semantic segmentation and show consistent improvements on
+the downstream tasks. Codes are available at https:
+//github.com/JUGGHM/OREPA_CVPR2022.
+
+1. Introduction
+Convolutional Neural Networks (CNNs) have seen the
+success of many computer vision tasks, including classification [21, 27, 38, 25], object detection [33, 28, 32], segmentation [7, 44], etc. The trade-off between accuracy and
+model efficiency has been widely discussed. In general, a
+model with higher accuracy usually requires a more complicated block [25, 24, 18], a wider or deeper structure [41, 4].
+However, such models are always too heavy to be deployed,
+especially in the scenarios where the hardware performance
+* Work done during an internship at Alibaba Cloud Computing Ltd.
+† Corresponding Author.
+
+Training
+Conv
+
+1 to N
+
+BN
+
+Conv
+BN
+
+……
+
+Inference
+
+Conv
+BN
+
+N in 1
+
+OREPA
+Conv
+
+BN
+
+Conv
+
+ReLU
+
+ReLU
+
+ReLU
+
+ReLU
+
+(a) No Re-param
+
+(b) Structural Re-param
+
+(c) Online Re-param (ours)
+
+(d) Deployed
+
+Figure 1. Comparison of (a) a vanilla convolutional layer, (b) a
+typical re-param block, and (c) our online re-param block in the
+training phase. All of these structures are converted to the same
+(d) inference-time structure.
+
+is limited, and real-time inference is required. Taking efficiency into consideration, smaller, compacter, and faster
+models are preferred.
+In order to obtain a deploy-friendly model and keep a
+high accuracy, structural re-parameterization based methods [14, 16, 17, 19] are proposed for a “free” performance
+improvement. In such methods, the models have different structures during the training phase and the inference
+phase. Specifically, they [16, 1] use complicated trainingphase topologies, i.e., re-parameterized blocks, to improve
+the performance. After training, they squeeze a complicated
+block into a single linear layer through equivalent transformation. The squeezed models are usually with a neat architecture, e.g., usually a VGG-like [17] or a ResNet-like [16]
+structure. From this perspective, the re-parameterization
+strategies can improve model performances without introducing additional inference-time cost.
+It is believed that the normalization (norm) layer is the
+crucial component in re-param models. In a re-param
+block (Fig. 1(b)), a norm layer is always added right-after
+each computational layer. It is observed that the removal of
+such norm layers would lead to severe performance degradation [17, 16]. However, when considering the efficiency,
+
+568
+
+

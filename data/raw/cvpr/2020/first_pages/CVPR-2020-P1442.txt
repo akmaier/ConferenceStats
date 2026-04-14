@@ -1,0 +1,104 @@
+PnPNet: End-to-End Perception and Prediction with Tracking in the Loop
+Ming Liang1∗ Bin Yang1,2∗
+Wenyuan Zeng1,2 Yun Chen1 Rui Hu1 Sergio Casas1,2 Raquel Urtasun1,2
+1
+Uber Advanced Technologies Group 2 University of Toronto
+{ming.liang, byang10, wenyuan, yun.chen, rui.hu, sergio.casas, urtasun}@uber.com
+
+Abstract
+
+(a) Modular perception & prediction
+sensor data
+
+We tackle the problem of joint perception and motion
+forecasting in the context of self-driving vehicles. Towards
+this goal we propose PnPNet, an end-to-end model that
+takes as input sequential sensor data, and outputs at each
+time step object tracks and their future trajectories. The
+key component is a novel tracking module that generates
+object tracks online from detections and exploits trajectory
+level features for motion forecasting. Specifically, the object
+tracks get updated at each time step by solving both the data
+association problem and the trajectory estimation problem.
+Importantly, the whole model is end-to-end trainable and
+benefits from joint optimization of all tasks. We validate
+PnPNet on two large-scale driving datasets, and show significant improvements over the state-of-the-art with better
+occlusion recovery and more accurate future prediction.
+
+1. Introduction
+We focus on the task of joint perception and prediction
+(motion forecasting) in the context of self-driving vehicles.
+This is a crucial task as in order to plan a safe maneuver,
+anticipating the future decisions of surrounding agents is as
+important as estimating their current state.
+Different paradigms have been proposed to solve the perception and prediction problem, which are compared in Figure 1. Traditional self-driving autonomy stacks [2, 9, 16]
+decompose the problem into three subtasks: object detection, object tracking, and motion forecasting, and rely on independent components that perform these subtasks sequentially. However, as each component is developed separately,
+this paradigm makes compromises in each module in order
+to meet the computing budget. Furthermore, the interface
+between these modules is very compact (typically the object’s position, velocity, acceleration, and their uncertainty
+estimates), which prevents downstream tasks from correcting the mistakes made by upstream ones.
+∗ Equal contribution.
+
+Detector
+
+Tracker
+detections
+
+Predictor
+
+Planner
+
+tracks with future
+prediction
+
+tracks
+
+(b) End-to-end perception & prediction, tracking out of the loop
+sensor data
+
+Detect & Predict
+
+Tracker
+detections with
+future prediction
+
+Planner
+
+tracks with future
+prediction
+
+(c) End-to-end perception & prediction, tracking in the loop
+sensor data
+
+Detect → Track → Predict
+
+Planner
+tracks with future
+prediction
+
+Figure 1. Three paradigms for perception and prediction. Traditional approach (a) adopts the modular design that decomposes
+the stack into subtasks and solves them with individual models.
+End-to-end method like [28] (b) uses a joint model to solve detection and prediction simultaneously, but performs tracking as
+post-processing. As a result, the full temporal history contained
+in tracks is not used by detection and prediction. Our approach
+(c) brings tracking into the loop so that all tasks benefit from rich
+temporal context.
+
+Recently, models that solve the detection and prediction
+tasks jointly with a single neural network have been proposed [28], resulting in more efficient computation and improved accuracy. This paradigm is later extended to further solve the driver intention [8] and motion planning [50]
+by adding the corresponding modules on top of the shared
+backbone network. These approaches, however, suffer from
+limited use of temporal history because object tracking is
+not included in the loop and thus only leverage up to 1 second of past sensor data due to limited model capacity. This
+may cause problems when dealing with occluded actors and
+may produce temporal inconsistency in predictions.
+In this paper we argue that leveraging the past is key for
+sequential decision making process like motion forecasting.
+Towards this goal we propose PnPNet, a new paradigm that
+combines ideas from multi-object tracking and joint perception and prediction models. While the detection module
+processes sequential sensor data and generates object detections at each time step, the tracking module associates
+these estimates across time for better understanding of ob-
+
+11553
+
+

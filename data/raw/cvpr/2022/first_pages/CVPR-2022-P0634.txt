@@ -1,0 +1,101 @@
+MeMOT: Multi-Object Tracking with Memory
+Jiarui Cai1 * Mingze Xu2† Wei Li2 Yuanjun Xiong2
+1
+University of Washington
+
+Wei Xia2 Zhuowen Tu2
+2
+AWS AI Labs
+
+Stefano Soatto2
+
+jrcai@uw.edu, {xumingze,wayl,yuanjx,wxia,ztu,soattos}@amazon.com
+
+Frame t
+
+Abstract
+
+MeMOT
+
+We propose an online tracking algorithm that performs
+the object detection and data association under a common
+framework, capable of linking objects after a long time
+span. This is realized by preserving a large spatio-temporal
+memory to store the identity embeddings of the tracked objects, and by adaptively referencing and aggregating useful information from the memory as needed. Our model,
+called MeMOT, consists of three main modules that are
+all Transformer-based: 1) Hypothesis Generation that produce object proposals in the current video frame; 2) Memory Encoding that extracts the core information from the
+memory for each tracked object; and 3) Memory Decoding
+that solves the object detection and data association tasks
+simultaneously for multi-object tracking. When evaluated
+on widely adopted MOT benchmark datasets, MeMOT observes very competitive performance.
+
+1. Introduction
+Online multi-object tracking (MOT) [3, 13, 57, 70] aims
+at localizing a set of objects (e.g., pedestrians), while following their trajectories over time so that the same object
+bears the same identities in the entire input video stream.
+Earlier methods mostly solved this problem with two separate stages: 1) the object detection stage that detects object
+instances in individual frames [14, 17, 28, 42, 72]; and 2)
+the data association stage that links the detected object instances across time [5, 70] by modeling the state changes
+of tracked objects and solving a matching problem between them and the detection results. Though recent studies [34, 69] suggest that combining these two stages could
+be beneficial, the combination usually leads to the undesired simplification of the association module in modeling
+the change of the objects in time.
+In this paper, we propose a Transformer-based tracking
+model, called MeMOT, that performs object detection and
+* The work was done during an Amazon internship.
+† Corresponding Author.
+
+Object i
+
+…
+
+Object j
+
+…
+
+Object k
+
+…
+t-T
+
+t+1-T t+2-T
+
+t+3-T
+
+t+4-T t+5-T
+
+t-4
+
+t-3
+
+t-2
+
+t-1
+
+Memory Buffer
+
+Figure 1. Illustration of the idea of MeMOT. A spatio-temporal
+memory stores a long range states of all tracked objects and is
+updated over time. Each row in the memory buffer represents an
+active tracklet. The “person crops” indicate that their the history
+states are preserved in the memory, and the blank box indicates
+this person does not appear in the frame at that time, occluded or
+not detected. The tracking plots show that MeMOT can maintain
+active tracks (yellow and blue boxes), link reappearing tracks after
+occlusion (red box), and generate new objects (green box).
+
+association under a common framework in an online manner. The key design of MeMOT is to build a large spatiotemporal memory that stores the past observations of the
+tracked objects. The memory is actively encoded in every time step by referencing relevant information so that the
+states of the objects are more accurately approximated for
+the association task. The rich representation of the tracked
+objects extracted from the spatial-temporal memory enables
+us to solve the object detection and association tasks in
+a unified decoding module. It directly outputs object instances that have been tracked and reappears in the latest
+frame and novel object instances that are first time seen.
+The idea of MeMOT is illustrated in Fig. 1.
+At each time step, MeMOT runs the following three
+main components: 1) a hypothesis generation module that
+produces object proposals from input image feature maps as
+
+8090
+
+

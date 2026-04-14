@@ -1,0 +1,204 @@
+PAConv: Position Adaptive Convolution with Dynamic Kernel Assembling on
+Point Clouds
+Mutian Xu1 * Runyu Ding1 * Hengshuang Zhao2 Xiaojuan Qi1†
+1
+The University of Hong Kong 2 University of Oxford
+mino1018@outlook.com, {ryding, xjqi}@eee.hku.hk, hengshuang.zhao@eng.ox.ac.uk
+
+Abstract
+𝑝KL − 𝑝,
+𝑝KM − 𝑝,
+
+We introduce Position Adaptive Convolution (PAConv),
+a generic convolution operation for 3D point cloud processing. The key of PAConv is to construct the convolution kernel by dynamically assembling basic weight matrices stored
+in Weight Bank, where the coefficients of these weight matrices are self-adaptively learned from point positions through
+ScoreNet. In this way, the kernel is built in a data-driven
+manner, endowing PAConv with more flexibility than 2D
+convolutions to better handle the irregular and unordered
+point cloud data. Besides, the complexity of the learning
+process is reduced by combining weight matrices instead of
+brutally predicting kernels from point positions.
+Furthermore, different from the existing point convolution operators whose network architectures are often heavily engineered, we integrate our PAConv into classical
+MLP-based point cloud pipelines without changing network configurations. Even built on simple networks, our
+method still approaches or even surpasses the state-ofthe-art models, and significantly improves baseline performance on both classification and segmentation tasks, yet
+with decent efficiency. Thorough ablation studies and visualizations are provided to understand PAConv. Code is
+released on https://github.com/CVMI-Lab/PAConv.
+
+1. Introduction
+In recent years, the rise of 3D scanning technologies
+has been promoting numerous applications that rely on 3D
+point cloud data, e.g., autonomous driving, robotic manipulation and virtual reality [35, 40]. Thus, the approaches
+to effectively and efficiently processing 3D point clouds
+are in critical needs. While remarkable advancements have
+been obtained in 3D point cloud processing with deep learning [36, 37, 47, 25], it is yet a challenging task in view of the
+sparse, irregular and unordered structure of point clouds.
+* M. Xu and R. Ding contribute equally.
+† Corresponding author
+
+Kernels
+
+MLP1
+
+…
+
+𝑓#
+𝑓$
+
+MLP
+
+𝑝KN − 𝑝,
+
+𝑓./0
+
+SOP
+
+…
+
+𝑓-
+
+MLP2
+
+⊚
+
+𝑃,- : 𝑁×3
+
+𝐹./0 : 1×𝐶./0
+
+𝑓#
+𝑓$
+
+𝐹,- : 𝑁×𝐶,-
+
+…
+
+⊚
+
+…
+
+𝑓`-
+
+𝐹,- : 𝑁×𝐶,-
+
+(a) PointNet
+
+weights
+
+Weight
+Bank
+
+kernel
+scores
+
+𝑓#
+𝑓$
+
+⊙
+
+SOP
+
+𝑓./0
+
+𝐹./0 : 1×𝐶./0
+
+𝑝KL − 𝑝,
+𝑝KM − 𝑝,
+
+…
+
+…
+
+…
+
+𝑝KN − 𝑝,
+
+𝑓-
+
+𝑝KN − 𝑝,
+
+𝑃,- : 𝑁×3
+
+𝐹,- : 𝑁×𝐶,-
+
+𝑃,- : 𝑁×3
+
+(c) KPConv
+
+⊚
+
+Kernels
+
+kernel
+scores
+
+position
+𝑝KL − 𝑝,
+𝑝KM − 𝑝,
+
+𝐹O,- : 𝑁×(𝐶,- × 𝐶./0 )
+
+(b) PointConv
+
+Kernels
+
+⊚
+
+𝑓./0
+
+𝐹./0 : 1×𝐶./0
+
+𝑓-
+
+Kernel
+Points
+
+SOP
+
+𝑓`#
+𝑓`$
+
+Score
+Net
+
+⊙
+𝑓#
+𝑓$
+
+SOP
+
+𝑓./0
+
+𝐹./0 : 1×𝐶./0
+
+…
+
+𝑓-
+
+𝐹,- : 𝑁×𝐶,-
+
+(d) PAConv
+
+Figure 1. Overview about convolutional sturctures of PointNet
+[36], PointConv [52], KPConv [47] and our PAConv. It illustrates
+the differences of these point-based convolutions. SOP denotes
+symmetric operations, like MAX.
+
+To tackle these difficulties, previous research can be
+coarsely cast into two categories. The first line attempts
+to voxelize the 3D point clouds to form regular grids such
+that 3D grid convolutions can be adopted [33, 43, 39]. However, important geometric information might be lost due to
+quantization, and voxels typically bring extra memory and
+computational costs [10, 7].
+Another stream is to directly process point cloud data.
+The pioneering work [36] proposes to learn the spatial
+encodings of points by combing Multi-Layer Perceptron
+(MLP) [13] and global aggregation as illustrated in Fig. 1
+(a). Follow-up works [37, 38, 48, 20, 51] exploit local aggregation schemes to improve the network. Nonetheless, all
+the points are processed by the same MLP, which limits the
+capabilities in representing spatial-variant relationships.
+Beyond MLP, most recent works design convolutionlike operations on point clouds to exploit spatial correlations. To handle the irregularity of 3D point clouds, some
+works [58, 50, 29] propose to directly predict the kernel
+weights based on relative location information, which is
+
+3173
+
+

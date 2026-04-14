@@ -1,0 +1,98 @@
+PILC: Practical Image Lossless Compression with
+an End-to-end GPU Oriented Neural Framework
+Ning Kang 1 * Shanzhao Qiu 2 * Shifeng Zhang 1 Zhenguo Li 1† Shutao Xia 2†
+1
+Huawei Noah’s Ark Lab 2 Tsinghua University
+
+Abstract
+Generative model based image lossless compression algorithms have seen a great success in improving compression ratio. However, the throughput for most of them is less
+than 1 MB/s even with the most advanced AI accelerated
+chips, preventing them from most real-world applications,
+which often require 100 MB/s. In this paper, we propose
+PILC, an end-to-end image lossless compression framework
+that achieves 200 MB/s for both compression and decompression with a single NVIDIA Tesla V100 GPU, 10× faster
+than the most efficient one before. To obtain this result,
+we first develop an AI codec that combines auto-regressive
+model and VQ-VAE which performs well in lightweight setting, then we design a low complexity entropy coder that
+works well with our codec. Experiments show that our
+framework compresses better than PNG by a margin of 30%
+in multiple datasets. We believe this is an important step to
+bring AI compression forward to commercial use.
+
+1. Introduction
+Lossy compression have shown great success in recent
+research [3, 6, 22, 25–28, 30]. In this paper, we focus on
+lossless compression. The basic idea of a lossless compression algorithm is to represent more likely appeared data
+with shorter codewords, while less frequent data with longer
+ones, such that the codeword is shorter than the original data
+in expectation. For example, an image with each pixel randomly generated is rarely seen in the real world, while a real
+picture taken by a camera occurs much more often, so the
+latter compresses better for almost all image compression
+algorithms.
+According to Shannon’s source coding theorem [34], no
+algorithm can compress data shorter than its entropy. On
+the other hand, if the distribution of data is known in ad* Equal contribution.
+† Correspondence to:
+
+Zhenguo Li (li.zhenguo@huawei.com) and
+Shutao Xia (xiast@sz.tsinghua.edu.cn).
+
+Compression Throughput (MB/s)
+
+kang.ning2@huawei.com, qiusz20@mails.tsinghua.edu.cn
+
+103
+PILC
+
+102
+PNG
+101
+100
+10 1
+10 2
+
+WebP
+L3C
+FLIF
+
+Traditional
+Auto-regressive
+AE/VAE
+Flow
+PILC
+
+Bit-Swap IDF
+IDF++
+PixelCNN++
+
+DistAug
+
+LBB
+1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00 3.25
+
+Compression ratio
+
+Figure 1. Comparison of compression throughput and ratio on
+CIFAR10. Our framework achieves high compression throughput
+with a competitive compression ratio.
+
+vance, an entropy coder can be applied so that the code
+length would be very close to its entropy, thus obtaining
+the optimal compression ratio.
+Unfortunately, in most cases, the data distribution is unknown. Traditional algorithms make use of some prior information to infer this distribution. For example, LZ77 [47]
+and LZ78 [48] used by most archive formats assume that
+data with lots of repeated segments occur more often than
+those without. For image compression algorithms, PNG [4]
+assumes most adjacent pixels are similar to each other,
+and JPEG-like algorithms apply the fact that lower frequency components are more significant than higher frequency ones.
+Recently, deep generative models have shown great success in probabilistic modelling and lossless compression.
+However, the low throughput makes them difficult to be
+used in real scenarios. An end user does not want to wait
+for too long to compress/decompress a file, and a file server
+needs to manipulate tons of files every day. In many cases,
+a 100+ MB/s throughput is needed. For example, streaming
+a 1080p video with 30 fps requires 187 MB/s for decom-
+
+3739
+
+

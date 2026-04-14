@@ -1,0 +1,60 @@
+Monocular 3D Object Detection Leveraging Accurate Proposals
+and Shape Reconstruction
+Jason Ku∗ Alex D. Pon∗ Steven L. Waslander
+University of Toronto
+{kujason.ku, alex.pon}@mail.utoronto.ca, stevenw@utias.utoronto.ca
+
+Abstract
+We present MonoPSR, a monocular 3D object detection
+method that leverages proposals and shape reconstruction.
+First, using the fundamental relations of a pinhole camera model, detections from a mature 2D object detector are
+used to generate a 3D proposal per object in a scene. The
+3D location of these proposals prove to be quite accurate,
+which greatly reduces the difficulty of regressing the final
+3D bounding box detection. Simultaneously, a point cloud
+is predicted in an object centered coordinate system to learn
+local scale and shape information. However, the key challenge is how to exploit shape information to guide 3D localization. As such, we devise aggregate losses, including
+a novel projection alignment loss, to jointly optimize these
+tasks in the neural network to improve 3D localization accuracy. We validate our method on the KITTI benchmark
+where we set new state-of-the-art results among published
+monocular methods, including the harder pedestrian and
+cyclist classes, while maintaining efficient run-time.
+
+1. Introduction
+A cornerstone of 3D scene understanding in computer
+vision is 3D object detection—the task where objects of interest within a scene are classified and identified by their
+6 DoF pose and dimensions. Existing methods vary in the
+data they use, which include LiDAR [20, 25, 42, 43, 44],
+stereo images [5], and monocular images [2, 16, 21, 24, 40].
+Monocular methods are attractive as they have the lowest
+cost and the simplest setup, relying on only a single camera. These methods are therefore attractive for applications where resources are limited, or for companies wanting to bring 3D object detection to mass markets such as
+autonomous navigation and virtual reality.
+Monocular 3D object detection methods are also the
+most disadvantaged; the problem formulation is underconstrained because depth information is lost when a 3D
+∗ Equal contribution.
+
+Figure 1. Pipeline for 3D Object Detection and Instance Point
+Cloud Estimation: Our network takes an image with 2D bounding boxes and regresses instance-centric 3D proposals to produce
+3D bounding boxes. Simultaneously, instance point clouds are estimated to recover local shape and scale, and to enforce 2D-3D
+consistency. The proposal regression and point cloud estimation
+are trained jointly in the network.
+
+scene is projected onto an image plane. The difficulty of
+the problem is highlighted on the KITTI 3D Object Detection benchmark [12] in the car category where the best published monocular method [16] has an AP value 67% lower
+than the best published method using LiDAR [42]. Results
+for the more challenging pedestrian and cyclist classes are
+rarely reported for monocular methods, likely due to even
+poorer performance.
+To deal with the under-constrained monocular object detection problem, recent methods have typically used deep
+learning with well-informed priors. One such prior is that
+the predicted 3D bounding box should fit tightly within its
+corresponding 2D bounding box [24]. This assumption,
+however, leads to localization inaccuracies because it causes
+2D bounding box, orientation, and dimension estimation
+errors to propagate to the final 3D box prediction. Other
+methods [2, 21] match objects to CAD models to determine
+shape and pose. Unfortunately, these methods are restricted
+to the shape space covered by the selected CAD models, and
+do not easily extend to applications where models are un111867
+
+

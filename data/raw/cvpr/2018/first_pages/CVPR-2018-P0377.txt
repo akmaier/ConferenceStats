@@ -1,0 +1,83 @@
+Link and code: Fast indexing with graphs and compact regression codes
+Matthijs Douze† , Alexandre Sablayrolles†,⋆ , and Hervé Jégou†
+†
+
+Facebook AI Research
+
+⋆
+
+Inria∗
+
+Abstract
+Similarity search approaches based on graph walks have
+recently attained outstanding speed-accuracy trade-offs,
+taking aside the memory requirements. In this paper, we
+revisit these approaches by considering, additionally, the
+memory constraint required to index billions of images on
+a single server. This leads us to propose a method based
+both on graph traversal and compact representations. We
+encode the indexed vectors using quantization and exploit
+the graph structure to refine the similarity estimation.
+In essence, our method takes the best of these two
+worlds: the search strategy is based on nested graphs,
+thereby providing high precision with a relatively small set
+of comparisons. At the same time it offers a significant
+memory compression. As a result, our approach outperforms the state of the art on operating points considering
+64–128 bytes per vector, as demonstrated by our results on
+two billion-scale public benchmarks.
+
+1. Introduction
+Similarity search is a key problem in computer vision.
+It is a core component of large-scale image search [32,
+38], pooling [41] and semi-supervised low-shot classification [16]. Another example is classification with a large
+number of classes [22]. In the last few years, most of
+the recent papers have focused on compact codes, either
+binary [10, 18] or based on various quantization methods [26, 11, 3, 44]. Employing a compact representation
+of vectors is important when using local descriptors such as
+SIFT [31], since thousands of such vectors are extracted per
+image. In this case the set of descriptors typically requires
+more memory than the compressed image itself. Having a
+compressed indexed representation employing 8 − 32 bytes
+per descriptor was a requirement driven by scalability and
+practical considerations.
+However, the recent advances in visual description have
+mostly considered description schemes [37, 27, 19] for
+∗ University Grenoble Alpes, Inria, CNRS, Grenoble INP, LJK.
+
+β2
+
+β3
+
+β0
+β1
+
+β4
+
+Figure 1. Illustration of our approach: we adopt a graph traversal
+strategy [34] that maintains a connectivity between all database
+points. Our own algorithm is based on compressed descriptors
+to save memory: each database vector (circle) is approximated
+(square) with quantization. We further improve the estimate by regressing each database vector from its encoded neighbors, which
+provides an excellent representation basis. The regression coefficients β = [β0 , . . . , βk ] are selected from a codebook learned to
+minimize the vector reconstruction error.
+
+which each image is represented by an unique vector, typically extracted from the activation layers of a convolutional
+neural network [5, 42]. The state of the art in image retrieval
+learns the representation end-to-end [20, 39] such that cosine similarity or Euclidean distance reflects the semantic
+similarity. The resulting image descriptors consist of no
+more than a few hundred components.
+In this context, it is worth investigating approaches for
+nearest neighbor search trading memory for a better accuracy and/or efficiency. An image representation of 128
+bytes is acceptable in many situations, as it is comparable if not smaller than the meta-data associated with it and
+stored in a database. While some authors argue that the
+performance saturates beyond 16 bytes [8], the best results achieved with 16 bytes on the Deep10M and Deep1B
+datasets do not exceed 50% recall at rank 1 [7, 15]. While
+going back to the original vectors may improve the recall,
+it would require to access a slower storage device, which
+would be detrimental to the overall efficiency.
+One the opposite, some methods like those implemented
+in FLANN [35] consider much smaller datasets and target
+high-accuracy and throughput. The state-of-the-art methods
+implemented in NMSLIB [9] focuses solely on the compro13646
+
+

@@ -1,0 +1,79 @@
+Density-preserving Deep Point Cloud Compression
+Yun He1∗
+
+Xinlin Ren1∗
+
+Danhang Tang2 Yinda Zhang2 Xiangyang Xue1
+1
+Fudan University 2 Google
+
+Yanwei Fu1
+
+Abstract
+Local density of point clouds is crucial for representing local details, but has been overlooked by existing point
+cloud compression methods. To address this, we propose a
+novel deep point cloud compression method that preserves
+local density information. Our method works in an autoencoder fashion: the encoder downsamples the points and
+learns point-wise features, while the decoder upsamples
+the points using these features. Specifically, we propose
+to encode local geometry and density with three embeddings: density embedding, local position embedding and
+ancestor embedding. During the decoding, we explicitly
+predict the upsampling factor for each point, and the directions and scales of the upsampled points. To mitigate
+the clustered points issue in existing methods, we design a
+novel sub-point convolution layer, and an upsampling block
+with adaptive scale. Furthermore, our method can also
+compress point-wise attributes, such as normal. Extensive
+qualitative and quantitative results on SemanticKITTI and
+ShapeNet demonstrate that our method achieves the stateof-the-art rate-distortion trade-off.
+
+1. Introduction
+Point cloud is one of the most important and widely
+used 3D representation in many applications, such as autonomous driving, robotics and physics simulation [13].
+With the rapid development of 3D scanning technology,
+complex geometry can now be effectively captured as large
+point clouds with fine details. As a consequence, point
+cloud compression becomes crucial for storage and transmission. Particularly, to achieve favorable compression ratio, the community has been focusing on lossy methods and
+pondering the key question: what properties of point clouds
+should be preserved, given limited bitrate budget?
+Besides the global geometry, we argue that local density
+∗ indicates equal contribution.
+
+Yun He, Xinlin Ren and Xiangyang Xue are with the School of Computer Science, Fudan University.
+Yanwei Fu is with the School of Data Science, Fudan University.
+
+\
+
+\
+
+Ours (Bpp: 1.61)
+
+GT
+
+\
+
+G-PCC (Bpp: 1.66)
+
+\
+
+Depoco (Bpp: 1.73)
+
+Figure 1. We argue that local density is an important characteristic of the point cloud and should be preserved during compression. Existing methods that ignore the local density exhibit artifacts such as uniform distribution (G-PCC [12]) and clustered
+points (Depoco [40]), resulting in worse reconstruction, especially
+when the bitrate is low.
+
+is an important characteristic and should be preserved as
+much as possible. Firstly, preserving density usually leads
+to less outliers, and thus smaller reconstruction error. Secondly, point clouds captured in practice, e.g. from LiDAR,
+are rarely with uniformly distributed points. Losing local
+density means losing important traits such as scanning resolution and occlusion. Thirdly, point clouds are often processed or simplified to be denser on regions of interest or
+with complex geometry, such as human face, hand, etc. Preserving density during compression means more budget is
+spent on these regions. Last but not the least, if the decompressed point cloud has significantly different density from
+the raw one, downstream applications such as semantic segmentation may be affected.
+Mathematically, a point cloud can be considered as a set,
+often with different cardinality and permutation settings [8],
+which makes it difficult for image/video compression or
+conventional learning-based solutions that assume fixed dimensional and ordered input. A typical strategy of existing lossy methods is to voxelize the points before compres-
+
+2333
+
+

@@ -1,0 +1,66 @@
+On the Acceleration of Deep Learning Model Parallelism with Staleness
+An Xu1 , Zhouyuan Huo1 , and Heng Huang∗1,2
+1
+
+Electrical and Computer Engineering Department, University of Pittsburgh, PA, USA
+2
+JD Finance America Corporation, Mountain View, CA, USA
+{an.xu, zhouyuan.huo, heng.huang}@pitt.edu
+
+Abstract
+Training the deep convolutional neural network for computer vision problems is slow and inefficient, especially
+when it is large and distributed across multiple devices. The
+inefficiency is caused by the backpropagation algorithm’s
+forward locking, backward locking, and update locking
+problems. Existing solutions for acceleration either can
+only handle one locking problem or lead to severe accuracy loss or memory inefficiency. Moreover, none of them
+consider the straggler problem among devices. In this paper, we propose Layer-wise Staleness and a novel efficient
+training algorithm, Diversely Stale Parameters (DSP), to
+address these challenges. We also analyze the convergence
+of DSP with two popular gradient-based methods and prove
+that both of them are guaranteed to converge to critical
+points for non-convex problems. Finally, extensive experimental results on training deep learning models demonstrate that our proposed DSP algorithm can achieve significant training speedup with stronger robustness than compared methods.
+
+1. Introduction
+The deep convolutional neural network is an important
+method for solving computer vision problems such as classification, object detection, etc. However, as the neural networks get deeper and larger [8, 17, 10, 31, 34, 24], the required expensive training time has become the bottleneck.
+Data parallelism [33, 23, 3] and model parallelism [22, 20]
+are two standard parallelism techniques to utilize multiple
+devices for efficient training.
+The data parallelism for efficient distributed training has
+been well studied and implemented in existing libraries
+∗ Corresponding Author. This work was partially supported by U.S.
+NSF IIS 1836945, IIS 1836938, IIS 1845666, IIS 1852606, IIS 1838627,
+IIS 1837956.
+
+[1, 4, 12, 35, 14, 16], but the model parallelism is still underexplored. In this paper, we focus on the model parallelism,
+where the deep neural network (DNN) benefits from being
+split onto multiple devices. But the resource utilization of
+standard model parallelism can be very low. The backpropagation algorithm [29, 21] typically requires two phases to
+update the model in each training step: the forward pass
+and backward pass. But the sequential propagation of activation and error gradient leads to backward locking and
+forward locking [18] respectively because of the computation dependencies between layers. The update locking [18]
+exists as the backward pass will not start until the forward
+pass has completed. This sequential execution keeps a device inefficiently waiting for the activation input and error
+gradient.
+Several works have been proposed to address these locking issues (Figure 1). [18] uses Decoupled Neural Interfaces
+(DNI) to predict the error gradient via auxiliary networks,
+so that a layer uses the synthetic gradient and needs not to
+wait for the error gradient. [27] lets hidden layers receive
+error information directly from the output layer. However,
+these methods can not converge when dealing with very
+deep neural networks. [2] proposes layer-wise decoupled
+greedy learning (DGL), which introduces an auxiliary classifier for each block of layers so that a block updates its
+parameters according to its own classifier. But the objective
+function of DGL based on greedy local predictions can be
+very different from the original model. GPipe [11] proposes
+pipeline parallelism and divides each mini-batch into microbatches, which can be regarded as a combination of model
+parallelism and data parallelism. However, the forward and
+backward lockings of the micro-batch still exist, and the update locking is not addressed because GPipe waits for the
+whole forward and backward pass to finish before updating
+the parameters. [15] proposes Decoupled Parallel Backpropagation (DDG), which divides the DNN into blocks
+and removes the backward locking by storing delayed error gradient and intermediate activations at each block. But
+
+2088
+
+

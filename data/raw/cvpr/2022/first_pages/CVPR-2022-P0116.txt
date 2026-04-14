@@ -1,0 +1,71 @@
+Hire-MLP: Vision MLP via Hierarchical Rearrangement
+Jianyuan Guo1,3 ,* Yehui Tang1,2* , Kai Han1 , Xinghao Chen1 ,
+†
+†
+Han Wu3 , Chao Xu2 , Chang Xu3 , Yunhe Wang1
+1
+
+Huawei Noah’s Ark Lab. 2 School of Artificial Intelligence, Peking University.
+School of Computer Science, Faculty of Engineering, University of Sydney.
+
+3
+
+{jianyuan.guo, kai.han, yunhe.wang}@huawei.com, yhtang@pku.edu.cn, c.xu@sydney.edu.au
+
+Abstract
+Previous vision MLPs such as MLP-Mixer and ResMLP
+accept linearly flattened image patches as input, making
+them inflexible for different input sizes and hard to capture
+spatial information. Such approach withholds MLPs from
+getting comparable performance with their transformerbased counterparts and prevents them from becoming a
+general backbone for computer vision. This paper presents
+Hire-MLP, a simple yet competitive vision MLP architecture
+via Hierarchical rearrangement, which contains two levels of rearrangements. Specifically, the inner-region rearrangement is proposed to capture local information inside
+a spatial region, and the cross-region rearrangement is proposed to enable information communication between different regions and capture global context by circularly shifting
+all tokens along spatial directions. Extensive experiments
+demonstrate the effectiveness of Hire-MLP as a versatile
+backbone for various vision tasks. In particular, Hire-MLP
+achieves competitive results on image classification, object
+detection and semantic segmentation tasks, e.g., 83.8% top1 accuracy on ImageNet, 51.7% box AP and 44.8% mask
+AP on COCO val2017, and 49.9% mIoU on ADE20K, surpassing previous transformer-based and MLP-based models with better trade-off for accuracy and throughput.
+
+1. Introduction
+Attention mechanism based transformers have shown
+great superiority in the realm of natural language processing in recent years. Several works such as ViT [11] and
+DeiT [49] propose to transfer the transformers into visual
+recognition tasks [15], and have achieved awesome results
+which are comparable with conventional convolutional neural networks (CNNs). However, the heavy computational
+* Equal contribution. † Corresponding author. Mindspore [24] code:
+https://gitee.com/mindspore/models/tree/master/research/cv/HireMLP.
+Pytorch [37] code: https://github.com/huawei-noah/CV-Backbones.
+
+burdens caused by the self-attention modules in transformers withhold the models from better trade-off between accuracy and latency. Recently, models composed of only
+multi-layer perceptrons (MLPs) have become a new trend in
+vision community [47, 48]. These MLP-based models can
+achieve comparable results with CNNs while discarding the
+heavy self-attention module. For example, MLP-Mixer [47]
+extracts per-location information through MLPs that are applied to every image patch, and captures long-range information through MLPs that are applied across patches.
+Although MLP-Mixer can obtain the global receptive
+field, there are two intractable flaws that prevent the model
+from becoming a more general backbone for vision tasks:
+(i) The number of the patches (tokens) will change as the
+input size changes, which means it cannot be directly finetuned at other resolutions that are different from those used
+in pre-training phase, making MLP-Mixer infeasible to be
+transferred into downstream vision tasks such as detection
+and segmentation. (ii) MLP-Mixer rarely explores the local information, which is demonstrated as an useful inductive bias in both CNNs and transformer-based architectures [18, 55]. The above challenges naturally motivate us
+to explore an efficient MLP-based architecture which can
+encode both local and global information while being compatible with flexible input resolutions at the same time.
+To address the two aforementioned challenges, we propose the Hire-MLP, which innovates the existing MLPbased models by using hierarchical rearrangement operations. Taking the first challenge into account, the sequence
+of tokens in MLP-Mixer [47] are denoted as X ∈ RHW ×C ,
+where HW and C denote the number of tokens and channels, respectively. MLP-Mixer first uses a token-mixing
+MLP which acts on the columns of X to map RHW 7→
+RHW , and then uses a channel-mixing MLP which acts on
+the rows of X to map RC 7→ RC . The parameters of the
+token-mixing MLP are configured by the number of tokens
+HW , which depends on the resolution of input images and
+results in the first challenge. To this end, we construct our
+Hire-MLP merely by channel-mixing MLPs applied on the
+
+826
+
+

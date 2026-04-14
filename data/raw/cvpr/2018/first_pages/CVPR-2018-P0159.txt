@@ -1,0 +1,85 @@
+Recurrent Residual Module for Fast Inference in Videos
+Bowen Pan1† , Wuwei Lin1† , Xiaolin Fang2¶ , Chaoqin Huang1† , Bolei Zhou3§ , Cewu Lu1‡∗
+1
+†
+
+Shanghai Jiao Tong University, 2 Zhejiang University, 3 Massachusetts Institute of Technology
+
+{googletornado,linwuwei13, huangchaoqin}@sjtu.edu.cn, ¶ fxlfang@gmail.com
+§
+
+bzhou@csail.mit.edu; ‡ lucewu@sjtu.edu.cn
+
+Abstract
+Deep convolutional neural networks (CNNs) have made
+impressive progress in many video recognition tasks such
+as video pose estimation and video object detection. However, CNN inference on video is computationally expensive
+due to processing dense frames individually. In this work,
+we propose a framework called Recurrent Residual Module
+(RRM) to accelerate the CNN inference for video recognition
+tasks. This framework has a novel design of using the similarity of the intermediate feature maps of two consecutive
+frames, to largely reduce the redundant computation. One
+unique property of the proposed method compared to previous work is that feature maps of each frame are precisely
+computed. The experiments show that, while maintaining
+the similar recognition performance, our RRM yields averagely 2× acceleration on the commonly used CNNs such
+as AlexNet, ResNet, deep compression model (thus 8−12×
+faster than the original dense models using the efficient inference engine), and impressively 9× acceleration on some
+binary networks such as XNOR-Nets (thus 500× faster than
+the original model). We further verify the effectiveness of the
+RRM on speeding up CNNs for video pose estimation and
+video object detection.
+
+1. Introduction
+Video understanding is one of the long-standing topics
+in computer vision. Recently, deep convolutional neural
+networks (CNNs) advanced different tasks of video understanding, such as video classification [33, 59, 58, 60],
+video pose estimation [16, 5], and video object detection [18, 17, 47, 39, 45, 46]. However, using CNNs to
+process the dense frames of videos is computationally expensive while it becomes unaffordable as the video goes longer.
+Meanwhile, millions of videos are shared on the Internet,
+where processing and extracting useful information remains
+a challenge. With the video datasets becoming larger and
+∗ The corresponding author is Cewu Lu. Cewu Lu is also member of AI
+research institution at SJTU. This work was done when Xiaolin Fang was
+an intern at MVIG lab of Shanghai Jiao Tong University.
+
+larger [49, 1, 33, 34, 15, 41], training and evaluating neural
+networks for video recognition are more challenging. For
+example, for Youtube-8M dataset [1] with over 8 million
+video clips, it will take 50 years for a CPU to extract the
+deep features using a standard CNN model.
+One of the bottlenecks for video understanding using
+CNNs is the frame-by-frame CNN inference. A one-minute
+video contains thousands of frames thus the model inference becomes much slower in comparison with processing a
+single image. However, different from a set of independent
+images, consecutive frames in a video clip are usually similar.
+Thus, the high-level semantic feature maps in the deep convolutional neural networks of the consecutive frames will also
+be similar. Intuitively, we can leverage the frame similarity to
+reduce some redundant computation in the frame-by-frame
+video CNN inference. An attractive recursive schema is as
+follows:
+R(It ) = R(It−1 ) + G(It − It−1 ),
+
+(1)
+
+where R is the deep CNN feature, G is a fast and shallow
+network that only processes the frame difference between
+frame It and It−1 in a video clip. Ideally, G should be
+both efficient and accurate to extract the residual feature.
+However, it remains challenging to implement such a schema
+due to the nonlinearity of CNNs.
+Some previous works have tried to address this nonlinearity. Zhu et al. [61] proposed deep feature flow framework
+which utilizes the flow field to propagate the deep feature
+maps. However, these estimated feature maps will cause a
+drop on performance compared to the original feature maps.
+Kang et al. [32] developed a NoScope system to perform the
+fast binary query of the absence of a specific category. It is
+fast but not generic enough for other video recognition tasks.
+We propose the framework of Recurrent Residual Module
+(RRM) to thoroughly address the nonlinear issue of CNNs
+in Eq. 1. The nonlinearity of CNNs results from the pooling
+layers and activation functions, while the computationally expensive layers such as convolution layer and fully-connected
+layer are linear. Thus for two consecutive frame inferences,
+if we are able to share the overlapped calculation of these
+linear layers, a large amount of the computation can be elim11536
+
+

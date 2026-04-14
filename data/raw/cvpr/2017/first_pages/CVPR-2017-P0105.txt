@@ -1,0 +1,94 @@
+FastMask: Segment Multi-scale Object Candidates in One Shot
+Hexiang Hu∗ †
+USC
+
+Shiyi Lan∗ †
+Fudan University
+
+Yuning Jiang
+Megvii Inc.
+
+Zhimin Cao
+Megvii Inc.
+
+Fei Sha
+USC
+
+hexiangh@usc.edu
+
+sylan14@fudan.edu.cn
+
+jyn@megvii.com
+
+czm@megvii.com
+
+feisha@usc.edu
+
+Abstract
+Objects appear to scale differently in natural images.
+This fact requires methods dealing with object-centric tasks
+(e.g. object proposal) to have robust performance over variances in object scales. In the paper, we present a novel segment proposal framework, namely FastMask, which takes
+advantage of hierarchical features in deep convolutional
+neural networks to segment multi-scale objects in one shot.
+Innovatively, we adapt segment proposal network into three
+different functional components (body, neck and head). We
+further propose a weight-shared residual neck module as
+well as a scale-tolerant attentional head module for efficient one-shot inference. On MS COCO benchmark, the
+proposed FastMask outperforms all state-of-the-art segment proposal methods in average recall being 2∼5 times
+faster. Moreover, with a slight trade-off in accuracy, FastMask can segment objects in near real time (∼13 fps) with
+800×600 resolution images, demonstrating its potential in
+practical applications. Our implementation is available on
+https://github.com/voidrank/FastMask.
+
+1. Introduction
+Object proposal is considered as the first and fundamental step in object detection task [8, 25, 1, 16, 10, 29]. As the
+domain rapidly progressed, a renewed interest in object segment proposal has received intensive attentions [6, 20, 21,
+5, 2]. Different from traditional object proposal methods,
+segment proposal algorithms are expected to generate a
+pixel-wise segment instead of a bounding box for each
+object. From this perspective, segment proposal inherits
+from both object proposal and image segmentation, and
+takes a step further towards simultaneous detection and segmentation [11], which brings more challenges to overcome.
+Among all these challenges, how to tackle the scale variances in object appearance remains the most critical one.
+Compared to bounding-box-based (bbox-based) object proposal, scale variance becomes a more serious problem for
+∗ Equal contribution.
+† Work was done during their internships at Megvii Inc.
+
+Receptive field
+(too small)
+
+Bbox-based proposal
+
+Segment-based proposal
+
+(a) Problems with small receptive field
+Receptive field
+(too large)
+
+Ground truth
+
+Segment-based proposal
+
+(b) Problems with large receptive field
+
+Figure 1. How a mismatched receptive field affects the segment
+proposal results. Refer to text for detailed explanation.
+
+segment proposal. It is due to that in segment proposal,
+a highly matched receptive field is demanded to distinguish the foreground object from background. In Figure 1
+two examples are given to explain how a mismatched receptive field affects the segment proposal results: on one
+hand (Figure 1 (a)), when the receptive field of object proposer is much smaller than the object itself (e.g. perceiving
+only a window of a bus), the bbox-based proposer could
+still roughly estimate the bounding box with prior knowledge. However, the mission becomes almost impossible for
+a segment-based proposer as they need to imagine the complete contour of the bus; on the other hand (Figure 1 (b)),
+too large receptive field may introduce noises from backgrounds and result in the incorrect instance-level segments.
+For example, a segment-based proposer could be distracted
+by other people standing nearby the target person, leading
+to an inaccurate mask covering not only the target person.
+As a consequence, once the receptive field of a segmentbased proposer is fixed, object scale variance will badly affect both segmentation fineness and proposal recall.
+In general, existing methods [6, 20, 21, 5, 2] could be
+divided into two major categories by how they deal with
+scale variances. The first category [6, 2] uses extra bboxbased object proposals or object detections as initial inputs.
+1991
+
+

@@ -1,0 +1,151 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+A Simple Framework for Text-Supervised Semantic Segmentation
+Muyang Yi1†
+
+Quan Cui2,3
+
+Hao Wu3⇤
+
+Cheng Yang3
+
+Osamu Yoshie2
+
+Hongtao Lu1⇤
+
+Department of Computer Science and Engineering,
+MoE Key Lab of Artificial Intelligence, AI Institute, Shanghai Jiao Tong University
+2
+3
+Waseda University
+ByteDance Inc.
+1
+
+Abstract
+Text-supervised semantic segmentation is a novel research topic that allows semantic segments to emerge with
+image-text contrasting. However, pioneering methods could
+be subject to specifically designed network architectures.
+This paper shows that a vanilla contrastive language-image
+pre-training (CLIP) model is an effective text-supervised semantic segmentor by itself. First, we reveal that a vanilla
+CLIP is inferior to localization and segmentation due to
+its optimization being driven by densely aligning visual
+and language representations. Second, we propose the
+locality-driven alignment (LoDA) to address the problem,
+where CLIP optimization is driven by sparsely aligning local representations. Third, we propose a simple segmentation (SimSeg) framework. LoDA and SimSeg jointly ameliorate a vanilla CLIP to produce impressive semantic segmentation results. Our method outperforms previous state-ofthe-art methods on PASCAL VOC 2012, PASCAL Context
+and COCO datasets by large margins. Code and models
+are available at github.com/muyangyi/SimSeg.
+
+1. Introduction
+Semantic segmentation is a fundamental task in computer vision, with the purpose of allocating semantic classes
+to the corresponding pixels. Most existing methods for semantic segmentation are restricted by the scale of datasets.
+The quantity or category is insufficient due to the high cost
+of annotating segmentation masks. Text-supervised semantic segmentation makes a breakthrough for this challenge,
+where models are pre-trained with image-text pairs and
+zero-shot transferred to semantic segmentation.
+Figure 1 illustrates an abstraction of text-supervised
+semantic segmentation in comparison with existing task
+paradigms. The base domain is denoted as DB , which
+contains the manually labeled samples. The target do* Corresponding authors.
+† Work was done when the first author was an intern at ByteDance.
+
+!!
+!#
+
+!!
+
+!"
+
+!"
+
+!"
+
+!#
+
+Open-Vocabulary
+
+!!
+
+!!
+
+Zero-Shot
+
+Weakly Supervised Text-Supervised
+(Ours)
+
+seg maps
+
+seg maps
+
+fine-tune
+module
+
+Text
+Encoder
+
+fine-tune
+module
+
+Image
+Encoder
+
+Text
+Encoder
+
+Image
+Encoder
+
+image-text pairs
++ seg annotations
+
+image-text pairs
++ seg annotations
+
+LSeg
+
+OpenSeg
+
+seg maps
+
+seg maps
+
+non-universal
+backbone
+
+Text
+Encoder
+
+GroupViT
+
+Text
+Encoder
+
+Image
+Encoder
+
+image-text pairs
+
+image-text pairs
+
+GroupViT
+
+SimSeg (Ours)
+
+Figure 1. A comparison of our proposed approach with existing
+paradigms, where DB , DT , DO denote base domain, target domain and open domain, respectively. The components in red are
+those missing in SimSeg. Illustration inspired by [50].
+
+main is denoted as DT , which contains test samples. And
+open domain DO involves a large variety of linguistic information. It can provide additional textual descriptions
+when segmenting the images. Open-vocabulary methods (e.g., LSeg [22], OpenSeg [17]) use pre-trained visionand-language models [20, 33], but still need annotated samples to fine-tune. Weakly supervised methods [1, 2] are
+free from mask labels but require image-level class labels (DT ✓ DO ). Text-supervision is an annotation-free
+scheme, eliminating the need for mask annotations (DB ) or
+image-level labels (i.e., DT * DO ). Text-supervision leverages massive web image-text pairs and enables to generate
+segmentation masks in a zero-shot manner. GroupViT [44]
+is the first work of text-supervision, yet the non-universal
+backbone design hinders its flexibility (e.g., novel backbone
+
+7071
+
+

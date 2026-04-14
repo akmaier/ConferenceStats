@@ -1,0 +1,104 @@
+FBNetV3: Joint Architecture-Recipe Search using Predictor Pretraining
+Xiaoliang Dai1∗ , Alvin Wan2 *, Peizhao Zhang1∗ , Bichen Wu1 , Zijian He1 , Zhen Wei3 ,
+Kan Chen1 , Yuandong Tian1 , Matthew Yu1 , Peter Vajda1 , and Joseph E. Gonzalez2
+1
+
+Facebook Inc., 2 UC Berkeley, 3 UNC Chapel Hill
+
+{xiaoliangdai,stzpz,wbc,zijian,kanchen18,yuandong,mattcyu,vajdap}@fb.com
+{alvinwan,jegonzal}@berkeley.edu, zhenni@cs.unc.edu
+
+Abstract
+
+1. Introduction
+Designing efficient computer vision models is a challenging but important problem: A myriad of applications from
+autonomous vehicles to augmented reality require compact
+models that must be highly accurate – even under constraints
+* Equal contribution
+
+Accuracy (%, Top-1 ImageNet)
+
+Neural Architecture Search (NAS) yields state-of-theart neural networks that outperform their best manuallydesigned counterparts. However, previous NAS methods
+search for architectures under one set of training hyperparameters (i.e., a training recipe), overlooking superior
+architecture-recipe combinations. To address this, we
+present Neural Architecture-Recipe Search (NARS) to search
+both (a) architectures and (b) their corresponding training
+recipes, simultaneously. NARS utilizes an accuracy predictor that scores architecture and training recipes jointly,
+guiding both sample selection and ranking. Furthermore,
+to compensate for the enlarged search space, we leverage
+“free” architecture statistics (e.g., FLOP count) to pretrain
+the predictor, significantly improving its sample efficiency
+and prediction reliability. After training the predictor via
+constrained iterative optimization, we run fast evolutionary searches in just CPU minutes to generate architecturerecipe pairs for a variety of resource constraints, called
+FBNetV3. FBNetV3 makes up a family of state-of-the-art
+compact neural networks that outperform both automatically and manually-designed competitors. For example, FBNetV3 matches both EfficientNet and ResNeSt accuracy on
+ImageNet with up to 2.0× and 7.1× fewer FLOPs, respectively. Furthermore, FBNetV3 yields significant performance
+gains for downstream object detection tasks, improving mAP
+despite 18% fewer FLOPs and 34% fewer parameters than
+EfficientNet-based equivalents.
+
+82.8
+
+81.3
+
+81
+
+MnasNet
+MobileNetV3
+ShuffleNetV2
+ChamNet
+ProxylessNAS
+EfficientNet
+FBNetV2
+RegNetY
+BigNAS
+OnceForAll
+Ours (FBNetV3)
+
+80.5
+79.1
+
+79
+
+77
+
+75
+500
+
+1000
+
+1500
+
+2000
+2500
+FLOPs (M)
+
+3000
+
+3500
+
+4000
+
+Figure 1: ImageNet accuracy vs. model FLOPs comparison of
+FBNetV3 with other efficient convolutional neural networks. FBNetV3 achieves 80.8% (82.8%) top-1 accuracy with 557M (2.1G)
+FLOPs, setting a new SOTA for accuracy-efficiency trade-offs.
+
+on power, computation, memory, and latency. The number of
+possible constraint and architecture combinations is combinatorially large, making manual design a near impossibility.
+In response, recent work employs neural architecture
+search (NAS) to design state-of-the-art efficient deep neural networks. One category of NAS is differentiable neural
+architecture search (DNAS). These path-finding algorithms
+are efficient, often completing a search in the time it takes
+to train one network. However, DNAS cannot search for
+non-architecture hyperparameters, which are crucial to the
+model’s performance. Furthermore, supernet-based NAS
+methods suffer from a limited search space, as the entire
+supergraph must fit into memory to avoid slow convergence
+[5] or paging. Other methods include reinforcement learning (RL) [45], and evolutionary algorithms (ENAS) [41].
+However, these methods share several drawbacks:
+1. Ignore training hyperparameters: NAS, true to its
+name, searches only for architectures but not the associated training hyperparameters (i.e., “training recipe”).
+This ignores the fact that different training recipes may
+116276
+
+

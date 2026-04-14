@@ -1,0 +1,78 @@
+Discrete-Continuous ADMM
+for Transductive Inference in Higher-Order MRFs
+Emanuel Laude 1
+Laura Leal-Taixé 1
+1
+
+Jan-Hendrik Lange 2
+Frank R. Schmidt 1 3
+
+Jonas Schüpfer 1 Csaba Domokos 1
+Bjoern Andres 2 3 4 Daniel Cremers 1
+
+2
+Technical University of Munich
+Max Planck Institute for Informatics, Saarbrücken
+3
+4
+Bosch Center for Artificial Intelligence
+University of Tübingen
+
+Abstract
+This paper introduces a novel algorithm for transductive
+inference in higher-order MRFs, where the unary energies
+are parameterized by a variable classifier. The considered
+task is posed as a joint optimization problem in the continuous classifier parameters and the discrete label variables. In contrast to prior approaches such as convex relaxations, we propose an advantageous decoupling of the
+objective function into discrete and continuous subproblems and a novel, efficient optimization method related to
+ADMM. This approach preserves integrality of the discrete
+label variables and guarantees global convergence to a critical point. We demonstrate the advantages of our approach
+in several experiments including video object segmentation
+on the DAVIS data set and interactive image segmentation.
+
+1. Introduction
+Various problems in computer vision, computer graphics and machine learning can be formulated as MAP inference in a (possibly higher order) Markov random field
+(MRF) [33, 26, 40, 28, 30, 12, 32, 43]. The resulting optimization problem is defined over a hypergraph (V, C) and a
+finite label set L as:
+X
+X
+EC (yC ).
+(1)
+min
+Ei (yi ) +
+y∈Y
+
+i∈V
+
+C∈C
+|C|>1
+
+The optimization variable y ∈ Y := L|V| corresponds to
+a labeling of the vertices V and assigns a label yi ∈ L to
+each vertex i ∈ V. For convenience, we make a distinction
+between the singleton clique energies (unaries) Ei (yi ) and
+the higher order energies EC (yC ), |C| > 1.
+In computer vision tasks, where the image is interpreted
+as a (higher order) pixelgrid (V, C), the higher order potentials often correspond to priors favoring spatially smooth
+
+Figure 1: A pixel-classifier trained to predict an object mask
+(top row) performs well when the distribution of object pixels in the training image is similar to the test image (left),
+but often fails if it is dissimilar (right). In a transductive inference approach (bottom row), we optimize jointly for the
+test labels and classifier parameters, which successfully prevents the hallucination of object pixels in difficult scenes,
+such as in the case of occlusion (right), cf. Sec. 4.2.
+
+solutions. In semantic image segmentation, for instance, inference in MRFs is widely used as a post-processing step
+to introduce spatial smoothness on the labeling y [10]. In
+this sense, the overall task of semantic segmentation is subdivided into two tasks: First, a classifier, parameterized
+by W , is trained in a supervised fashion on a sufficiently
+large labeled training set, which assigns to each pixel in a
+test image a class (probability) score. Second, to enforce
+spatial smoothness of the labeling of the test image, MAPinference in an MRF is performed in a post-processing, in
+which the class (probability) scores are interpreted as the
+unary energies Ei (yi ; W ) for each yi . We argue that it is
+advantageous to merge such a two-step approach into a joint
+approach, as the training of the classifier profits from both,
+(i) the distribution of the unlabeled pixels in the color or
+feature space, and (ii) the available structural information
+11614
+
+

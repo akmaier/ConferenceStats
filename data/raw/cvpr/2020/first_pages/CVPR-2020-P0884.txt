@@ -1,0 +1,63 @@
+Cross-Batch Memory for Embedding Learning
+Xun Wang∗ , Haozhi Zhang∗ , Weilin Huang† , Matthew R. Scott
+Malong Technologies
+{xunwang, haozhang, whuang, mscott}@malong.com
+
+Abstract
+Mining informative negative instances are of central importance to deep metric learning (DML), however this task
+is intrinsically limited by mini-batch training, where only a
+mini-batch of instances is accessible at each iteration. In
+this paper, we identify a “slow drift” phenomena by observing that the embedding features drift exceptionally slow
+even as the model parameters are updating throughout the
+training process. This suggests that the features of instances
+computed at preceding iterations can be used to considerably approximate their features extracted by the current
+model. We propose a cross-batch memory (XBM) mechanism that memorizes the embeddings of past iterations, allowing the model to collect sufficient hard negative pairs
+across multiple mini-batches - even over the whole dataset.
+Our XBM can be directly integrated into a general pairbased DML framework, where the XBM augmented DML
+can boost performance considerably. In particular, without bells and whistles, a simple contrastive loss with our
+XBM can have large R@1 improvements of 12%-22.5% on
+three large-scale image retrieval datasets, surpassing the
+most sophisticated state-of-the-art methods [37, 26, 2], by
+a large margin. Our XBM is conceptually simple, easy to
+implement - using several lines of codes, and is memory efficient - with a negligible 0.2 GB extra GPU memory. Code
+is available at: https://github.com/MalongTech/researchxbm.
+
+1. Introduction
+Deep metric learning (DML) aims to learn an embedding
+space where instances from the same class are encouraged
+to be closer than those from different classes. As a fundamental problem in computer vision, DML has been applied
+to various tasks, including image retrieval [39, 12, 7], face
+recognition [38], zero-shot learning [47, 1, 16], visual tracking [17, 34] and person re-identification [44, 13].
+∗ Equal contribution † Corresponding author
+
+A family of DML approaches are known as pair-based,
+whose objectives can be defined in terms of pair-wise similarities within a mini-batch, such as contrastive loss [3],
+triplet loss [29], lifted-structure loss[22], n-pairs loss [30],
+multi-similarity (MS) loss [37] and etc. Moreover, most
+existing pair-based DML methods can be unified as weighting schemes under a General Pair Weighting (GPW) framework [37]. The performance of pair-based methods heavily rely on their capability of mining informative negative
+pairs. To collect sufficient informative negative pairs from
+each mini-batch, many efforts have been devoted to improving the sampling schemes, which can be categorized
+into two main directions: (1) sampling informative minibatches based on global data distribution [32, 6, 28, 32, 9];
+(2) weighting informative pairs within each individual minibatch [22, 30, 37, 35, 40].
+Various sophisticated sampling schemes have been developed, but the hard mining ability is inherently limited
+by the size of a mini-batch, which the number of possible training pairs depends on. Therefore, to improve the
+sampling scheme, it is straightforward to enlarge the minibatch, which can boost the performance of pair-based DML
+methods immediately. We demonstrate by experiments that
+the performance of pair-based approaches, such as contrastive loss [3] and recent MS loss [37], can be improved
+strikingly when the mini-batch grows larger on large-scale
+datasets (Figure 1, left and middle). It is not surprising
+because the number of negative pairs grows quadratically
+w.r.t. the mini-batch size. However, simply enlarging a
+mini-batch is not an ideal solution to solve the hard mining problem due to two limitations: (1) the mini-batch size
+is limited by the GPU memory and computational cost; (2)
+a large mini-batch (e.g. 1800 used in [29]) often requires
+cross-device synchronization, which is a challenging engineering task. A naive solution to collect abundant informative pairs is to compute the features of instances in the
+whole training set at each training iteration, and then search
+for hard negative pairs from the whole dataset. Obviously,
+this solution is extremely time consuming, especially for a
+large-scale dataset, but it inspired us to break the limit of
+mining hard negatives within a single mini-batch.
+
+6388
+
+

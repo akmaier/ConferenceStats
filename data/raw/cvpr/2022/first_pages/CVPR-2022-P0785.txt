@@ -1,0 +1,87 @@
+Focal Sparse Convolutional Networks for 3D Object Detection
+Yukang Chen1 ,
+1
+
+Yanwei Li1 ,
+
+Xiangyu Zhang2 ,
+
+The Chinese University of Hong Kong
+
+Abstract
+Non-uniformed 3D sparse data, e.g., point clouds or voxels in different spatial positions, make contribution to the
+task of 3D object detection in different ways. Existing basic components in sparse convolutional networks (Sparse
+CNNs) process all sparse data, regardless of regular or submanifold sparse convolution. In this paper, we introduce
+two new modules to enhance the capability of Sparse CNNs,
+both are based on making feature sparsity learnable with
+position-wise importance prediction. They are focal sparse
+convolution (Focals Conv) and its multi-modal variant of
+focal sparse convolution with fusion, or Focals Conv-F for
+short. The new modules can readily substitute their plain
+counterparts in existing Sparse CNNs and be jointly trained
+in an end-to-end fashion. For the first time, we show that
+spatially learnable sparsity in sparse convolution is essential for sophisticated 3D object detection. Extensive experiments on the KITTI, nuScenes and Waymo benchmarks validate the effectiveness of our approach. Without bells and
+whistles, our results outperform all existing single-model
+entries on the nuScenes test benchmark. Code and models
+are at github.com/dvlab-research/FocalsConv.
+
+1. Introduction
+A key challenge in 3D object detection is to learn effective representations from the unstructured and sparse
+3D geometric data such as point clouds. In general, there
+are two ways for this job. The first is to process point
+clouds [37,51] directly, based on PointNet++ [33] networks.
+However, the neighbour sampling and grouping operations
+are time-consuming. This makes it improper for large-scale
+autonomous driving scenes that require real-time efficiency.
+The The second is to convert point clouds into voxelizations
+and apply 3D sparse convolutional neural networks (Sparse
+CNNs) for feature extraction [11, 36]. 3D Sparse CNNs
+resemble 2D CNNs in structures, including several feature
+stages and down-sampling operations. They typically consist of regular and submanifold sparse convolutions [15].
+Yukang’s work was done during internship in MEGVII Technology.
+
+2
+
+Jian Sun2 ,
+
+MEGVII Technology
+
+Jiaya Jia1,3
+3
+
+SmartMore
+
+Although regular and submanifold sparse convolutions
+have been widely used, they have respective limitations.
+Regular sparse convolution dilates all sparse features. It
+inevitably burdens models with considerable computations.
+That is why backbone networks commonly limit its usage
+only in down-sampling layers [36, 48]. In addition, detectors aim to distinguish target objects from massive background features. But regular sparse convolution reduces the
+sparsity sharply and blurs feature distinctions.
+On the other hand, submanifold sparse convolutions
+avoid the computation issue by restricting the output feature positions to the input. But it misses necessary information flow, especially for the spatially disconnected features.
+The above issues on regular and submanifold sparse convolutions limit Sparse CNNs to achieve high representation
+capability and efficiency. We illustrate the submanifold and
+regular sparse convolutional operations in Fig. 1.
+These limitations originate from the conventional convolution pattern: all input features are treated equally in
+the convolution process. It is natural for 2D CNNs, and
+yet is improper for 3D sparse features. 2D convolution
+is designed for structured data. All pixels in the same
+layer typically share receptive field sizes. But 3D sparse
+data is with varying sparsity and importance in space. It
+is not optimal to handle non-uniform data with uniform
+treatment. In terms of sparsity, upon the distance to LIDAR sensors, objects present large sparsity variance. In
+terms of importance, the contribution of features varies
+with different locations for 3D object detection, e.g., foreground or background. Although 3D object detection is
+achieved [11, 36, 37, 53], state-of-the-art methods still rely
+on RoI (region-of-interest) feature extraction. It corresponds to the idea that we should shoot arrows at the target
+in the feature extraction of 3D detectors.
+In this paper, we propose a general format of sparse convolution by relaxing the conceptual difference between regular and submanifold ones. We introduce two new modules
+that improve the representation capacity of Sparse CNNs
+for 3D object detection. The first is focal sparse convolution (Focals Conv). It predicts cubic importance maps for
+the output pattern of convolutions. Features predicted as
+important ones are dilated into a deformable output shape,
+
+5428
+
+

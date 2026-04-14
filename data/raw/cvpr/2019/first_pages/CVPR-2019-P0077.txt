@@ -1,0 +1,144 @@
+Weakly Supervised Person Re-Identification
+Jingke Meng1,3 , Sheng Wu1 , and Wei-Shi Zheng1,2∗
+2
+
+1
+School of Data and Computer Science, Sun Yat-sen University, China
+Key Laboratory of Machine Intelligence and Advanced Computing, Ministry of Education, China
+3
+Accuvision Technology Co. Ltd, China
+mengjke@mail2.sysu.edu.cn, wush43@mail2.sysu.edu.cn, wszheng@ieee.org
+
+Abstract
+In the conventional person re-id setting, it is assumed
+that the labeled images are the person images within the
+bounding box for each individual; this labeling across multiple nonoverlapping camera views from raw video surveillance is costly and time-consuming. To overcome this difficulty, we consider weakly supervised person re-id modeling.
+The weak setting refers to matching a target person with an
+untrimmed gallery video where we only know that the identity appears in the video without the requirement of annotating the identity in any frame of the video during the training procedure. Hence, for a video, there could be multiple
+video-level labels. We cast this weakly supervised person
+re-id challenge into a multi-instance multi-label learning
+(MIML) problem. In particular, we develop a Cross-View
+MIML (CV-MIML) method that is able to explore potential
+intraclass person images from all the camera views by incorporating the intra-bag alignment and the cross-view bag
+alignment. Finally, the CV-MIML method is embedded into an existing deep neural network for developing the Deep
+Cross-View MIML (Deep CV-MIML) model. We have performed extensive experiments to show the feasibility of the
+proposed weakly supervised setting and verify the effectiveness of our method compared to related methods on four
+weakly labeled datasets.
+
+1. Introduction
+Given an image from a set of probe images, the objective of person re-identiﬁcation (re-id) is to identify the same
+person across a set of gallery images from nonoverlapping
+camera views. The changes in illumination, camera viewpoint, background and occlusions lead to considerable visual ambiguity and appearance variation and make person reid a challenging problem. Several representative methods
+[33, 32, 45, 20] have been developed to solve this problem.
+∗ Corresponding author
+
+3UREHVHW
+
+*DOOHU\VHW
+
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+
+ƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽƽƽƽƽ
+
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+
+ƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽ
+ƽƽƽƽƽƽ
+
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+
+3HUVRQ$
+
+3HUVRQ%
+
+3HUVRQ$
+
+3HUVRQ%
+
+(a) Conventional fully supervised setting
+Probe set
+
+Gallery set
+
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ ƽƽƽ
+
+Person A
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+
+Person B
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ ƽƽƽ
+
+{Person A, Person B, Person C}
+Unknown identities
+{Person B, Person D} Missing targets
+
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ ƽƽƽ
+
+Person C
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+
+Person D
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ
+
+ƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽƽ ƽƽƽ
+
+(b) Proposed weakly supervised setting
+
+Figure 1. Comparison of two settings. (a) Conventional fully supervised setting: image sequences in the probe and gallery set are
+manually trimmed and labeled from video surveillance in a frameby-frame manner. (b) Proposed weakly supervised setting: the
+untrimmed videos in the gallery set are tagged by multiple videolevel labels, while the speciﬁc label of each individual is absent
+from the labeling process.
+
+While numerous methods have been developed for fully supervised person re-id, conventionally, it is assumed
+that for model training, 1) the images in the probe set and
+gallery set are manually trimmed and labeled from raw
+video surveillance (probably with the assistance of detection) frame-by-frame (as shown in Figure 1(a)), and 2) all training samples are of the target to be matched, and no
+outliers exist. Although such precise annotations could eliminate the difﬁculty of learning robust person re-id models, they require strong supervision, which makes the entire
+learning process difﬁcult to adapt to large-scale person re-id
+in a more practical and challenging scenario.
+
+760
+
+

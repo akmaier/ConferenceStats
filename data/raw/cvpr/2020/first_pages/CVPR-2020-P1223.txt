@@ -1,0 +1,120 @@
+What Makes Training Multi-modal Classification Networks Hard?
+Weiyao Wang, Du Tran, Matt Feiszli
+Facebook AI
+{weiyaowang,trandu,mdf}@fb.com
+Abstract
+Consider end-to-end training of a multi-modal vs. a unimodal network on a task with multiple input modalities:
+the multi-modal network receives more information, so it
+should match or outperform its uni-modal counterpart. In
+our experiments, however, we observe the opposite: the best
+uni-modal network often outperforms the multi-modal network. This observation is consistent across different combinations of modalities and on different tasks and benchmarks
+for video classification.
+This paper identifies two main causes for this performance drop: first, multi-modal networks are often prone
+to overfitting due to their increased capacity. Second, different modalities overfit and generalize at different rates, so
+training them jointly with a single optimization strategy is
+sub-optimal. We address these two problems with a technique we call Gradient-Blending, which computes an optimal blending of modalities based on their overfitting behaviors. We demonstrate that Gradient Blending outperforms widely-used baselines for avoiding overfitting and
+achieves state-of-the-art accuracy on various tasks including human action recognition, ego-centric action recognition, and acoustic event detection.
+
+1. Introduction
+Consider a late-fusion multi-modal network, trained endto-end to solve a task. Uni-modal solutions are a strict subset of the solutions available to the multi-modal network;
+a well-optimized multi-modal model should, in theory, always outperform the best uni-modal model. However, we
+show here that current techniques do not always achieve
+this. In fact, what we observe is contrary to common sense:
+the best uni-modal model often outperforms the joint model,
+across different modalities (Table 1) and datasets (details in
+section 3). Anecdotally, the performance drop with multiple input streams appears to be common and was noted
+in [24, 3, 38, 44]. This (surprising) phenomenon warrants
+investigation and solution.
+Upon inspection, the problem appears to be overfitting:
+
+Dataset
+
+Multi-modal
+
+A + RGB
+RGB + OF
+A + OF
+
+Kinetics
+
+A + RGB + OF
+
+V@1
+71.4
+71.3
+58.3
+70.0
+
+Best Uni
+
+RGB
+RGB
+OF
+RGB
+
+V@1
+72.6
+72.6
+62.1
+72.6
+
+Drop
+-1.2
+-1.3
+-3.8
+-2.6
+
+Table 1: Uni-modal networks consistently outperform multimodal networks. Best uni-modal networks vs late fusion multimodal networks on Kinetics using video top-1 validation accuracy.
+Single stream modalities include video clips (RGB), Optical Flow
+(OF), and Audio (A). Multi-modal networks use the same architectures as uni-modal, with late fusion by concatenation at the last
+layer before prediction.
+RGB
+late-concat
+pre-train
+early-stop
+dropout
+mid-concat
+SE-gate
+NL-gate
+
+72.6
+71.4
+71.7
+71.3
+72.9
+72.8
+71.4
+72
+71
+
+71.5
+
+72
+
+72.5
+
+73
+
+Top-1 Accuracy on Kinetics
+
+Figure 1: Standard regularizers do not provide a good improvement over the best Uni-modal network. Best uni-modal
+network (RGB) vs standard approaches on a multi-modal network (RGB+Audio) on Kinetics. Various methods to avoid overfitting (orange: Pre-training, Early-stopping, and Dropout) do
+not solve the issue. Different fusion architectures (red: Midconcatenation fusion, SE-gate, and NL-gate) also do not help.
+Dropout and Mid-concatenation fusion approaches provide small
+improvements (+0.3% and +0.2%), while other methods degrade
+accuracy.
+
+multi-modal networks have higher train accuracy and lower
+validation accuracy. Late fusion audio-visual (A+RGB)
+network has nearly two times the parameters of a visual network, and one may suspect that the overfitting is caused by
+the increased number of parameters.
+There are two ways to approach this problem. First, one
+can consider solutions such as dropout [43], pre-training, or
+early stopping to reduce overfitting. On the other hand, one
+may speculate that this is an architectural deficiency. We
+experiment with mid-level fusion by concatenation [37] and
+fusion by gating [31], trying both Squeeze-and-Excitation
+(SE) [26] gates and Non-Local (NL) [50] gates.
+Remarkably, none of these provide an effective solu112695
+
+

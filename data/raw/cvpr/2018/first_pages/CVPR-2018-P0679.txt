@@ -1,0 +1,63 @@
+Dynamic Video Segmentation Network
+Yu-Syuan Xu, Tsu-Jui Fu∗, Hsuan-Kung Yang∗, Student Member, IEEE and Chun-Yi Lee, Member, IEEE
+Elsa Lab, Department of Computer Science, National Tsing Hua Uiversity
+{yusean0118, rayfu1996ozig, hellochick}@gapp.nthu.edu.tw, cylee@cs.nthu.edu.tw
+
+Abstract
+In this paper, we present a detailed design of dynamic
+video segmentation network (DVSNet) for fast and efficient
+semantic video segmentation. DVSNet consists of two convolutional neural networks: a segmentation network and
+a flow network. The former generates highly accurate semantic segmentations, but is deeper and slower. The latter
+is much faster than the former, but its output requires further processing to generate less accurate semantic segmentations. We explore the use of a decision network to adaptively assign different frame regions to different networks
+based on a metric called expected confidence score. Frame
+regions with a higher expected confidence score traverse the
+flow network. Frame regions with a lower expected confidence score have to pass through the segmentation network. We have extensively performed experiments on various configurations of DVSNet, and investigated a number
+of variants for the proposed decision network. The experimental results show that our DVSNet is able to achieve up
+to 70.4% mIoU at 19.8 fps on the Cityscape dataset. A high
+speed version of DVSNet is able to deliver an fps of 30.4
+with 63.2% mIoU on the same dataset. DVSNet is also able
+to reduce up to 95% of the computational workloads.
+
+1. Introduction
+Fast and accurate semantic segmentation has been a fundamental challenge in computer vision. The goal is to
+classify each pixel in an image into one of a given set
+of categories. In recent years, semantic image segmentation has achieved an unprecedented high accuracy on various datasets [1, 2, 3, 4] via the use of deep convolutional
+neural networks (DCNNs) [5, 6, 7, 8, 9, 10, 11, 12]. Accurate semantic segmentation enables a number of applications which demand pixel-level precision for their visual perception modules, such as autonomous vehicles [13],
+surveillance cameras, unmanned aerial vehicles (UAVs),
+and so on. However, due to their real-time requirements,
+these applications typically require high frame rates per
+second (fps), necessitating short inference latency in the
+perception modules. Unfortunately, contemporary state-of∗ Equal contribution
+
+Figure 1: Comparison of frames at timestamps t and t + 10 in two
+video sequences
+
+the-art CNN models usually employ deep network architectures to extract high-level features from raw data [14,
+15, 16, 17, 18], leading to exceptionally long inference
+time. The well-known models proposed for semantic image segmentation, including fully convolutional networks
+(FCN) [19], DeepLab [5, 6, 7], PSPNet [8], ResNet-38 [9],
+RefineNet [10], dense upsampling convolution (DUC) [11],
+etc., are not suitable for real-time semantic video segmentation due to their usage of deep network architectures. These
+models usually incorporate extra layers for boosting their
+accuracies, such as spatial pyramid pooling (SPP) [6, 7,
+8, 20], multi-scale dilated convolution [5, 6, 7, 11, 21],
+multi-scale input paths [6, 22, 23, 24], multi-scale feature
+paths [5, 10, 12, 25, 26], global pooling [7], and conditional random field (CRF) [5, 6, 22, 27, 28]. These additional layers consume tremendous amount of computational
+resources to process every pixel in an image, leading to impractical execution time. In the past decade, semantic video
+segmentation focusing on reducing the inference time has
+received little attention [29, 30]. With increasing demand
+for high accuracy and short inference time, a method for
+efficiently reusing the extracted features in DCNNs for semantic video segmentation is becoming urgently necessary.
+It is unnecessary to reprocess every single pixel of a
+frame by those deep semantic segmentation models in a
+video sequence. When comparing the difference between
+two consecutive frames, it is common that a large portion
+of them is similar. Fig. 1 illustrates an example of the above
+observation. The left parts show the video frames at timestamps t and t + 10, respectively. The right part shows the
+difference between these two frames. It can be observed
+that only a small portion of the frames are apparently different (highlighted by red rectangles), implying that the a large
+portion of the feature maps between these frames is invari-
+
+6556
+
+

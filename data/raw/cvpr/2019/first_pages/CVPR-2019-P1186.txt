@@ -1,0 +1,93 @@
+Adaptive Confidence Smoothing for Generalized Zero-Shot Learning
+Yuval Atzmon
+Bar-Ilan University, NVIDIA Research
+
+Gal Chechik
+Bar-Ilan University, NVIDIA Research
+
+yuval.atzmon@biu.ac.il
+
+gal.chechik@biu.ac.il
+
+Abstract
+Generalized zero-shot learning (GZSL) is the problem of
+learning a classifier where some classes have samples and
+others are learned from side information, like semantic attributes or text description, in a zero-shot learning fashion
+(ZSL). Training a single model that operates in these two
+regimes simultaneously is challenging. Here we describe
+a probabilistic approach that breaks the model into three
+modular components, and then combines them in a consistent way. Specifically, our model consists of three classifiers: A “gating” model that makes soft decisions if a sample is from a “seen” class, and two experts: a ZSL expert,
+and an expert model for seen classes. We address two main
+difficulties in this approach: How to provide an accurate
+estimate of the gating probability without any training samples for unseen classes; and how to use expert predictions
+when it observes samples outside of its domain.
+The key insight to our approach is to pass information
+between the three models to improve each one’s accuracy,
+while maintaining the modular structure. We test our approach, adaptive confidence smoothing (COSMO ), on four
+standard GZSL benchmark datasets and find that it largely
+outperforms state-of-the-art GZSL models. COSMO is also
+the first model that closes the gap and surpasses the performance of generative models for GZSL, even-though it is a
+light-weight model that is much easier to train and tune.
+
+1. Introduction
+Generalized zero-shot learning (GZSL) [9] is the problem of learning to classify samples from two different domains of classes: seen classes, trained in a standard supervised way from labeled samples, and unseen classes,
+learned from external knowledge, such as attributes or natural language, in a zero-shot-learning fashion. GZSL poses
+a unique combination of hard challenges: First, the model
+has to learn effectively for classes without samples (zeroshot). It also needs to learn well for classes with many samples. Finally, the two very different regimes should be combined in a consistent way in a single model. GZSL can be
+
+0123315672232 $%&
+'"(#)
+893  
+C@??,D
+33
+73
+7
+
+
+
+
+
+
+!
+"
+#
+
+56722
+3315672232
+33
+C@??,D
+
+6789:;<=
+
+>?@A-.B
+
+*+,-./01
+3312012331
+3 741
+56722443
+Figure 1. A qualitative illustration of COSMO : An input image is
+processed by two experts: A seen-classes expert, and an unseenclasses expert, which is a zero-shot model. (1) When an image is
+from a seen class, the zero-shot expert may still produce an overlyconfident false-positive prediction. COSMO smooths the predictions of the unseen expert if it believes that the image is from a
+seen class. The amount of smoothing is determined by a novel
+gating classifier. (2) Final GZSL predictions are based on a soft
+combination of the predictions of two experts, with weights provided by the gating module.
+
+viewed as an extreme case of classification with unbalanced
+classes, hence solving the last challenge can lead to better
+ways of addressing class imbalance, which is a key problem
+in learning with real-world data.
+The three learning problems described above operate in
+different learning setups, hence combining them into a single model is challenging. Here, we propose an architecture with three modules, each focusing on one problem. At
+inference time, these modules share their prediction confidence in a principled probabilistic way in order to reach an
+accurate joint decision.
+One natural instance of this modular architecture is hard
+gating: Given a test sample, the gate assigns it either to a
+seen expert - trained as a standard supervised classifier - or
+to an unseen expert - trained in a zero-shot-learning fashion [39]. Only the selected expert is used for prediction,
+ignoring the other expert. Here we study a more general
+case, where both the seen expert and the unseen expert process each test sample, and their predictions are combined
+in a soft way. Specifically, the predictions are combined by
+
+11671
+
+

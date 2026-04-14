@@ -1,0 +1,87 @@
+Neural Architecture Search with Random Labels
+Xuanyang Zhang
+
+Pengfei Hou
+Xiangyu Zhang*
+MEGVII Technology
+
+Jian Sun
+
+{zhangxuanyang,houpengfei,zhangxiangyu,sunjian}@megvii.com
+
+Abstract
+In this paper, we investigate a new variant of neural
+architecture search (NAS) paradigm – searching with random labels (RLNAS). The task sounds counter-intuitive for
+most existing NAS algorithms since random label provides
+few information on the performance of each candidate architecture. Instead, we propose a novel NAS framework
+based on ease-of-convergence hypothesis, which requires
+only random labels during searching. The algorithm involves two steps: first, we train a SuperNet using random labels; second, from the SuperNet we extract the subnetwork whose weights change most significantly during the
+training. Extensive experiments are evaluated on multiple
+datasets (e.g. NAS-Bench-201 and ImageNet) and multiple
+search spaces (e.g. DARTS-like and MobileNet-like). Very
+surprisingly, RLNAS achieves comparable or even better results compared with state-of-the-art NAS methods such as
+PC-DARTS, Single Path One-Shot, even though the counterparts utilize full ground truth labels for searching. We
+hope our finding could inspire new understandings on the
+essential of NAS.
+
+1. Introduction
+Recent years Neural Architecture Search [49, 2, 50, 47,
+48, 29, 35, 38, 10] (NAS) has received much attention in
+the community as its superior performances over humandesigned architectures on a variety of tasks such as image
+classification [38, 39, 19], object detection [10, 16] and semantic segmentation [27]. In general, most existing NAS
+frameworks can be summarized as a nested bilevel optimization, formulated as follows:
+a⋆ = argmax Score (a, Wa⋆ )
+
+(1)
+
+a∈A
+
+s.t. Wa⋆ = argmin L (a, W) ,
+
+(2)
+
+W
+* Corresponding author. This work is supported by The National Key
+Research and Development Program of China (No.2017YFA0700800) and
+Beijing Academy of Artificial Intelligence (BAAI).
+
+where a is a candidate architecture with weights Wa sampled from the search space A; L(·) represents the training
+loss; Score(·) means the performance indicator (e.g. accuracy in supervised NAS algorithms or pretext task scores in
+unsupervised NAS frameworks [28]) evaluated on the validation set. Briefly speaking, the NAS paradigm aims to
+search for the architecture which obtains the best validation
+performance, thus we name it performance-based NAS in
+the remaining text.
+Despite the great success, to understand why and how
+performance-based NAS works is still an open question.
+Especially, the mechanism how NAS algorithms discover
+good architectures from the huge search space is well worth
+study. A recent literature [37] analyzes the searching results under cell-based search spaces and reveals that existing performance-based methods tend to favor architectures with fast convergence. Although Shu et al. [37] further empirically find that architectures with fast convergence can not achieve the highest generalization performance, the fast convergence connection pattern still implies
+that there may exist high correlations between architectures with fast convergence and the ones with high performance (named ease-of-convergence hypothesis for short).
+Inspired by the hypothesis, we propose an alternative NAS
+paradigm, convergence-based NAS, as follows:
+a⋆ = argmax Convergence (a, Wa⋆ )
+
+(3)
+
+a∈A
+
+s.t. Wa⋆ = argmin L (a, W) ,
+
+(4)
+
+W
+
+where Convergence(·) is a certain indicator to measure the
+speed of convergence; other notations follow the same definitions as in Eq. 1, 2.
+In this paper we mainly investigate convergence-based
+NAS frameworks, which is rarely explicitly explored in previous works to our knowledge. First of all, we study the
+role of labels in both frameworks. In performance-based
+NAS, we notice that feasible labels are critical in both search
+steps: for Eq. 1 step, since we need to select the architecture
+with the highest validation performance, reasonable labels
+such as ground truths or at least carefully-designed pretext
+task (e.g. rotation prediction [17]) labels in unsupervised
+
+10907
+
+

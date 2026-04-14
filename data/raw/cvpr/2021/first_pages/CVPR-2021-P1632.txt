@@ -1,0 +1,84 @@
+Permute, Quantize, and Fine-tune: Efficient Compression of Neural Networks
+Julieta Martinez∗,1 Jashan Shewakramani∗,1,2 Ting Wei Liu∗,1,2
+Ioan Andrei Bârsan1,3 Wenyuan Zeng1,3 Raquel Urtasun1,3
+1
+
+Uber Advanced Technologies Group
+
+2
+
+University of Waterloo
+
+3
+
+University of Toronto
+
+{julieta,jashan,tingwei.liu,andreib,wenyuan,urtasun}@uber.com
+
+Abstract
+Compressing large neural networks is an important step
+for their deployment in resource-constrained computational
+platforms. In this context, vector quantization is an appealing framework that expresses multiple parameters using a
+single code, and has recently achieved state-of-the-art network compression on a range of core vision and natural
+language processing tasks. Key to the success of vector
+quantization is deciding which parameter groups should be
+compressed together. Previous work has relied on heuristics
+that group the spatial dimension of individual convolutional
+filters, but a general solution remains unaddressed. This is
+desirable for pointwise convolutions (which dominate modern architectures), linear layers (which have no notion of
+spatial dimension), and convolutions (when more than one
+filter is compressed to the same codeword). In this paper
+we make the observation that the weights of two adjacent
+layers can be permuted while expressing the same function.
+We then establish a connection to rate-distortion theory and
+search for permutations that result in networks that are easier to compress. Finally, we rely on an annealed quantization
+algorithm to better compress the network and achieve higher
+final accuracy. We show results on image classification, object detection, and segmentation, reducing the gap with the
+uncompressed model by 40 to 70% w.r.t. the current state
+of the art. All our experiments can be reproduced using the
+code at https://github.com/uber-research/
+permute-quantize-finetune.
+
+1. Introduction
+State-of-the-art approaches to many computer vision
+tasks are currently based on deep neural networks. These
+networks often have large memory and computational requirements, limiting the range of hardware platforms on
+which they can operate. This poses a challenge for applications such as virtual reality and robotics, which naturally
+rely on mobile and low-power computational platforms for
+large-scale deployment. At the same time, these networks
+
+are often overparameterized [5], which implies that it is possible to compress them – thereby reducing their memory and
+computation demands – without much loss in accuracy.
+Scalar quantization is a popular approach to network
+compression where each network parameter is compressed
+individually, thereby limiting the achievable compression
+rates. To address this limitation, a recent line of work has
+focused on vector quantization (VQ) [13, 47, 54], which
+compresses multiple parameters into a single code. Conspicuously, these approaches have recently achieved state-of-theart compression-to-accuracy ratios on core computer vision
+and natural language processing tasks [10, 48].
+A key advantage of VQ is that it can naturally exploit
+redundancies among groups of network parameters, for example, by grouping the spatial dimensions of convolutional
+filters in a single vector to achieve high compression rates.
+However, finding which network parameters should be compressed jointly can be challenging; for instance, there is no
+notion of spatial dimension in fully connected layers, and it
+is not clear how vectors should be formed when the vector
+size is larger than a single convolutional filter – which is
+always true for pointwise convolutions. Current approaches
+either employ clustering (e.g., k-means) using the order of
+the weights as obtained by the network [13, 47, 54], which is
+suboptimal, or search for groups of parameters that, when
+compressed jointly, minimize the reconstruction error of the
+network activations [10, 48, 54], which is hard to optimize.
+In this paper, we formalize the notion of redundancy
+among parameter groups using concepts from rate-distortion
+theory, and leverage this analysis to search for permutations
+of the network weights that yield functionally equivalent, yet
+easier-to-quantize networks. The result is Permute, Quantize, and Fine-tune (PQF), an efficient algorithm that first
+searches for permutations, codes and codebooks that minimize the reconstruction error of the network weights, and
+then uses gradient-based optimization to recover the accuracy of the uncompressed network. Our main contributions
+can be summarized as follows:
+1. We study the invariance of neural networks under permutation of their weights, focusing on constraints in-
+
+15699
+
+

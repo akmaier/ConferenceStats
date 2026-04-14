@@ -1,0 +1,117 @@
+Simulating Unknown Target Models for Query-Efficient Black-box Attacks
+Chen Ma, Li Chen∗, and Jun-Hai Yong
+School of Software, BNRist, Tsinghua University, Beijing, China
+mac16@mails.tsinghua.edu.cn, {chenlee,yongjh}@tsinghua.edu.cn
+
+𝒙𝟎 + 𝜹 ⋅ 𝒒𝟏
+
+Abstract
+Many adversarial attacks have been proposed to investigate the security issues of deep neural networks. In the
+black-box setting, current model stealing attacks train a
+substitute model to counterfeit the functionality of the target
+model. However, the training requires querying the target
+model. Consequently, the query complexity remains high,
+and such attacks can be defended easily. This study aims
+to train a generalized substitute model called “Simulator”,
+which can mimic the functionality of any unknown target
+model. To this end, we build the training data with the form
+of multiple tasks by collecting query sequences generated
+during the attacks of various existing networks. The learning process uses a mean square error-based knowledgedistillation loss in the meta-learning to minimize the difference between the Simulator and the sampled networks.
+The meta-gradients of this loss are then computed and accumulated from multiple tasks to update the Simulator and
+subsequently improve generalization. When attacking a
+target model that is unseen in training, the trained Simulator can accurately simulate its functionality using its
+limited feedback. As a result, a large fraction of queries
+can be transferred to the Simulator, thereby reducing query
+complexity. Results of the comprehensive experiments conducted using the CIFAR-10, CIFAR-100, and TinyImageNet
+datasets demonstrate that the proposed approach reduces
+query complexity by several orders of magnitude compared
+to the baseline method. The implementation source code is
+released online1 .
+
+1. Introduction
+Deep neural networks (DNNs) are vulnerable to adversarial attacks [3, 13, 38], which add human-imperceptible
+perturbations to benign images for the misclassification of
+the target model. The study of adversarial attacks is crucial
+in the implementation of robust DNNs [28]. Adversarial attacks can be categorized into two types, namely, white-box
+∗ Corresponding author.
+1 https://github.com/machanic/SimulatorAttack
+
+𝒙𝟎 + 𝜹 ⋅ 𝒒𝟐
+
+benign image 𝒙𝟎
+update
+𝒙𝟏 + 𝜹 ⋅ 𝒒𝟏
+adv image 𝒙𝟏
+
+update
+
+…
+
+adv image 𝒙𝒕
+
+𝒙𝟏 + 𝜹 ⋅ 𝒒𝟐
+𝒙𝒕 + 𝜹 ⋅ 𝒒𝟏
+
+Black Box Model
+
+…
+
+𝒙𝒕 + 𝜹 ⋅ 𝒒𝟐
+
+𝜽
+
+fine-tune
+
+update
+
+subsequent queries  Simulator
+𝒙𝒕+𝟏 + 𝜹 ⋅ 𝒒𝟏
+
+adv image 𝒙𝒕+𝟏
+
+…
+
+𝒙𝒕+𝟏 + 𝜹 ⋅ 𝒒𝟐
+
+output of 𝒙𝟎 + 𝜹 ⋅ 𝒒𝟏
+output of 𝒙𝟎 + 𝜹 ⋅ 𝒒𝟐
+output of 𝒙1 + 𝜹 ⋅ 𝒒𝟏
+output of 𝒙1 + 𝜹 ⋅ 𝒒𝟐
+output of 𝒙𝒕 + 𝜹 ⋅ 𝒒𝟏
+output of 𝒙𝒕 + 𝜹 ⋅ 𝒒𝟐
+
+fine-tune
+
+Trained Simulator
+fine-tune for 𝑻 iterations
+
+𝜽
+
+output of 𝒙𝒕+𝟏 + 𝜹 ⋅ 𝒒𝟏
+
+output of 𝒙𝒕+𝟏 + 𝜹 ⋅ 𝒒𝟐
+
+Fine-tuned Simulator
+
+Figure 1: The procedure of the Simulator Attack, where q1
+and q2 are the corresponding perturbations for generating
+query pairs in the attack (Algorithm 2). The queries of the
+first t iterations are fed into the target model to estimate the
+gradients. These queries and the corresponding outputs are
+collected to fine-tune the Simulator, which is trained without using the target model. The fine-tuned Simulator can accurately simulate the unknown target model, thereby transferring the queries and improving overall query efficiency.
+
+and black-box attacks. In the white-box attack setting, the
+target model is fully exposed to the adversary. Thus, the perturbation can be crafted easily by using gradients [4, 13]. In
+the black-box attack setting, the adversary only has partial
+information of the target model, and adversarial examples
+are crafted without any gradient information. Hence, blackbox attacks (i.e., query- and transfer-based attacks) are more
+practical in real-world scenarios.
+Query-based attacks focus on estimating gradients
+through queries [6, 40, 19, 20]. These attacks are considered
+highly effective because of their satisfactory attack success
+rate. However, despite their practical merits, high query
+complexity inevitably arises when estimating the approximate gradient with high precision, resulting in costly procedures. In addition, the queries are typically underutilized,
+
+11835
+
+

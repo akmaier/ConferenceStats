@@ -1,0 +1,117 @@
+Self-Supervised Learning of Pretext-Invariant Representations
+Ishan Misra
+Laurens van der Maaten
+Facebook AI Research
+
+1. Introduction
+Modern image-recognition systems learn image representations from large collections of images and corresponding semantic annotations. These annotations can be provided in the form of class labels [66], hashtags [46], bounding boxes [16, 43], etc. Pre-defined semantic annotations
+scale poorly to the long tail of visual concepts [75], which
+hampers further improvements in image recognition.
+Self-supervised learning tries to address these limitations by learning image representations from the pixels
+themselves without relying on pre-defined semantic annotations. Often, this is done via a pretext task that applies a
+transformation to the input image and requires the learner
+to predict properties of the transformation from the transformed image (see Figure 1). Examples of image transformations used include rotations [20], affine transformations [33, 57, 65, 85], and jigsaw transformations [54]. As
+the pretext task involves predicting a property of the image
+
+Standard Pretext
+Learning
+
+Representation
+
+Representation
+
+Representation
+
+sha1_base64="b9Db75leVutsWGyjrhn+yRcISj8=">AAAB9XicbVDLSgMxFM34rPVVdekm2AquykwVH7uiG91VsA9opyWTZtrQTGZI7ihl6H+4caGIW//FnX9jZlpErQcCh3Pu5Z4cLxJcg21/WguLS8srq7m1/PrG5tZ2YWe3ocNYUVanoQhVyyOaCS5ZHTgI1ooUI4EnWNMbXaV+854pzUN5B+OIuQEZSO5zSsBI3VInIDD0/ORm0oVSr1C0y3YGPE+cGSmiGWq9wkenH9I4YBKoIFq3HTsCNyEKOBVsku/EmkWEjsiAtQ2VJGDaTbLUE3xolD72Q2WeBJypPzcSEmg9DjwzmYbUf71U/M9rx+CfuwmXUQxM0ukhPxYYQpxWgPtcMQpibAihipusmA6JIhRMUfmshIsUp99fnieNStk5Lp/cVorVy1kdObSPDtARctAZqqJrVEN1RJFCj+gZvVgP1pP1ar1NRxes2c4e+gXr/Qsc8pJl</latexit>
+
+ConvNet
+
+<latexit
+
+ConvNet
+
+sha1_base64="zG0+86ACKs0ZivmNXL/57ldlvG0=">AAAB83icbVDLSsNAFL2pr1pfVZduBlvBVUmr+NgV3eiugn1AE8pkOmmHTiZhZiKU0N9w40IRt/6MO//GSRpErQcGDufcyz1zvIgzpW370yosLa+srhXXSxubW9s75d29jgpjSWibhDyUPQ8rypmgbc00p71IUhx4nHa9yXXqdx+oVCwU93oaUTfAI8F8RrA2klN1AqzHnp/czqqDcsWu2RnQIqnnpAI5WoPyhzMMSRxQoQnHSvXrdqTdBEvNCKezkhMrGmEywSPaN1TggCo3yTLP0JFRhsgPpXlCo0z9uZHgQKlp4JnJNKL666Xif14/1v6FmzARxZoKMj/kxxzpEKUFoCGTlGg+NQQTyUxWRMZYYqJNTaWshMsUZ99fXiSdRq1+Uju9a1SaV3kdRTiAQziGOpxDE26gBW0gEMEjPMOLFVtP1qv1Nh8tWPnOPvyC9f4FiwCRfw==</latexit>
+
+ConvNet
+
+latexit
+
+It
+
+sha1_base64="b9Db75leVutsWGyjrhn+yRcISj8=">AAAB9XicbVDLSgMxFM34rPVVdekm2AquykwVH7uiG91VsA9opyWTZtrQTGZI7ihl6H+4caGIW//FnX9jZlpErQcCh3Pu5Z4cLxJcg21/WguLS8srq7m1/PrG5tZ2YWe3ocNYUVanoQhVyyOaCS5ZHTgI1ooUI4EnWNMbXaV+854pzUN5B+OIuQEZSO5zSsBI3VInIDD0/ORm0oVSr1C0y3YGPE+cGSmiGWq9wkenH9I4YBKoIFq3HTsCNyEKOBVsku/EmkWEjsiAtQ2VJGDaTbLUE3xolD72Q2WeBJypPzcSEmg9DjwzmYbUf71U/M9rx+CfuwmXUQxM0ukhPxYYQpxWgPtcMQpibAihipusmA6JIhRMUfmshIsUp99fnieNStk5Lp/cVorVy1kdObSPDtARctAZqqJrVEN1RJFCj+gZvVgP1pP1ar1NRxes2c4e+gXr/Qsc8pJl</latexit>
+
+I
+
+<latexit
+
+It
+
+Pretext Invariant
+Representation Learning
+
+sha1_base64="zG0+86ACKs0ZivmNXL/57ldlvG0=">AAAB83icbVDLSsNAFL2pr1pfVZduBlvBVUmr+NgV3eiugn1AE8pkOmmHTiZhZiKU0N9w40IRt/6MO//GSRpErQcGDufcyz1zvIgzpW370yosLa+srhXXSxubW9s75d29jgpjSWibhDyUPQ8rypmgbc00p71IUhx4nHa9yXXqdx+oVCwU93oaUTfAI8F8RrA2klN1AqzHnp/czqqDcsWu2RnQIqnnpAI5WoPyhzMMSRxQoQnHSvXrdqTdBEvNCKezkhMrGmEywSPaN1TggCo3yTLP0JFRhsgPpXlCo0z9uZHgQKlp4JnJNKL666Xif14/1v6FmzARxZoKMj/kxxzpEKUFoCGTlGg+NQQTyUxWRMZYYqJNTaWshMsUZ99fXiSdRq1+Uju9a1SaV3kdRTiAQziGOpxDE26gBW0gEMEjPMOLFVtP1qv1Nh8tWPnOPvyC9f4FiwCRfw==</latexit>
+
+latexit
+
+<
+
+I
+Transform t
+
+sha1_base64="b9Db75leVutsWGyjrhn+yRcISj8=">AAAB9XicbVDLSgMxFM34rPVVdekm2AquykwVH7uiG91VsA9opyWTZtrQTGZI7ihl6H+4caGIW//FnX9jZlpErQcCh3Pu5Z4cLxJcg21/WguLS8srq7m1/PrG5tZ2YWe3ocNYUVanoQhVyyOaCS5ZHTgI1ooUI4EnWNMbXaV+854pzUN5B+OIuQEZSO5zSsBI3VInIDD0/ORm0oVSr1C0y3YGPE+cGSmiGWq9wkenH9I4YBKoIFq3HTsCNyEKOBVsku/EmkWEjsiAtQ2VJGDaTbLUE3xolD72Q2WeBJypPzcSEmg9DjwzmYbUf71U/M9rx+CfuwmXUQxM0ukhPxYYQpxWgPtcMQpibAihipusmA6JIhRMUfmshIsUp99fnieNStk5Lp/cVorVy1kdObSPDtARctAZqqJrVEN1RJFCj+gZvVgP1pP1ar1NRxes2c4e+gXr/Qsc8pJl</latexit>
+
+I
+
+t
+
+<latexit
+
+The goal of self-supervised learning from images is
+to construct image representations that are semantically
+meaningful via pretext tasks that do not require semantic
+annotations. Many pretext tasks lead to representations that
+are covariant with image transformations. We argue that,
+instead, semantic representations ought to be invariant under such transformations. Specifically, we develop PretextInvariant Representation Learning (PIRL, pronounced as
+“pearl”) that learns invariant representations based on pretext tasks. We use PIRL with a commonly used pretext task
+that involves solving jigsaw puzzles. We find that PIRL
+substantially improves the semantic quality of the learned
+image representations. Our approach sets a new stateof-the-art in self-supervised learning from images on several popular benchmarks for self-supervised learning. Despite being unsupervised, PIRL outperforms supervised
+pre-training in learning image representations for object
+detection. Altogether, our results demonstrate the potential of self-supervised representations with good invariance
+properties.
+
+Pretext Image
+Transform
+
+<
+
+Abstract
+
+Predict property of t
+
+Encourage to be similar
+
+Figure 1: Pretext-Invariant Representation Learning (PIRL). Many
+pretext tasks for self-supervised learning [20, 54, 85] involve transforming
+an image I, computing a representation of the transformed image, and predicting properties of transformation t from that representation. As a result,
+the representation must covary with the transformation t and may not contain much semantic information. By contrast, PIRL learns representations
+that are invariant to the transformation t and retain semantic information.
+
+transformation, it encourages the construction of image representations that are covariant to the transformations. Although such covariance is beneficial for tasks such as predicting 3D correspondences [33, 57, 65], it is undesirable
+for most semantic recognition tasks. Representations ought
+to be invariant under image transformations to be useful for
+image recognition [14, 31] because the transformations do
+not alter visual semantics. In fact, invariance is one of the
+core tenets of designing ‘good’ features [8, 45, 48].
+Motivated by this observation, we propose a method that
+learns invariant representations rather than covariant ones.
+Instead of predicting properties of the image transformation, Pretext-Invariant Representation Learning (PIRL) constructs image representations that are similar to the representation of transformed versions of the same image and
+different from the representations of other images. We adapt
+the “Jigsaw” pretext task [54] to work with PIRL and find
+that the resulting invariant representations perform better
+than their covariant counterparts across a range of vision
+tasks. PIRL substantially outperforms all prior art in selfsupervised learning from ImageNet (Figure 2) and from uncurated image data (Table 4). Interestingly, PIRL even outperforms supervised pre-training in learning image representations suitable for object detection (Table 1 & supplemental material).
+
+6707
+
+

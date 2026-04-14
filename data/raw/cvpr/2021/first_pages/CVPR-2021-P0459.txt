@@ -1,0 +1,97 @@
+Back to the Feature: Learning Robust Camera Localization from Pixels to Pose
+Paul-Edouard Sarlin1 * Ajaykumar Unagar2 * Måns Larsson3,4 Hugo Germain5 Carl Toft3
+Viktor Larsson1 Marc Pollefeys1,6 Vincent Lepetit5 Lars Hammarstrand3 Fredrik Kahl3 Torsten Sattler3,7
+1
+Department of Computer Science, ETH Zurich 2 ETH Zurich 3 Chalmers University of Technology
+4
+Eigenvision 5 Ecole des Ponts 6 Microsoft 7 Czech Technical University in Prague
+
+Abstract
+Camera pose estimation in known scenes is a 3D geometry task recently tackled by multiple learning algorithms.
+Many regress precise geometric quantities, like poses or 3D
+points, from an input image. This either fails to generalize
+to new viewpoints or ties the model parameters to a specific
+scene. In this paper, we go Back to the Feature: we argue that
+deep networks should focus on learning robust and invariant
+visual features, while the geometric estimation should be
+left to principled algorithms. We introduce PixLoc, a sceneagnostic neural network that estimates an accurate 6-DoF
+pose from an image and a 3D model. Our approach is based
+on the direct alignment of multiscale deep features, casting
+camera localization as metric learning. PixLoc learns strong
+data priors by end-to-end training from pixels to pose and exhibits exceptional generalization to new scenes by separating
+model parameters and scene geometry. The system can localize in large environments given coarse pose priors but also
+improve the accuracy of sparse feature matching by jointly
+refining keypoints and poses with little overhead. The code
+will be publicly available at github.com/cvg/pixloc.
+
+1. Introduction
+Visual localization is the problem of estimating the camera position and orientation for a given image in a known
+scene. Solving this problem is a key step towards truly
+autonomous robots such as self-driving cars and is a prerequisite for Augmented and Virtual Reality systems.
+State-of-the-art approaches to visual localization commonly rely on correspondences between 2D pixel positions
+and 3D points in the scene [13,16,29,52,70,71,73,81,82,84].
+Such a formulation estimates the camera pose using a
+Perspective-n-Point (PnP) solver [1, 14, 31, 39, 40] inside
+a RANSAC loop [6, 19, 28, 43]. These 2D-3D correspondences are traditionally computed by matching local image
+features. Recent localization systems can handle large scenes
+with complex geometry and appearance changes over time.
+* denotes equal contribution
+
+R, t ?
+
+CNN
+
+s
+re
+tu
+a
+fe
+
+3D
+model
+
+reference
+
+query
+
+PixLoc
+Localization
+without
+retraining
+
+Feature
+Alignment
+
+Pose
+R, t
+Loss
+
+Figure 1. Learning scene-agnostic localization. Deep neural networks should not have to rediscover well-understood geometric
+principles. We only need to learn good features: PixLoc is trained
+end-to-end to estimate the pose of an image by aligning deep features with a reference 3D model via a differentiable optimization.
+
+They leverage deep neural networks that learn to extract such
+features [8, 23, 25, 63, 67, 78, 94], to match them [63, 71], and
+to filter outlier correspondences [12, 41, 58, 71, 85].
+Training a feature matching pipeline in an end-to-end
+manner is challenging and unstable as its complexity hinders gradients propagation [8]. An alternative is to train a
+convolutional neural network (CNN) to regress geometric
+quantities such as camera poses [5, 24, 35, 37, 42, 90, 97] or
+the 3D scene coordinate corresponding to each pixel [9–11,
+13, 16, 17, 45, 80, 93]. While these approaches can be trained
+end-to-end, they come with their own drawbacks. Absolute
+pose and coordinate regression are scene-specific and require to be trained for or adapted to new scenes [16, 17].
+Generalization to new viewing conditions, e.g., localizing
+night-time images when training only on daytime photos,
+and handling larger, more complex scenes [78, 82] are open
+challenges for such approaches. Additionally, absolute or
+relative pose regression has limited accuracy and often fails
+to generalize to new viewpoints [76, 97]. While regressing
+poses relative to a set of reference images [5, 24, 42, 97] is
+in theory scene-agnostic, generalization to strongly differing
+scenes without a significant drop in pose accuracy [76, 97]
+has, to the best of our knowledge, not been shown so far.
+
+3247
+
+

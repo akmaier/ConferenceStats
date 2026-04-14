@@ -1,0 +1,104 @@
+Deep View Morphing
+Dinghuang Ji∗
+UNC at Chapel Hill
+
+Junghyun Kwon†
+Ricoh Innovations
+
+Max McFarland
+Ricoh Innovations
+
+Silvio Savarese
+Stanford University
+
+jdh@cs.unc.edu
+
+junghyunkwon@gmail.com
+
+max@ric.ricoh.com
+
+ssilvio@stanford.edu
+
+Abstract
+
+R1
+
+I1
+
+C
+
+Recently, convolutional neural networks (CNN) have
+been successfully applied to view synthesis problems. However, such CNN-based methods can suffer from lack of texture details, shape distortions, or high computational complexity. In this paper, we propose a novel CNN architecture for view synthesis called “Deep View Morphing” that
+does not suffer from these issues. To synthesize a middle
+view of two input images, a rectification network first rectifies the two input images. An encoder-decoder network
+then generates dense correspondences between the rectified
+images and blending masks to predict the visibility of pixels of the rectified images in the middle view. A view morphing network finally synthesizes the middle view using the
+dense correspondences and blending masks. We experimentally show the proposed method significantly outperforms
+the state-of-the-art CNN-based view synthesis method.
+
+1. Introduction
+View synthesis is to create unseen novel views based
+on a set of available existing views. It has many appealing applications in computer vision and graphics such
+as virtual 3D tour from 2D images and photo editing
+with 3D object manipulation capabilities. Traditionally,
+view synthesis has been solved by image-based rendering
+[1, 19, 20, 28, 22, 9, 27, 30] and 3D model-based rendering
+[15, 25, 33, 14, 7, 31, 12] .
+Recently, convolutional neural networks (CNN) have
+been successfully applied to various view synthesis problems, e.g., multi-view synthesis from a single view [32, 29],
+view interpolation [6], or both [36]. While their results are
+impressive and promising, they still have limitations. Direct
+pixel generation methods such as [32] and [29] have a main
+advantage that the overall geometric shapes are well predicted but their synthesis results usually lack detailed textures. On the other hand, the pixel sampling methods such
+∗ The majoriy of the work has been done during this author’s 2016 summer internship at Ricoh Innovations.
+† This author is currently at SAIC Innovation Center.
+
+I2
+
+Rectification
+Network
+(Fig. 2)
+
+R2
+
+EncoderDecoder
+Network
+(Fig. 3)
+
+M1
+
+View
+Morphing
+Network
+(Fig. 6)
+
+R "#$.&
+
+M2
+
+Figure 1. Overall pipeline of Deep View Morphing. A rectification network (orange, Section 3.1) takes in I1 and I2 and outputs
+a rectified pair R1 and R2 . Then an encoder-decoder network
+(blue, Section 3.2) takes in R1 and R2 and outputs the dense correspondences C and blending masks M1 and M2 . Finally, a view
+morphing network(green, Section 3.3) synthesizes a middle view
+Rα=0.5 from R1 , R2 , M1 , M2 , and C.
+
+as [6] and [36] can synthesize novel views with detailed textures but they suffer from high computational complexity
+[6] or geometric shape distortions [36].
+In this paper, we propose a novel CNN architecture that
+can efficiently synthesize novel views with detailed textures as well as well-preserved geometric shapes under the
+view interpolation setting . We are mainly inspired by View
+Morphing, the classic work by Seitz and Dyer [27], which
+showed it is possible to synthesize shape-preserving novel
+views by simple linear interpolation of the corresponding
+pixels of a rectified image pair. Following the spirit of View
+Morphing, our approach introduces a novel deep CNN architecture to generalize the procedure in [27]—for that reason, we named it Deep View Morphing (DVM).
+Figure 1 shows the overall pipeline of DVM. A rectification network (orange in Fig. 1) takes in a pair of input images and outputs a rectified pair. Then an encoder-decoder
+network (blue in Fig. 1) takes in the rectified pair and outputs dense correspondences between them and blending
+masks. A view morphing network (green in Fig. 1) finally
+synthesizes a middle view using the dense correspondences
+and blending masks. The novel aspects of DVM are:
+• The idea of adding a rectification network before the
+view synthesis phase—this is critical in that rectification guarantees the correspondences should be 1D,
+which makes the correspondence search by the encoder12155
+
+

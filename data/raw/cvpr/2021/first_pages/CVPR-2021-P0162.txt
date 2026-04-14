@@ -1,0 +1,60 @@
+Differentiable Patch Selection for Image Recognition
+Jean-Baptiste Cordonnier1†∗ Aravindh Mahendran2† Alexey Dosovitskiy2
+Dirk Weissenborn2
+Jakob Uszkoreit2
+Thomas Unterthiner2
+2
+1
+EPFL, Switzerland
+Google Research, Brain Team
+jean-baptiste.cordonnier@epfl.ch
+{aravindhm,adosovitskiy,diwe,usz,unterthiner}@google.com
+
+Abstract
+Neural Networks require large amounts of memory and
+compute to process high resolution images, even when only
+a small part of the image is actually informative for the task
+at hand. We propose a method based on a differentiable
+Top-K operator to select the most relevant parts of the input
+to efficiently process high resolution images. Our method
+may be interfaced with any downstream neural network, is
+able to aggregate information from different patches in a
+flexible way, and allows the whole model to be trained endto-end using backpropagation. We show results for traffic sign recognition, inter-patch relationship reasoning, and
+fine-grained recognition without using object/part bounding box annotations during training.
+
+1. Introduction
+High-resolution imagery has become ubiquitous nowadays: both consumer devices and specialized sensors routinely capture images and videos with resolution in tens
+of megapixels. Processing these high-quality images with
+computer vision models remains challenging: analyzing the
+images at full resolution can be prohibitively computationally expensive, while simply downsampling them before
+processing may remove important fine details and substantially hurt performance. It would be desirable to save compute, while retaining the capability to recognize fine details.
+Compute can be saved by exploiting the following property of many practical vision tasks: not all parts of the image
+are equally important for finding the answer. Figure 1 shows
+examples of tasks where only a small fraction of the full image needs to be processed in detail. Being able to quickly
+discard uninformative parts of the image would have several benefits. It would reduce the overall computational and
+memory complexity of the model, and the regions of interest could be processed in more detail and by a more power∗ Work done during internship at Google Research.† Equal contribution.
+
+Figure 1: Examples of large images where patch extraction
+allows (top-left) to focus on details for fine-grained recognition, (bottom-left) to reason across patches, and (right) to
+efficiently capture very localized information.
+
+ful model than otherwise.
+Determining which parts of the image to retain and
+which to discard is usually nontrivial and highly task dependent. In some applications the solution might be as simple as taking the center crop of the image, but in most cases
+relevant regions need to be detected first. For instance, in a
+self-driving car setting, it would be permissible to ignore the
+sky, but all traffic signs in sight should be correctly identified and must not be ignored. One may formulate this as follows: Given a regular grid of equally sized image patches,
+decide for each patch whether to process or discard it. This
+decision is however discrete, which makes it unsuitable for
+end-to-end learning.
+To overcome this limitation, inspired by the work of
+Katharopoulos & Fleuret [22], we formulate patch selection as a ranking problem, where per-patch relevance scores
+are predicted by a small ConvNet and the Top K scoring patches are selected for downstream processing. We
+make this end-to-end trainable with backpropagation using
+the perturbed maximum method of Berthet et. al [5]. We
+present this as a generic module for patch selection. Our
+approach is most effective when the majority of patches in
+the image are irrelevant to the target, but the model a priory
+12351
+
+

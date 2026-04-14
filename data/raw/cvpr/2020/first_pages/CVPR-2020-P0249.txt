@@ -1,0 +1,79 @@
+Training Quantized Neural Networks with a Full-precision Auxiliary Module
+Bohan Zhuang1
+Lingqiao Liu1
+1
+The University of Adelaide
+
+Mingkui Tan2
+Chunhua Shen1∗ Ian Reid1
+2
+South China University of Technology
+
+Abstract
+In this paper, we seek to tackle a challenge in training
+low-precision networks: the notorious difficulty in propagating gradient through a low-precision network due to
+the non-differentiable quantization function. We propose a
+solution by training the low-precision network with a fullprecision auxiliary module. Specifically, during training,
+we construct a mix-precision network by augmenting the
+original low-precision network with the full precision auxiliary module. Then the augmented mix-precision network
+and the low-precision network are jointly optimized. This
+strategy creates additional full-precision routes to update
+the parameters of the low-precision model, thus making
+the gradient back-propagates more easily. At the inference
+time, we discard the auxiliary module without introducing
+any computational complexity to the low-precision network.
+We evaluate the proposed method on image classification
+and object detection over various quantization approaches
+and show consistent performance increase. In particular,
+we achieve near lossless performance to the full-precision
+model by using a 4-bit detector, which is of great practical
+value.
+
+1. Introduction
+Deep neural networks (DNNs) have made great strides
+in many computer vision tasks such as image classification [11, 20], segmentation [8, 10] and detection [37, 40].
+Even though deep and/or wide models can achieve promising accuracy, their huge computational complexity makes
+them incompatible with energy constrained devices which
+usually have limited memory bandwidth and computational
+power. This has motivated the community to design energyefficient models, often based on quantized precision, aiming
+not to sacrifice accuracy relative to the full-precision models. In this paper, we propose to improve the training of the
+low-precision networks.
+The core challenge for quantization is the nondifferentiability of the discrete quantizer. As a result,
+we cannot directly optimize the discretised network with
+∗ Corresponding author, e-mail: chunhua.shen@adelaide.edu.au
+
+stochastic gradient descent. And the current solutions
+can be divided into two categories. The first category is
+to employ a surrogate of gradient. The most commonly
+used approach is the straight-through estimator (STE) [2].
+Some recent works have been proposed to relax the discrete quantizer to be continuous for gradient-based optimization [1, 31]. Even though the discontinuity of the discretization operation during training can be partly solved
+by smoothing it appropriately, some important information
+may still be missed due to the approximation which can lead
+to an undesirable drop in accuracy. The second category is
+to seeking guidance from a full-precision model for discretised network training. For example, new training strategies
+such as knowledge distillation [32, 56, 57] have been proposed to learn a low-precision student network by distilling
+knowledge from a full-precision teacher network.
+Our method falls into the second category and our approach is based on the idea of sharing parameters between
+a mixed-precision (partially fully-precision) model and a
+low-precision model. Specifically, our method constructs a
+full-precision auxiliary module which connects to multiple
+layers of a low-precision model (see Fig. 1). During training, the low-precision network and the full-precision auxiliary module will be combined to form an augmented mixedprecision network. Then, the mixed-precision network and
+the low-precision model are jointly optimized. Since the
+parameters from the low-precision model are shared, they
+can receive gradient from both full-precision connections
+and low-precision connections. Consequently, the parameters of low-precision model can be updated via two routes,
+and this can overcome the gradient propagation difficulty
+due to the discontinuity of the quantizer. Note that only
+the low-precision network will be utilized for inference and
+therefore there is no additional complexity introduced at the
+test stage.
+In addition to image classification, we further extend
+the proposed approach to building quantized networks for
+object detection. Building low-precision networks for object detection is more challenging since detection needs the
+network outputs richer information, such as locations of
+bounding boxes. There has been several works in literature
+to address the quantized object detectors [16, 22, 48]. How-
+
+1488
+
+

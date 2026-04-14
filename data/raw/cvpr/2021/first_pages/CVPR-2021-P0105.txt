@@ -1,0 +1,83 @@
+CRFace: Confidence Ranker for Model-Agnostic Face Detection Refinement
+Noranart Vesdapunt
+Microsoft Cloud&AI
+
+Baoyuan Wang
+Xiaobing.AI
+
+noves@microsoft.com
+
+zjuwby@gmail.com
+
+Abstract
+Face detection is a fundamental problem for many downstream face applications, and there is a rising demand for
+faster, more accurate yet support for higher resolution face
+detectors. Recent smartphones can record a video in 8K
+resolution, but many of the existing face detectors still fail
+due to the anchor size and training data. We analyze the
+failure cases and observe a large number of correct predicted boxes with incorrect confidences. To calibrate these
+confidences, we propose a confidence ranking network with
+a pairwise ranking loss to re-rank the predicted confidences
+locally within the same image. Our confidence ranker is
+model-agnostic, so we can augment the data by choosing
+the pairs from multiple face detectors during the training,
+and generalize to a wide range of face detectors during the
+testing. On WiderFace, we achieve the highest AP on the
+single-scale, and our AP is competitive with the previous
+multi-scale methods while being significantly faster. On 8K
+resolution, our method solves the GPU memory issue and
+allows us to indirectly train on 8K. We collect 8K resolution
+test set to show the improvement, and we will release our
+test set as a new benchmark for future research.
+
+1. Introduction
+Face detection is a long-standing research topic in computer vision. Many important downstream applications
+need to build on top of it, including face reconstruction,
+face tracking and face recognition, etc. Thanks to Convolution Neural Network, face detection has been improved
+significantly in the past few years. However, as the camera
+hardware is evolving, the demand for an even faster, more
+accurate, and support for higher resolution in face detector
+is rising. Recent smartphones (Samsung Galaxy S20 Ultra,
+Xiaomi MI 10 Pro) can capture a 108MP image and record
+a video in 8K resolution. We believe that 8K resolution will
+be practical in the near future, but a lot of existing works
+[40, 13, 33, 72] still fail on many 8K resolution inputs.
+The main reasons for failure are anchor size and training
+data. Most of the anchors are designed for the most popular face detection dataset, WiderFace [63] which only has
+
+an image width of 1024. The common largest anchor size
+is 512 [40, 13, 33, 72], so the detector has to predict up to
+7K residuals. While predicting such large residuals is hard,
+but possible, the classifier has never seen such large resolution in the training set and it will almost always suppress
+all these boxes. Collecting 8K training data is expensive because a single image could contain hundreds of faces (Fig.
+1). Designing a large anchor requires the network to be
+deep enough to output multiple scales up to 8K, but BFBox
+[39] shows that the average precision (AP) decreases when
+the network becomes deeper. While down-sampling the image allows the detector to find a large face, the small face
+could be reduced to just 1 pixel (Fig. 1). We also found that
+48GB GPU memory is not enough to train RetinaFace [13]
+on 8K resolution. As there are many challenges in 8K face
+detection, multi-scale [26] is perhaps the most reasonable
+workaround by predicting the small faces in 8K, and the
+large faces in the smaller resolution, then fuse them together
+with box voting [16]. However, this approach still relies on
+the correct confidence as the majority of the high confidence
+boxes will determine the result. Multi-scale also decreases
+the 8K prediction speed (which is already severely slow) to
+become much slower than a single-scale.
+We analyze the fail cases and found that most of the correct box locations have already existed because many detectors predict a large number of boxes, but the confidences are
+very low. To systematically test these boxes, we replace the
+prediction confidence with the intersect-over-union (IoU)
+between the predicted box and the closest ground truth box
+and call it: oracle confidence. Fig. 2 shows that the oracle
+prediction has a consistently high AP on WiderFace validation set across multiple resolutions, and by testing only on
+a single-scale, it can outperform the state-of-the-art [40] by
+a large margin (AP Hard: 93.3% vs 98.4%). On our collected FFHQ [30] dataset, AP could even be increased from
+16.2% to 96.5%. We saw the possibility of closing the gap
+between the predicted and oracle confidence. Since we can
+use the oracle confidence as ground truth, we formulate this
+confidence refinement problem as supervised learning.
+We initially try to learn a regressor that takes an image
+and face detector’s output as input to predict the new con11674
+
+

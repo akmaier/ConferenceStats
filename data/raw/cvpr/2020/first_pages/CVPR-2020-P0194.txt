@@ -1,0 +1,72 @@
+Single Image Reflection Removal through Cascaded Reﬁnement
+Chao Li1,∗
+1
+
+Yixiao Yang1,∗ Kun He1,† Stephen Lin2
+
+John E. Hopcroft3
+
+School of Computer Science and Technology, Huazhong University of Science and Technology
+2
+
+Microsoft Research Asia, 3 Computer Science Department, Cornell University
+brooklet60@hust.edu.cn
+
+Abstract
+We address the problem of removing undesirable reflections from a single image captured through a glass surface,
+which is an ill-posed, challenging but practically important
+problem for photo enhancement. Inspired by iterative structure reduction for hidden community detection in social networks, we propose an Iterative Boost Convolutional LSTM
+Network (IBCLN) that enables cascaded prediction for reflection removal. IBCLN is a cascaded network that iteratively reﬁnes the estimates of transmission and reflection
+layers in a manner that they can boost the prediction quality
+to each other, and information across steps of the cascade is
+transferred using an LSTM. The intuition is that the transmission is the strong, dominant structure while the reflection is the weak, hidden structure. They are complementary
+to each other in a single image and thus a better estimate
+and reduction on one side from the original image leads to a
+more accurate estimate on the other side. To facilitate training over multiple cascade steps, we employ LSTM to address the vanishing gradient problem, and propose residual
+reconstruction loss as further training guidance. Besides,
+we create a dataset of real-world images with reflection and
+ground-truth transmission layers to mitigate the problem of
+insufﬁcient data. Comprehensive experiments demonstrate
+that the proposed method can effectively remove reflections
+in real and synthetic images compared with state-of-the-art
+reflection removal methods.
+
+1. Introduction
+Undesirable reﬂections from glass occur frequently in
+real-world photos. It not only signiﬁcantly degrades the
+image quality, but also affects the performance of downstream computer vision tasks like object detection and semantic segmentation. As the reﬂection removal problem
+is ill-posed, early works primarily tackle it with multi∗ The ﬁrst two authors contribute equally.
+† Corresponding author.
+
+ple input images [24, 19, 16, 32, 6, 23, 5, 7]. More recently, researchers attempt to address the more common
+and practically signiﬁcant scenario of a single input image [14, 15, 16, 17, 28, 22, 1, 25].
+For single-image reﬂection removal (SIRR), researchers
+have observed that some handcrafted priors may help for
+distinguishing the transmission layer from the reﬂection
+layer in a single image. But these priors often do not generalize well to different types of reﬂections and scenes owing
+to disparate imaging conditions. In recent years, researchers
+apply data-driven learning to replace handcrafted priors via
+deep convolutional neural networks. With abundant labeled
+data, a network can be trained to perform effectively over
+a broad range of scenes. However, learning-based singleimage methods still have much room for improvement due
+to complications such as limited training data, disparate
+imaging conditions, varying scene content, limited physical
+understanding of this problem, and the performance limitation of various models.
+In this work, inspired by the iterative structure reduction approach for hidden community detection in social networks [8, 9], we introduce a cascaded neural network model
+for transmission and reﬂection decomposition. Figure 1 illustrates the cascade results in our model, where the transmission and reﬂection are progressively reﬁned during the
+iterations. To the best of our knowledge, previous works
+on reﬂection removal did not utilize a cascaded reﬁnement
+approach. Though some methods such as BDN [33] obtain
+predictions over a sequence of a few sub-networks, they do
+not iteratively reﬁne the estimates, but rather they conduct a
+short alternating optimization, e.g., by estimating the reﬂection from the input image and the initial transmission layer,
+and then estimating the transmission from the input image
+and the estimated reﬂection layer.
+For a cascade model on SIRR, a simple approach is to
+employ one network to generate a predicted transmission
+that serves as the auxiliary information of the next network,
+and continue such process with subsequent networks to iteratively improve the prediction quality. With a long cascade, however, the training becomes difﬁcult due to the
+
+3565
+
+

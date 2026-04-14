@@ -1,0 +1,109 @@
+Epipolar Transformers
+Yihui He∗ Rui Yan∗ Katerina Fragkiadaki
+Carnegie Mellon University
+Pittsburgh, PA 15213
+
+Shoou-I Yu
+Facebook Reality Labs
+Pittsburgh, PA 15213
+
+{he2@alumni,ruiyan@alumni,katef@cs}.cmu.edu
+
+shoou-i.yu@fb.com
+
+Abstract
+fused features
+
+A common approach to localize 3D human joints in a
+synchronized and calibrated multi-view setup consists of
+two-steps: (1) apply a 2D detector separately on each
+view to localize joints in 2D, and (2) perform robust
+triangulation on 2D detections from each view to acquire
+the 3D joint locations. However, in step 1, the 2D
+detector is limited to solving challenging cases which could
+potentially be better resolved in 3D, such as occlusions and
+oblique viewing angles, purely in 2D without leveraging any
+3D information. Therefore, we propose the differentiable
+“epipolar transformer”, which enables the 2D detector to
+leverage 3D-aware features to improve 2D pose estimation.
+The intuition is: given a 2D location p in the current
+view, we would like to first find its corresponding point
+p′ in a neighboring view, and then combine the features
+at p′ with the features at p, thus leading to a 3D-aware
+feature at p. Inspired by stereo matching, the epipolar
+transformer leverages epipolar constraints and feature
+matching to approximate the features at p′ . Experiments
+on InterHand and Human3.6M [13] show that our
+approach has consistent improvements over the baselines.
+Specifically, in the condition where no external data is used,
+our Human3.6M model trained with ResNet-50 backbone
+and image size 256×256 outperforms state-of-the-art by
+4.23mm and achieves MPJPE 26.9 mm. Code is available1 .
+
+1. Introduction
+In order to estimate the 3D pose of a human body or
+hand, there are two common settings. The first setting
+is single-view 3D pose estimation [46, 44, 2, 9], where
+the algorithm directly estimates 3D pose from a single
+image. This is extremely challenging due to the ambiguity
+in depth when only one view is available. The second
+setting, which is the focus of our paper, is multi-view
+∗ Equal contribution
+1 github.com/yihui-he/epipolar-transformers
+
+(H×W×256)
+
+matches
+(H×W×256)
+
+similarity
+query
+candidates
+
+(256)
+
+(256×K)
+
+deep features
+
+deep features
+
+(H×W×256)
+
+(HxWx256)
+
+𝑝
+
+Reference view
+
+𝑝’
+
+Source view
+
+Figure 1: Overview of the proposed epipolar transformer, which
+enables 2D detectors to leverage 3D-aware features for more
+accurate pose estimation. For a query vector (e.g., with length
+256) on the intermediate deep feature maps of the reference view
+(H×W×256), we extract K samples along the corresponding
+epipolar line in the source view. Dot-product and softmax are
+used to compute similarity between the query and sampled vectors,
+which in turn is used to compute the corresponding feature. The
+corresponding feature is then fused with the reference view feature
+to arrive at a 3D-aware feature for the reference view.
+
+3D pose estimation, where the algorithm can leverage
+multiple synchronized and geometrically calibrated views
+to resolve depth ambiguity. A common framework [30, 16]
+to resolve depth ambiguity and accurately estimate the 3D
+position of joints follows a two-step process: (1) apply
+a 2D pose detector on each view separately to localize
+joints in 2D, and (2) perform robust triangulation based on
+camera calibration and 2D detections from each view to
+acquire the 3D position of joints. Robust triangulation is
+required as the prediction of the 2D pose detector could
+be incorrect or missing due to occlusions. One main
+disadvantage of this framework is that the detection in step 1
+
+7779
+
+

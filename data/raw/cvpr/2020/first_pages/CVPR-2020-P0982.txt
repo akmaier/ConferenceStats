@@ -1,0 +1,85 @@
+DeepStrip: High Resolution Boundary Refinement
+Peng Zhou1
+Brian Price2
+Scott Cohen2
+1
+University of Maryland, College Park
+
+Gregg Wilensky2
+Larry S. Davis1
+2
+Adobe Research, San Jose
+
+Abstract
+In this paper, we target refining the boundaries in high
+resolution images given low resolution masks. For memory
+and computation efficiency, we propose to convert the regions of interest into strip images and compute a boundary
+prediction in the strip domain. To detect the target boundary, we present a framework with two prediction layers.
+First, all potential boundaries are predicted as an initial
+prediction and then a selection layer is used to pick the target boundary and smooth the result. To encourage accurate
+prediction, a loss which measures the boundary distance in
+the strip domain is introduced. In addition, we enforce a
+matching consistency and C0 continuity regularization to
+the network to reduce false alarms. Extensive experiments
+on both public and a newly created high resolution dataset
+strongly validate our approach.
+
+1. Introduction
+Boundary detection is a well-studied problem and fundamental for human recognition [29, 9]. Recent decades
+have witnessed considerable effort to improve the boundary
+quality of an object that has been detected [42, 36, 33, 19,
+38, 49, 16, 23, 43] or segmented [11, 35, 25, 7, 18]. Consequently, it is not difficult to separate object of interests from
+backgrounds with precise boundaries utilizing these methods. While current learning based boundary detection algorithms are usually computed on low resolution (LR) images
+(0.04-0.25 million pixels), most photos taken these days are
+much larger, ranging from cell phone size (8-16 million
+pixels) to professional camera size (16-400 million pixels).
+Most methods are not designed for images of this size and
+the excessive computation they require, and most machine
+learning based methods cannot process them due to memory constraints. Given a precise low resolution prediction, a
+workaround would be to directly apply upsampling to reach
+high resolution (HR). Nevertheless, this usually yields poor
+quality results because the semantic contents in the HR image are not considered. (See Figure 1.)
+Most research in boundary detection focuses on improving the boundary quality in LR through introducing
+
+HR image
+
+Bilinear upsampling
+
+Ours
+
+HR ground truth
+
+Boundary
+upsampling
+
+LR
+mask
+
+Figure 1. Concept overview. The example is from the newly created PixaHR dataset. Given low resolution mask and high resolution image on the left, a bilinear upsampling with scale factor 16×
+would results in boundary misalignment in high resolution image,
+as is shown in the enlarged boundary region on the right. Also, the
+new details in high resolution would be missed.
+
+more semantic information [2, 46, 27] or human interaction [23, 26, 44, 25, 7]. While there has been some
+work on HR semantic segmentation [12, 48] and upsampling [41, 47], there is less focus on accurately capturing
+the boundary detail in HR. Instead of treating this problem
+as an upsampling problem, we treat it as boundary detection
+and harness the contents in HR images for prediction.
+To this end, we propose a novel approach to handle
+boundary refinement in HR images. (See Figure 2.) Our key
+idea is to allow the power of deep learning methods to be
+applied to HR images in a time and memory efficient manner by operating on narrow images made up of pixels near
+the boundary. Given an accurate LR mask, the boundary in
+HR is likely in proximity to the upsampled LR boundary.
+(See Figure 1.) Therefore, to save memory and computation, we propose to search for the target boundary in a strip
+region near the boundary of the upsampled mask. The strip
+image is formed by sampling pixels along and normal to
+the upsampled mask boundary. Since the normals may not
+be smooth due to inaccurate boundaries in the upsampled
+mask, we represent the LR boundary with a spline approximation and directly treat the orthogonal derivatives of the
+upsampled spline as the normal directions. Feeding as input the generated strip images, we train a network to firstly
+predict all potential boundaries. Based on the initial prediction, an additional selection layer is included to predict
+the target boundary more accurately. To encourage closer
+prediction and reduce false positives, we propose loss functions to minimize the boundary distance between the pre110558
+
+

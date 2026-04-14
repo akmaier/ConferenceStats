@@ -1,0 +1,141 @@
+A Dual Weighting Label Assignment Scheme for Object Detection
+Shuai Li, Chenhang He, Ruihuang Li, Lei Zhang
+The Hong Kong Polytechnic University
+{csshuaili, csche, csrhli, cslzhang}@comp.polyu.edu.hk
+
+Abstract
+Label assignment (LA), which aims to assign each training sample a positive (pos) and a negative (neg) loss weight,
+plays an important role in object detection. Existing LA
+methods mostly focus on the design of pos weighting function, while the neg weight is directly derived from the pos
+weight. Such a mechanism limits the learning capacity
+of detectors. In this paper, we explore a new weighting
+paradigm, termed dual weighting (DW), to specify pos and
+neg weights separately. We first identify the key influential
+factors of pos/neg weights by analyzing the evaluation metrics in object detection, and then design the pos and neg
+weighting functions based on them. Specifically, the pos
+weight of a sample is determined by the consistency degree
+between its classification and localization scores, while the
+neg weight is decomposed into two terms: the probability that it is a neg sample and its importance conditioned
+on being a neg sample. Such a weighting strategy offers
+greater flexibility to distinguish between important and less
+important samples, resulting in a more effective object detector. Equipped with the proposed DW method, a single
+FCOS-ResNet-50 detector can reach 41.5% mAP on COCO
+under 1× schedule, outperforming other existing LA methods. It consistently improves the baselines on COCO by
+a large margin under various backbones without bells and
+whistles. Code is available at https://github.com/
+strongwolf/DW .
+
+1. Introduction
+As a fundamental vision task, object detection has been
+drawing significant attention from researchers for decades.
+The community has recently witnessed a fast evolution
+of detectors with the development of convolutional neural
+networks (CNNs) [13–15, 34–37] and visual transformers
+(ViTs) [4, 6, 8, 10, 27, 39, 40, 42, 50]. Current state-of-the-art
+detectors [1, 22, 24, 29–31, 38, 46, 48, 49] mostly perform
+dense detection by predicting class labels and regression
+offsets with a set of pre-defined anchors. As the basic unit in
+detector training, anchors need to be assigned with proper
+
+A
+
+A
+
+C
+
+D
+
+B
+
+C
+
+D
+
+Score 0.95 0.7 0.6 0.3
+B
+
+IoU
+
+0.95 0.4 0.6 0.6
+
+A
+
+B
+
+C
+
+D
+
+0.
+0.
+
+0.04
+0.05
+
+0.
+0.
+
+0.05
+0.04
+
+GFL
+
+0.9
+0.05
+
+0.16
+0.24
+
+0.36
+0.24
+
+0.36
+0.24
+
+VFL
+
+1.0
+0.
+
+0.01
+0.55
+
+0.06
+0.31
+
+0.03
+0.08
+
+DW
+
+Figure 1. An illustration of the difference between the proposed
+DW method and existing label assignment methods, e.g., GFL [21]
+and VFL [43]. For ambiguous anchors B, C and D, GFL and VFL
+will assign nearly the same pos and neg weights to {B, D} and {C,
+D}, respectively. In contrast, our DW assigns a distinct (pos, neg)
+pair for each anchor.
+
+classification (cls) and regression (reg) labels to supervise
+the training process. Such a label assignment (LA) process
+can be regarded as a task of assigning loss weight to each
+anchor. The cls loss (reg loss can be similarly defined) for
+an anchor can be generally expressed as:
+  \label {eq1} \mathcal {L}_{cls}= - w_{pos} \times \ln {(s)} - w_{neg} \times \ln {(1-s)}, 
+
+(1)
+
+where wpos and wneg are the positive (pos) and negative
+(neg) weights, respectively, and s is the predicted classification score. Depending on the design of wpos and wneg ,
+the LA methods can be roughly divided into two categories:
+hard LA and soft LA.
+Hard LA assumes that each anchor is either pos or neg,
+which means that wpos , wneg ∈ {0, 1} and wneg + wpos =
+1. The core idea of this strategy is to find a proper division boundary to split the anchors into a positive set and a
+negative set. The division rule along this line of research
+can be further categorized into static and dynamic ones.
+Static rules [18, 24, 32, 38] adopt pre-defined metrics such
+as the IoU or the distance from the anchor center to the
+ground truth (GT) center to match objects or background
+19387
+
+

@@ -1,0 +1,128 @@
+MnasFPN : Learning Latency-aware Pyramid Architecture
+for Object Detection on Mobile Devices
+Bo Chen
+
+Golnaz Ghiasi
+
+Hanxiao Liu
+
+Tsung-Yi Lin Dmitry Kalenichenko Hartwig Adam
+Google Research
+{bochen, golnazg, hanxiaol, tsungyi, dkalenichenko, hadam, qvl}@google.com
+
+Abstract
+Despite the blooming success of architecture search for
+vision tasks in resource-constrained environments, the design of on-device object detection architectures have mostly
+been manual. The few automated search efforts are either centered around non-mobile-friendly search spaces or
+not guided by on-device latency. We propose MnasFPN,
+a mobile-friendly search space for the detection head,
+and combine it with latency-aware architecture search to
+produce efficient object detection models. The learned
+MnasFPN head, when paired with MobileNetV2 body, outperforms MobileNetV3+SSDLite by 1.8 mAP at similar latency on Pixel. It is both 1 mAP more accurate and 10%
+faster than NAS-FPNLite. Ablation studies show that the
+majority of the performance gain comes from innovations in
+the search space. Further explorations reveal an interesting
+coupling between the search space design and the search
+algorithm, for which the complexity of MnasFPN search
+space is opportune1 .
+
+1. Introduction
+Designing neural network architectures for efficient deployment on mobile devices is not an easy task: one has to
+judiciously trade off the amount of computation with accuracy, while taking into consideration the set of operations
+that are supported and favored by the devices. Neural architecture search (NAS, [33]) provides the framework to automate the design process, where a RL controller will learn to
+generate fast and accuracy models within a user-specified
+search space. While the focus of NAS papers have been
+on improving the search algorithm, the search space design
+remains a critical performance factor that is less visited.
+Despite the significant advances on NAS for image
+classification both in the server setting [33, 25] and in
+the mobile setting [24, 3, 9, 28, 6], relatively fewer at1 Implementation is available at Tensorflow Object Detection API
+https://github.com/tensorflow/models/tree/master/
+research/object_detection
+
+Model
+
+Quoc V. Le
+
+Test-dev mAP
+
+Latency
+
+MAdds
+
+Params
+
+MobileNetV3† + SSDLite
+MobileNetV3 + SSDLite
+MobileNetV2 + SSDLite
+MnasNet-A1 + SSDLite
+MobileNetV2 + NAS-FPNLite
+
+22.0 [9]
+22.0 [9]
+22.1 [22]
+23.0 [24]
+25.1 [7]
+
+119∗
+137∗
+163∗
+174∗
+202∗
+
+0.51B
+0.62B
+0.8B
+0.8B
+0.98B
+
+3.22M
+4.97M
+4.3M
+4.9M
+2.02M
+
+MobileNetV2 + MnasFPN ‡
+MobileNetV3 + MnasFPN
+MobileNetV2 + MnasFPN
+
+23.8
+25.5
+26.1
+
+121
+168
+183
+
+0.53B
+0.77B
+0.92B
+
+1.29M
+3.46M
+2.50M
+
+Table 1. MnasFPN variations compared with other mobile detection models on COCO test-dev. Latency numbers with ‘*‘ are remeasured in the same configuration (same benchmarker binary and
+same device) as MnasFPN models to ensure fairness of comparison. Models with † employs the channel-halving trick [9]. Models
+with ‡ was obtained with a depth multiplier of 0.7 on both head
+and backbone.
+
+tempts [7, 4, 26] focus on object detection. This is in part
+because the additional complexity in the search space of the
+detection head relative to the backbone. The backbone is
+a feature extractor that sequentially extracts features at increasingly finer scales, which behaves the same way as the
+feature extractor for image classification. Therefore, current NAS approaches either repurpose classification feature
+extractors for detection [9, 24, 25], or search the backbone
+while fixing the detection head [4]. Since the backbone is
+composed of a sequence of layers, its search space is sequential. In contrast, a detection head could be highly nonsequential. It needs to fuse and regenerate features across
+multiple scales for better class prediction and localization.
+The search space therefore includes what features to fuse,
+as well as how often and in what order to fuse them. This is
+a challenging task that few NAS frameworks have demonstrated the ability to handle.
+One exception is NAS-FPN [7], which was the first NAS
+paper that tackles the non-sequential search space of the detection head. It demonstrates state-of-the-art performance
+when optimized for accuracy only, and its manually designed variant called NAS-FPNLite performs competitively
+on mobile devices. However, NAS-FPNLite is limited in
+three aspects. 1) The search process that produces the architecture is not guided by computational complexity or on113607
+
+

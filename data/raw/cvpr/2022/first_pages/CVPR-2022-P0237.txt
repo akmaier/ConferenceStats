@@ -1,0 +1,73 @@
+Learning to Detect Mobile Objects from LiDAR Scans Without Labels
+Yurong You*†,1 Katie Luo*,1 Cheng Perng Phoo1 Wei-Lun Chao2
+Wen Sun1 Bharath Hariharan1 Mark Campbell1 Kilian Q. Weinberger1
+1
+Cornell University 2 The Ohio State University
+Abstract
+Current 3D object detectors for autonomous driving are
+almost entirely trained on human-annotated data. Although
+of high quality, the generation of such data is laborious and
+costly, restricting them to a few specific locations and object
+types. This paper proposes an alternative approach entirely
+based on unlabeled data, which can be collected cheaply
+and in abundance almost everywhere on earth. Our approach leverages several simple common sense heuristics
+to create an initial set of approximate seed labels. For example, relevant traffic participants are generally not persistent across multiple traversals of the same route, do
+not fly, and are never under ground. We demonstrate that
+these seed labels are highly effective to bootstrap a surprisingly accurate detector through repeated self-training without a single human annotated label. Code is available at
+https:// github.com/ YurongYou/ MODEST.
+
+1. Introduction
+Autonomous driving promises to revolutionize how we
+transport goods, travel, and interact with our environment.
+To safely plan a route, a self-driving vehicle must first
+perceive and localize mobile traffic participants such as
+other vehicles and pedestrians in 3D. Current state-of-theart 3D object detectors are all based on deep neural networks [45, 48, 49, 61] and can yield up to 80 average precision on benchmark datasets [21, 22].
+However, as with all deep learning approaches, these
+techniques have an insatiable need for labeled-data. Specifically, to train a 3D object detector that takes LiDAR scans
+as input, one typically needs to first come up with a list
+of objects of interest and annotate each of them with tight
+bounding boxes in the 3D point cloud space. Such a data
+annotation process is laborious and costly, but worst of all,
+the resulting detectors only achieve high accuracy when the
+training and test data distributions match [58]. In other
+words, their accuracy deteriorates over time and space, as
+* Denotes equal contribution.
+† All correspondence could be directed to yy785@cornell.edu
+
+looks and shapes of cars, vegetation, and background objects change. To guarantee good performance, one has to
+collect labeled training data for specific geo-fenced areas
+and re-label data constantly, greatly limiting the applicability and development of self-driving vehicles.
+These problems motivate the question: Can we learn a
+3D object detector from unlabeled LiDAR data? Here, we
+focus on “mobile” objects, i.e., objects that might move,
+which cover a wide range of traffic participants. At first
+glance, this seems insurmountably challenging. After all,
+how could a detector know just from the LiDAR point cloud
+that a pedestrian is a traffic participant and a tree is not? We
+tackle this problem with the help of two important insights:
+1) we can use simple heuristics that, even without labeling,
+can occasionally distinguish traffic participants from background objects more or less reliably; 2) if data is noisy but
+diverse, neural networks excel at identifying the common
+patterns, allowing us to repeatedly self-label the remaining
+objects, starting from a small set of seed labels.
+Weak labels through heuristics. We build upon a simple
+yet highly generalizable concept to discover mobile objects
+— mobile objects are unlikely to stay persistent at the same
+location over time. While this requires unlabeled data at
+multiple timestamps for the same locations, collecting them
+is arguably cheaper than annotating them. After all, many
+of us drive through the same routes every day (e.g., to and
+from work or school). Even when going to new places, the
+new routes for us are likely frequent for the local residents.
+Concretely, whenever we discover multiple traversals of
+one route, we calculate a simple ephemerality statistic [3]
+for each LiDAR point, which characterizes the change of
+its local neighborhood across traversals. We cluster LiDAR points according to their coordinates and ephemerality
+statistics. Resulting clusters with high ephemerality statistics, and located on the ground, are considered as mobile
+objects and are further fitted with upright bounding boxes.
+Self-training (ST). While this initial seed set of mobile objects is not exhaustive (e.g., parked cars may be missed)
+and somewhat noisy in shape, we demonstrate that an object detector trained upon them can already learn the underlying object patterns and is able to output more and higher-
+
+1130
+
+

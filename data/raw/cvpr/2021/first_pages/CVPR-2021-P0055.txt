@@ -1,0 +1,77 @@
+OTA: Optimal Transport Assignment for Object Detection
+Zheng Ge1,2 ,
+
+Songtao Liu2 ,* Zeming Li2 , Osamu Yoshie1 ,
+1
+Waseda University, 2 Megvii Technology
+
+Jian Sun2
+
+jokerzz@fuji.waseda.jp;liusongtao@megvii.com;lizeming@megvii.com;
+yoshie@waseda.jp;sunjian@megvii.com
+
+Abstract
+Recent advances in label assignment in object detection mainly seek to independently define positive/negative
+training samples for each ground-truth (gt) object. In this
+paper, we innovatively revisit the label assignment from a
+global perspective and propose to formulate the assigning procedure as an Optimal Transport (OT) problem – a
+well-studied topic in Optimization Theory. Concretely, we
+define the unit transportation cost between each demander (anchor) and supplier (gt) pair as the weighted summation of their classification and regression losses. After
+formulation, finding the best assignment solution is converted to solve the optimal transport plan at minimal transportation costs, which can be solved via Sinkhorn-Knopp
+Iteration. On COCO, a single FCOS-ResNet-50 detector
+equipped with Optimal Transport Assignment (OTA) can
+reach 40.7% mAP under 1× scheduler, outperforming all
+other existing assigning methods. Extensive experiments
+conducted on COCO and CrowdHuman further validate the
+effectiveness of our proposed OTA, especially its superiority in crowd scenarios. The code is available at https:
+//github.com/Megvii-BaseDetection/OTA.
+
+1. Introduction
+Current CNN-based object detectors [27, 30, 21, 47, 33,
+29, 36] perform a dense prediction manner by predicting
+the classification (cls) labels and regression (reg) offsets for
+a set of pre-defined anchors1 . To train the detector, defining
+cls and reg targets for each anchor is a necessary procedure,
+which is called label assignment in object detection.
+Classical label assigning strategies commonly adopt predefined rules to match the ground-truth (gt) object or background for each anchor. For example, RetinaNet [21] adopts
+Intersection-over-Union (IoU) as its thresholding criterion
+* Corresponding author
+1 For anchor-free detectors like FCOS [38], the feature points can be
+
+viewed as shrunk anchor boxes. Hence in this paper, we collectively refer
+to anchor box and anchor point as “anchor”.
+
+GT1
+GT2
+
+GT1
+
+GT2
+
+GT BBoxes
+
+A Set of Ambiguous Anchor Points
+
+Figure 1. An illustration of ambiguous anchor points in object detection. Red dots show some of the ambiguous anchors in two
+sample images. Currently, the assignment of these ambiguous anchors is heavily based on hand-crafted rules.
+
+for pos/neg anchors division. Anchor-free detectors like
+FCOS [38] treat the anchors within the center/bbox region of any gt object as the corresponding positives. Such
+static strategies ignore a fact that for objects with different
+sizes, shapes or occlusion condition, the appropriate positive/negative (pos/neg) division boundaries may vary.
+Motivated by this, many dynamic assignment strategies
+have been proposed. ATSS [47] proposes to set the division boundary for each gt based on statistical characteristics. Other recent advances [48, 19, 51, 16] suggest that
+the predicted confidence scores of each anchor could be a
+proper indicator to design dynamic assigning strategies, i.e.,
+high confidence anchors can be easily learned by the networks and thus be assigned to the related gt, while anchors
+with uncertain predictions should be considered as negatives. Those strategies enable the detector to dynamically
+choose positive anchors for each individual gt object and
+achieve state-of-the-art performance.
+However, independently assigning pos/neg samples for
+each gt without context could be sub-optimal, just like the
+lack of context may lead to improper prediction. When
+dealing with ambiguous anchors (i.e., anchors that are qualified as positive samples for multiple gts simultaneously as
+seen in Fig. 1.), existing assignment strategies are heavily based on hand-crafted rules (e.g., Min Area [38], Max
+IoU [16, 21, 47].). We argue that assigning ambiguous an1303
+
+
