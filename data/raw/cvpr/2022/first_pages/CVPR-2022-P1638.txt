@@ -1,0 +1,80 @@
+Learning from All Vehicles
+Dian Chen
+
+Philipp Krähenbühl
+UT Austin
+
+Abstract
+In this paper, we present a system to train driving policies
+from experiences collected not just from the ego-vehicle, but
+all vehicles that it observes. This system uses the behaviors of other agents to create more diverse driving scenarios
+without collecting additional data. The main difficulty in
+learning from other vehicles is that there is no sensor information. We use a set of supervisory tasks to learn an
+intermediate representation that is invariant to the viewpoint
+of the controlling vehicle. This not only provides a richer signal at training time but also allows more complex reasoning
+during inference. Learning how all vehicles drive helps predict their behavior at test time and can avoid collisions. We
+evaluate this system in closed-loop driving simulations. Our
+system outperforms all prior methods on the public CARLA
+Leaderboard by a wide margin, improving driving score by
+25 and route completion rate by 24 points.
+
+1. Introduction
+Autonomous driving has been one of the most anticipated
+technologies since the advent of modern-day artificial intelligence. However, even after decades of exploration, we
+have yet to see self-driving cars deployed at scale. One
+main reason is the generalization. The world and its drivers
+are more diverse than current planning approaches can handle. Hand-designed classical planning [3, 16, 29, 45] does
+not generalize gracefully to unseen or unfamiliar scenarios.
+Learning based methods [4, 9, 11, 14, 37] fare better, but
+suffer from a long tail of driving scenarios. The majority
+of driving data consist of easy and uninteresting behaviors.
+After all, humans drive thousands of hours before observing
+a traffic accident [43], especially when driving an expensive
+autonomous test vehicle. How do we tame the long-tail of
+driving scenes? While many approaches rely on carefully
+crafted safety-critical scenarios in simulation [33, 36, 42], or
+collect massive data in the real world [4, 41], in this paper
+we focus on an orthogonal direction.
+We observe that, although many of us have not experienced traffic accidents ourselves, everyone has at least observed several accidents throughout our driving career. The
+
+?
+
+Left
+Straight
+
+?
+
+Change
+Lane Right
+
+Figure 1. We present LAV, a mapless, learning-based end-to-end
+driving system. LAV takes as input multi-modal sensor readings
+and learns from all nearby vehicles in the scene for both perception
+and planning. At test time, LAV predicts multi-modal future trajectories for all detected vehicles, including the ego-vehicle. Picture
+credit – Waymo open dataset [41].
+
+same applies to safety-critical driving scenarios: While the
+data-collecting ego-vehicle might not experience accidentprone situations itself, it is likely its driving logs contain
+states that are interesting or safety-critical, but experienced
+by other vehicles. Training on other vehicles’ trajectories
+helps not only with sample efficiency, but also greatly increase the chance that the model sees interesting scenarios.
+Moreover, knowing other vehicles’ future trajectories helps
+the ego-vehicle avoid collisions.
+The main challenge with training on all vehicles lies in
+the partial observability of other vehicles. Unlike the egovehicle, other vehicles have only partially observed motion
+trajectories, exposing no control commands or higher-level
+goals. This makes direct training [10, 11, 12, 14, 38] on
+other vehicles’ traces close to impossible. More importantly,
+other vehicles have no accessible sensors. To learn from
+other vehicles, a model has to infer their surrounding state
+using the ego-vehicle’s sensors.
+Our framework, Learning from All Vehicles (LAV), handles the partial observability of both perception and motion
+in one joint recognition, prediction, and planning stack. We
+decouple the partial observability challenge of perception
+and action using a privileged distillation approach [11]. LAV
+first learns a perception model that outputs a viewpoint invariant representation using auxiliary supervision from 3D
+detection and segmentation tasks. By definition, this auxil-
+
+17222
+
+

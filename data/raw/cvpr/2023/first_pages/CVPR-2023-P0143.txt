@@ -1,0 +1,82 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Plateau-reduced Differentiable Path Tracing
+Michael Fischer
+University College London
+
+Tobias Ritschel
+University College London
+
+m.fischer@cs.ucl.ac.uk
+
+t.ritschel@ucl.ac.uk
+
+Abstract
+Current differentiable renderers provide light transport
+gradients with respect to arbitrary scene parameters. However, the mere existence of these gradients does not guarantee useful update steps in an optimization. Instead, inverse
+rendering might not converge due to inherent plateaus, i.e.,
+regions of zero gradient, in the objective function. We propose to alleviate this by convolving the high-dimensional
+rendering function, that maps scene parameters to images, with an additional kernel that blurs the parameter
+space. We describe two Monte Carlo estimators to compute
+plateau-reduced gradients efficiently, i.e., with low variance, and show that these translate into net-gains in optimization error and runtime performance. Our approach
+is a straightforward extension to both black-box and differentiable renderers and enables optimization of problems
+with intricate light transport, such as caustics or global
+illumination, that existing differentiable renderers do not
+converge on. Our code is at github.com/mfischerucl/prdpt.
+
+1. Introduction
+Regressing scene parameters like object position, materials or lighting from 2D observations is a task of significant
+importance in graphics and vision, but also a hard, ill-posed
+problem. When all rendering steps are differentiable, we
+can derive gradients of the final image w.r.t. the scene parameters. However, differentiating through the discontinuous rendering operator is not straightforward due to, e.g.,
+occlusion. The two main approaches to (differentiable) rendering are path tracing and rasterization.
+Physically-based path-tracing solves the rendering equation by computing a Monte Carlo (MC) estimate for each
+pixel. Unfortunately, MC is only compatible with modern
+Automatic Differentiation (AD) frameworks for the case of
+continuous integrands, e.g., color, but not for spatial derivatives, i.e., gradients w.r.t. an object’s position. To alleviate
+this, Li et al. [18] present re-sampling of silhouette edges
+and Loubet et al. [23] propose re-parametrizing the integrand, enabling the optimization of primitive- or light posi-
+
+Initial
+
+Reference
+
+Path Tracer
+
+Our Method
+
+Figure 1. Optimization results with a differentiable path tracer (we
+use Mitsuba 3 [28]) and our proposed method. The task is to rotate
+the coffee cup around its z-axis, so that the handle moves to the
+right side. Due to a plateau in the objective function (when the
+handle is occluded by the cup), regular methods do not converge.
+
+tions. For rasterization, differentiability is achieved by replacing discontinuous edge- and z-tests with hand-crafted
+derivatives [17, 21, 22, 34]. The problem here is that rasterization, by design, does not capture complex light transport
+effects, e.g., global illumination, scattering or caustics.
+Importantly, the mere existence of gradients is no guarantee that descending along them will make an optimization
+converge [25]. There are surprisingly many cases where
+they do not lead to a successful optimization, due to a
+plateau in the objective function. An example is finding
+the orientation of the mug in Fig. 1: As soon as the handle
+disappears behind the cup, no infinitesimally small rotation
+change will result in a reduced loss. We have hence reached
+a plateau in the objective function, i.e., a region of zero gradients. We propose a method to remove these plateaus while
+still having complete, complex light transport.
+We take inspiration from differentiable rasterization literature [17, 21, 32, 34], where smoothing techniques are
+used to model the influence of faraway triangles to the pixel
+at hand. For rasterization, this simple change has two effects: First, it makes the edge- and z-tests continuous and
+hence differentiable, and second, in passing (and, to our
+knowledge, much less studied), it also removes plateaus.
+In this work, we hence aim to find a way to apply the same
+concept to complex light transport. Therefore, instead of
+making the somewhat arbitrary choice of a fixed smoothing
+function for edge- and depth-tests in differentiable rasterizers, we path-trace an alternative, smooth version of the
+entire Rendering Equation (RE), which we achieve by convolving the original RE with a smoothing kernel. This leads
+to our proposed method, a lightweight extension to (differ-
+
+4285
+
+

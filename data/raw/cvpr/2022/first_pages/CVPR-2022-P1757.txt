@@ -1,0 +1,167 @@
+Learning Program Representations for Food Images and Cooking Recipes
+Dim P. Papadopoulos1,3
+1
+
+MIT CSAIL
+
+2
+
+Nestle
+
+Enrique Mora2 Nadiia Chepurko1
+Ferda Ofli4 Antonio Torralba1
+3
+
+DTU Compute
+
+4
+
+Kuan Wei Huang1
+
+Qatar Computing Research Institute, HBKU
+
+dimp@dtu.dk, enrique.mora@es.nestle.com, {nadiia,kwhuang,torralba}@mit.edu, fofli@hbku.edu.qa
+
+Food image
+
+Abstract
+In this paper, we are interested in modeling a how-to
+instructional procedure, such as a cooking recipe, with a
+meaningful and rich high-level representation. Specifically,
+we propose to represent cooking recipes and food images
+as cooking programs. Programs provide a structured representation of the task, capturing cooking semantics and sequential relationships of actions in the form of a graph. This
+allows them to be easily manipulated by users and executed
+by agents. To this end, we build a model that is trained to
+learn a joint embedding between recipes and food images
+via self-supervision and jointly generate a program from
+this embedding as a sequence. To validate our idea, we
+crowdsource programs for cooking recipes and show that:
+(a) projecting the image-recipe embeddings into programs
+leads to better cross-modal retrieval results; (b) generating programs from images leads to better recognition results compared to predicting raw cooking instructions; and
+(c) we can generate food images by manipulating programs
+via optimizing the latent code of a GAN. Code, data, and
+models are available online1 .
+
+1. Introduction
+Food is an important part of our lives. Imagine an AI
+agent that can look at a dish and recognize ingredients
+and reliably reconstruct the exact recipe of the dish, or
+another agent that can read, interpret and execute a cooking recipe to produce our favorite meal. Computer vision
+community has long studied image-level food classification [4, 10, 21, 26, 27, 34], and only recently focused on understanding the mapping between recipes and images using
+multi-modal representations [14, 30, 48, 49, 67]. However,
+retrieval systems are limited to the existing database and
+usually fail for queries outside of this database while generating the full recipe from an image remains a challenge [47].
+1 http://cookingprograms.csail.mit.edu
+
+Cooking recipe
+Linguine with Peppers and Sausage
+Ingredients
+
+Instructions
+
+• (8 ounce) package linguini pasta
+
+• Cook pasta in a large pot of boiling salted water until al dente.
+• While the pasta is cooking, prepare the sauce.
+• Sauté sausages in a heavy skillet over medium high heat until light
+brown, breaking up clumps with back of spoon.
+• Add peppers, onion, and garlic; saute until tender.
+• Add wine and simmer until liquid is slightly reduced, about 6
+minutes.
+• Drain pasta, and add to the skillet.
+• Toss to combine.
+• Serve.
+
+• ½ pound sweet Italian sausage
+• 2 red bell peppers, chopped
+• 1 onion, chopped
+• 1 clove garlic, minced
+• 1 cup white wine
+• ¼ cup grated Parmesan cheese
+
+Cooking program and graph
+h1 = Cook(pasta, tool=pot, time=until al dente)
+
+Sausage
+
+Saute
+
+Onion
+
+Add
+
+h2 = Saute(sausage, tool=skillet, temp=medium
+
+h2 Peppers
+
+heat, time=until light brown, how=breaking
+clumps)
+
+h3
+
+h3 = Add(h2, peppers, onions, garlic)
+h4 = Saute(h3, time=until tender)
+
+Pasta
+
+Saute
+
+Cook
+
+Add
+
+h4
+
+h5 = Add(h4, wine)
+h6 = Simmer(h5, time=6 minutes)
+h7 = Drain(h1)
+h8 = Add(h6, h7)
+h9 = Toss(h8, why=to combine)
+out = Serve(h9)
+
+Garlic
+
+h1
+
+h5
+
+Drain
+
+Simmer
+
+h7
+Add
+
+h6
+h8
+
+out
+
+h9
+Toss
+
+Serve
+
+return out
+
+Figure 1. Cooking programs. We learn cooking programs from
+food images and recipes. Programs provide a structured representation of the cooking procedures which can also be represented as
+graphs (for brevity, we only show action and ingredient nodes).
+
+Cooking recipes are step-by-step instructional procedures which we propose to represent as programs, capturing all the cooking semantics and relationships. A program
+contains a sequence of actions that can be written as functions (e.g., Cook(), Add()). Each action operates on
+specific ingredients under certain conditions, such as time
+or tool (e.g., Cook(pasta, time=‘10 minutes’,
+tool=‘pot’)). A program also captures the sequential
+dependency of the actions by maintaining their input-output
+connections. Note that even though cooking actions are often performed sequentially in time, their connections are not
+necessarily sequential. The program can also be represented
+as a graph where each function and parameter is a node,
+while the edges are the function connections or the connections between the parameters and the actions (Fig. 1).
+Our goal is to generate cooking programs conditioned
+on food images or cooking recipes. We build a model that
+leverages the natural pairing of food images and recipes by
+
+16559
+
+

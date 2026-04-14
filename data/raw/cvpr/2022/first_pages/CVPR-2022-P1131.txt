@@ -1,0 +1,76 @@
+Scaling Up Your Kernels to 31x31: Revisiting Large Kernel Design in CNNs
+Xiaohan Ding 1 * Xiangyu Zhang 2† Jungong Han 3 Guiguang Ding 1‡
+1
+Beijing National Research Center for Information Science and Technology (BNRist);
+School of Software, Tsinghua University, Beijing, China
+2
+MEGVII Technology
+3
+Computer Science Department, Aberystwyth University, SY23 3FL, UK
+dxh17@mails.tsinghua.edu.cn
+jungonghan77@gmail.com
+
+zhangxiangyu@megvii.com
+dinggg@tsinghua.edu.cn
+
+Abstract
+We revisit large kernel design in modern convolutional
+neural networks (CNNs). Inspired by recent advances in vision transformers (ViTs), in this paper, we demonstrate that
+using a few large convolutional kernels instead of a stack
+of small kernels could be a more powerful paradigm. We
+suggested five guidelines, e.g., applying re-parameterized
+large depth-wise convolutions, to design efficient highperformance large-kernel CNNs. Following the guidelines,
+we propose RepLKNet, a pure CNN architecture whose kernel size is as large as 31×31, in contrast to commonly used
+3×3. RepLKNet greatly closes the performance gap between CNNs and ViTs, e.g., achieving comparable or superior results than Swin Transformer on ImageNet and a few
+typical downstream tasks, with lower latency. RepLKNet
+also shows nice scalability to big data and large models,
+obtaining 87.8% top-1 accuracy on ImageNet and 56.0%
+mIoU on ADE20K, which is very competitive among the
+state-of-the-arts with similar model sizes. Our study further reveals that, in contrast to small-kernel CNNs, largekernel CNNs have much larger effective receptive fields and
+higher shape bias rather than texture bias. Code & models at https://github.com/megvii-research/
+RepLKNet.
+
+1. Introduction
+Convolutional neural networks (CNNs) [40, 53] used to
+be a common choice of visual encoders in modern computer
+vision systems. However, recently, CNNs [40, 53] have
+* This work is supported by the National Natural Science Foundation of
+China (Nos.61925107, U1936202, 62021002) and the Beijing Academy of
+Artificial Intelligence (BAAI). This work is done during Xiaohan Ding’s
+internship at MEGVII Technology.
+† Project leader.
+‡ Corresponding author.
+
+(A) ResNet-101
+
+(B) ResNet-152
+
+(C) RepLKNet-13 (D) RepLKNet-31
+
+Figure 1. The Effective Receptive Field (ERF) of ResNet-101/152
+and RepLKNet-13/31 respectively. A more widely distributed
+dark area indicates a larger ERF. More layers (e.g., from ResNet101 to ResNet-152) help little in enlarging ERFs. Instead, our
+large kernel model RepLKNet effectively obtains large ERFs.
+
+been greatly challenged by Vision Transformers (ViTs) [34,
+59, 86, 94], which have shown leading performances on
+many visual tasks – not only image classification [34, 104]
+and representation learning [4, 9, 16, 100], but also many
+downstream tasks such as object detection [24, 59], semantic segmentation [94, 98] and image restoration [10, 54].
+Why are ViTs super powerful? Some works believed that
+multi-head self-attention (MHSA) mechanism in ViTs plays
+a key role. They provided empirical results to demonstrate that, MHSA is more flexible [50], capable (less inductive bias) [20], more robust to distortions [66, 98], or
+able to model long-range dependencies [69, 90]. But some
+works challenge the necessity of MHSA [115], attributing the high performance of ViTs to the proper building
+blocks [33], and/or dynamic sparse weights [38,111]. More
+works [20, 38, 42, 95, 115] explained the superiority of ViTs
+from different point of views.
+In this work, we focus on one view: the way of building up large receptive fields. In ViTs, MHSA is usually
+designed to be either global [34, 78, 94] or local but with
+large kernels [59, 70, 89], thus each output from a single
+MHSA layer is able to gather information from a large region. However, large kernels are not popularly employed
+in CNNs (except for the first layer [40]). Instead, a typical fashion is to use a stack of many small spatial con-
+
+11963
+
+

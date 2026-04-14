@@ -1,0 +1,121 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Autoregressive Visual Tracking
+Xing Wei†
+
+Yifan Bai†
+
+Yongchao Zheng†
+
+† Xi’an Jiaotong University
+
+{weixing, ygong}@mail.xjtu.edu.cn
+
+Dahu Shi‡ §
+
+‡ Zhejiang University
+
+Yihong Gong†
+
+§ Hikvision Research Institute
+
+{yfbai, zyc}@stu.xjtu.edu.cn
+
+Template
+
+Abstract
+We present ARTrack, an autoregressive framework for
+visual object tracking. ARTrack tackles tracking as a coordinate sequence interpretation task that estimates object
+trajectories progressively, where the current estimate is induced by previous states and in turn affects subsequences.
+This time-autoregressive approach models the sequential
+evolution of trajectories to keep tracing the object across
+frames, making it superior to existing template matching
+based trackers that only consider the per-frame localization accuracy. ARTrack is simple and direct, eliminating
+customized localization heads and post-processings. Despite
+its simplicity, ARTrack achieves state-of-the-art performance
+on prevailing benchmark datasets. Source code is available
+at https://github.com/MIV-XJTU/ARTrack.
+
+shidahu@zju.edu.cn
+
+𝑡
+𝑡
+𝑡
+𝑡
+𝑥𝑚𝑖𝑛
+𝑦𝑚𝑖𝑛
+𝑥𝑚𝑎𝑥
+𝑦𝑚𝑎𝑥
+
+Search
+
+Encoder
+
+t-2
+t-1
+
+Autoregressive
+
+Decoder
+
+t
+
+Command Token
+
+… 𝑥
+
+Spatio-Temporal Prompts
+
+𝑡−2 𝑡−2 𝑡−2
+𝑡−2
+𝑚𝑖𝑛 𝑦𝑚𝑖𝑛 𝑥𝑚𝑎𝑥 𝑦𝑚𝑎𝑥
+
+𝑡−1 𝑡−1 𝑡−1
+𝑡−1
+𝑥𝑚𝑖𝑛
+𝑦𝑚𝑖𝑛 𝑥𝑚𝑎𝑥 𝑦𝑚𝑎𝑥
+
+Figure 1. Our ARTrack framework. First, we embed visual features of template and search by an encoder. Then the coordinate
+tokens at current time step are interpreted by the decoder, conditioning on the previous estimates (as spatio-temporal prompts), and
+the command and visual tokens.
+
+1. Introduction
+Visual object tracking [5, 20, 34, 38, 48, 52] is a foundational objective in the realm of computer vision, whereby
+the tracker endeavors to estimate the location of an arbitrary
+target in each video frame, based on its initial state. Despite
+its ostensibly straightforward definition, the tracking task
+poses a significant challenge in real-world settings due to
+a variety of issues including but not limited to object deformation, scale variation, occlusion, and distraction from
+similar objects. Fortunately, visual tracking capitalizes on
+abundant temporal data as its input comprises a sequence
+of video frames. Observationally, humans leverage temporal
+information to gain a perception of the target’s deformation,
+velocity, and acceleration trends, enabling them to maintain
+consistent tracking results in the face of indiscriminative or
+temporarily unavailable visual information.
+The present mainstream approaches [10,13,45,61,64] for
+visual object tracking typically view it as a per-frame template matching problem, neglecting the potential temporal
+dependencies among the video frames. These methods generally follow three primary stages: (i) deep neural networkbased feature extraction from the search and template images,
+
+(ii) an integration module using either convolution [2,4] or attention mechanisms [10,61] for feature matching/fusion, and
+(iii) bounding-box localization through customized heads
+for corner [13, 61], center/scale [64] estimation, and target
+classification [4, 61]. In some cases, the first two stages
+can be combined using a unified architecture [13, 64]. Postprocessing techniques are usually employed during the localization step, such as Hanning window penalty [10,56,64,68]
+and box optimization [4, 56]. Some methods incorporate a
+template update mechanism to improve the target feature
+representation. Representative techniques in this category include template image selection [61], feature integration [56],
+and time evolution [62, 66]. However, customized heads and
+post-processing techniques are complex and may require
+individual training and inference, which compromises the
+simple end-to-end framework. Moreover, tracking emphasizes preserving localization accuracy across the sequence,
+while conventional per-frame training methods prioritize
+immediate localization accuracy, resulting in an objective
+mismatch between training and inference [35].
+This study proposes a novel framework to visual object
+
+9697
+
+

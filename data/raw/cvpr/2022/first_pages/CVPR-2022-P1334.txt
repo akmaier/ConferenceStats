@@ -1,0 +1,239 @@
+Learning to Anticipate Future with Dynamic Context Removal
+Xinyu Xu1 , Yong-Lu Li1,2 , Cewu Lu1 *
+1
+Shanghai Jiao Tong University 2 Hong Kong University of Science and Technology
+{xuxinyu2000, yonglu li, lucewu}@sjtu.edu.cn
+
+Abstract
+Anticipating future events is an essential feature for intelligent systems and embodied AI. However, compared to
+the traditional recognition task, the uncertainty of future
+and reasoning ability requirement make the anticipation
+task very challenging and far beyond solved. In this filed,
+previous methods usually care more about the model architecture design or but few attention has been put on how
+to train an anticipation model with a proper learning policy. To this end, in this work, we propose a novel training
+scheme called Dynamic Context Removal (DCR), which
+dynamically schedule the visibility of observed future in the
+learning procedure. It follows the human-like curriculum
+learning process, i.e., gradually removing the event context
+to increase the anticipation difficulty till satisfying the final anticipation target. Our learning scheme is plug-andplay and easy to integrate any reasoning model including transformer and LSTM, with advantages in both effectiveness and efficiency. In extensive experiments, the proposed method achieves state-of-the-art on four widely-used
+benchmarks. Our code and models are publicly released at
+https://github.com/AllenXuuu/DCR.
+
+1. Introduction
+Anticipating human action in the near future is a fundamental ability of humans as well as a basic requirement for
+intelligent systems with reasoning functionality. It serves
+as a support for many applications like autonomous driving [1, 40] and human-robot interaction [29, 42], where the
+future prediction of pedestrians and users are essential.
+With the rapid evolution of deep learning techniques, the
+comprehensive understanding and analysis of human action
+videos attract attention in edging researches. In the traditional recognition field, modern video models [6, 13, 15, 34,
+44,48,49,53,54] leverage spatiotemporal modeling to learn
+both spatial patterns and temporal logic and achieve signif* Cewu Lu is the corresponding author, member of Qing Yuan Research
+Institute and MoE Key Lab of Artificial Intelligence, AI Institute, Shanghai
+Jiao Tong University, China and Shanghai Qi Zhi institute.
+
+1
+
+Easy
+
+6
+5
+
+7
+
+3
+
+2
+
+9
+
+3
+
+6
+
+4
+
+6
+
+1
+
+5
+
+8
+
+7
+
+3
+
+4
+
+1
+
+6
+
+1
+
+8
+
+7
+
+7
+
+8
+
+3
+
+4
+
+9
+
+6
+
+5
+
+8
+
+1
+
+7
+6
+2
+
+6
+
+4
+
+3
+
+9
+
+6
+
+5
+
+2
+
+4
+
+8
+
+7
+
+4
+8
+
+3
+
+Partial Context
+Training
+
+1
+
+3
+
+3
+
+1
+
+1
+
+？
+
+？
+
+？
+
+2
+
+7
+
+3
+
+Difficult
+
+4
+
+2
+
+6
+
+7
+
+5
+
+8
+
+Testing
+
+7
+
+3
+
+4
+
+8
+
+9
+
+9
+8
+
+9
+
+6
+
+5
+
+Full Context
+Training
+
+2
+
+9
+
+8
+
+7
+
+1
+
+？
+
+？
+
+？
+
+？
+
+Figure 1. Revisiting learning curriculums in the classical Sudoku
+game, a kid starts with an easy Sudoku game of more observation
+(hints) then gets taught a harder level of less observable numbers.
+This reveals the curriculum learning process of how humans learn
+to reason in the physical world. In this work, we are inspired by
+learning Sudoku and build action anticipation model with similar
+curriculum designs. We leverage extra auxiliary frames in training
+but dynamically schedule their visibility to gradually strengthen
+the reasoning ability of model.
+
+icant progress in many video recognition tasks [8, 21, 26].
+Besides, there is also growing interests in action anticipation [8, 9, 30, 33, 46]. Similarly, they both expect systems to
+discriminate the existing actions in videos. Differently, the
+observed video segment given for systems shifts forward
+in action anticipation, while in action recognition systems
+have the all the information of videos. Due to the temporal
+misalignment between visual observation and target action
+semantics, action anticipation is a much more challenging
+task than action recognition. It can hardly be simply treated
+as classification like video recognition for some reasons.
+First, the spatial configurations which deep neural networks
+(DNN) learned in the anticipation task is biased towards the
+supervision of future action labels, leading to the inaccurate
+representation of the current visual observation [18]. Second, the observation has a gap with the start time of action
+event, which challenges the high-level reasoning ability of
+model especially in the long-term dense action prediction
+setting [27, 43].
+To tackle with the action anticipation, previous meth-
+
+12734
+
+

@@ -1,0 +1,135 @@
+Fine-tuning Image Transformers using Learnable Memory
+Mark Sandler
+
+Andrey Zhmoginov Max Vladymyrov Andrew Jackson
+Google Inc.
+{sandler, azhmogin, mxv, jacksona}@google.com
+
+Abstract
+Modified Transformer Encoder With Memory
+
+In this paper we propose augmenting Vision Transformer
+models with learnable memory tokens. Our approach allows the model to adapt to new tasks, using few parameters,
+while optionally preserving its capabilities on previously
+learned tasks. At each layer we introduce a set of learnable embedding vectors that provide contextual information useful for specific datasets. We call these “memory tokens”. We show that augmenting a model with just a handful of such tokens per layer significantly improves accuracy
+when compared to conventional head-only fine-tuning, and
+performs only slightly below the significantly more expensive full fine-tuning. We then propose an attention-masking
+approach that enables extension to new downstream tasks,
+with a computation reuse. In this setup in addition to being
+parameters efficient, models can execute both old and new
+tasks as a part of single inference at a small incremental
+cost.
+
+1. Introduction
+Transformers [38], originally introduced for sequence
+problems, such as NLP and speech recognition, have been
+very successful in advancing state-of-the-art for vision
+tasks. “Vision transformers” most commonly have been
+trained on large amounts of data, either in supervised [21]
+or self-supervised [7] modes. The resulting model is then
+“fine-tuned” on a downstream task, either in whole or in
+part. This fine-tuning has been shown to help achieve high
+performance on a variety of downstream tasks, from classical tasks like image super-resolution [6] and object detection [3] to novel ones, such as Ising model simulations [19].
+It has been observed that in order to reach the highest accuracy it is best to fine-tune the entire model on the target
+task [7,21]. However, this is often problematic, since Transformer models can have hundreds of millions or billions of
+parameters, making maintaining, transmitting and storing a
+full size model for each new task an expensive proposition.
+Additionally, full fine-tuning is often sensitive to the choice
+
+“*” denotes extra learnable class token.
+“+” indicates residual connection
+T(*) denotes the output corresponding to class token
+
+MLP Head
+
+K-class
+bird
+ball
+car…
+
+T(*)
+
+MLP
+
+MLP
+
+MLP
+
+MLP
+
+Norm
+
+Norm
+
+Norm
+
+Norm
+
+Attention
+
+Attention
+
+Attention
+
+Attention
+
+Norm
+
+Norm
+
+Norm
+
+Norm
+
+Input Memory
+
+Input Memory
+
+Input Memory
+
+Input Memory
+
+Patches with added position encoding
+0*
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9
+
+Linear projection of patches
+
+Figure 1. Structure of an encoder with learned memory. The input
+to each encoder layer is augmented with learned memory, which
+is used as an optional source of attention by the embeddings that
+propagate from previous layers. Memory tokens do not attend to
+other tokens. For detailed design of individual layer see Fig. 2.
+
+of the learning rate [30]. In this paper we propose a method
+where we augment a pre-trained model with learnable tokens that are appended at each layer of the transformer
+block. These extra tokens can be intuitively thought of as
+a permanent memory that are used as a contextual reference
+to improve the final prediction. Another point of analogy is
+that these tokens can represent concepts at varying levels of
+abstractions: starting from tokens that run alongside pixelbased patches, and all the way to the tokens representing
+final concepts.
+Our approach allows significant improvements to downstream task accuracy compared to head-only fine-tuning.
+Further, we believe that our particular architecture design
+is of independent interest as it provides a novel way of extending a trained model to perform new tasks while retain-
+
+12155
+
+

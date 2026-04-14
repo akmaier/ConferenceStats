@@ -1,0 +1,117 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Toward Accurate Post-Training Quantization for Image Super Resolution
+Zhijun Tu, Jie Hu, Hanting Chen, Yunhe Wang
+Huawei Noah’s Ark Lab
+{zhijun.tu, hujie23, chenhanting, yunhe.wang}@huawei.com
+
+Abstract
+Model quantization is a crucial step for deploying super
+resolution (SR) networks on mobile devices. However, existing works focus on quantization-aware training, which requires complete dataset and expensive computational overhead. In this paper, we study post-training quantization
+(PTQ) for image super resolution using only a few unlabeled calibration images. As the SR model aims to maintain
+the texture and color information of input images, the distribution of activations are long-tailed, asymmetric and highly
+dynamic compared with classification models. To this end,
+we introduce the density-based dual clipping to cut off the
+outliers based on analyzing the asymmetric bounds of activations. Moreover, we present a novel pixel aware calibration method with the supervision of the full-precision model
+to accommodate the highly dynamic range of different samples. Extensive experiments demonstrate that the proposed
+method significantly outperforms existing PTQ algorithms
+on various models and datasets. For instance, we get a
+2.091 dB increase on Urban100 benchmark when quantizing EDSR×4 to 4-bit with 100 unlabeled images. Our code
+is available at both PyTorch and MindSpore.
+
+1. Introduction
+Image super resolution (SR) is a classical image processing task in computer vision, which reconstructs highresolution (HR) images from the corresponding lowresolution (LR) images. SR has been widely applied in
+the real-world scenarios, such as medical imaging [12, 35],
+surveillance [1, 49], satellite imagery [31, 36] and smartphone display [8, 19]. With the rapid development of deep
+learning in recent years, SR models with deep neural network (DNN) structure have continued to achieve state-ofthe-art performance on various datasets. However, these
+SR models require significant storage and computational resources, which makes their deployment on mobile devices
+extremely difficult. To improve the inference efficiency,
+various techniques have been proposed to compress the
+models, such as network pruning [16, 50], model quantiza-
+
+Table 1. Computational overhead of different quantization methods on EDSR model. The FP denotes full-precision training, the
+Gt denotes the ground-truth, and the Bs denotes batch size.
+
+Method
+EDSR [28]
+PAMS [25]
+FQSR [40]
+CADyQ [14]
+DAQ [15]
+DDTB [52]
+Ours
+
+Type
+FP
+QAT
+QAT
+QAT
+QAT
+QAT
+PTQ
+
+Data
+800
+800
+800
+800
+800
+800
+100
+
+Gt
+3
+3
+3
+3
+3
+3
+5
+
+Bs
+Iters Run time
+16 15,000
+240×
+16
+1,500
+24×
+16 15,000
+120×
+8
+30,000
+240×
+4 300,000
+1200×
+16
+3,000
+48×
+2
+500
+1×
+
+tion [13, 38], compact architecture design [8, 9] and knowledge distillation [29, 41, 45, 46]. Among these approaches,
+model quantization is much benefit to existing artificial intelligent (AI) accelerators [3, 42], which generally focus on
+low-precision arithmetic, resulting in lower latency, smaller
+memory footprint and less energy consumption.
+Although the previous SR quantization methods make
+great effort on improving the performance with given bitwidth, their main drawback is that they require quantization aware training (QAT) with complete datasets and expensive computational overhead. As shown in Table 1,
+the full-precision EDSR model needs to train 15,000 iters
+with the batch size of 16, takes 8 days on NVIDIA Titan X
+GPUs [28]. To recover the performance drop of the quantized models, most methods also need to train with the same
+iterative steps on the complete training dataset, in which one
+training step in QAT actually takes more GPU memory and
+longer running time than those of the regular floating-point.
+On the contrast, post-training quantization (PTQ) only
+requires a few unlabeled calibration images without training, which enables fast deployment on various devices
+within minutes. Nevertheless, different from the image classification, super resolution requires accurate prediction for
+each pixel of the output images, which is much sensitive
+to low-bit compression for feature maps. Figure 2 shows
+the original floating-point activations of different layers and
+samples, we observe three properties of their distributions
+that are much unfriendly to quantization: (1) Long-tailed:
+
+5856
+
+

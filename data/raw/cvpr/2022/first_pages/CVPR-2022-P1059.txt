@@ -1,0 +1,103 @@
+On Aliased Resizing and Surprising Subtleties in GAN Evaluation
+Gaurav Parmar1
+Richard Zhang2
+Jun-Yan Zhu1
+1
+2
+Carnegie Mellon University
+Adobe Research
+
+Abstract
+PIL
+
+Metrics for evaluating generative models aim to measure
+the discrepancy between real and generated images. The
+often-used Fréchet Inception Distance (FID) metric, for example, extracts “high-level” features using a deep network
+from the two sets. However, we find that the differences in
+“low-level” preprocessing, specifically image resizing and
+compression, can induce large variations and have unforeseen consequences. For instance, when resizing an image,
+e.g., with a bilinear or bicubic kernel, signal processing
+principles mandate adjusting prefilter width depending on
+the downsampling factor, to antialias to the appropriate
+bandwidth. However, commonly-used implementations use
+a fixed-width prefilter, resulting in aliasing artifacts. Such
+aliasing leads to corruptions in the feature extraction downstream. Next, lossy compression, such as JPEG, is commonly
+used to reduce the file size of an image. Although designed
+to minimally degrade the perceptual quality of an image, the
+operation also produces variations downstream. Furthermore, we show that if compression is used on real training
+images, FID can actually improve if the generated images
+are also subsequently compressed. This paper shows that
+choices in low-level image processing have been an underappreciated aspect of generative modeling. We identify and
+characterize variations in generative modeling development
+pipelines, provide recommendations based on signal processing principles, and release a reference implementation
+to facilitate future comparisons.
+
+1. Introduction
+With the proliferation of generative modeling techniques,
+such as Generative Adversarial Networks (GANs) [24], accurately discerning which methods are performing better
+has become a critical aspect of the field. For visual data,
+metrics such as Inception Score (IS) [59], Kernel Inception
+Distance (KID) [4], and the ubiquitously-used Fréchet Inception Distance (FID) [26] have become standard practice
+for developing and adopting models. Under the hood, these
+methods evaluate the discrepancy between generated and
+natural images, in a deep feature space, to capture relevant
+
+Clean-FID
+
+Input 128x128
+OpenCV /
+MXNet
+
+not
+implemented
+
+PyTorch
+PyTorch-FID
+
+Naïve
+Subsampling
+
+TensorFlow
+antialias
+= False
+(default)
+TF-FID
+
+Antialiased
+
+TensorFlow
+antialias
+= True
+
+Aliased
+
+lanczos
+
+bicubic
+
+bilinear
+
+Downsampled to 16x16
+
+Figure 1. Downsampling a circle. We resize an input image (left)
+by a factor of 8, using different image processing libraries. The
+Lanczos, bicubic, and bilinear implementations by PIL (top row)
+adjust the antialiasing filter width by the downsampling factor
+(marked as ). Other implementations (including those used for
+PyTorch-FID and TensorFlow-FID) use fixed filter widths, introducing aliasing artifacts (marked as ) and resemble naive nearest subsampling. Aliasing artifacts induce inconsistencies in the
+calculation of downstream metrics such as Fréchet Inception Distance [26], KID [4], IS [59], and PPL [33]. Note that antialias
+flag is available in TensorFlow 2, but is set to False (default value)
+for the FID calculation.
+
+features of the two distributions. After all, at its core, generative modeling involves learning and mimicking high-order,
+complex statistics of visual data.
+However, we find that low-level, seemingly innocuous
+operations, can induce surprisingly large discrepancies in
+high-level statistics. For example, consider Figure 1. Given
+the same input image, different image processing libraries
+produce drastically different results. Specifically, the implementations using OpenCV, TensorFlow and PyTorch libraries with default flags, contain severe aliasing artifacts.
+Similarly, the simple act of saving images as JPEG with the
+
+11410
+
+

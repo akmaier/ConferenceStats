@@ -1,0 +1,96 @@
+Arch-Graph: Acyclic Architecture Relation Predictor for Task-Transferable
+Neural Architecture Search
+Minbin Huang1
+1
+
+Zhijian Huang1 Changlin Li3 Xin Chen4
+Zhenguo Li2 Xiaodan Liang1 *
+
+Hang Xu2
+
+Shenzhen Campus of Sun Yat-sen University 2 Huawei Noah’s Ark Lab
+3
+ReLER, AAII, UTS 4 The University of Hong Kong
+
+{huangmb5,huangzhj56}@mail2.sysu.edu.cn, changlinli.ai@gmail.com, cyn0531@connect.hku.hk,
+chromexbjxh@gmail.com, li.zhenguo@huawei.com, xdliang328@gmail.com
+
+Abstract
+Neural Architecture Search (NAS) aims to find efficient
+models for multiple tasks. Beyond seeking solutions for a
+single task, there are surging interests in transferring network design knowledge across multiple tasks. In this line
+of research, effectively modeling task correlations is vital
+yet highly neglected. Therefore, we propose Arch-Graph,
+a transferable NAS method that predicts task-specific optimal architectures with respect to given task embeddings. It
+leverages correlations across multiple tasks by using their
+embeddings as a part of the predictor’s input for fast adaptation. We also formulate NAS as an architecture relation
+graph prediction problem, with the relational graph constructed by treating candidate architectures as nodes and
+their pairwise relations as edges. To enforce some basic
+properties such as acyclicity in the relational graph, we add
+additional constraints to the optimization process, converting NAS into the problem of finding a Maximal Weighted
+Acyclic Subgraph (MWAS). Our algorithm then strives to
+eliminate cycles and only establish edges in the graph if the
+rank results can be trusted. Through MWAS, Arch-Graph
+can effectively rank candidate models for each task with
+only a small budget to finetune the predictor. With extensive experiments on TransNAS-Bench-101, we show ArchGraph’s transferability and high sample efficiency across
+numerous tasks, beating many NAS methods designed for
+both single-task and multi-task search. It is able to find top
+0.16% and 0.29% architectures on average on two search
+spaces under the budget of only 50 models.1
+
+1. Introduction
+Neural Architecture Search (NAS) methods [2, 40] have
+the potential to democratize deep learning and reduce costly
+* Corresponding author.
+1 Code: https://github.com/Centaurus982034/Arch-Graph
+
+Finetune
+Architecures
+...
+...
+
+Pairwise
+Relation
+Predictor
+
+Source task
+
+...
+
+...
+Architecture
+Relation
+Graph
+Target task
+
+Maximal Weighted
+Acyclic Subgraph
+
+...
+
+Output
+ranking
+
+Figure 1. Overview of our Arch-Graph that trains a pairwise relation predictor on a source task and transfers to target task by
+finetuning. It constructs an architecture relation graph based on
+the pairwise relation predictor. After selecting the MWAS of the
+architecture relation graph, Arch-Graph can give a proper ranking
+of different candidate architectures.
+
+human labor in designing neural networks. By automatically searching for optimal architectures, many NAS methods have discovered models exceeding human-designed
+ones on various tasks. However, many NAS solutions are
+computationally expensive as they require training over numerous candidate architectures. Under cases where networks for multiple tasks are needed, searching for an architecture for each task requires repeatedly running NAS methods from scratch to find the top performing network, throwing away potentially valuable knowledge accumulated over
+the course of searching. There are many recent attempts
+[15, 34] investigating transferable NAS problems over different tasks by mining task correlations. For instance, [15]
+proposes to use meta-learning to generate architectures for
+a given new task. However, it makes a strong assumption
+that information on top-performing architectures for each
+pretrain task is always available, which can limit its use
+case. [34] proposed to use task embeddings to inform an
+RNN controller of the task information and framed NAS
+as a reinforcement learning (RL) problem, which inherits
+the sample inefficiency problem from RL. Weight-sharing
+
+11881
+
+

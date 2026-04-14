@@ -1,0 +1,109 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Solving relaxations of MAP-MRF problems:
+Combinatorial in-face Frank-Wolfe directions
+Vladimir Kolmogorov
+Institute of Science and Technology Austria (ISTA)
+Am Campus 1, Klosterneuburg 3400, Austria
+vnk@ist.ac.at
+
+Abstract
+We consider the problem of solving LP relaxations
+of MAP-MRF inference problems, and in particular the
+method proposed recently in [16, 35]. As a key computational subroutine, it uses a variant of the Frank-Wolfe (FW)
+method to minimize a smooth convex function over a combinatorial polytope. We propose an efficient implementation
+of this subroutine based on in-face Frank-Wolfe directions,
+introduced in [4] in a different context. More generally, we
+define an abstract data structure for a combinatorial subproblem that enables in-face FW directions, and describe
+its specialization for tree-structured MAP-MRF inference
+subproblems. Experimental results indicate that the resulting method is the current state-of-art LP solver for some
+classes of problems. Our code is available at pub.ist.
+ac.at/˜vnk/papers/IN-FACE-FW.html.
+
+1. Introduction
+The main focus of this paper is on the problem of minimizing a function of discrete variables z = (z1 , . . . , zn )
+with unary and pairwise terms:
+X
+X
+min
+fv (zv ) +
+fuv (zu , zv ) (1)
+z∈D1 ×...×Dn
+
+uv∈E
+
+v∈[n]
+
+Here G = ([n], E) is an undirected graph and D1 , . . . , Dn
+are finite sets. This problem is often referred to as
+MAP-MRF inference (maximum a posteriori inference in a
+Markov Random Field).
+A prominent approach to tackle this NP-hard problem in
+practice is to solve its natural LP relaxation (see e.g. [39]),
+also called Basic LP relaxation [17]:
+X
+X
+min
+fv (a)ξva +
+fuv (a, b)ξua;vb
+(2a)
+ξ≥0
+
+X
+
+v∈[n]
+a∈Dv
+
+uv∈E
+(a,b)∈Du ×Dv
+
+ξua;vb0 = ξua ,
+
+X
+
+X
+a∈Dv
+
+ξua0 ;vb = ξvb
+
+∀uv, a, b (2b)
+
+a0 ∈Du
+
+b0 ∈Dv
+
+ξua = 1 ∀v
+
+(2c)
+
+Designing algorithms to (approximately) solve this relaxation for large-scale problems has been a very active area
+of research. A popular approach is to use message passing
+techniques, which perform a block-coordinate ascent on the
+dual objective [5, 11, 13, 36, 38, 40] This strategy is very effective for some problems, but for other problems it may
+get stuck in a suboptimal point. Many techniques have been
+developed that are guaranteed to converge to the optimal solution of the LP relaxation [8, 9, 16, 18, 20, 21, 25, 26, 28–32,
+34, 35].
+In this paper we revisit the approach in [16, 35]. Its key
+computational subroutine is to minimize a quadratic convex function over combinatorial polytope, which is done by
+invoking a variant of the Frank-Wolfe (FW) algorithm [3].
+We study efficient implementations of the latter in the context of MAP-MRF inference. Our main contribution is incorporating in-face FW directions introduced in [4]. The
+idea is to speed-up computations by running FW algorithm
+on a smaller “contracted” subproblem obtained by taking
+a face of the polytope containing the current point. It has
+been used for applications such as low-rank matrix completion [4], cluster detection in networks [1], and training
+sparse neural networks with `1 regularization [6]. We investigate the use of in-face FW directions for general combinatorial polytopes, and describe an abstract data structure that
+enables such directions. We then specialize it to subproblems corresponding to tree-structured MAP-MRF inference
+problems. Our approach has the following features:
+• It may happen that the contracted subproblem splits into
+independent subproblems. These subproblems are handled by a block-coordinate version of FW.
+• We store a cache of “atoms” for each contracted subproblem. We describe how to efficiently transform these
+atoms when the current face is recomputed.
+• For an edge uv ∈ E and fixed fractional unary vectors for
+u, v we can compute an optimal fractional pairwise vector for edge uv by solving a small-scale optimal transportation (OT) problems. Such computations were used
+in [27] for computing primal feasible solutions of relax-
+
+11980
+
+

@@ -1,0 +1,90 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Breaching FedMD: Image Recovery via Paired-Logits Inversion Attack
+Hideaki Takahashi*
+
+Abstract
+Federated Learning with Model Distillation (FedMD)
+is a nascent collaborative learning paradigm, where only
+output logits of public datasets are transmitted as distilled
+knowledge, instead of passing on private model parameters
+that are susceptible to gradient inversion attacks, a known
+privacy risk in federated learning. In this paper, we found
+that even though sharing output logits of public datasets is
+safer than directly sharing gradients, there still exists a substantial risk of data exposure caused by carefully designed
+malicious attacks. Our study shows that a malicious server
+can inject a PLI (Paired-Logits Inversion) attack against
+FedMD and its variants by training an inversion neural network that exploits the confidence gap between the server
+and client models. Experiments on multiple facial recognition datasets validate that under FedMD-like schemes, by
+using paired server-client logits of public datasets only, the
+malicious server is able to reconstruct private images on all
+tested benchmarks with a high success rate.
+
+1
+
+Introduction
+
+Federated Learning (FL) [28] is a distributed learning
+paradigm, where each party sends the gradients or parameters of its locally trained model to a centralized server that
+learns a global model with the aggregated gradients/parameters. While this process allows clients to hide their private datasets, a malicious server can still manage to reconstruct private data (only visible to individual client) from
+the shared gradients/parameter, exposing serious privacy
+risks [30, 43, 49].
+One effective solution against such attacks is Federated
+Learning with Model Distillation (FedMD) [21], where
+each party uses both its private data and a public dataset
+for local training and sends its predicted logits on the public
+* The University of Tokyo
+takahashi-hideaki567@g.ecc.u-tokyo.ac.jp
+† Institute
+for AI Industry Research, Tsinghua University,
+jjliu@air.tsinghua.edu.cn
+‡ Corresponding Author,
+Institute for AI Industry Research,
+Tsinghua University, Shanghai Artificial Intelligence Laboratory,
+liuy03@air.tsinghua.edu.cn
+
+Jingjing Liu†
+
+Yang Liu‡
+
+dataset (termed public knowledge) to the server, who then
+performs aggregation and sends the aggregated logits back
+to each party for next iteration. Therefore, in FedMD, the
+server can only access the predicted logits on public dataset,
+thus preventing leakage from gradients or parameters and
+retaining data and model heterogeneity with low communication cost [26]. Prior work [4, 14, 18, 26, 29] suggests
+that FedMD is a viable defense to the original FL framework, and many studies [4, 6, 14, 21, 24] consider FedMD
+as a suitable solution to solving real-life problems. This has
+catalyzed a broad application of FedMD-like schemes [5,6]
+in industrial scenarios [16, 18, 25, 29, 37, 46, 47].
+Despite its popularity, few studies have investigated the
+safety of sharing public knowledge in FedMD. Contrary
+to the common belief that FedMD is reliably safe, we
+found that it is actually vulnerable to serious privacy threats,
+where an adversary can reconstruct a party’s private data
+via shared public knowledge only. Such a reconstruction
+attack is nontrivial, since to guarantee that the adversary
+recovers its private data strictly from public knowledge
+only, the attack needs to follow two inherent principles:
+Knowledge-decoupling and Gradient-free. ‘Gradient-free’
+means that the adversary can recover private data without access to gradients. ‘Knowledge-decoupling’ means
+that the attack ‘decouples’ private information from learned
+knowledge on public data only, and directly recovers private
+data. However, existing inversion attacks [11, 42, 49] fail to
+meet the ‘knowledge-decoupling’ requirement as they do
+not consider the case where the target model is trained on
+both private and public datasets. Recent TBI [42] proposed
+a gradient-free method with inversion network, but still relied on availability of private data (as shown in Tab. 1).
+In this paper, we propose a novel Paired-Logits Inversion (PLI) attack that is both gradient-free and fully decouples private data from public knowledge. We observe that a
+local model trained on private data will produce more confident predictions than a server model that has not seen the
+private data, thus creating a ”confidence gap” between a
+client’s logits and the server’s logits. Motivated by this,
+we design a logit-based inversion neural network that exploits this confidence gap between the predicted logits from
+an auxiliary server model and those from the client model
+(paired-logits). Specifically, we first train an inversion neural network model based on public dataset. The input of the
+
+12198
+
+

@@ -1,0 +1,316 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+ConZIC: Controllable Zero-shot Image Captioning by Sampling-Based Polishing
+Zequn Zeng,* Hao Zhang,* Ruiying Lu, Dongsheng Wang, Bo Chen†
+National Key Laboratory of Radar Signal Processing, Xidian University, Xi’an, 710071, China
+{zzequn99, zhanghao xidian}@163.com, bchen@mail.xidian.edu.cn
+
+Zhengjue Wang
+State Key Laboratory of Integrated Service Networks, Xidian University, Xi’an, 710071, China
+zhengjuewang@163.com
+
+GRIT:
+A
+GRIT:
+A drawing
+drawing of
+of graffiti
+graffiti on
+on aa wall.
+wall.
+ViTCap: A
+ViTCap:
+A picture
+picture of
+of aa sheep
+sheep and
+and aa cow.
+cow.
+CLIPCap:
+A
+black
+and
+white
+photo
+of
+CLIPCap: A black and white photo of aa group
+group of
+of cows.
+cows.
+ZeroCap:
+Image
+of
+a
+cows
+drawing.
+ZeroCap: Image of a cows drawing.
+
+Abstract
+Zero-shot capability has been considered as a new revolution of deep learning, letting machines work on tasks
+without curated training data. As a good start and the
+only existing outcome of zero-shot image captioning (IC),
+ZeroCap abandons supervised training and sequentially
+searches every word in the caption using the knowledge
+of large-scale pre-trained models. Though effective, its
+autoregressive generation and gradient-directed searching
+mechanism limit the diversity of captions and inference
+speed, respectively. Moreover, ZeroCap does not consider
+the controllability issue of zero-shot IC. To move forward,
+we propose a framework for Controllable Zero-shot IC,
+named ConZIC. The core of ConZIC is a novel samplingbased non-autoregressive language model named GibbsBERT, which can generate and continuously polish every
+word. Extensive quantitative and qualitative results demonstrate the superior performance of our proposed ConZIC
+for both zero-shot IC and controllable zero-shot IC. Especially, ConZIC achieves about 5× faster generation speed
+than ZeroCap, and about 1.5× higher diversity scores, with
+accurate generation given different control signals. Our
+code is available at https://github.com/joeyz0z/ConZIC.
+
+1. Introduction
+Image captioning (IC) is a visual-language task, which
+targets at automatically describing an image by generating
+a coherent sentence. By performing supervised learning on
+human-annotated datasets, such as MS-COCO [43], many
+methods [22, 33, 49, 50] have achieved impressive evaluation scores on metrics like BLEU [52], METEOR [7],
+CIDERr [66], and SPICE [3]. However, these methods still
+lag behind human capability of zero-shot IC.
+Specifically, those supervised methods extremely rely on
+well-designed image-captions pairs. However, it is likely
+* Equal contribution.
+
+†Corresponding authors
+
+Ours:
+Two
+Ours:
+Two cows
+cows face
+face each
+each other
+other on
+on aa pasture
+pasture
+with various
+various flowers
+with
+flowers in
+in sequence.
+sequence.
+GRIT:
+A
+GRIT:
+A woman
+woman sitting
+sitting on
+on aa fountain
+fountain in
+in the
+the sea.
+sea.
+ViTCap: A
+ViTCap:
+A painting
+painting of
+of aa woman
+woman laying
+laying on
+on aa bed.
+bed.
+CLIPCap: A
+CLIPCap:
+A painting
+painting of
+of aa woman
+woman in
+in on
+on aa surfboard.
+surfboard.
+ZeroCap: Image
+ZeroCap:
+Image of
+of aa girl
+girl sleeping
+sleeping in
+in the
+the sea.
+sea.
+Ours:
+A
+Ours:
+A painting
+painting of
+of the
+the princess
+princess submerged
+submerged in
+in
+delicate poses
+poses with
+delicate
+with water
+water background.
+background.
+
+(a) Examples of zero-shot image captioning.
+
++
+
+Positive
+Positive
+or
+or
+
+Negative
+Negative
+
+Positive:
+Positive:
+1. A
+A very
+very cute
+cute cheerful
+cheerful white
+white bird
+bird accompanies
+accompanies aa happy
+1.
+happy tiny
+tiny elephant.
+elephant.
+2. A
+A cute
+cute little
+little white
+white duck
+duck enjoys
+enjoys amazed
+amazed chatting
+2.
+chatting with
+with an
+an elephant.
+elephant.
+3. A
+A white
+white hen
+hen and
+and an
+an extremely
+extremely small
+small beautiful
+3.
+beautiful elephant
+elephant play
+play happily
+happily on
+on ground.
+ground.
+4. A
+A healthy
+healthy elephant
+elephant enthusiastically
+enthusiastically admires
+4.
+admires an
+an awesome
+awesome adorable
+adorable southern
+southern bird.
+bird.
+5.
+A
+gorgeous
+elephant
+walks
+beside
+a
+white
+goose
+with
+miniature
+smiling.
+5. A gorgeous elephant walks beside a white goose with miniature smiling.
+Negative:
+Negative:
+1. A
+A badly
+badly elephant
+elephant stars
+stars at
+at aa scared
+scared small
+small bird.
+1.
+bird.
+2. A
+A scared
+scared little
+little bird
+bird is
+is afraid
+afraid that
+that the
+the vicious
+vicious elephant
+2.
+elephant would
+would eat
+eat it.
+it.
+3. Image
+Image of
+of aa sad
+sad libelous
+libelous chicken
+chicken moping
+moping alongside
+3.
+alongside aa small
+small lonely
+lonely elephant
+elephant is
+is shown.
+shown.
+4.
+A
+stray
+worried
+white
+duck
+meets
+a
+stealthy
+hungry
+elephant.
+4. A stray worried white duck meets a stealthy hungry elephant.
+5.
+A
+brown
+solitary
+elephant
+roams
+with
+an
+lonely
+white
+sparrow
+nearby.
+5. A brown solitary elephant roams with an lonely white sparrow nearby.
+
+(b) Diversity of ConZIC.
+
+Figure 1. The highlights of our proposed method. (a) shows two
+examples of zero-shot image captioning on several SOTA methods. Specifically, GRIT [50] and ViTCAP [22] are two supervised
+methods without pre-trained models. ClipCap [49] is a supervised method using pre-trained CLIP. GRIT, ViTCAP, and CLIPCap are firstly trained on MSCOCO and then do testing. ZeroCap
+[65] is the zero-shot method without any training. (b) shows the
+diversity of our proposed ConZIC, which manifests two aspects:
+semantic (diverse words: different colors denoting different partsof-speech) and syntactic (diverse sentence patterns).
+
+impossible to construct a large enough dataset, including
+paired images and high-quality captions covering various
+styles/contents. As a result, it is challenging for the machine
+to caption images that are outliers with respect to the training distribution, which is common in real applications (see
+
+23465
+
+

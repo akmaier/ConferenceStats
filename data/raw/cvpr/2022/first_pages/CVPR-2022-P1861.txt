@@ -1,0 +1,89 @@
+An Empirical Study of Training End-to-End Vision-and-Language Transformers
+Zi-Yi Dou1 ,* Yichong Xu2 , Zhe Gan2 , Jianfeng Wang2 , Shuohang Wang2 , Lijuan Wang2 ,
+Chenguang Zhu2 , Pengchuan Zhang2 , Lu Yuan2 , Nanyun Peng1 , Zicheng Liu2 , Michael Zeng2
+1
+University of California, Los Angeles, 2 Microsoft Corporation
+{zdou,violetpeng}@cs.ucla.edu
+{yicxu,zhgan,jianfw,shuowa,lijuanw,chezhu,penzhan,luyuan,zliu,nzeng}@microsoft.com
+
+Abstract
+Vision-and-language (VL) pre-training has proven to be
+highly effective on various VL downstream tasks. While
+recent work has shown that fully transformer-based VL
+models can be more efficient than previous region-featurebased methods, their performance on downstream tasks
+often degrades significantly. In this paper, we present
+M ETER, a Multimodal End-to-end TransformER framework, through which we investigate how to design and
+pre-train a fully transformer-based VL model in an endto-end manner. Specifically, we dissect the model designs
+along multiple dimensions: vision encoders (e.g., CLIPViT, Swin transformer), text encoders (e.g., RoBERTa, DeBERTa), multimodal fusion module (e.g., merged attention
+vs. co-attention), architectural design (e.g., encoder-only
+vs. encoder-decoder), and pre-training objectives (e.g.,
+masked image modeling). We conduct comprehensive experiments and provide insights on how to train a performant VL transformer. M ETER achieves an accuracy of
+77.64% on the VQAv2 test-std set using only 4M images for
+pre-training, surpassing the state-of-the-art region-featurebased model by 1.04%, and outperforming the previous best
+fully transformer-based model by 1.6%. Notably, when further scaled up, our best VQA model achieves an accuracy
+of 80.54%. Code and pre-trained models are released at
+https://github.com/zdou0830/METER.
+
+1. Introduction
+Vision-and-language (VL) tasks, such as visual question answering (VQA) [1] and image-text retrieval [27, 34],
+require an AI system to comprehend both the input image and text contents. Vision-and-language pre-training
+(VLP) has now become the de facto practice to tackle these
+tasks [5, 24, 26, 32, 42, 44]. Specifically, large amounts of
+image-caption pairs are fed into a model that consumes both
+images and texts to pretrain representations that contain rich
+* Work was done when the author interned at Microsoft.
+
+CLIP-ViT, Swin,
+BEiT, ....
+
+Decoder
+(optional)
+
+Vision Encoder
+
+Merged Attention/
+Coattention
+a man hitting a
+tennis ball with
+a racquet.
+
+BERT, RoBERTa,
+DeBERTa, ...
+Text Encoder
+
+Multimodal Fusion
+
+Pretraining Objectives
+Masked Language Modeling,
+Image-Text Matching,
+Masked Image Modeling,
+...
+
+METER
+
+Figure 1. An overview of the proposed M ETER framework. We
+systematically investigate how to train a performant vision-andlanguage transformer, and dissect the model designs along multiple dimensions: vision encoder, text encoder, multimodal fusion
+module, architectural design (encoder-only vs. encoder-decoder),
+and pre-training objectives.
+
+multimodal knowledge and is helpful for downstream tasks.
+Transformers [48] are prevalent in natural language processing and have recently shown promising performance
+in computer vision [10, 30]. While almost all the existing
+VLP models adopt transformers for their multimodal fusion
+module, most of them [5, 24, 26, 32, 42, 44] use pre-trained
+object detectors (e.g., Faster RCNN [38]) on the vision side
+to extract region features from images. This can lead to
+several problems: first, the object detectors are not perfect,
+but are usually kept frozen during VLP, which limits the capacity of the VLP models; second, it is time-consuming to
+extract region features [20]. On the other hand, vision transformers (ViTs) have been an increasingly active research
+topic in computer vision and have shown great potential
+in vision feature extraction. Therefore, a natural question
+arises: can we train a fully transformer-based VLP model
+with ViTs as the image encoder?
+Recent works [20, 23, 53] that tried to adopt vision transformers have not shown satisfactory performance and typically underperform state-of-the-art region-feature-based
+VLP models (e.g., VinVL [57]). To close the performance gap, we present M ETER, a Multimodal End-to-end
+TransformER framework, through which we thoroughly investigate how to design and pre-train a fully transformer-
+
+18166
+
+

@@ -1,0 +1,70 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+EfficientViT: Memory Efficient Vision Transformer with
+Cascaded Group Attention
+Xinyu Liu1,∗ , Houwen Peng2 , Ningxin Zheng2 , Yuqing Yang2 , Han Hu2 , Yixuan Yuan1
+1
+The Chinese University of Hong Kong, 2 Microsoft Research
+1155195604@link.cuhk.edu.hk, {houwen.peng, ningxin.zheng, yuqing.yang, hanhu}@microsoft.com, yxyuan@ee.cuhk.edu.hk
+
+Abstract
+Vision transformers have shown great success due to
+their high model capabilities. However, their remarkable
+performance is accompanied by heavy computation costs,
+which makes them unsuitable for real-time applications. In
+this paper, we propose a family of high-speed vision transformers named EfficientViT. We find that the speed of existing transformer models is commonly bounded by memory inefficient operations, especially the tensor reshaping
+and element-wise functions in MHSA. Therefore, we design
+a new building block with a sandwich layout, i.e., using a
+single memory-bound MHSA between efficient FFN layers,
+which improves memory efficiency while enhancing channel
+communication. Moreover, we discover that the attention
+maps share high similarities across heads, leading to computational redundancy. To address this, we present a cascaded group attention module feeding attention heads with
+different splits of the full feature, which not only saves computation cost but also improves attention diversity. Comprehensive experiments demonstrate EfficientViT outperforms
+existing efficient models, striking a good trade-off between
+speed and accuracy. For instance, our EfficientViT-M5 surpasses MobileNetV3-Large by 1.9% in accuracy, while getting 40.4% and 45.2% higher throughput on Nvidia V100
+GPU and Intel Xeon CPU, respectively. Compared to
+the recent efficient model MobileViT-XXS, EfficientViT-M2
+achieves 1.8% superior accuracy, while running 5.8×/3.7×
+faster on the GPU/CPU, and 7.4× faster when converted to
+ONNX format. Code and models are available at here.
+
+1. Introduction
+Vision Transformers (ViTs) have taken computer vision
+domain by storm due to their high model capabilities and
+superior performance [18, 44, 69]. However, the constantly
+improved accuracy comes at the cost of increasing model
+sizes and computation overhead. For example, SwinV2 [43]
+uses 3.0B parameters, while V-MoE [62] taking 14.7B parameters, to achieve state-of-the-art performance on Ima∗ Work done when Xinyu was an intern of Microsoft Research.
+
+Figure 1. Speed and accuracy comparisons between EfficientViT
+(Ours) and other efficient CNN and ViT models tested on an
+Nvidia V100 GPU with ImageNet-1K dataset [17].
+
+geNet [17]. Such large model sizes and the accompanying
+heavy computational costs make these models unsuitable
+for applications with real-time requirements [40, 78, 86].
+There are several recent works designing light and efficient vision transformer models [9,19,29,49,50,56,79,81].
+Unfortunately, most of these methods aim to reduce model
+parameters or Flops, which are indirect metrics for speed
+and do not reflect the actual inference throughput of models.
+For example, MobileViT-XS [50] using 700M Flops runs
+much slower than DeiT-T [69] with 1,220M Flops on an
+Nvidia V100 GPU. Although these methods have achieved
+good performance with fewer Flops or parameters, many
+of them do not show significant wall-clock speedup against
+standard isomorphic or hierarchical transformers, e.g., DeiT
+[69] and Swin [44], and have not gained wide adoption.
+To address this issue, in this paper, we explore how to
+go faster with vision transformers, seeking to find principles for designing efficient transformer architectures. Based
+on the prevailing vision transformers DeiT [69] and Swin
+[44], we systematically analyze three main factors that affect model inference speed, including memory access, computation redundancy, and parameter usage. In particular,
+we find that the speed of transformer models is commonly
+memory-bound. In other words, memory accessing delay prohibits the full utilization of the computing power
+in GPU/CPUs [21, 32, 72], leading to a critically negative
+impact on the runtime speed of transformers [15, 31]. The
+
+14420
+
+

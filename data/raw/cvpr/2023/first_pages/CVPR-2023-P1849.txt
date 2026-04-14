@@ -1,0 +1,83 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+VoxelNeXt: Fully Sparse VoxelNet for 3D Object Detection and Tracking
+Yukang Chen1
+1
+
+Jianhui Liu2
+
+Xiangyu Zhang3
+
+Xiaojuan Qi2
+
+Jiaya Jia1,4
+
+The Chinese University of Hong Kong 2 The University of Hong Kong 3 MEGVII 4 SmartMore
+
+Abstract
+3D object detectors usually rely on hand-crafted proxies, e.g., anchors or centers, and translate well-studied 2D
+frameworks to 3D. Thus, sparse voxel features need to be
+densified and processed by dense prediction heads, which
+inevitably costs extra computation. In this paper, we instead propose VoxelNext for fully sparse 3D object detection. Our core insight is to predict objects directly based
+on sparse voxel features, without relying on hand-crafted
+proxies. Our strong sparse convolutional network VoxelNeXt detects and tracks 3D objects through voxel features entirely. It is an elegant and efficient framework,
+with no need for sparse-to-dense conversion or NMS postprocessing. Our method achieves a better speed-accuracy
+trade-off than other mainframe detectors on the nuScenes
+dataset. For the first time, we show that a fully sparse voxelbased representation works decently for LIDAR 3D object
+detection and tracking. Extensive experiments on nuScenes,
+Waymo, and Argoverse2 benchmarks validate the effectiveness of our approach. Without bells and whistles, our model
+outperforms all existing LIDAR methods on the nuScenes
+tracking test benchmark. Code and models are available at
+github.com/dvlab-research/VoxelNeXt.
+
+1. Introduction
+3D perception is a fundamental component in autonomous driving systems. 3D detection networks take
+sparse point clouds or voxels as input, and localize and categorize 3D objects. Recent 3D object detectors [40, 49,
+57] usually apply sparse convolutional networks (Sparse
+CNNs) [53] for feature extraction owing to its efficiency.
+Inspired by 2D object detection frameworks [14, 38], anchors [12, 53] or centers [57], i.e., dense point anchors
+in CenterPoint [57], are commonly utilized for prediction.
+Both of them are hand-crafted and taken as intermediate
+proxies for 3D objects.
+Anchors and centers are designed for regular and gridstructured image data in the first place, and do not consider
+sparsity and irregularity of 3D data. To employ these proxy
+representations, the main stream of detectors [12, 40, 57]
+
+0
+
+Input
+
+1
+
+CenterPoint
+
+Figure 1. Visualization of input and heatmaps of CenterPoint in
+BEV for Car. Most values in the heatmaps are nearly zero, while
+the dense head computes over all BEV features, which is wasteful.
+
+convert 3D sparse features to 2D dense features, so as to
+build a dense detection head for the ordered anchors or
+centers. Albeit useful, this dense head tradition leads to
+other limitations, including inefficiency and complicated
+pipelines, as explained below.
+In Fig. 1, we visualize the heatmap in CenterPoint [57].
+It is clear that a large portion of space has nearly zero prediction scores. Due to inherent sparsity and many background points, only a small number of points have responses, i.e., less than 1% for Car class on average of
+nuScenes validation set. However, the dense prediction
+head computes over all positions in the feature map, as required by the dense convolution computation. They not
+only waste much computation, but also complicate detection pipelines with redundant predictions. It requires to use
+non-maximum suppression (NMS) like post-processing to
+remove duplicate detections, preventing the detector from
+being elegant. These limitations motivate us to seek alternative sparse detection solutions.
+In this paper, we instead propose VoxelNeXt. It is a
+simple, efficient, and post-processing-free 3D object detector. The core of our design is a voxel-to-object scheme,
+which directly predicts 3D objects from voxel features, with
+a strong fully sparse convolutional network. The key advantage is that our approach can get rid of anchor proxies,
+sparse-to-dense conversion, region proposal networks, and
+
+21674
+
+Voxe
+
+

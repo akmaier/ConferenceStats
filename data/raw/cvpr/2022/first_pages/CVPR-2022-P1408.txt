@@ -1,0 +1,59 @@
+When to Prune? A Policy towards Early Structural Pruning
+Maying Shen, Pavlo Molchanov, Hongxu Yin, Jose M. Alvarez
+NVIDIA
+{mshen, pmolchanov, dannyy, josea}@nvidia.com
+
+Abstract
+Pruning enables appealing reductions in network memory footprint and time complexity. Conventional posttraining pruning techniques lean towards efficient inference
+while overlooking the heavy computation for training. Recent exploration of pre-training pruning at initialization
+hints on training cost reduction via pruning, but suffers
+noticeable performance degradation. We attempt to combine the benefits of both directions and propose a policy
+that prunes as early as possible during training without
+hurting performance. Instead of pruning at initialization,
+our method exploits initial dense training for few epochs
+to quickly guide the architecture, while constantly evaluating dominant sub-networks via neuron importance ranking.
+This unveils dominant sub-networks whose structures turn
+stable, allowing conventional pruning to be pushed earlier
+into the training. To do this early, we further introduce an
+Early Pruning Indicator (EPI) that relies on sub-network
+architectural similarity and quickly triggers pruning when
+the sub-network’s architecture stabilizes. Through extensive experiments on ImageNet, we show that EPI empowers a quick tracking of early training epochs suitable for
+pruning, offering same efficacy as an otherwise “oracle”
+grid-search that scans through epochs and requires orders
+of magnitude more compute. Our method yields 1.4% top-1
+accuracy boost over state-of-the-art pruning counterparts,
+cuts down training cost on GPU by 2.4×, hence offers a
+new efficiency-accuracy boundary for network pruning during training.
+
+1. Introduction
+The success of convolutional neural networks (CNNs)
+fuels the recent progress in computer vision, boosting up
+performance for classification, detection, and segmentation
+tasks [16, 35, 37]. While enjoying the accuracy benefits
+CNNs bring, a simultaneous increase in network complexity imposes higher memory footprint and computing power
+consumption, making deployment of CNNs on resourceconstrained devices a challenging task [7, 29, 30]. In lieu of
+
+Figure 1. Pruning paradigm overview. Train-Prune-Finetune
+prunes after training, effective but costs additional training time;
+Prune-at-Initialization prunes right before training towards a
+smaller network, cuts down on training time but suffers notable
+performance degradation; Pruning-aware-Training (ours) prunes
+during training aiming at benefits from two worlds. It governs on
+post-pruning performance while aiming to minimize training time,
+via a new policy around Early Pruning Indicator (EPI) that signals
+an early optimal point to start pruning during training.
+
+computation-intensive networks, recent work turn to compression techniques for efficient models leveraging pruning [3, 15, 25, 29], quantization [5, 43, 46], knowledge distillation [19, 31, 45], neural architecture search [38, 41, 44],
+and architecture redesigns [21, 28, 39]. Among these, pruning demonstrates to be a widely adopted method that compresses pre-trained models before deployment. The primary
+goal of pruning aims to remove insignificant network parameters without impacting accuracy. In particular, structural pruning removes entire filters (or neurons) as such
+the resulting structural sparsity benefits legacy off-the-shelf
+platforms, e.g., CPUs, DSPs, and GPUs.
+In general, network pruning involves three key steps: (i)
+original training of a dense model for high accuracy, (ii)
+pruning away insignificant weights to remove redundancy,
+and finally (iii) fine-tuning the pruned model to recover performance [15, 26, 30]. Despite remarkable compactness delivered by the last two steps, the original training of an overparameterized network remains mostly untouched. Such
+approaches require a twice long time (resource) as an original training recipe given similar required computes for fine-
+
+12247
+
+

@@ -1,0 +1,109 @@
+Everything at Once – Multi-modal Fusion Transformer for Video Retrieval
+Nina Shvetsova 1 Brian Chen 2 Andrew Rouditchenko3 Samuel Thomas4,5
+Brian Kingsbury4,5 Rogerio Feris4,5 David Harwath6 James Glass3 Hilde Kuehne1,5
+1
+
+Goethe University Frankfurt, 2 Columbia University, 3 MIT CSAIL 4 IBM Research AI, 5 MIT-IBM Watson AI Lab, 6 UT Austin
+shvetsov@uni-frankfurt.de
+
+Abstract
+Video
+
+Multi-modal learning from video data has seen increased
+attention recently as it allows training of semantically meaningful embeddings without human annotation, enabling tasks
+like zero-shot retrieval and action localization. In this work,
+we present a multi-modal, modality agnostic fusion transformer that learns to exchange information between multiple
+modalities, such as video, audio, and text, and integrate
+them into a fused representation in a joined multi-modal
+embedding space. We propose to train the system with a
+combinatorial loss on everything at once – any combination of input modalities, such as single modalities as well as
+pairs of modalities, explicitly leaving out any add-ons such
+as position or modality encoding. At test time, the resulting
+model can process and fuse any number of input modalities.
+Moreover, the implicit properties of the transformer allow to
+process inputs of different lengths. To evaluate the proposed
+approach, we train the model on the large scale HowTo100M
+dataset and evaluate the resulting embedding space on four
+challenging benchmark datasets obtaining state-of-the-art
+results in zero-shot video retrieval and zero-shot video action
+localization. Our code for this work is also available.1
+
+1. Introduction
+Humans capture their world in various ways, combining different sensory input modalities such as vision, sound,
+touch, and more, to make sense of their environment. Video
+data approximates this type of input by combining visual
+and audio information as two coherent and complementary
+signals that can be further enhanced with a text description. Recent research has therefore started to explore how
+the information of those different modalities can be leveraged to learn meaningful representations from this kind of
+content. Such systems can be used for representation learning, for example, to learn multi-modal embedding spaces
+on video data [1, 2], where the input of one modality such
+1 https://github.com/ninatu/everything at once
+
+Fusion Transformer & Projection
+video
+tokens
+
+video
+
+Combinatorial Loss
+
+video-audio
+
+Audio
+
+audio
+tokens
+
+audio
+
+video
+videoaudio
+
+videotext
+
+audio
+
+text
+
+audio-text
+
+Text
+two stitches on
+two
+
+text
+tokens
+
+text
+video-text
+
+audiotext
+– contrasive loss
+
+Figure 1. Overview of the proposed approach for self-supervised
+learning of multi-modal embedding space. The fusion transformer
+is able to process any combination of input modalities. Internally,
+the transformer allows each modality to attend to each other. The
+proposed architecture is trained with a combinatorial contrastive
+loss considering each possible combination of input modalities.
+
+as text, can be matched to one or more other modalities
+such as video and audio, enabling tasks such as nearestneighbor based zero-shot classification or video retrieval
+[20, 37, 44]. Our work in this paper focuses on the later
+problem, namely the learning of meaningful multi-modal
+embedding spaces. Current approaches in this area usually
+learn encodings for different modalities by projecting inputs
+to a common space and applying contrastive loss to bring
+embeddings from co-occurred modalities together. Such approaches can be based on classical neural network elements
+to learn those encodings [4, 12, 35, 37, 44], i.e. convolutional
+neural networks backbones and non-linear projections [37],
+multiple instance learning [35], or clustering [12]. More
+recently transformer based methods have also been proposed [1, 10, 20, 32]. To generate the final embedding space,
+they use multiple independent single-modality self-attention
+transformer blocks [10,21,32], or a single transformer model
+for all modalities [20], or a single modality-agnostic transformer [1]. In the last approach, modalities are still processed independently and one-by-one forwarded to achieve
+a single-modality embedding. But so far, none of these transformers allow for adaption to any given number of input
+
+20020
+
+

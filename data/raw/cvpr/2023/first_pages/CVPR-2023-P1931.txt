@@ -1,0 +1,122 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+RGB no more: Minimally-decoded JPEG Vision Transformers
+Jeongsoo Park
+Justin Johnson
+University of Michigan
+{jespark, justincj}@umich.edu
+
+Most neural networks for computer vision are designed
+to infer using RGB images. However, these RGB images are
+commonly encoded in JPEG before saving to disk; decoding
+them imposes an unavoidable overhead for RGB networks.
+Instead, our work focuses on training Vision Transformers
+(ViT) directly from the encoded features of JPEG. This way,
+we can avoid most of the decoding overhead, accelerating
+data load. Existing works have studied this aspect but they
+focus on CNNs. Due to how these encoded features are
+structured, CNNs require heavy modification to their architecture to accept such data. Here, we show that this is not
+the case for ViTs. In addition, we tackle data augmentation
+directly on these encoded features, which to our knowledge,
+has not been explored in-depth for training in this setting.
+With these two improvements – ViT and data augmentation
+– we show that our ViT-Ti model achieves up to 39.2% faster
+training and 17.9% faster inference with no accuracy loss
+compared to the RGB counterpart. 1
+
+1. Introduction
+Neural networks that process images typically receive
+their inputs as regular grids of RGB pixel values. This
+spatial-domain representation is intuitive, and matches the
+way that images are displayed on digital devices (e.g. LCD
+panels with RGB sub-pixels). However, images are often
+stored on disk as compressed JPEG files that instead use
+frequency-domain representations for images. In this paper
+we design neural networks that can directly process images
+encoded in the frequency domain.
+Networks that process frequency-domain images have
+the potential for much faster data loading. JPEG files store
+image data using Huffman codes; these are decoded to
+(frequency-domain) discrete cosine transform (DCT) coefficients then converted to (spatial-domain) RGB pixels before being fed to the neural network (Fig. 1). Networks that
+process DCT coefficients can avoid the expensive DCT to
+RGB conversion; we show in Sec. 3 that this can reduce the
+theoretical cost of data loading by up to 85%. Data is typi-
+
+GPU
+
+CPU
+
+Abstract
+
+DCT
+Coefficients
+𝑊
+
+RGB
+
+Extract Patches
+
+8×8
+𝐻
+2
+
+𝐻
+
+𝑊
+2
+
+Typical
+
+Ours
+
+Already
+Patched
+
+ViT
+
+Huffman Codes
+10111010⋯
+11101101⋯
+10101011⋯
+
+Linear
+Projection
+
+Transformer
+Encoder
+
+Figure 1. Our proposed training process. The typical process requires full decoding as well as patch extraction to train. In contrast,
+our process does not since the DCT coefficients are already saved
+in block-wise fashion. As ViTs work on image patches, we can
+directly feed these coefficients to the network.
+
+cally loaded by the CPU while the network runs on a GPU
+or other accelerator; more efficient data loading can thus
+reduce CPU bottlenecks and accelerate the entire pipeline.
+We are not the first to design networks that process
+frequency-domain images. The work of Gueguen et al. [1]
+and Xu et al. [2] are most similar to ours: they show how
+standard CNN architectures such as ResNet [3] and MobileNetV2 [4] can be modified to input DCT rather than
+RGB and trained to accuracies comparable to their standard
+formulations. We improve upon these pioneering efforts in
+two key ways: architecture and data augmentation.
+Adapting a CNN architecture designed for RGB inputs
+to instead receive DCT is nontrivial. The DCT representaW
+tion of an H ×W ×3 RGB image consists of a H
+8 × 8 ×8×8
+H W
+tensor of luma data and two 16× 16 ×8×8 tensors of chroma
+data. The CNN architecture must be modified both to accept
+lower-resolution inputs (e.g. by skipping the first few stages
+of a ResNet50 and adding capacity to later stages) and to accept heterogeneously-sized luma and chroma data (e.g. by
+encoding them with separate pathways).
+
+1 Code available at https://github.com/JeongsooP/RGB-no-more
+
+We overcome these challenges by using Vision Trans-
+
+22334
+
+

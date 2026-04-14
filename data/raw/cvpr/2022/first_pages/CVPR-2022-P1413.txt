@@ -1,0 +1,68 @@
+Manifold Learning Benefits GANs
+Yao Ni∗,† , Piotr Koniusz∗,§,† , Richard Hartley†,♦ , Richard Nock♦,♣,†
+†
+The Australian National University § Data61/CSIRO ♦ Google Research
+firstname.lastname@anu.edu.au
+Abstract
+In this paper1 , we improve Generative Adversarial Networks by incorporating a manifold learning step into the
+discriminator. We consider locality-constrained linear and
+subspace-based manifolds2 , and locality-constrained nonlinear manifolds. In our design, the manifold learning and
+coding steps are intertwined with layers of the discriminator, with the goal of attracting intermediate feature representations onto manifolds. We adaptively balance the discrepancy between feature representations and their manifold view, which is a trade-off between denoising on the
+manifold and refining the manifold. We find that localityconstrained non-linear manifolds outperform linear manifolds due to their non-uniform density and smoothness. We
+also substantially outperform state-of-the-art baselines.
+
+1. Introduction
+Generative Adversarial Networks (GANs) [13] are powerful models for image generation [5,19,22], sound generation [11], image stylization [32] and destylization [46–49],
+super-resolution [62], feature generation [60, 65], etc. The
+original GAN learns to generate images [5,19,21,22,56] by
+performing the following min-max game:
+min max J (D|θD , G|θG ),
+(1)
+θG
+
+θD
+
+where J (·) = Ex∼px (x) log(D(x; θ D )) + Ez∼pz (z) log(1−
+D(G(z))). Eq. (1) updates parameters θ D of discriminator
+D(x; θ D ) to discriminate between samples from the data
+distribution px (x) and generative distributions pg (G). Simultaneously, parameters θ G of generator G(z; θ G ) are updated to fool the discriminator D. Thus, the noise distribution pz (z) becomes mapped to px (x) via generator G.
+However, GANs typically suffer from three problems: 1)
+the training instability [25], 2) the so-called mode collapse
+[44], and 3) overfitting of the discriminator [58].
+∗ Equal contribution.
+
+♣ Brain team (richardnock@google.com).
+
+1 Code: https://github.com/MaxwellYaoNi/LCSAGAN.
+2 The coding spaces considered in this paper are loosely termed man-
+
+ifolds. In most cases they are not manifolds in the strict mathematical
+sense, but rather topological spaces such as varieties, or simplicial complexes. The word will be used only in an informal sense.
+
+Figure 1. Our GAN pipeline. We equip the discriminator with
+residual blocks B1 , · · · , BL , each containing standard CNN operations, e.g. convolutions, ReLU, downsampling, residual link etc.,
+and the manifold learner Ml . Metaparameter β controls the degree of mixing block conv. features with their view recovered from
+the manifold. The ‘overfit?’ detector increases β when overfitting
+to xreal is suspected, which boosts the impact of manifold learners.
+
+The training instability is an imbalanced competition of
+the generator and the discriminator due to non-overlapping
+support between the model distribution and the data distribution [6, 19, 25], leading to poor quality of generated data.
+Mode collapse has to do with sharply rising gradient around
+undesirable local equilibria [25, 44], resulting in generation
+of the same image. Finally, discriminator overfitting leads
+to excessive memorization and poor generalization.
+Indeed, with an excessive number of parameters, the discriminator may memorize the training data instead of learning a meaningful distribution, leading to a high real/fake
+classification accuracy on the training dataset and a low accuracy on the validation split [5, 20, 66]. Webster et al. [58]
+argue such a phenomenon mainly affects the discriminator
+and is undetectable in the generator, with the exception of
+hybrid adversarial and non-adversarial methods [4] which
+impose the so-called consistency loss on a generator.
+We also observed discriminator overfitting in baseline
+models e.g., doubling the number of parameters of discriminator resulted in training and validation FID scores of baseline GANs diverging at some intermediate training stage.
+Thus, to reduce overfitting of the discriminator, we propose a data-driven feature manifold-learning step and intertwine it with layers of the discriminator. In this way, the
+discriminator learns the feature manifold at different levels of object abstraction, from fine to coarse, which limits
+
+11265
+
+

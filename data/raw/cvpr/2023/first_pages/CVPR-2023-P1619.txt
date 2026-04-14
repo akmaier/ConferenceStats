@@ -1,0 +1,72 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Boost Vision Transformer with GPU-Friendly Sparsity and Quantization
+Chong Yu1,2
+Tao Chen3,*
+Zhongxue Gan1,*
+Jiayuan Fan1
+1
+Academy for Engineering and Technology, Fudan University 2 NVIDIA Corporation
+3
+School for Information Science and Technology, Fudan University
+21110860050@m.fudan.edu.cn; {eetchen, ganzhongxue, jyfan}@fudan.edu.cn *
+
+Abstract
+The transformer extends its success from the language to
+the vision domain. Because of the stacked self-attention and
+cross-attention blocks, the acceleration deployment of vision transformer on GPU hardware is challenging and also
+rarely studied. This paper thoroughly designs a compression scheme to maximally utilize the GPU-friendly 2:4 finegrained structured sparsity and quantization. Specially, an
+original large model with dense weight parameters is first
+pruned into a sparse one by 2:4 structured pruning, which
+considers the GPU’s acceleration of 2:4 structured sparse
+pattern with FP16 data type, then the floating-point sparse
+model is further quantized into a fixed-point one by sparsedistillation-aware quantization aware training, which considers GPU can provide an extra speedup of 2:4 sparse calculation with integer tensors. A mixed-strategy knowledge
+distillation is used during the pruning and quantization process. The proposed compression scheme is flexible to support supervised and unsupervised learning styles. Experiment results show GPUSQ-ViT scheme achieves state-ofthe-art compression by reducing vision transformer models
+6.4-12.7× on model size and 30.3-62× on FLOPs with negligible accuracy degradation on ImageNet classification,
+COCO detection and ADE20K segmentation benchmarking
+tasks. Moreover, GPUSQ-ViT can boost actual deployment
+performance by 1.39-1.79× and 3.22-3.43× of latency and
+throughput on A100 GPU, and 1.57-1.69× and 2.11-2.51×
+improvement of latency and throughput on AGX Orin.
+
+1. Introduction
+Transformer-based neural models [48] have garnered immense interest recently due to their effectiveness and generalization across various applications. Equipped with the
+attention mechanism [52] as the core of its architecture,
+transformer-based models specialize in handling long-range
+dependencies, which are also good at extracting non-local
+* Tao Chen and Zhongxue Gan are corresponding authors.
+
+features [9] [5] in the computer vision domain. With comparable and even superior accuracy than the traditional convolution neural networks (CNN) [12] [49], more vision
+transformer models are invented and gradually replace the
+CNN with state-of-the-art performance on image classification [27] [26], object detection [70] [59], and segmentation [58] [68] tasks. Due to the vision transformer models
+having a generally weaker local visual inductive bias [9] inherent in CNN counterparts, many transformer blocks are
+stacked for compensation. Moreover, the attention module
+in the transformer block contains several matrix-to-matrix
+calculations between key, query, and value parts [52]. Such
+designs give the naive vision transformers more parameters
+and higher memory and computational resource requirements, causing high latency and energy consuming during
+the inference stage. It is challenging for actual acceleration
+deployment in GPU hardware.
+Model compression techniques to transfer the large-scale
+vision transformer models to a lightweight version can
+bring benefits to more efficient computation with less ondevice memory and energy consumption. There are some
+previous studies to inherit CNN compression methods, including pruning [43] [15], quantization [28] [23], distillation [61], and architecture search [6] on vision transformers.
+However, there are some drawbacks in previous studies:
+• Most of these common methods aim to reduce the
+theoretical model size and Floating Point Operations
+(FLOPs). But it has been proved [33] [37] that smaller
+model sizes and FLOPs are not directly proportional to
+better efficiency on deployed hardware.
+• The compression patterns do not match hardware characteristics. For example, pruned [43] or searched [6]
+vision transformer models have the unstructured sparse
+pattern in weight parameters, i.e., the distribution of
+non-zero elements is random. So deployed hardware
+can not provide actual speedup due to lacking the characteristics support for unstructured sparsity [35].
+• How to keep the accuracy to the best with multiple
+compression methods and how to generalize on multiple vision tasks lack systematical investigation.
+
+22658
+
+

@@ -1,0 +1,85 @@
+Mr.BiQ: Post-Training Non-Uniform Quantization
+based on Minimizing the Reconstruction Error
+Yongkweon Jeon1, *
+1
+
+Chungman Lee1,*
+
+Samsung Research
+
+2
+
+Korea University
+
+Eulrang Cho2,*,†
+3
+
+The University of Texas at Austin
+
+{dragwon.jeon, chungman.lee}@samsung.com
+
+Abstract
+Post-training quantization compresses a neural network
+within few hours with only a small unlabeled calibration
+set. However, so far it has been only discussed and empirically demonstrated in the context of uniform quantization on
+convolutional neural networks. We thus propose a new posttraining non-uniform quantization method, called Mr.BiQ,
+allowing low bit-width quantization even on Transformer
+models. In particular, we leverage multi-level binarization
+for weights while allowing activations to be represented as
+various data formats (e.g., INT8, bfloat16, binary-coding,
+and FP32). Unlike conventional methods which optimize
+full-precision weights first, then decompose the weights into
+quantization parameters, Mr.BiQ recognizes the quantization parameters (i.e., scaling factors and bit-code) as directly and jointly learnable parameters during the optimization. To verify the superiority of the proposed quantization
+scheme, we test Mr.BiQ on various models including convolutional neural networks and Transformer models. According to experimental results, Mr.BiQ shows significant
+improvement in terms of accuracy when the bit-width of
+weights is equal to 2: up to 5.35 p.p. improvement in CNNs,
+up to 4.23 p.p. improvement in Vision Transformers, and up
+to 3.37 point improvement in Transformers for NLP.
+
+1. Introduction
+As deep neural networks scale up rapidly to improve
+model accuracy, it becomes more challenging not only to
+reduce memory footprint but also to achieve low end-toend latency in resource-constrained environments. To mitigate such challenges, many researchers have made a considerable amount of effort on advancing model compression
+techniques such as pruning [12, 24, 28], low-rank approximation [23, 37], knowledge distillation [9, 14], and quantization [4, 7, 11, 22, 29, 35, 40].
+* Equal contribution. Correspondence to: dragwon.jeon@samsung.com
+† This work was done when they were working at Samsung Research.
+
+Yeonju Ro3,*,†
+
+ercho@korea.ac.kr
+
+yro@utexas.edu
+
+Quantization, among such compression techniques, is
+particularly effective in terms of reducing the model size
+and accelerating inference even on commodity hardware.
+By representing each parameter with lower bit-width, quantization can reduce the model size, and hence alleviate
+memory bottleneck issues. In addition, since quantization
+maintains dense formats of tensors, parallelism can be fully
+exploited without irregular data structures. These irregularities, induced by certain compression methods such as pruning, require much support for specialized hardware designs.
+As such, quantization can be implemented efficiently without a lot of support for specialized hardware designs and
+makes it practical to deploy quantized models on various
+hardware form factors.
+By and large, quantization can be classified into two categories: quantization-aware training (QAT) [7, 47, 49] and
+post-training quantization (PTQ) [22, 29, 40, 44]. In general, QAT yields higher accuracy than PTQ because it directly aims to minimize the loss of the network. Nonetheless, QAT relies on the entire training dataset and requires
+a thorough hyperparameter search, which leads to the same
+amount of training time and overhead as the full-precision
+models. On the other hand, PTQ allows the quantization of
+pre-trained models with only a small calibration dataset or
+without any dataset, which enables us to compress models
+even when data access is restricted due to various reasons
+including privacy concerns. PTQ also does not require a
+comprehensive understanding of the model, and thus has
+been attracting attention recently.
+Early works on post-training quantization are concentrated on minimizing the quantization error which is defined
+as the mean squared error between the original weights and
+the quantized weights (i.e., min E[(w − wq )2 ]). However,
+recent works [22, 29] tend to focus on minimizing the reconstruction error (i.e., min E[(Wx − Wq x)2 ]) that can
+be derived from the second-order approximation of the loss
+by the Taylor series. Although minimizing the reconstruction error for PTQ is proven to be effective, PTQ has been
+discussed and empirically demonstrated only in the context
+of uniform quantization on convolutional neural networks
+
+12329
+
+

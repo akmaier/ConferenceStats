@@ -1,0 +1,66 @@
+Towards Efficient and Scalable Sharpness-Aware Minimization
+Yong Liu1 , Siqi Mai1 , Xiangning Chen2 , Cho-Jui Hsieh2 , Yang You1
+1
+Department of Computer Science, National University of Singapore
+2
+Department of Computer Science, University of California, Los Angeles
+{liuyong, siqimai, youy}@comp.nus.edu.sg, {xiangning, chohsieh}@cs.ucla.edu
+Abstract
+Recently, Sharpness-Aware Minimization (SAM), which
+connects the geometry of the loss landscape and generalization, has demonstrated a significant performance boost
+on training large-scale models such as vision transformers. However, the update rule of SAM requires two sequential (non-parallelizable) gradient computations at each
+step, which can double the computational overhead. In this
+paper, we propose a novel algorithm LookSAM - that only
+periodically calculates the inner gradient ascent, to significantly reduce the additional training cost of SAM. The empirical results illustrate that LookSAM achieves similar accuracy gains to SAM while being tremendously faster - it enjoys comparable computational complexity with first-order
+optimizers such as SGD or Adam. To further evaluate the
+performance and scalability of LookSAM, we incorporate
+a layer-wise modification and perform experiments in the
+large-batch training scenario, which is more prone to converge to sharp local minima. Equipped with the proposed
+algorithms, we are the first to successfully scale up the batch
+size when training Vision Transformers (ViTs). With a 64k
+batch size, we are able to train ViTs from scratch in minutes while maintaining competitive performance. The code
+is available here: https://github.com/yong-6/LookSAM
+
+1. Introduction
+It has been observed that sharp local minima usually
+leads to significantly dropped generalization performance
+of deep networks, and many methods have been proposed
+for mitigating this issue [3, 12, 19, 23, 26, 38]. In particular, Foret et al. [13] recently proposed an algorithm named
+Sharpness Aware Minimization (SAM), which explicitly
+penalizes the sharp minima and biases the convergence to
+a flat region. SAM has been used to achieve state-of-the-art
+performance in many applications. For instance, Chen et al.
+[4] showed that SAM optimizer can improve the validation accuracy of Vision Transformer models (ViTs) [10] on
+ImageNet-1k by a significant amount (+5.3% when training
+
+from scratch). However, the update rule of SAM involves
+two sequential (non-parallelizable) gradient computations
+at each step, which will double the training time.
+In this paper, we aim to improve the efficiency of SAM
+and apply it to large-scale training problems. Each step of
+SAM consists of two gradient computations – one for adversarial perturbation to the weights and the other for computing the final update. A naive idea to speedup SAM is
+to compute the first gradient (adversarial perturbation on
+weights) only periodically and use standard SGD/Adam updates in between. Unfortunately, this leads to significantly
+degraded performance, as shown in our experiments. To
+resolve this issue, we decompose the SAM’s update direction into two components — the one that lies parallel to
+the original SGD direction and the other orthogonal component. Since the second direction captures the differences
+between SAM’s update and SGD’s update, we hypothesize
+that this component can bias learning towards a flat region.
+Interestingly, we show this second direction tends to remain
+similar across nearby iterations, both empirically and theoretically. Based on this finding, we develop a novel LookSAM optimizer to reuse this direction across nearby iterations. The resulting LookSAM only needs to periodically
+calculate the inner gradient ascent and significantly reduce
+the computational complexity of SAM while maintaining
+similar generalization performance.
+As SAM has become a crucial component for training
+large-scale Vision Transformer models (ViTs) [4], to further evaluate the performance and scalability of the proposed algorithm, we consider a challenging task — applying LookSAM to conduct large-batch training for ViTs. As
+pointed out in [45, 48], large-batch training often introduces
+the non-uniform instability problem across different layers.
+Hence, we also adopt a layer-wise scaling rule for weight
+perturbation, namely Look-LayerSAM optimizer. The proposed optimizer can successfully train ViTs with 64K batch
+size within an hour while maintaining competitive performance.
+Our contributions can be summarized in three folds.
+• We develop a novel algorithm, called LookSAM, to
+
+12360
+
+

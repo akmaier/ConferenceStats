@@ -1,0 +1,98 @@
+Mega-NeRF:
+Scalable Construction of Large-Scale NeRFs for Virtual Fly-Throughs
+Haithem Turki1
+Deva Ramanan1,2
+Mahadev Satyanarayanan1
+1
+3
+Carnegie Mellon University
+Argo AI
+Abstract
+We use neural radiance fields (NeRFs) to build interactive 3D environments from large-scale visual captures spanning buildings or even multiple city blocks collected primarily from drones. In contrast to single object scenes (on
+which NeRFs are traditionally evaluated), our scale poses
+multiple challenges including (1) the need to model thousands of images with varying lighting conditions, each of
+which capture only a small subset of the scene, (2) prohibitively large model capacities that make it infeasible to
+train on a single GPU, and (3) significant challenges for
+fast rendering that would enable interactive fly-throughs.
+To address these challenges, we begin by analyzing visibility statistics for large-scale scenes, motivating a sparse
+network structure where parameters are specialized to different regions of the scene. We introduce a simple geometric clustering algorithm for data parallelism that partitions
+training images (or rather pixels) into different NeRF submodules that can be trained in parallel. We evaluate our approach on existing datasets (Quad 6k and UrbanScene3D)
+as well as against our own drone footage, improving training speed by 3x and PSNR by 12%. We also evaluate recent NeRF fast renderers on top of Mega-NeRF and introduce a novel method that exploits temporal coherence. Our
+technique achieves a 40x speedup over conventional NeRF
+rendering while remaining within 0.8 db in PSNR quality,
+exceeding the fidelity of existing fast renderers.
+
+1. Introduction
+Recent advances in neural rendering techniques have
+lead to significant progress towards photo-realistic novel
+view synthesis, a prerequisite towards many VR and
+AR applications. In particular, Neural Radiance Fields
+(NeRFs) [24] have attracted significant attention, spawning
+a wide range of follow-up works that improve upon various
+aspects of the original methodology.
+Scale. Simply put, our work explores the scalability
+of NeRFs. The vast majority of existing methods explore
+single-object scenes, often captured indoors or from synthetic data. To our knowledge, Tanks and Temples [17] is
+
+1
+
+?
+
+A
+
+B
+
+1
+
+C
+
+2
+
+D
+
+E
+
+F
+
+3
+
+Training: Data Partitioning
+2
+
+G
+
+H
+
+I
+
+Inference: View Synthesis
+
+3
+
+Figure 1. We scale neural reconstructions to massive urban scenes
+1000x larger than prior work. To do so, Mega-NeRF decomposes a
+scene into a set of spatial cells (left), learning a separate NeRF submodule for each. We train each submodule with geometry-aware
+pixel-data partitioning, making use of only those pixels whose rays
+intersect that spatial cell (top right). For example, pixels from image 2 are added to the trainset of cells A, B, and F, reducing the
+size of each trainset by 10x. To generate new views for virtual flythroughs, we make use of standard raycasting and point sampling,
+but query the encompassing submodule for each sampled point
+(bottom right). To ensure view generation is near-interactive, we
+make use of temporal coherence by caching occupancy and color
+values from nearby previous views (Fig. 4).
+
+the largest dataset used in NeRF evaluation, spanning 463
+m2 on average. In this work, we scale NeRFs to capture and
+interactively visualize urban-scale environments from drone
+footage that is orders of magnitude larger than any dataset
+to date, from 150,000 to over 1,300,000 m2 per scene.
+Search and Rescue. As a motivating use case, consider
+search-and-rescue, where drones provide an inexpensive
+means of quickly surveying an area and prioritizing limited first responder resources (e.g., for ground team deployment). Because battery life and bandwidth limits the ability
+to capture sufficiently detailed footage in real-time [6], collected footage is typically reconstructed into 2D “birds-eyeview” maps that support post-hoc analysis [42]. We imagine
+a future in which neural rendering lifts this analysis into 3D,
+enabling response teams to inspect the field as if they were
+flying a drone in real-time at a level of detail far beyond the
+
+12922
+
+

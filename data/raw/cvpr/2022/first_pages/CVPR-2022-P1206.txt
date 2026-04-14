@@ -1,0 +1,74 @@
+Grounded Language-Image Pre-training
+Liunian Harold Li∗1† , Pengchuan Zhang∗2♠ , Haotian Zhang∗3† , Jianwei Yang2 , Chunyuan Li2 , Yiwu Zhong4† ,
+Lijuan Wang5 , Lu Yuan5 , Lei Zhang6 , Jenq-Neng Hwang3 , Kai-Wei Chang1 , Jianfeng Gao2
+1
+UCLA, 2 Microsoft Research, 3 University of Washington,
+4
+University of Wisconsin-Madison, 5 Microsoft Cloud and AI, 6 International Digital Economy Academy
+
+Abstract
+This paper presents a grounded language-image pretraining (GLIP) model for learning object-level, languageaware, and semantic-rich visual representations. GLIP unifies object detection and phrase grounding for pre-training.
+The unification brings two benefits: 1) it allows GLIP
+to learn from both detection and grounding data to improve both tasks and bootstrap a good grounding model;
+2) GLIP can leverage massive image-text pairs by generating grounding boxes in a self-training fashion, making the
+learned representations semantic-rich. In our experiments,
+we pre-train GLIP on 27M grounding data, including 3M
+human-annotated and 24M web-crawled image-text pairs.
+The learned representations demonstrate strong zero-shot
+and few-shot transferability to various object-level recognition tasks. 1) When directly evaluated on COCO and LVIS
+(without seeing any images in COCO during pre-training),
+GLIP achieves 49.8 AP and 26.9 AP, respectively, surpassing many supervised baselines.1 2) After fine-tuned on
+COCO, GLIP achieves 60.8 AP on val and 61.5 AP on
+test-dev, surpassing prior SoTA. 3) When transferred to 13
+downstream object detection tasks, a 1-shot GLIP rivals
+with a fully-supervised Dynamic Head. Code will be released at https://github.com/microsoft/GLIP .
+
+1. Introduction
+Visual recognition models are typically trained to predict
+a fixed set of pre-determined object categories, which limits
+their usability in real-world applications since additional labeled data are needed to generalize to new visual concepts
+and domains. CLIP [40] shows that image-level visual representations can be learned effectively on large amounts of
+raw image-text pairs. Because the paired texts contain a
+boarder set of visual concepts than any pre-defined concept
+∗ The three authors contributed equally. ♠ Corresponding author.
+
+pool, the pre-trained CLIP model is so semantically rich that
+it can be easily transferred to downstream image classification and text-image retrieval tasks in zero-shot settings.
+However, to gain fine-grained understanding of images, as
+required by many tasks, such as object detection [31, 44],
+segmentation [6, 35], human pose estimation [49, 56], scene
+understanding [14, 25, 57], action recognition [17], visionlanguage understanding [7,27–30,36,48,50,63,65], objectlevel visual representations are highly desired.
+In this paper, we show that phrase grounding, which is a
+task of identifying the fine-grained correspondence between
+phrases in a sentence and objects (or regions) in an image, is
+an effective and scalable pre-training task to learn an objectlevel, language-aware, and semantic-rich visual representation, and propose Grounded Language-Image Pre-training
+(GLIP). Our approach unifies the phrase grounding and object detection tasks in that object detection can be cast as
+context-free phrase grounding while phrase grounding can
+be viewed as a contextualized object detection task. We
+highlight our key contributions as follows.
+Unifying detection and grounding by reformulating
+object detection as phrase grounding. The reformulation
+changes the input of a detection model: it takes as input not
+only an image but also a text prompt that describes all the
+candidate categories in the detection task2 . For example,
+the text prompt for COCO object detection [32] is a text
+string that consists of 80 phrases, i.e., the 80 COCO object
+class names, joined by “. ”, as shown in Figure 1 (Left).
+Any object detection model can be converted to a grounding model by replacing the object classification logits in its
+box classifier with the word-region alignment scores, i.e.,
+dot product of the region (or box) visual features and the
+token (or phrase) language features, as shown in Figure 1
+(Right). The language features are computed using a language model, which gives the new detection (or grounding) model a dual-encoder structure. Different from CLIP
+that fuses vision and language only at the last dot product
+layer [40], we show that deep cross-modality fusion applied
+
+† Work done when interning at Microsoft Research.
+1 Supervised baselines on COCO object detection: Faster-RCNN w/
+ResNet50 (40.2) or ResNet101 (42.0), and DyHead w/ Swin-Tiny (49.7).
+
+2 Different from typical phrase grounding tasks, phrases in the text
+prompt for an object detection task may not be present in the image.
+
+10965
+
+

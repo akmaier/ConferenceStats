@@ -1,0 +1,113 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+DepGraph: Towards Any Structural Pruning
+Gongfan Fang1 Xinyin Ma1 Mingli Song2 Michael Bi Mi3 Xinchao Wang1 *
+National University of Singapore1 Zhejiang University2 Huawei Technologies Ltd.3
+gongfan@u.nus.edu, maxinyin@u.nus.edu, xinchao@nus.edu.sg
+
+https://github.com/VainF/Torch-Pruning
+
+Abstract
+Structural pruning enables model acceleration by removing structurally-grouped parameters from neural networks. However, the parameter-grouping patterns vary
+widely across different models, making architecturespecific pruners, which rely on manually-designed grouping
+schemes, non-generalizable to new architectures. In this
+work, we study a highly-challenging yet barely-explored
+task, any structural pruning, to tackle general structural
+pruning of arbitrary architecture like CNNs, RNNs, GNNs
+and Transformers. The most prominent obstacle towards
+this goal lies in the structural coupling, which not only
+forces different layers to be pruned simultaneously, but also
+expects all removed parameters to be consistently unimportant, thereby avoiding structural issues and significant performance degradation after pruning. To address this problem, we propose a general and fully automatic method, Dependency Graph (DepGraph), to explicitly model the dependency between layers and comprehensively group coupled
+parameters for pruning. In this work, we extensively evaluate our method on several architectures and tasks, including
+ResNe(X)t, DenseNet, MobileNet and Vision transformer
+for images, GAT for graph, DGCNN for 3D point cloud,
+alongside LSTM for language, and demonstrate that, even
+with a simple norm-based criterion, the proposed method
+consistently yields gratifying performances.
+
+1. Introduction
+The recent emergence of edge computing applications
+calls for the necessity for deep neural compression [16, 22,
+25,33,34,61,65–67,69,75]. Among the many network compression paradigms, pruning has proven itself to be highly
+effective and practical [7, 11, 30, 31, 44, 58, 59, 74]. The
+goal of network pruning is to remove redundant parameters from a given network to lighten its size and potentially
+speed up the inference. Mainstream pruning approaches can
+* Corresponding author
+
++
+
++
+
+ReLU
+
+MLP
+
+BN2
+Conv2
+ReLU
+
+×
+
++
+tanh
+
+Norm
++
+
+×
+𝜎
+
+𝜎
+
+tanh
+
+×
+𝜎
+
+(c) RNNs
+
+Multi-Head
+Attention
+
+BN1
+
+GNN
+Layer
+
+Conv1
+
+Norm
+
+(a) CNNs
+
+(b) Transformers
+
+(d) GNNs
+
+Figure 1. Parameters from different layers are inherently dependent on each other across network architectures, which forces several layers to be pruned simultaneously. For instance, to prune
+the Conv2 in (a), all other layers {Conv1 , BN1 , BN2 } within the
+block must be pruned as well. In this work, we introduce a generic
+scheme, termed as Dependency Graph, to explicitly account for
+such dependencies and execute the pruning of arbitrary architecture in a fully automatic manner.
+
+be roughly categorized into two schemes, structurual pruning [4, 29, 71] and unstructurual pruning [8, 13, 44]. The
+core difference between the two lies in that, structural pruning changes the structure of neural networks by physically
+removing grouped parameters, while unstructural pruning
+conducts zeroing on partial weights without modification
+to the network structure. Compared to unstructural ones,
+structural pruning does not rely on specific AI accelerators
+or software to reduce memory consumption and computational costs, thereby finding a wider domain of applications
+in practice [38, 68].
+Nevertheless, the nature of structural pruning per se
+makes itself a challenging task, especially for modern deep
+neural networks with coupled and complex internal structures. The rationale lies in that, deep neural networks are
+built upon a large number of basic modules like convolution, normalization, or activation, yet these modules, either
+parameterized or not, are intrinsically coupled through the
+intricate connections [17, 23]. As a result, even when we
+seek to remove only one channel from a CNN illustrated in
+
+16091
+
+

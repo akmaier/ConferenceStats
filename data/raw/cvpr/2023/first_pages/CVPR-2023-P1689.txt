@@ -1,0 +1,83 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Global Vision Transformer Pruning with Hessian-Aware Saliency
+Huanrui Yang1,2 ,* Hongxu Yin1 , Maying Shen1 , Pavlo Molchanov1 , Hai Li3 , and Jan Kautz1
+1
+NVIDIA, 2 University of California, Berkeley, 3 Duke University
+huanrui@berkeley.edu, {dannyy, mshen, pmolchanov, jkautz}@nvidia.com, hai.li@duke.edu
+
+Abstract
+Transformers yield state-of-the-art results across many
+tasks. However, their heuristically designed architecture
+impose huge computational costs during inference. This
+work aims on challenging the common design philosophy of
+the Vision Transformer (ViT) model with uniform dimension
+across all the stacked blocks in a model stage, where we
+redistribute the parameters both across transformer blocks
+and between different structures within the block via the
+first systematic attempt on global structural pruning. Dealing with diverse ViT structural components, we derive a
+novel Hessian-based structural pruning criteria comparable
+across all layers and structures, with latency-aware regularization for direct latency reduction. Performing iterative
+pruning on the DeiT-Base model leads to a new architecture family called NViT (Novel ViT), with a novel parameter
+redistribution that utilizes parameters more efficiently. On
+ImageNet-1K, NViT-Base achieves a 2.6× FLOPs reduction,
+5.1× parameter reduction, and 1.9× run-time speedup over
+the DeiT-Base model in a near lossless manner. Smaller
+NViT variants achieve more than 1% accuracy gain at the
+same throughput of the DeiT Small/Tiny variants, as well as
+a lossless 3.3× parameter reduction over the SWIN-Small
+model. These results outperform prior art by a large margin.
+Further analysis is provided on the parameter redistribution
+insight of NViT, where we show the high prunability of ViT
+models, distinct sensitivity within ViT block, and unique
+parameter distribution trend across stacked ViT blocks. Our
+insights provide viability for a simple yet effective parameter
+redistribution rule towards more efficient ViTs for off-theshelf performance boost.
+
+1. Introduction
+Transformer models demonstrate high model capacity,
+easy scalability, and superior ability in capturing long-range
+dependency [1, 9, 19, 30, 38]. Vision Transformer, i.e., the
+ViT [12], shows that embedding image patches into tokens
+and passing them through a sequence of transformer blocks
+* Work done during an internship at NVIDIA.
+
+can lead to higher accuracy compared to state-of-the-art
+CNNs. DeiT [35] further presents a data-efficient training
+method such that acceptable accuracy can be achieved without extensive pretraining. Offering competitive performance
+to CNNs under similar training regimes, transformers now
+point to the appealing perspective of solving both NLP and
+vision tasks with the same architecture [18, 20, 49].
+Unlike CNNs built with convolutional layers that contain few dimensions like the kernel size and the number
+of filters, the ViT has multiple distinct components, i.e.,
+QKV projection, multi-head attention, multi-layer perceptron, etc. [38], each defined by independent dimensions. As
+a result, the dimension of each component in each ViT block
+needs to be carefully designed to achieve a decent trade-off
+between efficiency and accuracy. However, this is typically
+not the case for state-of-the-art models. Models such as
+ViT [12] and DeiT [35] mainly inherit the design heuristics
+from NLP tasks, e.g., use MLP expansion ratio 4, fix QKV
+per head, all the blocks having the same dimensions, etc.,
+which may not be optimal for computer vision [4], causing significant redundancy in the base model and a worse
+efficiency-accuracy trade-off upon scaling, as extensively
+shown empirically. New developments in ViT architectures
+incorporate additional design tricks like multi-stage architecture [41], more complicated attention schemes [23], and
+additional convolutional layers [13] etc., yet no attempt has
+been made on understanding the potential of redistributing
+parameters within the stacked vision transformer blocks.
+This work targets efficient ViTs by exploring parameter
+redistribution within ViT blocks and across multiple layers of
+cascading ViT blocks. To this end, we start with the straightforward DeiT design space, with only ViT blocks. We analyze the importance and redundancy of different components
+in the DeiT model via latency-aware global structural pruning, leveraging the insights to redistribute parameters for
+enhanced accuracy-efficiency trade-off. Our approach, as
+visualized in Fig. 1, starts from analyzing the blocks in the
+computation graph of ViT to identify all the dimensions that
+can be independently controlled. We apply global structural
+pruning over all the components in all blocks. This offers
+complete flexibility to explore their combinations towards
+
+18547
+
+

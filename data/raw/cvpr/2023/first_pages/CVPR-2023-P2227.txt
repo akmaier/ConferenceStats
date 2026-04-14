@@ -1,0 +1,113 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Enhanced Training of Query-Based Object Detection via
+Selective Query Recollection
+Fangyi Chen1
+
+Han Zhang1 Kai Hu1 Yu-Kai Huang1
+Carnegie Mellon University1
+
+Chenchen Zhu2
+Meta AI2
+
+{fangyic,hanz3,kaihu,yukaih2,marioss}@andrew.cmu.edu
+
+This paper investigates a phenomenon where querybased object detectors mispredict at the last decoding stage
+while predicting correctly at an intermediate stage. We
+review the training process and attribute the overlooked
+phenomenon to two limitations: lack of training emphasis
+and cascading errors from decoding sequence. We design
+and present Selective Query Recollection (SQR), a simple
+and effective training strategy for query-based object detectors. It cumulatively collects intermediate queries as decoding stages go deeper and selectively forwards the queries
+to the downstream stages aside from the sequential structure. Such-wise, SQR places training emphasis on later
+stages and allows later stages to work with intermediate
+queries from earlier stages directly. SQR can be easily
+plugged into various query-based object detectors and significantly enhances their performance while leaving the inference pipeline unchanged. As a result, we apply SQR on
+Adamixer, DAB-DETR, and Deformable-DETR across various settings (backbone, number of queries, schedule) and
+consistently brings 1.4 ∼ 2.8 AP improvement. Code is
+available at https://github.com/Fangyi-Chen/
+SQR
+
+1. Introduction
+Object detection is a long-established topic in computer
+vision aiming to localize and categorize objects of interest.
+Previous methods [4, 7, 10, 11, 16, 18, 21, 25, 26, 29, 32, 33,
+35–37] rely on dense priors tiled at feature grids so as to
+detect in a sliding-window paradigm, and have dominated
+object detection for the recent decade, but these methods
+fail to shake off many hand-crafted processing steps such
+as anchor generation or non-maximum suppression, which
+block end-to-end optimization.
+Recent research attention has been geared towards
+query-based object detection [3, 17, 20, 23, 28, 31, 38] since
+the thriving of transformer [30] and DETR [3]. By view-
+
+AP
+
+Abstract
+
+52.5
+50.0
+47.5
+45.0
+42.5
+40.0
+37.5
+35.0
+
+Marios Savvides1
+
+chenchenz@fb.com
+
+w/o SQR
+w/ SQR
+
+DAB-R50-50e
+
+DAB-SwinB-50e
+Ada-R101-3x
+Ada-R50-1x
+Ada-R101-100q-3x
+Deformable-R50-50e
+Ada-R50-100q-1x
+
+Deformable-R50-1x
+
+20
+
+40
+
+60
+
+80 100 120
+inference time (ms)
+
+140
+
+160
+
+Figure 1. The inference speed and AP for various networks on
+the MS-COCO val set. The red stars are the results trained with
+SQR. The blue circles are the results of baselines without SQR.
+SQR enhances the training of query-based object detectors while
+leaving the inference pipeline unchanged.
+
+ing detection as a direct set prediction problem, the new
+archetype represents the set of objects using a set of learnable embeddings, termed as queries, which are fed to a
+decoder consisting of a stack (typically six) of decoding
+stages. Each stage performs similar operations: (1) interacting queries with image features via an attention-like
+mechanism, so the queries are aggregated with valuable information that represents objects; (2) reasoning the relation
+among all queries so that global dependency on objects cooccurrence and duplicates could be captured; (3) interpreting bounding box and category from each query by a feed
+forward network. Queries are sequentially processed stageby-stage, and each stage is formulated to learn a residual
+function with reference to the former stage’s output, aiming
+to refine queries in a cascaded style.
+As such wise, the decoding procedure implies that detection should be stage-by-stage enhanced in terms of IoU
+and confidence score. Indeed, monotonically improved AP
+is empirically achieved by this procedure. However, when
+visualizing the stage-wise predictions, we surprisingly observe that decoder makes mistakes in a decent proportion of
+
+23756
+
+

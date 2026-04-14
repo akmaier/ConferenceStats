@@ -1,0 +1,112 @@
+Maximum Spatial Perturbation Consistency for Unpaired Image-to-Image
+Translation
+Yanwu Xu1 , Shaoan Xie2 , Wenhao Wu4 , Kun Zhang2,5 , Mingming Gong3†, Kayhan Batmanghelich1†
+1
+
+Department of Biomedical Informatics, University of Pittsburgh,
+{yanwuxu,kayhan}@pitt.edu
+2
+
+3
+
+Department of Philosophy, Carnegie Mellon University
+
+School of Mathematics and Statistics, The University of Melbourne
+4
+
+Department of Computer Vision Technology (VIS), Baidu Inc
+
+5
+
+Mohamed bin Zayed University of Artificial Intelligence
+
+Abstract
+
+Unpaired image-to-image translation (I2I) is an ill-posed problem, as an infinite number of translation functions can map the
+source domain distribution to the target distribution. Therefore,
+much effort has been put into designing suitable constraints, e.g.,
+cycle consistency (CycleGAN), geometry consistency (GCGAN),
+and contrastive learning-based constraints (CUTGAN), that help
+better pose the problem. However, these well-known constraints
+have limitations: (1) they are either too restrictive or too weak
+for specific I2I tasks; (2) these methods result in content distortion when there is a significant spatial variation between the
+source and target domains. This paper proposes a universal regularization technique called maximum spatial perturbation consistency (MSPC), which enforces a spatial perturbation function
+(T ) and the translation operator (G) to be commutative (i.e.,
+T ◦ G = G ◦ T ). In addition, we introduce two adversarial
+training components for learning the spatial perturbation function. The first one lets T compete with G to achieve maximum perturbation. The second one lets G and T compete with discriminators to align the spatial variations caused by the change of object
+size, object distortion, background interruptions, etc. Our method
+outperforms the state-of-the-art methods on most I2I benchmarks.
+We also introduce a new benchmark, namely the front face to profile face dataset, to emphasize the underlying challenges of I2I for
+real-world applications. We finally perform ablation experiments
+to study the sensitivity of our method to the severity of spatial perturbation and its effectiveness for distribution alignment.
+
+1. Introduction
+In unpaired image-to-to image translation (I2I), one aims
+to translate images from a source domain X to a target domain Y, with data drawn from the marginal distribution
+of the source domain (PX ) and that of the target domain
+† Equal Contribution. Code is released at https://github.com/
+batmanlab/MSPC.
+
+<latexit sha1_base64="0EMtLxv3xOVsUYa71WAPhEKk0m4=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkqMeCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1Fip2R2UK27VXYCsEy8nFcjRGJS/+sOYpRFKwwTVuue5ifEzqgxnAmelfqoxoWxCR9izVNIItZ8tDp2RC6sMSRgrW9KQhfp7IqOR1tMosJ0RNWO96s3F/7xeasJbP+MySQ1KtlwUpoKYmMy/JkOukBkxtYQyxe2thI2poszYbEo2BG/15XXSvqp611WvWavUa3kcRTiDc7gED26gDvfQgBYwQHiGV3hzHp0X5935WLYWnHzmFP7A+fwBs3uM1A==</latexit>
+
+X
+
+<latexit sha1_base64="ityzOFSEyZE8y/ZFNEFMDTcoQjA=">AAAB63icbVBNSwMxEJ2tX7V+VT16CRahXsqulOqx4EGPFewHtEvJptk2NMkuSVYoS/+CFw+KePUPefPfmG33oK0PBh7vzTAzL4g508Z1v53CxubW9k5xt7S3f3B4VD4+6egoUYS2ScQj1QuwppxJ2jbMcNqLFcUi4LQbTG8zv/tElWaRfDSzmPoCjyULGcEmk+6qvcthueLW3AXQOvFyUoEcrWH5azCKSCKoNIRjrfueGxs/xcowwum8NEg0jTGZ4jHtWyqxoNpPF7fO0YVVRiiMlC1p0EL9PZFiofVMBLZTYDPRq14m/uf1ExPe+CmTcWKoJMtFYcKRiVD2OBoxRYnhM0swUczeisgEK0yMjadkQ/BWX14nnaua16h5D/VKs57HUYQzOIcqeHANTbiHFrSBwASe4RXeHOG8OO/Ox7K14OQzp/AHzucPCiiNig==</latexit>
+
+G(X)
+
+T (G(X)) L1
+
+T (X)
+
+G(T (X))
+
+<latexit sha1_base64="Df6uKn4Vv153EZys4JK1XqbmzKg=">AAAB7nicbVDLSgNBEOz1GeMr6tHLYBCSS9iVoB4DHvQYIS9IljA76SRDZmeXmVkhLPkILx4U8er3ePNvnCR70MSChqKqm+6uIBZcG9f9djY2t7Z3dnN7+f2Dw6PjwslpS0eJYthkkYhUJ6AaBZfYNNwI7MQKaRgIbAeTu7nffkKleSQbZhqjH9KR5EPOqLFSu1G6L3XK5X6h6FbcBcg68TJShAz1fuGrN4hYEqI0TFCtu54bGz+lynAmcJbvJRpjyiZ0hF1LJQ1R++ni3Bm5tMqADCNlSxqyUH9PpDTUehoGtjOkZqxXvbn4n9dNzPDWT7mME4OSLRcNE0FMROa/kwFXyIyYWkKZ4vZWwsZUUWZsQnkbgrf68jppXVW864r3WC3WqlkcOTiHCyiBBzdQgweoQxMYTOAZXuHNiZ0X5935WLZuONnMGfyB8/kDdr+OTQ==</latexit>
+
+<latexit sha1_base64="3upFwxL218QtWxlQN4/2WM1PrnQ=">AAAB6nicbVA9SwNBEJ2LXzF+RS1tFoNgFe5E1DJoY2ER0XxAcoS9zVyyZG/v2N0TwpGfYGOhiK2/yM5/4ya5QhMfDDzem2FmXpAIro3rfjuFldW19Y3iZmlre2d3r7x/0NRxqhg2WCxi1Q6oRsElNgw3AtuJQhoFAlvB6Gbqt55QaR7LRzNO0I/oQPKQM2qs9HDX83rlilt1ZyDLxMtJBXLUe+Wvbj9maYTSMEG17nhuYvyMKsOZwEmpm2pMKBvRAXYslTRC7WezUyfkxCp9EsbKljRkpv6eyGik9TgKbGdEzVAvelPxP6+TmvDKz7hMUoOSzReFqSAmJtO/SZ8rZEaMLaFMcXsrYUOqKDM2nZINwVt8eZk0z6reRdW7P6/UrvM4inAEx3AKHlxCDW6hDg1gMIBneIU3RzgvzrvzMW8tOPnMIfyB8/kDypGNeg==</latexit>
+
+<latexit sha1_base64="E6TgAeeSwRBp2YSt8JwbJyLQqRg=">AAAB63icbVBNSwMxEJ2tX7V+VT16CRahXsqulOqx4MVjhX5Bu5Rsmm1Dk+ySZIWy9C948aCIV/+QN/+N2XYP2vpg4PHeDDPzgpgzbVz32ylsbe/s7hX3SweHR8cn5dOzro4SRWiHRDxS/QBrypmkHcMMp/1YUSwCTnvB7D7ze09UaRbJtpnH1Bd4IlnICDaZ1K72r0fliltzl0CbxMtJBXK0RuWv4TgiiaDSEI61HnhubPwUK8MIp4vSMNE0xmSGJ3RgqcSCaj9d3rpAV1YZozBStqRBS/X3RIqF1nMR2E6BzVSve5n4nzdITHjnp0zGiaGSrBaFCUcmQtnjaMwUJYbPLcFEMXsrIlOsMDE2npINwVt/eZN0b2peo+Y91ivNeh5HES7gEqrgwS004QFa0AECU3iGV3hzhPPivDsfq9aCk8+cwx84nz8eA42X</latexit>
+
+<latexit sha1_base64="IGaJp6zT7R2/OBnk+lSDG6nYBqc=">AAAB7nicbVDLSgNBEOz1GeMr6tHLYBCSS9iVoB4DHvQYIS9IljA76SRDZmeXmVkhLPkILx4U8er3ePNvnCR70MSChqKqm+6uIBZcG9f9djY2t7Z3dnN7+f2Dw6PjwslpS0eJYthkkYhUJ6AaBZfYNNwI7MQKaRgIbAeTu7nffkKleSQbZhqjH9KR5EPOqLFS+77UKHXK5X6h6FbcBcg68TJShAz1fuGrN4hYEqI0TFCtu54bGz+lynAmcJbvJRpjyiZ0hF1LJQ1R++ni3Bm5tMqADCNlSxqyUH9PpDTUehoGtjOkZqxXvbn4n9dNzPDWT7mME4OSLRcNE0FMROa/kwFXyIyYWkKZ4vZWwsZUUWZsQnkbgrf68jppXVW864r3WC3WqlkcOTiHCyiBBzdQgweoQxMYTOAZXuHNiZ0X5935WLZuONnMGfyB8/kDdqWOTQ==</latexit>
+
+(a) Consistency regularization with spatial
+perturbation function T
+<latexit sha1_base64="0EMtLxv3xOVsUYa71WAPhEKk0m4=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkqMeCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1Fip2R2UK27VXYCsEy8nFcjRGJS/+sOYpRFKwwTVuue5ifEzqgxnAmelfqoxoWxCR9izVNIItZ8tDp2RC6sMSRgrW9KQhfp7IqOR1tMosJ0RNWO96s3F/7xeasJbP+MySQ1KtlwUpoKYmMy/JkOukBkxtYQyxe2thI2poszYbEo2BG/15XXSvqp611WvWavUa3kcRTiDc7gED26gDvfQgBYwQHiGV3hzHp0X5935WLYWnHzmFP7A+fwBs3uM1A==</latexit>
+
+X
+
+<latexit sha1_base64="aTCj9iBVwMQC+kJKbP/M0m9Z+80=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkqMeCF48t2FZpQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgpr6xubW8Xt0s7u3v5B+fCoreNUMWyxWMTqPqAaBZfYMtwIvE8U0igQ2AnGNzO/84RK81jemUmCfkSHkoecUWOl5kO/XHGr7hxklXg5qUCORr/81RvELI1QGiao1l3PTYyfUWU4Ezgt9VKNCWVjOsSupZJGqP1sfuiUnFllQMJY2ZKGzNXfExmNtJ5Ege2MqBnpZW8m/ud1UxNe+xmXSWpQssWiMBXExGT2NRlwhcyIiSWUKW5vJWxEFWXGZlOyIXjLL6+S9kXVu6x6zVqlXsvjKMIJnMI5eHAFdbiFBrSAAcIzvMKb8+i8OO/Ox6K14OQzx/AHzucPtP+M1Q==</latexit>
+
+Y
+
+<latexit sha1_base64="pfz6ETlOJ1AXWhEEXgL8XeUyb84=">AAAB63icbVBNSwMxEJ2tX7V+VT16CRahXsquFPVY8OKxQr+kXUo2zbahSXZJskJZ+he8eFDEq3/Im//GbLsHbX0w8Hhvhpl5QcyZNq777RQ2Nre2d4q7pb39g8Oj8vFJR0eJIrRNIh6pXoA15UzStmGG016sKBYBp91gepf53SeqNItky8xi6gs8lixkBJtMalUfL4fliltzF0DrxMtJBXI0h+WvwSgiiaDSEI617ntubPwUK8MIp/PSINE0xmSKx7RvqcSCaj9d3DpHF1YZoTBStqRBC/X3RIqF1jMR2E6BzUSvepn4n9dPTHjrp0zGiaGSLBeFCUcmQtnjaMQUJYbPLMFEMXsrIhOsMDE2npINwVt9eZ10rmredc17qFca9TyOIpzBOVTBgxtowD00oQ0EJvAMr/DmCOfFeXc+lq0FJ585hT9wPn8AH4iNmA==</latexit>
+
+<latexit sha1_base64="E6TgAeeSwRBp2YSt8JwbJyLQqRg=">AAAB63icbVBNSwMxEJ2tX7V+VT16CRahXsqulOqx4MVjhX5Bu5Rsmm1Dk+ySZIWy9C948aCIV/+QN/+N2XYP2vpg4PHeDDPzgpgzbVz32ylsbe/s7hX3SweHR8cn5dOzro4SRWiHRDxS/QBrypmkHcMMp/1YUSwCTnvB7D7ze09UaRbJtpnH1Bd4IlnICDaZ1K72r0fliltzl0CbxMtJBXK0RuWv4TgiiaDSEI61HnhubPwUK8MIp4vSMNE0xmSGJ3RgqcSCaj9d3rpAV1YZozBStqRBS/X3RIqF1nMR2E6BzVSve5n4nzdITHjnp0zGiaGSrBaFCUcmQtnjaMwUJYbPLcFEMXsrIlOsMDE2npINwVt/eZN0b2peo+Y91ivNeh5HES7gEqrgwS004QFa0AECU3iGV3hzhPPivDsfq9aCk8+cwx84nz8eA42X</latexit>
+
+T (X)
+
+T (Y )
+
+(b) Spatial alignment of spatial perturbation
+function T
+
+Figure 1. In this figure, we illustrate the the proposed MSPC on
+(a) consistency regularization under maximum spatial perturbation
+and (b) aligning the spatial distributions between source XT and
+YT via spatial perturbation function T .
+
+(PY ). Unpaired I2I has many applications, such as superresolution [12, 15], image editing [13, 49], and image denoising [4,41]. However, it is an ill-posed problem, as there
+is an infinite choice of translators G that can map PX to PY .
+Various constraints on the translation function G have
+been proposed to remedy the ill-posedness of the problem.
+For example, cycle consistency (CycleGAN) [50] enforces
+the cyclic reconstruction consistency: X → G(X) → X,
+which means G and its inverse are bijections. CUTGAN
+[37] maximizes the mutual information between an input
+image and the translated image via constrastive learning on
+the patch-level features. The GCGAN [16], on the other
+hand, effectively uses geometric consistency by applying a
+
+18311
+
+

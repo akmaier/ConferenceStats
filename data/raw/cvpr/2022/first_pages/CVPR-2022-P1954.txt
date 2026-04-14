@@ -1,0 +1,106 @@
+Point-Level Region Contrast for Object Detection Pre-Training
+Yutong Bai1,2 * Xinlei Chen1 Alexander Kirillov1 Alan Yuille2 Alexander C. Berg1
+1
+2
+Facebook AI Research (FAIR)
+Johns Hopkins University
+
+Abstract
+In this work we present point-level region contrast, a
+self-supervised pre-training approach for the task of object
+detection. This approach is motivated by the two key factors in detection: localization and recognition. While accurate localization favors models that operate at the pixel- or
+point-level, correct recognition typically relies on a more
+holistic, region-level view of objects. Incorporating this
+perspective in pre-training, our approach performs contrastive learning by directly sampling individual point pairs
+from different regions. Compared to an aggregated representation per region, our approach is more robust to the
+change in input region quality, and further enables us to implicitly improve initial region assignments via online knowledge distillation during training. Both advantages are important when dealing with imperfect regions encountered
+in the unsupervised setting. Experiments show point-level
+region contrast improves on state-of-the-art pre-training
+methods for object detection and segmentation across multiple tasks and datasets, and we provide extensive ablation
+studies and visualizations to aid understanding. Code will
+be made available.
+
+1. Introduction
+Un-/self-supervised learning – in particular contrastive
+learning [6, 20, 24] – has recently arisen as a powerful tool
+to obtain visual representations that can potentially benefit from an unlimited amount of unlabeled data. Promising signals are observed on important tasks like object detection [28]. For example, MoCo [20] shows convincing
+improvement on VOC [16] over supervised pre-training by
+simply learning to discriminate between images as holistic instances [14] on the ImageNet-1K dataset [37]. Since
+then, numerous pre-text tasks that focus on intra-image contrast have been devised specifically for object detection as
+the downstream transfer task [23, 43, 51]. While there has
+been steady progress, state-of-the-art detectors [1] still use
+weights from supervised pre-training (e.g., classification on
+ImageNet-22K [12]). The full potential of unsupervised
+* Work done during an internship at FAIR.
+
+A
+
+A1
+
+A2
+
+B1
+
+B2
+
+A1
+
+A2
+
+B1
+
+B2
+
+A1
+
+A2
+
+B1
+
+B2
+
+(1)
+
+A2
+
+(2)
+
+B1
+
+A1
+
+B2
+
+(3)
+B
+
+contrast region
+
+point-level
+
+Figure 1. For intra-image contrastive learning, samples of a feature
+map can be aggregated and then compared between regions (1),
+compared directly between all samples (2), or only compared directly between samples in different regions (3). We call (3) pointlevel region contrast, it allows both learning at the point-level
+to help localization, and at the region-level to help holistic object
+recognition – two crucial aspects for object detection.
+
+pre-training for object detection is yet to be realized.
+Object detection requires both accurate localization of
+objects in an image and correct recognition of their semantic categories. These two sub-tasks are tightly connected
+and often reinforce each other in successful detectors [32].
+For example, region proposal methods [2, 41, 54] that first
+narrow down candidate object locations have enabled RCNN [18] to perform classification on rich, region-level features. Conversely, today’s dominant paradigm for object
+instance segmentation [21] first identifies object categories
+along with their coarse bounding boxes, and later uses them
+to compute masks for better localization at the pixel-level.
+With this perspective, we hypothesize that to learn a
+useful representation for object detection, it is also desirable to balance recognition and localization by leveraging
+information at various levels during pre-training. Object
+recognition in a scene typically takes place at the regionlevel [18, 35]. To support this, it is preferable to maintain a
+conceptually coherent ‘label’ for each region, and learn to
+contrast pairs of regions for representation learning. On the
+other hand, for better localization, the model is preferred
+
+16061
+
+

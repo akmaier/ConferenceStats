@@ -1,0 +1,80 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Deep Random Projector: Accelerated Deep Image Prior
+Taihui Li1
+
+Hengkang Wang1
+
+Zhong Zhuang2
+
+Ju Sun1
+
+1
+2
+
+Computer Science and Engineering, University of Minnesota, Minneapolis, USA
+Electrical and Computer Engineering, University of Minnesota, Minneapolis, USA
+{lixx5027, wang9881, zhuan143, jusun}@umn.edu
+
+Abstract
+Deep image prior (DIP) has shown great promise in
+tackling a variety of image restoration (IR) and general visual inverse problems, needing no training data. However,
+the resulting optimization process is often very slow, inevitably hindering DIP’s practical usage for time-sensitive
+scenarios. In this paper, we focus on IR, and propose
+two crucial modifications to DIP that help achieve substantial speedup: 1) optimizing the DIP seed while freezing randomly-initialized network weights, and 2) reducing the network depth. In addition, we reintroduce explicit priors, such as sparse gradient prior—encoded by
+total-variation regularization, to preserve the DIP peak performance. We evaluate the proposed method on three IR
+tasks, including image denoising, image super-resolution,
+and image inpainting, against the original DIP and variants, as well as the competing metaDIP that uses metalearning to learn good initializers with extra data. Our
+method is a clear winner in obtaining competitive restoration quality in a minimal amount of time. Our code is available at https://github.com/sun- umn/DeepRandom-Projector.
+
+1. Introduction
+Deep image prior as an emerging “prior” for visual
+inverse problems Deep image prior (DIP) [29] and its
+variants [9, 21] have recently claimed numerous successes
+in solving image restoration (IR) (e.g., image denoising,
+super-resolution, and image inpainting) and general visual
+inverse problems [22]. The idea is to parameterize a visual
+object of interest, say x, as the output of a structured deep
+neural network (DNN), i.e., x = Gθ (z), where Gθ is a
+DNN and z is a seed that is often drawn randomly and then
+frozen. Now given a visual inverse problem of the form
+y ≈ f (x)—y is the observation, f models the observation
+process, and ≈ allows modeling observational noise—and
+the typical maximum-a posterior (MAP)-inspired regular-
+
+ized data-fitting formulation (λ: regularization parameter):
+  \label {eq:data_fitting} \min _{\mb x} \; \underbrace {\ell (\mb y, f(\mb x))}_{\text {data-fitting loss}} + \lambda \underbrace { R(\mb x)}_{\text {regularizer}},
+
+(1)
+
+one can plug in the reparametrization x = Gθ (z) to obtain
+  \label {eq:data_fitting_dip} \min _{\mb \theta } \; \ell (\mb y, f \circ G_{\mb \theta }(\mb z)) + \lambda R \circ G_{\mb \theta }(\mb z),
+
+(2)
+
+where ◦ denotes functional composition. A salient feature
+of DIP for IR is that they are training-free despite the presence of the DNN Gθ , i.e., no extra data other than y and
+f are needed for problem-solving.
+DIP is not a standalone prior, unlike traditional priors
+such as sparse gradient [24], dark channel [8], and selfsimilarity [7]: favorable results from DIP are obtained
+as a result of the tight integration of architecture, overparametrization of Gθ , first-order optimization methods,
+and appropriate early stopping (ES). The Gθ in practice is often a structured convolutional neural network and
+significantly overparameterized. Due to the heavy overparametrization, in principle, f ◦ Gθ (z) could perfectly
+fit y, especially when no extra regularization R ◦ Gθ (z)
+is present. When such overfitting occurs, the recovered
+b = Gθ (z) accounts for the potential noise in y also in adx
+dition to the desired visual content. What comes to the rescue is the hallmark “early-learning-then-overfitting” phenomenon: the learning process picks up mostly the desired
+visual content first before starting to fit the noise [16, 30],
+which is believed to be a combined implicit regularization effect of overparametrization, convolutional structures
+in Gθ , and first-order optimization methods [10, 12]. So,
+if one can locate the peak-performance point and stop the
+fitting process sharp there, i.e., performing appropriate ES,
+they could get a good estimate for x.
+Practical issues: overfitting and slowness Despite the
+remarkable empirical success of DIP in solving IRs, there
+
+18176
+
+

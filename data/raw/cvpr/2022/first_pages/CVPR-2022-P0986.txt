@@ -1,0 +1,87 @@
+MetaPose: Fast 3D Pose from Multiple Views without 3D Supervision
+Ben Usman1,2
+1
+
+Boston University
+
+Andrea Tagliasacchi2,3
+2
+
+Google Research
+
+3
+
+Kate Saenko1,4
+
+Simon Fraser University
+
+Abstract
+In the era of deep learning, human pose estimation from
+multiple cameras with unknown calibration has received
+little attention to date. We show how to train a neural
+model to perform this task with high precision and minimal latency overhead. The proposed model takes into account joint location uncertainty due to occlusion from multiple views, and requires only 2D keypoint data for training. Our method outperforms both classical bundle adjustment and weakly-supervised monocular 3D baselines on the
+well-established Human3.6M dataset, as well as the more
+challenging in-the-wild Ski-Pose PTZ dataset.
+
+1. Introduction
+We tackle the problem of estimating 3D coordinates of
+human joints from RGB images captured using synchronized (potentially moving) cameras with unknown positions, orientations, and intrinsic parameters. We additionally assume having access to a training set with only 2D
+positions of joints labeled on captured images.
+Historically, real-time capture of the human 3D pose has
+been undertaken only by large enterprises that could afford expensive specialized motion capture equipment [18].
+In principle, if camera calibrations are available [3], human body joints can be triangulated directly from cameraspace observations [26, 33]. One scenario in which camera calibration cannot easily be estimated is sports capture,
+in which close-ups of players are captured in front of lowtexture backgrounds, with wide-baseline, moving cameras.
+Plain backgrounds preclude calibration via classical multicamera SfM [21], as not sufﬁciently many feature correspondences can be detected across views; see Figure 1.
+In this work, we propose a neural network to simultaneously predict 3D human and relative camera poses from
+multiple views; see Figure 1. Our approach uses human
+body joints as a source of information for camera calibration. As joints often become occluded, uncertainty must be
+carefully accounted for, to avoid bad calibration and con-
+
+4
+
+Avneesh Sud2
+MIT-IBM Watson AI Lab
+
+trained on multi-view 2D data (no 3D!)
+
+apply existing singe-view
+models to each view
+
+combined
+3D pose
+
+apply learned fast
+neural optimizer
+
+Figure 1. We show how to train a neural network that can aggregate outputs of multiple single-view methods, takes prediction
+uncertainty into consideration, has minimal latency overhead, and
+requires only 2D supervision for training. Our method mimics the
+structure of bundle-adjustment solvers, but using the joints of the
+human body to drive camera calibration, and by implementing a
+bundle-like solver with a simple feed-forward neural network.
+
+sequent erroneous 3D pose predictions. As we assume a
+synchronized multi-camera setup at test-time, our algorithm
+should also be able to effectively aggregate information
+from different viewpoints. Finally, our approach supervised
+by 2D annotations alone, as ground-truth annotation of 3D
+data is unwieldy. As summarized in Figure 2, and detailed
+in what follows, none of the existing approaches fully satisﬁes these fundamental requirements.
+Fully-supervised 3D pose estimation approaches yield the
+lowest estimation error, but make use of known 3D camera speciﬁcation during either training [65] or both training
+and inference [26]. However, the prohibitively high cost of
+3D joint annotation and full camera calibration in-the-wild
+makes it difﬁcult to acquire large enough labeled datasets
+representative of speciﬁc environments [30, 53], therefore
+rendering supervised methods not applicable in this setup.
+Monocular 3D methods [25, 37, 62] and 2D-to-3D lifting
+networks [10, 61], relax data constraints to enable 3D pose
+inference using just multi-view 2D data without calibration
+at train time. Unfortunately, at inference time, these methods can only be applied to a single view at a time, therefore
+unable to leverage cross-view information and uncertainty.
+Classical SfM (structure from motion) approaches to 3D
+pose estimation [33] iteratively reﬁne both the camera and
+
+6759
+
+

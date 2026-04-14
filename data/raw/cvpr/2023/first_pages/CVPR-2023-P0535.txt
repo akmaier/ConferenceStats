@@ -1,0 +1,74 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Open-Vocabulary Semantic Segmentation with Mask-adapted CLIP
+Feng Liang* 1 , Bichen Wu2 , Xiaoliang Dai2 , Kunpeng Li2 , Yinan Zhao2 , Hang Zhang† 3 ,
+Peizhao Zhang2 , Peter Vajda2 , Diana Marculescu1
+1
+The University of Texas at Austin, 2 Meta Reality Labs, 3 Cruise
+{jeffliang,dianam}@utexas.edu, {wbc,stzpz,vajdap}@meta.com
+https://jeff-liangf.github.io/projects/ovseg
+
+Abstract
+Open-vocabulary semantic segmentation aims to segment an image into semantic regions according to text descriptions, which may not have been seen during training. Recent two-stage methods first generate class-agnostic
+mask proposals and then leverage pre-trained visionlanguage models, e.g., CLIP, to classify masked regions. We
+identify the performance bottleneck of this paradigm to be
+the pre-trained CLIP model, since it does not perform well
+on masked images. To address this, we propose to finetune
+CLIP on a collection of masked image regions and their
+corresponding text descriptions. We collect training data by
+mining an existing image-caption dataset (e.g., COCO Captions), using CLIP to match masked image regions to nouns
+in the image captions. Compared with the more precise and
+manually annotated segmentation labels with fixed classes
+(e.g., COCO-Stuff), we find our noisy but diverse dataset
+can better retain CLIP’s generalization ability. Along with
+finetuning the entire model, we utilize the “blank” areas in
+masked images using a method we dub mask prompt tuning.
+Experiments demonstrate mask prompt tuning brings significant improvement without modifying any weights of CLIP,
+and it can further improve a fully finetuned model. In particular, when trained on COCO and evaluated on ADE20K150, our best model achieves 29.6% mIoU, which is +8.5%
+higher than the previous state-of-the-art. For the first time,
+open-vocabulary generalist models match the performance
+of supervised specialist models in 2017 without dataset specific adaptations.
+
+1. Introduction
+Semantic segmentation aims to group pixels into meaningful regions with corresponding semantic categories. Although remarkable progress has been made [6, 7, 9, 29, 41],
+modern semantic segmentation models are mainly trained
+with pre-defined categories, failing to generalize to unseen
+classes. On the contrary, humans understand scenes in an
+* Work done during an internship at Meta Reality Labs.
+† Work done while at Meta Reality Labs.
+
+open-vocabulary manner, typically with thousands of categories [2]. To approach human-level perception, this paper
+studies open-vocabulary semantic segmentation where the
+model segments an image by arbitrary categories described
+by texts.
+Vision-language models, e.g., CLIP [35], learn rich
+multi-modal features from billion-scale image-text pairs.
+Witnessing its superior open-vocabulary classification ability, prior works propose to use pre-trained vision-language
+models for open-vocabulary segmentation [11, 16, 23, 40].
+Among them, two-stage approaches have shown great potential: they first generate class-agnostic mask proposals and then leverage pre-trained CLIP to perform openvocabulary classification (see Figure 1(b)). Their success
+relies on two assumptions: (1) the model can generate classagnostic mask proposals (2) pre-trained CLIP can transfer
+its classification performance to masked image proposals.
+To examine these two assumptions, we conduct the following analysis. First, we assume an “oracle” mask generator and an ordinary CLIP classifier. We use ground-truth
+masks as region proposals, and feed masked images to a
+pre-trained CLIP for classification. This model only reaches
+an mIoU of 20.1% on the ADE20K-150 dataset. Next, we
+assume an “oracle” classifier but an ordinary mask proposal
+generator – a MaskFormer ( [9]) pre-trained on the COCO
+dataset. We first extract masked region proposals, then compare each region with ground-truth object masks, find the
+object with the highest overlap, and assign the object label to this extracted region. This model, despite imperfect region proposals, reaches a significantly higher mIoU
+of 66.5%.
+This analysis clearly shows that pre-trained CLIP can
+not perform satisfactory classification over masked images,
+and it is the performance bottleneck of two-stage openvocabulary segmentation models. We hypothesize that this
+is caused by the significant domain gap between masked
+images and CLIP’s training images. CLIP is pre-trained on
+natural images with minimal data augmentation [35]. On
+the other hand, mask proposals are cropped and re-sized
+from original images, and are further corrupted by noisy
+segmentation masks, see examples in Figure 1 (b).
+
+7061
+
+

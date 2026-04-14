@@ -1,0 +1,69 @@
+Grad-CAM:
+Visual Explanations from Deep Networks via Gradient-based Localization
+Ramprasaath R. Selvaraju1∗
+
+Michael Cogswell1 Abhishek Das1 Ramakrishna Vedantam1∗
+Devi Parikh1,2
+Dhruv Batra1,2
+1
+Georgia Institute of Technology 2 Facebook AI Research
+
+{ramprs, cogswell, abhshkdz, vrama, parikh, dbatra}@gatech.edu
+
+Abstract
+We propose a technique for producing ‘visual explanations’ for decisions from a large class of Convolutional Neural Network (CNN)-based models, making them more transparent. Our approach – Gradient-weighted Class Activation
+Mapping (Grad-CAM), uses the gradients of any target concept (say logits for ‘dog’ or even a caption), flowing into
+the final convolutional layer to produce a coarse localization map highlighting the important regions in the image for
+predicting the concept. Unlike previous approaches, GradCAM is applicable to a wide variety of CNN model-families:
+(1) CNNs with fully-connected layers (e.g. VGG), (2) CNNs
+used for structured outputs (e.g. captioning), (3) CNNs used
+in tasks with multi-modal inputs (e.g. visual question answering) or reinforcement learning, without architectural
+changes or re-training. We combine Grad-CAM with existing fine-grained visualizations to create a high-resolution
+class-discriminative visualization, Guided Grad-CAM, and
+apply it to image classification, image captioning, and visual
+question answering (VQA) models, including ResNet-based
+architectures. In the context of image classification models, our visualizations (a) lend insights into failure modes
+of these models (showing that seemingly unreasonable predictions have reasonable explanations), (b) outperform previous methods on the ILSVRC-15 weakly-supervised localization task, (c) are more faithful to the underlying model,
+and (d) help achieve model generalization by identifying
+dataset bias. For image captioning and VQA, our visualizations show even non-attention based models can localize
+inputs. Finally, we design and conduct human studies to
+measure if Grad-CAM explanations help users establish appropriate trust in predictions from deep networks and show
+that Grad-CAM helps untrained users successfully discern a
+‘stronger’ deep network from a ‘weaker’ one even when both
+make identical predictions. Our code is available at https:
+//github.com/ramprs/grad-cam/ along with a demo
+on CloudCV [2]1 and video at youtu.be/COjUB9Izk6E.
+∗ Work done at Virginia Tech.
+1 http://gradcam.cloudcv.org
+
+1. Introduction
+Convolutional Neural Networks (CNNs) and other deep
+networks have enabled unprecedented breakthroughs in a
+variety of computer vision tasks, from image classification [24, 16] to object detection [15], semantic segmentation [27], image captioning [43, 6, 12, 21], and more recently,
+visual question answering [3, 14, 32, 36]. While these deep
+neural networks enable superior performance, their lack of
+decomposability into intuitive and understandable components makes them hard to interpret [26]. Consequently, when
+today’s intelligent systems fail, they fail spectacularly disgracefully, without warning or explanation, leaving a user
+staring at an incoherent output, wondering why.
+Interpretability matters. In order to build trust in intelligent systems and move towards their meaningful integration into our everyday lives, it is clear that we must build
+‘transparent’ models that explain why they predict what they
+predict. Broadly speaking, this transparency is useful at
+three different stages of Artificial Intelligence (AI) evolution. First, when AI is significantly weaker than humans and
+not yet reliably ‘deployable’ (e.g. visual question answering
+[3]), the goal of transparency and explanations is to identify
+the failure modes [1, 17], thereby helping researchers focus
+their efforts on the most fruitful research directions. Second,
+when AI is on par with humans and reliably ‘deployable’
+(e.g., image classification [22] on a set of categories trained
+on sufficient data), the goal is to establish appropriate trust
+and confidence in users. Third, when AI is significantly
+stronger than humans (e.g. chess or Go [39]), the goal of
+explanations is in machine teaching [20] – i.e., a machine
+teaching a human about how to make better decisions.
+There typically exists a trade-off between accuracy and
+simplicity or interpretability. Classical rule-based or expert systems [18] are highly interpretable but not very accurate (or robust). Decomposable pipelines where each stage
+is hand-designed are thought to be more interpretable as
+each individual component assumes a natural intuitive explanation. By using deep models, we sacrifice interpretable
+modules for uninterpretable ones that achieve greater perfor1618
+
+

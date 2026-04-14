@@ -1,0 +1,97 @@
+Class-Incremental Learning by Knowledge Distillation
+with Adaptive Feature Consolidation
+Minsoo Kang†
+
+Jaeyoo Park†
+ECE , ASRI† , & IPAI†,§
+Seoul National University
+
+Bohyung Han†,§
+
+†
+
+{kminsoo,bellos1203,bhhan}@snu.ac.kr
+
+Abstract
+We present a novel class incremental learning approach
+based on deep neural networks, which continually learns
+new tasks with limited memory for storing examples in the
+previous tasks. Our algorithm is based on knowledge distillation and provides a principled way to maintain the representations of old models while adjusting to new tasks effectively. The proposed method estimates the relationship
+between the representation changes and the resulting loss
+increases incurred by model updates. It minimizes the upper bound of the loss increases using the representations,
+which exploits the estimated importance of each feature
+map within a backbone model. Based on the importance,
+the model restricts updates of important features for robustness while allowing changes in less critical features for flexibility. This optimization strategy effectively alleviates the
+notorious catastrophic forgetting problem despite the limited accessibility of data in the previous tasks. The experimental results show significant accuracy improvement of
+the proposed algorithm over the existing methods on the
+standard datasets. Code is available.1
+
+1. Introduction
+Deep neural networks have achieved outstanding results
+in various applications including computer vision [13, 29,
+31, 32, 38], natural language processing [45, 47], speech
+recognition [5, 10], robotics [25], bioinformatics [6], and
+many others. Despite their impressive performance on offline learning problems, it is still challenging to train models
+for a sequence of tasks in an online manner, where only a
+limited number of examples in the previous tasks are available due to memory constraints or privacy issues.
+Although fine-tuning is a good strategy to learn a new
+task given an old model, it is not effective for streaming
+tasks due to the catastrophic forgetting problem [30]; the
+1 https://github.com/kminsoo/AFC
+
+Feature Extractor
+(φt-1)
+
+old
+class
+
+FC
+(θt-1)
+
+Mini-batch for
+previous model Mt-1
+Importance
+(𝐼! )
+
+Discrepancy
+Loss
+Feature Extractor
+(φt)
+
+old
+class
+
+FC
+(θt)
+
+Mini-batch for
+current model Mt
+Forward
+Backward
+
+new
+class
+Exemplar Set
+
+Prediction
+
+Figure 1. Illustration of the proposed method. The current model
+optimizes the task loss over a mini-batch sampled from the data of
+the current task and exemplar sets for the previous tasks while it
+aims to differently minimize the discrepancy in each feature map
+over the previous model based on the corresponding importance.
+
+model performs well on the current task while it often fails
+to generalize on the previous ones. Therefore, incremental
+learning, the framework capacitating online learning without forgetting, has been studied actively. To mitigate the
+catastrophic forgetting problem, several branches of algorithms have been discussed. Architectural approaches employ network expansion schemes [27, 41, 49] instead of using static models. Rehearsal methods present the strategies to summarize the tasks in the past by storing exemplar sets [4, 37] or generate samples by estimating the data
+distribution in the previous tasks [43]. On the other hand,
+parameter regularization methods [3, 22, 51] prevent important weights from deviating the previously learned models.
+Knowledge distillation approaches [21, 26] focus on minimizing the divergences from the representations of the previous models while effectively adapting to new tasks.
+We present a knowledge distillation approach for class
+incremental learning, where the model incrementally learns
+new classes via knowledge distillation, with limited acces-
+
+16071
+
+

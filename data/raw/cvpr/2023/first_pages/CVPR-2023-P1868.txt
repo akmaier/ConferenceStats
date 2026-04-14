@@ -1,0 +1,80 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+IMP: Iterative Matching and Pose Estimation with Adaptive Pooling
+Fei Xue
+
+Ignas Budvytis Roberto Cipolla
+University of Cambridge
+{fx221, ib255, rc10001}@cam.ac.uk
+
+Abstract
+Previous methods solve feature matching and pose estimation using a two-stage process by first finding matches
+and then estimating the pose. As they ignore the geometric relationships between the two tasks, they focus on either improving the quality of matches or filtering potential outliers, leading to limited efficiency or accuracy. In
+contrast, we propose an iterative matching and pose estimation framework (IMP) leveraging the geometric connections between the two tasks: a few good matches are
+enough for a roughly accurate pose estimation; a roughly
+accurate pose can be used to guide the matching by providing geometric constraints. To this end, we implement
+a geometry-aware recurrent attention-based module which
+jointly outputs sparse matches and camera poses. Specifically, for each iteration, we first implicitly embed geometric information into the module via a pose-consistency
+loss, allowing it to predict geometry-aware matches progressively. Second, we introduce an efficient IMP, called
+EIMP, to dynamically discard keypoints without potential
+matches, avoiding redundant updating and significantly reducing the quadratic time complexity of attention computation in transformers. Experiments on YFCC100m, Scannet,
+and Aachen Day-Night datasets demonstrate that the proposed method outperforms previous approaches in terms
+of accuracy and efficiency. Code is available at https:
+//github.com/feixue94/imp-release
+
+1. Introduction
+Feature matching and relative pose estimation are two
+fundamental tasks in computer vision and especially important to visual localization and 3D reconstruction. Traditionally, the two tasks are performed in two stages separately
+by first finding correspondences between keypoints extracted from two images with nearest neighbor (NN) matching and then estimating the relative pose from predicted
+matches with robust estimators, e.g. RANSAC [6, 7, 20, 32].
+This pipeline has been the de-facto standard framework for
+decades [5]. However, due to repetitive textures/structures,
+
+𝟑𝟑𝟑𝟑/𝟓𝟓. 𝟑𝟑/𝟒𝟒. 𝟔𝟔
+
+𝟏𝟏𝟏𝟏𝟏𝟏𝟏𝟏/𝟏𝟏𝟏𝟏𝟏𝟏𝟏𝟏
+
+𝟏𝟏𝟏𝟏𝟏𝟏/𝟏𝟏. 𝟏𝟏/𝟎𝟎. 𝟖𝟖
+
+1
+𝟗𝟗𝟗𝟗/𝟑𝟑. 𝟏𝟏/𝟎𝟎. 𝟖𝟖
+
+𝟑𝟑𝟑𝟑𝟑𝟑/𝟑𝟑𝟑𝟑𝟑𝟑
+
+2
+
+𝟑𝟑𝟑𝟑𝟑𝟑/𝟐𝟐𝟐𝟐𝟐𝟐
+
+3
+𝟏𝟏𝟐𝟐𝟐𝟐/𝟎𝟎. 𝟔𝟔/𝟎𝟎. 𝟕𝟕
+
+𝟐𝟐𝟐𝟐𝟐𝟐/𝟐𝟐𝟐𝟐𝟐𝟐
+
+4
+
+Figure 1.
+Process of iterative matching and pose estimation. For each image pair, we report the number inliers/rotation/translation errors (top-left) and retained keypoints in
+left/right images (top-right) at iterations from 1 to 4. In the iterative process, our method finds more inliers spanning almost
+the whole image, estimates increasingly precise pose and discards
+keypoints without true matches gradually.
+
+changing appearances and viewpoint variations, matches
+given by NN often contain a large number of outliers, leading to poor pose accuracy [36, 37]. To mitigate this problem, some works [8, 10, 16, 27, 40, 48, 49, 52] filter potential
+outliers of predicted matches with neural networks to improve the pose accuracy. Although they report better results,
+their performance is limited by the quality of initial matches
+and require extra time for filtering at test time. Alternatively, advanced matchers such as SuperGlue [36] enhance
+the matching quality directly by using global information
+from all keypoints via transformers [45] with a fixed number (e.g. 9) of iterations. These methods have obtained remarkable performance. Yet, their quadratic time complexity for the attention computation degrades the efficiency in
+real applications. Some following works [12,38,41] explore
+more efficient variations, they run faster but are significantly
+less accurate (see Table 1 and 3).
+In this paper, we aim to introduce an efficient and accurate framework for iterative matching and pose estimation.
+Our approach is built upon the following observations: (1)
+a few well distributed matches (e.g. 5) could give a roughly
+accurate pose (e.g. essential matrix); (2) in turn, a roughly
+
+21317
+
+

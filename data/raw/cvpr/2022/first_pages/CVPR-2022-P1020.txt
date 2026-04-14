@@ -1,0 +1,87 @@
+Stratified Transformer for 3D Point Cloud Segmentation
+Xin Lai1 *
+
+Jianhui Liu2,3∗
+Shu Liu3
+1
+CUHK 2 HKU
+
+Li Jiang4
+Liwei Wang1
+Hengshuang Zhao2,5
+Xiaojuan Qi2†
+Jiaya Jia1,3
+3
+4
+SmartMore MPI Informatics 5 MIT
+
+Abstract
+3D point cloud segmentation has made tremendous
+progress in recent years. Most current methods focus on
+aggregating local features, but fail to directly model longrange dependencies. In this paper, we propose Stratified
+Transformer that is able to capture long-range contexts and
+demonstrates strong generalization ability and high performance. Specifically, we first put forward a novel key sampling strategy. For each query point, we sample nearby
+points densely and distant points sparsely as its keys in a
+stratified way, which enables the model to enlarge the effective receptive field and enjoy long-range contexts at a low
+computational cost. Also, to combat the challenges posed
+by irregular point arrangements, we propose first-layer
+point embedding to aggregate local information, which facilitates convergence and boosts performance. Besides, we
+adopt contextual relative position encoding to adaptively
+capture position information. Finally, a memory-efficient
+implementation is introduced to overcome the issue of varying point numbers in each window. Extensive experiments
+demonstrate the effectiveness and superiority of our method
+on S3DIS, ScanNetv2 and ShapeNetPart datasets. Code is
+available at https:// github.com/ dvlab-research/ StratifiedTransformer.
+
+1. Introduction
+Nowadays 3D point clouds can be conveniently collected. They have demonstrated great potential in various
+applications, such as autonomous driving, robotics and augmented reality. Unlike regular pixels in 2D images, 3D
+points are arranged irregularly, hampering direct adoption
+of well-studied 2D networks to process 3D data. Therefore,
+it is imperative to explore advanced methods that are tailored for 3D point cloud data.
+Abundant methods [7, 15, 16, 34, 35, 41, 52, 61, 62] have
+explored 3D point cloud segmentation and obtained decent
+* Equal Contribution
+† Corresponding Author
+
+Input / Ground Truth
+bed
+chair
+
+w/o stratified
+curtain
+desk
+
+floor
+
+w/ stratified
+table
+wall
+
+Figure 1. Visualization of Effective Receptive Field (ERF) [29],
+given the feature of interest (shown with green star) in the output
+layer. Red region corresponds to high contribution. Left: Input
+point cloud and the ground truth. Middle: The ERF and prediction
+of the model without stratified strategy and by only attending to its
+own window. Right: The ERF and prediction of the model with
+direct long-range dependency, using the stratified strategy. More
+illustrations are shown in the supplementary file.
+
+performance. Most of them focus on aggregating local features, but fail to explicitly model long-range dependencies,
+which has been demonstrated to be crucial in capturing contexts from a long distance [49]. Along another line of research, Transformer [44] can naturally harvest long-range
+information via the self-attention mechanism. However,
+only limited attempts [31, 62] have been made to apply
+Transformer to 3D point clouds. Point Transformer [62]
+proposes “vector self-attention” and “subtraction relation”
+to aggregate local features, but it is still difficult to directly
+capture long-range contexts. Voxel Transformer [31] is tailored for object detection and performs self-attention over
+the voxels, but it loses accurate position due to voxelization.
+Differently, we develop an efficient segmentation network to capture long-range contexts using the standard
+multi-head self-attention [44], while keeping position information intact. To this end, we propose a simple and powerful framework, namely, Stratified Transformer.
+Specifically, we first partition the 3D space into nonoverlapping cubic windows, inspired by Swin Transformer [26]. However, in Swin Transformer, different
+windows work independently, and each query token only
+chooses the tokens within its window as keys, thus attend-
+
+8500
+
+

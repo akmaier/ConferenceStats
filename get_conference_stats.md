@@ -260,8 +260,19 @@ For the `ICCV/ECCV` family, use the same family-level year and let `make` resolv
 
 ```bash
 make iccv-eccv-show-target YEAR=2024
+make iccv-eccv-first-pages YEAR=2016 FIRST_PAGE_START=0 FIRST_PAGE_LIMIT=100
+make iccv-eccv-first-pages-sample-2015-2016
+make iccv-eccv-first-pages-sample-remaining
 make iccv-eccv-prepare-llm YEAR=2024
 make iccv-eccv-llm-country YEAR=2024
+```
+
+For ECCV years with several Springer books, the family first-page target now auto-discovers the linked proceedings volumes from the Springer Part I page and excludes workshop volumes. If a year ever needs an override, add a manifest at `config/proceedings_volumes/eccv/<year>.csv`; the family target will prefer that manifest automatically.
+
+For a custom family range, use:
+
+```bash
+make iccv-eccv-first-pages-range ICCV_ECCV_START_YEAR=2017 ICCV_ECCV_END_YEAR=2025 FIRST_PAGE_START=0 FIRST_PAGE_LIMIT=100
 ```
 
 ## Recommended Commands

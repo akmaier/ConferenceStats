@@ -1,0 +1,80 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Rebalancing Batch Normalization for
+Exemplar-based Class-Incremental Learning
+Sungmin Cha1 , Sungjun Cho2 , Dasol Hwang2 , Sunwon Hong1 , Moontae Lee2,3 , and Taesup Moon1,4,5 *
+1
+Department of ECE, Seoul National University 2 LG AI Research 3 University of Illinois Chicago
+4
+ASRI / INMC / IPAI / AIIS, Seoul National University 5 SNU-LG AI Research Center
+sungmin.cha@snu.ac.kr, {sungjun.cho, dasol.hwang}@lgresearch.ai,
+zghdtnsz96@snu.ac.kr, moontae.lee@lgresearch.ai, tsmoon@snu.ac.kr
+
+Abstract
+Batch Normalization (BN) and its variants has been extensively studied for neural nets in various computer vision
+tasks, but relatively little work has been dedicated to studying
+the effect of BN in continual learning. To that end, we develop a new update patch for BN, particularly tailored for the
+exemplar-based class-incremental learning (CIL). The main
+issue of BN in CIL is the imbalance of training data between
+current and past tasks in a mini-batch, which makes the empirical mean and variance as well as the learnable affine
+transformation parameters of BN heavily biased toward the
+current task — contributing to the forgetting of past tasks.
+While one of the recent BN variants has been developed
+for “online” CIL, in which the training is done with a single
+epoch, we show that their method does not necessarily bring
+gains for “offline” CIL, in which a model is trained with
+multiple epochs on the imbalanced training data. The main
+reason for the ineffectiveness of their method lies in not fully
+addressing the data imbalance issue, especially in computing the gradients for learning the affine transformation parameters of BN. Accordingly, our new hyperparameter-free
+variant, dubbed as Task-Balanced BN (TBBN), is proposed
+to more correctly resolve the imbalance issue by making a
+horizontally-concatenated task-balanced batch using both
+reshape and repeat operations during training. Based on
+our experiments on class incremental learning of CIFAR100, ImageNet-100, and five dissimilar task datasets, we
+demonstrate that our TBBN, which works exactly the same
+as the vanilla BN in the inference time, is easily applicable
+to most existing exemplar-based offline CIL algorithms and
+consistently outperforms other BN variants.
+
+1. Introduction
+In recent years, continual learning (CL) has been actively
+studied to efficiently learn a neural network on sequentially
+* Corresponding author (E-mail: tsmoon@snu.ac.kr)
+
+arriving datasets while eliminating the process of re-training
+from scratch at each arrival of a new dataset [9]. However,
+since the model is typically trained on a dataset that is heavily skewed toward the current task at each step, the resulting
+neural network often suffers from suboptimal trade-off between stability and plasticity [25] during CL. To overcome
+this issue, various studies have been focused on addressing
+the so-called catastrophic forgetting phenomenon [9, 28].
+Among different CL settings, the class-incremental learning (CIL) setting where the classifier needs to learn previously unseen classes at each incremental step has recently
+drawn attention due to its practicality [1, 3, 6, 12, 15, 26,
+39, 42, 44]. Most state-of-the-art CIL algorithms maintain a
+small exemplar memory to store a subset of previously used
+training data and combine it with the current task dataset to
+mitigate the forgetting of past knowledge. A key issue of
+exemplar-based CIL is that the model prediction becomes
+heavily biased towards more recently learned classes, due
+to the imbalance between the training data from the current
+task (that are abundantly available) and past tasks (with limited access through exemplar memory). In response, recently
+proposed solutions to biased predictions include bias correction [39], unified classifier [15], and separated softmax [1],
+which greatly improved the overall accuracy of CIL methods
+across all classes learned so far.
+Despite such progress, relatively less focus has been made
+on backbone architectures under CIL on computer vision
+tasks. Specifically, the popular CNN-based models (e.g.,
+ResNet [13]) are mainly used as feature extractors, and those
+models are equipped with Batch Normalization (BN) [17]
+by default. However, since BN is designed for single-task
+training on CNNs, applying BN directly to exemplar-based
+CIL results in statistics biased toward the current task due
+to the imbalance between current and past tasks’ data in
+a mini-batch. Recently, [29] pointed out this issue in CIL,
+dubbed as cross-task normalization effect, and proposed a
+new normalization scheme called Continual Normalization
+
+20127
+
+

@@ -1,0 +1,76 @@
+RAMA: A Rapid Multicut Algorithm on GPU
+Ahmed Abbas
+
+Paul Swoboda
+
+Max Planck Institute for Informatics, Saarland Informatics Campus
+
+Abstract
+We propose a highly parallel primal-dual algorithm for
+the multicut (a.k.a. correlation clustering) problem, a classical graph clustering problem widely used in machine learning and computer vision. Our algorithm consists of three
+steps executed recursively: (1) Finding conflicted cycles that
+correspond to violated inequalities of the underlying multicut relaxation, (2) Performing message passing between the
+edges and cycles to optimize the Lagrange relaxation coming from the found violated cycles producing reduced costs
+and (3) Contracting edges with high reduced costs through
+matrix-matrix multiplications.
+Our algorithm produces primal solutions and lower
+bounds that estimate the distance to optimum. We implement
+our algorithm on GPUs and show resulting one to two ordersof-magnitudes improvements in execution speed without sacrificing solution quality compared to traditional sequential
+algorithms that run on CPUs. We can solve very large scale
+benchmark problems with up to O(108 ) variables in a few
+seconds with small primal-dual gaps. Our code is available
+at https://github.com/pawelswoboda/RAMA.
+
+1. Introduction
+Decomposing a graph into meaningful clusters is a fundamental problem in combinatorial optimization. The multicut
+problem [15] (also known as correlation clustering [10]) is
+a popular approach to decompose a graph into an arbitrary
+number of clusters based on affinites between nodes.
+The multicut problem and its extensions such as higher
+order multicut [27, 32], lifted multicut [30], (asymmetric)
+multiway cut [14, 36], lifted disjoint paths [21] and joint
+multicut and node labeling [41] have found numerous applications in machine learning, computer vision, biomedical image analysis, data mining and beyond. Examples include unsupervised image segmentation [4,5,7,58], instanceseparating semantic segmentation [2, 33], multiple object
+tracking [21, 53], cell tracking [25], articulated human body
+pose estimation [22], motion segmentation [31], image and
+mesh segmentation [30], connectomics [6, 13, 48] and many
+more.
+
+Multicut and its extensions are NP-hard to solve [10, 18].
+Since large problem instances with millions or even billions
+of variables typically occur, powerful approximative algorithms have been developed [11, 12, 30, 39, 52]. However,
+even simple heuristics such as [30] require very large running
+times for very large instances. In particular, some instances,
+such as those investigated in [48] could not be solved in acceptable time (hence ad-hoc decomposition techniques were
+used). In other scenarios very fast running times are essential, e.g. when multicut is used in end-to-end training [2, 49].
+Hence, the need for parallelization arises, preferably on
+GPUs. The parallelism offered by GPUs is typically difficult
+to exploit due to irregular data structures and the inherently
+sequential nature of most combinatorial optimization algorithms. This makes design of combinatorial optimization
+algorithms challenging on GPUs. An additional benefit of
+running our algorithms on GPU is that memory transfers
+between CPU and GPU are avoided when used in a deep
+learning pipeline.
+Our contribution is a new primal-dual method that can be
+massively parallelized and run on GPU. This results in faster
+runtimes than previous multicut solvers while still computing
+solutions which are similar or better than CPU based solvers
+in terms of objective. Yet, our approach is rooted in solving
+a principled polyhedral relaxation and yields both a primal
+solution and a dual lower bound. In particular, finding primal
+solutions and approximate dual solving is interleaved such
+that both components of our algorithm can profit from each
+other. In more detail, our algorithmic contribution can be
+categorized as follows
+Primal: Edge Contraction: Finding a primal solution depends similarly as in [30] on contracting edges that are
+highly likely to end up in the same component of the
+final clustering. To this end we propose to use a linear algebra approach by expressing edge contractions as
+sparse matrix-matrix multiplications. This allows us to
+accelerate edge contraction by exploiting highly parallel
+matrix-matrix multiplication GPU primitives.
+Dual: Lagrange Relaxation & Message Passing: To find
+good edge contraction candidates, we consider approximately solving a polyhedral relaxation by searching for
+conflicting cycles, adding them to a Lagrange relaxation
+
+8193
+
+

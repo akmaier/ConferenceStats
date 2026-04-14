@@ -1,0 +1,84 @@
+Anchor Diffusion for Unsupervised Video Object Segmentation
+Zhao Yang∗
+University of Oxford
+
+Qiang Wang∗
+CASIA
+
+Luca Bertinetto
+Five AI
+
+zhao.yang@eng.ox.ac.uk
+
+qiang.wang@nlpr.ia.ac.cn
+
+luca@robots.ox.ac.uk
+
+Weiming Hu
+CASIA
+
+Song Bai
+University of Oxford
+
+Philip H.S. Torr
+University of Oxford
+
+wmhu@nlpr.ia.ac.cn
+
+songbai.site@gmail.com
+
+philip.torr@eng.ox.ac.uk
+
+Abstract
+Unsupervised video object segmentation has often been
+tackled by methods based on recurrent neural networks and
+optical flow. Despite their complexity, these kinds of approach tend to favour short-term temporal dependencies
+and are thus prone to accumulating inaccuracies, which
+cause drift over time. Moreover, simple (static) image segmentation models, alone, can perform competitively against
+these methods, which further suggests that the way temporal
+dependencies are modelled should be reconsidered. Motivated by these observations, in this paper we explore simple
+yet effective strategies to model long-term temporal dependencies. Inspired by the non-local operators of [63], we
+introduce a technique to establish dense correspondences
+between pixel embeddings of a reference “anchor” frame
+and the current one. This allows the learning of pairwise
+dependencies at arbitrarily long distances without conditioning on intermediate frames. Without online supervision,
+our approach can suppress the background and precisely
+segment the foreground object even in challenging scenarios, while maintaining consistent performance over time.
+With a mean IoU of 81.7%, our method ranks first on the
+DAVIS-2016 leaderboard of unsupervised methods, while
+still being competitive against state-of-the-art online semisupervised approaches. We further evaluate our method
+on the FBMS dataset and the video saliency dataset ViSal,
+showing results competitive with the state of the art.
+
+1. Introduction
+Video object segmentation (VOS) is a fundamental task
+in many important areas such as autonomous driving [11,
+37, 15], robotic manipulation [23], video surveillance [54]
+and video editing [43]. Contemporary literature typically
+∗ Equal contribution.
+
+considers this problem in either the semi-supervised or the
+unsupervised setting. In both cases, the objective is to predict in every frame pixel-level masks delineating certain objects of interest.
+Under the semi-supervised setting, at test time methods
+can rely on a mask that specifies the object to segment. In
+contrast, the unsupervised setting does not provide any initialisation. Without online supervision, the task might be
+considered ambiguous, as different objects could be considered of interest for different reasons, according to the application. Among researchers, the current consensus is to
+segment foreground objects where a human gaze is more
+likely to focus [4]. In more practical terms, an object is
+generally considered as foreground if it is sufficiently large,
+in motion and centred in the scene. In certain datasets
+(e.g., FBMS [39] and ViSal [61]), in the same video, multiple foreground objects are considered, while in DAVIS2016 [45] only a single object is considered.
+With the aim of tracking temporal changes in target objects, current state-of-the-art unsupervised approaches generally model motion cues in a video sequence via optical
+flow [29, 28, 47, 22, 52, 51, 20, 9] or recurrent neural networks (RNNs) [16, 28, 52]. Typically, these methods sequentially propagate features from the previous steps to the
+current one, making the current prediction dependent on the
+entire history of the video. Though having the potential of
+exploiting informative temporal cues, these approaches suffer from several limitations. RNNs often rely on training
+techniques such as truncated backpropagation through time
+to reduce the cost of parameter updates, which limits their
+long-term modelling capability [49]. Moreover, while the
+gating mechanism in LSTMs alleviates the issue of vanishing gradients [1, 42], these can still have exploding gradients, which often requires clipping or rescaling the norm
+of the gradients during training [50]. Optical flow vectors
+only predict one-step motion cues at each frame in a video,
+which can accumulate errors over time. What is more, mod1931
+
+

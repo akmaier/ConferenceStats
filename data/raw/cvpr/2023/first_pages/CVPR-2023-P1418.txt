@@ -1,0 +1,73 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Beyond mAP: Towards better evaluation of instance segmentation
+Rohit Jena1† Lukas Zhornyak∗ 1 Nehal Doiphode∗ 1 Pratik Chaudhari 1
+Vivek Buch 2 James Gee 1 Jianbo Shi 1
+1
+2
+University of Pennsylvania
+Stanford University
+{rjena,zhornyak,lahen,pratikac,jshi}@seas.upenn.edu, vpbuch@stanford.edu, gee@upenn.edu
+
+Abstract
+Correctness of instance segmentation constitutes counting the number of objects, correctly localizing all predictions and classifying each localized prediction. Average
+Precision is the de-facto metric used to measure all these
+constituents of segmentation. However, this metric does not
+penalize duplicate predictions in the high-recall range, and
+cannot distinguish instances that are localized correctly but
+categorized incorrectly. This weakness has inadvertently
+led to network designs that achieve significant gains in AP
+but also introduce a large number of false positives. We
+therefore cannot rely on AP to choose a model that provides
+an optimal tradeoff between false positives and high recall.
+To resolve this dilemma, we review alternative metrics in
+the literature and propose two new measures to explicitly
+measure the amount of both spatial and categorical duplicate predictions. We also propose a Semantic Sorting and
+NMS module to remove these duplicates based on a pixel
+occupancy matching scheme. Experiments show that modern segmentation networks have significant gains in AP, but
+also contain a considerable amount of duplicates. Our Semantic Sorting and NMS can be added as a plug-and-play
+module to mitigate hedged predictions and preserve AP.
+
+1. Introduction
+Tasks like classification and semantic segmentation have
+a fixed output space, i.e. the K-dimensional probability distribution of the classes and the per-pixel semantic class respectively. For classification, we can use the zero-one loss,
+and for semantic segmentation we can use a per-pixel cross
+entropy loss. On the other hand, instance segmentation is
+a challenging problem because the output is a set containing an arbitrary number of objects, and the network does
+not have knowledge of the number of objects in the scene
+apriori. Therefore, the model has to count the correct number of objects in the scene, localize them all and classify
+† Correspondence to: rjena@seas.upenn.edu
+* Equal contribution
+
+them correctly. Deep learning for instance segmentation has
+two broad paradigms - top-down and bottom-up instance
+segmentation. In bottom-up instance segmentation, the image is converted into per-pixel features, and pixel features
+are aggregated to predict objects. This is typically done by
+grouping or clustering the pixels based on some similarity
+in the feature space [2, 7, 13, 30, 36, 41]. In top-down instance segmentation, a model proposes a set of candidate
+proposals, out of which proposals not containing an object
+are removed. This leaves us with a smaller set of proposals which are further passed into a localization and classification branch. This is typically followed by an NMS
+step, since an object may have multiple candidate proposals, so duplicates must be removed. Popular approaches
+are dominated by top-down methods where the network regresses a bounding box, mask, and category. Mask-RCNN
+[14, 16, 24] approaches it as a two-stage problem: localize
+the object, then predict the associated instance segmentation mask. SOLO [37, 38] builds on an anchor-free framework and directly regresses an object segmentation using
+a spatial grid feature as a probe. More recent work based
+on Transformers ( [6, 12]) explicitly learn a query in the
+network memory, then refines this prediction.
+We can
+interpret all these top-down methods as implementing the
+query-key paradigm. Each uses different query designs: anchor box-based object proposal for Mask R-CNN, grid-cell
+for SOLO, or learnable latent features for DETR/QueryInst.
+The Query-Key interaction aims to extract different representations of the object: ROI pooled features for MaskRCNN, center-based convolution filters for SOLO, and crossattention features in DETR.
+In analyzing why top-down methods consistently perform better than bottom-up methods, we make an unusual observation. The qualitative performance of bottomup methods is at par with that of top-down methods, but
+there is a significant gap in mAP. Upon further analysis of
+the precision-recall curves in top-down methods, we find
+that mAP can be increased by increasing the number of
+low-confidence predictions. We observe that recent design
+choices in the literature has exacerbated this problem. In
+
+11309
+
+

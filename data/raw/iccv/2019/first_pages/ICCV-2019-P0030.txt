@@ -1,0 +1,70 @@
+HAWQ: Hessian AWare Quantization of Neural Networks with Mixed-Precision
+Zhen Dong∗, Zhewei Yao∗, Amir Gholami∗, Michael W. Mahoney, Kurt Keutzer
+University of California, Berkeley
+{zhendong, zheweiy, amirgh, mahoneymw, and keutzer}@berkeley.edu
+
+Abstract
+Model size and inference speed/power have become a
+major challenge in the deployment of neural networks for
+many applications. A promising approach to address these
+problems is quantization. However, uniformly quantizing
+a model to ultra low precision leads to significant accuracy degradation. A novel solution for this is to use mixedprecision quantization, as some parts of the network may
+allow lower precision as compared to other layers. However, there is no systematic way to determine the precision
+of different layers. A brute force approach is not feasible
+for deep networks, as the search space for mixed-precision
+is exponential in the number of layers. Another challenge
+is a similar factorial complexity for determining block-wise
+fine-tuning order when quantizing the model to a target precision. Here, we introduce Hessian AWare Quantization
+(HAWQ), a novel second-order quantization method to address these problems. HAWQ allows for the automatic selection of the relative quantization precision of each layer,
+based on the layer’s Hessian spectrum. Moreover, HAWQ
+provides a deterministic fine-tuning order for quantizing
+layers. We show the results of our method on Cifar-10 using
+ResNet20, and on ImageNet using Inception-V3, ResNet50
+and SqueezeNext models. Comparing HAWQ with state-ofthe-art shows that we can achieve similar/better accuracy
+with 8× activation compression ratio on ResNet20, as compared to DNAS [39], and up to 1% higher accuracy with
+up to 14% smaller models on ResNet50 and Inception-V3,
+compared to recently proposed methods of RVQuant [27]
+and HAQ [38]. Furthermore, we show that we can quantize
+SqueezeNext to just 1MB model size while achieving above
+68% top1 accuracy on ImageNet.
+
+1. Introduction
+There has been a significant increase in the computational resources required for Neural Network (NN) training and inference. This is mainly due to larger input sizes
+∗ Equal contribution.
+
+(e.g., higher image resolution) as well as larger NN models requiring more FLOPs and significantly larger memory
+footprint. For example, in 1998 the state-of-the-art NN was
+LeNet-5 [19] applied to MNIST dataset with an input image
+size of 1 × 28 × 28. Twenty years later, a common benchmark dataset is ImageNet, with an input resolution that is
+200× larger than MNIST, and with NN models that have
+orders of magnitude higher memory footprint.
+In fact, ImageNet resolution is now considered “small”
+for many applications such as autonomous driving where
+input resolutions are significantly larger (more than 40× in
+certain cases).
+This combination of larger models and higher resolution
+images has created a major challenge in the deployment of
+NNs in application environments with computationally constrained resources such as surveillance systems or ADAS
+systems in passenger cars. This trend is going to accelerate
+further in the near future.
+There has been a significant effort taken by many researchers to address these issues. These could be broadly
+categorized as follows. (i) Finding NNs that provide the required accuracy, while remaining compact by design (i.e.,
+with small memory footprint) and requiring relatively small
+FLOPs. SqueezeNet [15] was an early effort here, followed
+by more efficient NNs such as [32, 22]. (ii) Co-designing
+NN architecture and hardware together. This can allow significant speed-ups as well as savings in power consumption
+of the hardware without losing accuracy. SqueezeNext [7]
+is an example work here where the neural network and associated accelerator are co-designed. (iii) Pruning redundant
+filters of NN layers. Seminal works here are [9, 26, 21, 23].
+(iv) Using quantization (reduced precision) instead of float
+or double precision, which can significantly speed up inference time and reduce power consumption. (v) Applying AutoML for both hardware aware NN design as well
+as quantization. Notable works here are DNAS [39] and
+HAQ [38]. This paper exclusively focuses on quantization,
+but other approaches could be used in conjunction of our
+method to allow for further possible reduction on the model
+size.
+Quantization needs to be performed for both NN pa-
+
+293
+
+

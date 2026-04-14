@@ -1,0 +1,86 @@
+TubeR: Tubelet Transformer for Video Action Detection
+Jiaojiao Zhao1 ,* Yanyi Zhang2 ,* Xinyu Li3 ,* Hao Chen3 , Bing Shuai3 , Mingze Xu3 , Chunhui Liu3 ,
+Kaustav Kundu3 , Yuanjun Xiong3 , Davide Modolo3 , Ivan Marsic2 , Cees G.M. Snoek1 , Joseph Tighe3
+1
+University of Amsterdam 2 Rutgers University 3 AWS AI Labs
+person detection
+
+Abstract
+We propose TubeR: a simple solution for spatio-temporal
+video action detection. Different from existing methods that
+depend on either an off-line actor detector or hand-designed
+actor-positional hypotheses like proposals or anchors, we
+propose to directly detect an action tubelet in a video by simultaneously performing action localization and recognition
+from a single representation. TubeR learns a set of tubeletqueries and utilizes a tubelet-attention module to model the
+dynamic spatio-temporal nature of a video clip, which effectively reinforces the model capacity compared to using
+actor-positional hypotheses in the spatio-temporal space.
+For videos containing transitional states or scene changes,
+we propose a context aware classification head to utilize
+short-term and long-term context to strengthen action classification, and an action switch regression head for detecting
+the precise temporal action extent. TubeR directly produces
+action tubelets with variable lengths and even maintains
+good results for long video clips. TubeR outperforms the
+previous state-of-the-art on commonly used action detection
+datasets AVA, UCF101-24 and JHMDB51-21. Code will be
+available on GluonCV(https://cv.gluon.ai/).
+
+1. Introduction
+This paper tackles the problem of spatio-temporal human
+action detection in videos [3, 17, 39], which plays a central
+role in advanced video search engines, robotics, and selfdriving cars. Action detection is a compound task, requiring the localization of per-frame person instances, the linking of these detected person instances into action tubes and
+the prediction of their action class labels. Two approaches
+for spatio-temporal action detection are prevalent in the literature: frame-level detection and tubelet-level detection.
+Frame-level detection approaches detect and classify the action independently on each frame [14, 29, 32], and then link
+per-frame detections together into coherent action tubes. To
+compensate for the lack of temporal information, several
+* Equally contributed and work done while at AWS AI Labs
+
+anchor
+
+cuboid refine
+
+t
+t
+hypotheses on fixed action location hypotheses on cuboid anchor
+Fencing
+
+Fencing
+
+TubeR
+
+t
+
+seq-to-seq
+no detector
+no proposal
+no hypotheses
+
+t
+
+Figure 1. TubeR takes as input a video clip and directly outputs
+tubelets: sequences of bounding boxes and their action labels. TubeR runs end-to-end without person detectors, anchors or proposals.
+
+methods simply repeat 2D proposals [12, 15, 35] or offline
+person detections [9, 28, 37, 43] over time to obtain spatiotemporal features (Figure 1 top left).
+Alternatively, tubelet-level detection approaches [16, 19,
+26, 33, 45, 49], directly generate spatio-temporal volumes
+from a video clip to capture the coherence and dynamic nature of actions. They typically predict action localization and
+classification jointly over spatio-temporal hypotheses, like
+3D cuboid proposals [16, 19] (Figure 1 top right). Unfortunately, these 3D cuboids can only capture a short period of
+time, also when the spatial location of a person changes as
+soon as they move, or due to camera motion. Ideally, this
+family of models would use flexible spatio-temporal tubelets
+that can track the person over a longer time, but the large
+configuration space of such a parameterization has restricted
+previous methods to short cuboids. In this work we present
+a tubelet-level detection approach that is able to simultaneously localize and recognize action tubelets in a flexible
+manner, which allows tubelets to change in size and location
+over time (Figure 1 bottom). This allows our system to leverage longer tubelets, which aggregate visual information of a
+person and their actions over longer periods of time.
+We draw inspiration from sequence-to-sequence modelling in natural language processing (NLP), particularly
+machine translation [21, 24, 36, 40], and its application to
+object detection, DETR [4]. Being a detection framework,
+
+13598
+
+

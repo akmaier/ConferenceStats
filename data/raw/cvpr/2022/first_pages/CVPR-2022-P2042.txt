@@ -1,0 +1,122 @@
+Injecting Semantic Concepts into End-to-End Image Captioning
+Zhiyuan Fang♠ , Jianfeng Wang♥ , Xiaowei Hu♥ , Lin Liang♥ , Zhe Gan♥ ,
+Lijuan Wang♥ , Yezhou Yang♠ , Zicheng Liu♥
+♠
+♥
+Arizona State University,
+Microsoft Corporation
+{zy.fang, yz.yang}@asu.edu
+{jianfw, xiaowei.hu, lliang, zhe.gan, lijuanw, zliu}@microsoft.com
+
+Abstract
+Tremendous progresses have been made in recent years
+in developing better image captioning models, yet most of
+them rely on a separate object detector to extract regional
+features. Recent vision-language studies are shifting towards
+the detector-free trend by leveraging grid representations
+for more flexible model training and faster inference speed.
+However, such development is primarily focused on image
+understanding tasks, and remains less investigated for the
+caption generation task. In this paper, we are concerned with
+a better-performing detector-free image captioning model,
+and propose a pure vision transformer-based image captioning model, dubbed as ViTCAP, in which grid representations
+are used without extracting the regional features. For improved performance, we introduce a novel Concept Token
+Network (CTN) to predict the semantic concepts and then
+incorporate them into the end-to-end captioning. In particular, the CTN is built on the basis of a vision transformer, and
+is designed to predict the concept tokens through a classification task, from which the rich semantic information contained greatly benefits the captioning task. Compared with
+the previous detector-based models, ViTCAP drastically simplifies the architectures and at the same time achieves competitive performance on various challenging image captioning datasets. In particular, ViTCAP reaches 138.1 CIDEr
+scores on COCO-caption Karpathy-split, 93.8 and 108.6
+CIDEr scores on nocaps and Google-CC captioning datasets,
+respectively.
+
+1. Introduction
+The task of image captioning aims to generate humanreadable descriptive text from an image. Recent studies
+have witnessed its great development which are primarily
+reflected in the aspects of more advanced cross-modal fusion
+architectures [11, 45, 50, 54, 57, 63, 65, 67, 70]; more expressive object-centric features [4, 69] & tags [16, 23, 35, 58]
+obtained from a pre-trained object detection model; or learn-
+
+Image
+Features
+
+Image
+Encoder
+
+IMG
+REG.
+FEAT.
+
+OD
+TAGS
+
+REG.
+OPE.
+
+Tags
+(Optional)
+
+Grid FEAT.
+
+Multi-Modal
+Module
+
+Caption
+
+Concept
+Tokens
+
+GRID FEAT.
+
+CTN
+
+ENC
+
+ENC
+
+( ResBlocks or ViT )
+
+( ViT/b )
+
+IMG
+
+IMG
+
+Feature Maps
+
+ENC
+IMG
+
+(a)
+
+(b)
+
+(c)
+
+Figure 1. Comparisons of different image captioning models.
+Top: A general image captioning pipeline. Bottom: (a). Prevailing
+conventional models [23, 36, 69] which are based on an object
+detector to extract regional features. Object tags [35, 69] can be
+optionally used to assist the text generation through a multi-modal
+decoder network. This usually requires regional operations (REG.
+OPE.) that are time consuming. (b). To eliminate the detection
+module, a ResNet variant [20] or Vision Transformer [30] can be
+applied as substitution to output the grid feature [61, 62]. This
+replacement has been studied on the image understanding task
+recently but very few works focus on the generation task. (c). Our
+proposed ViTCAP, which is detector-free and incorporates a novel
+Concept Token Network to predict semantic concepts as tokens for
+the image captioning task.
+
+ing general Vision and Language (VL) representations from
+large image-text corpus [16, 35, 58, 61, 62, 71].
+Despite these significant advances, most of the mainstream captioning models [11, 45, 54, 70] rely heavily on a
+bulky object detector to provide regional visual representations for the multimodal interaction, as shown in Figure 1-a.
+In spite of the superior performance brought by the object
+features, the ensuing difficulties occur as they: 1) lead to
+heavy computational load due to the regional operations
+(i.e., RPN, RoI Pooling, and NMS). These intermediate operations unavoidably cause training inefficiency and high
+inference latency at prediction stage [30, 58]; 2) require
+
+18009
+
+

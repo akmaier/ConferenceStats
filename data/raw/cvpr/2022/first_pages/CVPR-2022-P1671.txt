@@ -1,0 +1,76 @@
+RIDDLE: Lidar Data Compression with Range Image Deep Delta Encoding
+Xuanyu Zhou∗ Charles R. Qi∗
+
+Yin Zhou
+
+Dragomir Anguelov
+
+Waymo LLC
+
+Abstract
+Lidars are depth measuring sensors widely used in autonomous driving and augmented reality. However, the
+large volume of data produced by lidars can lead to high
+costs in data storage and transmission. While lidar data can
+be represented as two interchangeable representations: 3D
+point clouds and range images, most previous work focus on
+compressing the generic 3D point clouds. In this work, we
+show that directly compressing the range images can leverage the lidar scanning pattern, compared to compressing
+the unprojected point clouds. We propose a novel datadriven range image compression algorithm, named RIDDLE (Range Image Deep DeLta Encoding). At its core is
+a deep model that predicts the next pixel value in a raster
+scanning order, based on contextual laser shots from both
+the current and past scans (represented as a 4D point cloud
+of spherical coordinates and time). The deltas between predictions and original values can then be compressed by entropy encoding. Evaluated on the Waymo Open Dataset and
+KITTI, our method demonstrates significant improvement in
+the compression rate (under the same distortion) compared
+to widely used point cloud and range image compression
+algorithms as well as recent deep methods.
+
+1. Introduction
+Lidar (or LiDAR, short for light detection and ranging)
+sensors are commonly used in applications that require 3D
+scene understanding such as autonomous driving and augmented reality. However, with the growing resolution of
+lidars, storing and transmitting large volumes of sequential
+lidar data become a challenge. There is a strong need to
+develop effective algorithms for lidar data compression.
+While the measurements of a lidar scan are often used as
+a 3D point cloud, the raw lidar data can be represented as
+a more structured format: a range image, where each pixel
+corresponds to a laser shot, each row represents shots from
+the same laser, each column represents shots at a specific azimuth rotation angle. Given the lidar scanning mechanism
+∗ equal contribution
+
+(directions of the lasers) and sensor poses (6D poses in the
+global coordinate at the timestamp of every shot), a range
+image and its corresponding point cloud can be converted
+interchangeably and losslessly. By organizing the points in
+a range image, instead of storing the three-dimensional coordinates of the points, we can just store one-dimensional
+ranges (around 3x saving in storage). Given this observation, in contrast to previous works that focus on compressing 3D point clouds [9, 16, 23], we propose to directly compress range images to leverage the lidar scanning patterns.
+As range images are in the image format, naturally we
+can apply existing compression methods for optical images
+(RGB or grayscale); however, those methods have their limitations. For example, the PNG format is often used to compress depth images in indoor datasets [4, 11, 25], where the
+depth value are normalized and quantized to 16-bit integers
+and compressed losslessly. While PNG also applies to compress lidar range images, it is not data-driven and does not
+use temporal information. There are also attempts to use
+auto-encoder networks [31] to lossily compress range images by storing the bottleneck layer output. However, as
+range values often have a much wider distribution than RGB
+colors, it is challenging to learn an accurate reconstruction,
+especially at the object boundaries.
+In this work, we propose RIDDLE (Range Image Deep
+DeLta Encoding), a data-driven algorithm to compress
+range images with predictive neural networks (Fig. 2). Our
+method is inspired by the use of delta encoding in PNG image compression. However, instead of simply computing a
+difference between close-by pixels, we adopt a deep model
+to predict the pixel value from context pixels. The deep
+model takes a local patch of the decoded range image and
+predicts the attributes of the next pixel in a raster-scanning
+order (a similar process to the sequential image decoder
+PixelCNN [33]). We can then entropy encode the residuals between the predicted values and the original values to
+achieve lossless compression under a chosen quantization
+rate. In this scheme, the more accurate the prediction is,
+the smaller the entropy of the residuals are – improving the
+compression rate is equivalent to developing a more accurate predictive model.
+What is unique in our model design is that we represent
+
+17212
+
+

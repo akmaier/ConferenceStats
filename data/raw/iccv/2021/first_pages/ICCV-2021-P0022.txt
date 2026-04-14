@@ -1,0 +1,81 @@
+ResRep: Lossless CNN Pruning via Decoupling Remembering and Forgetting
+Xiaohan Ding 1,2 Tianxiang Hao 1,2 Jianchao Tan 3 Ji Liu 3
+Jungong Han 4 Yuchen Guo 1 Guiguang Ding 1,2 ∗
+1
+Beijing National Research Center for Information Science and Technology (BNRist)
+2
+School of Software, Tsinghua University, Beijing, China
+3
+AI platform department, Seattle AI lab, and FeDA lab, Kwai Inc.
+4
+Computer Science Department, Aberystwyth University, SY23 3FL, UK
+dxh17@mails.tsinghua.edu.cn
+
+beyondhtx,tanjianchaoustc,ji.liu.uwisc@gmail.com
+
+jungonghan77,yuchen.w.guo@gmail.com
+
+Abstract
+We propose ResRep, a novel method for lossless channel
+pruning (a.k.a. filter pruning), which slims down a CNN by
+reducing the width (number of output channels) of convolutional layers. Inspired by the neurobiology research about
+the independence of remembering and forgetting, we propose to re-parameterize a CNN into the remembering parts
+and forgetting parts, where the former learn to maintain
+the performance and the latter learn to prune. Via training with regular SGD on the former but a novel update rule
+with penalty gradients on the latter, we realize structured
+sparsity. Then we equivalently merge the remembering and
+forgetting parts into the original architecture with narrower
+layers. In this sense, ResRep can be viewed as a successful application of Structural Re-parameterization. Such
+a methodology distinguishes ResRep from the traditional
+learning-based pruning paradigm that applies a penalty on
+parameters to produce sparsity, which may suppress the parameters essential for the remembering. ResRep slims down
+a standard ResNet-50 with 76.15% accuracy on ImageNet
+to a narrower one with only 45% FLOPs and no accuracy drop, which is the first to achieve lossless pruning with
+such a high compression ratio. The code and models are at
+https://github.com/DingXiaoH/ResRep.
+
+1. Introduction
+The mainstream techniques to compress and accelerate
+convolutional neural network (CNN) include sparsification
+∗ This work was supported by the National Natural Science Foundation
+of China (No. 61925107, U1936202, 61971260), the National Key R&D
+Program of China (No. 2020AAA0105500). Xiaohan Ding is funded by
+the Baidu Scholarship Program 2019. Correspondence to: Yuchen Guo,
+Guiguang Ding.
+
+dinggg@tsinghua.edu.cn
+
+[10, 18, 20], channel pruning [26, 27, 35], quantization
+[4, 5, 45, 68], knowledge distillation [28, 32, 41, 61], etc.
+Channel pruning [27] (a.k.a. filter pruning [34] or network
+slimming [42]) reduces the width (i.e., number of output
+channels) of convolutional layers to effectively reduce the
+number of floating-point operations (FLOPs) and memory
+footprint, which is complementary to the other model compression methods as it produces a thinner model of the original architecture with no custom structures or operations.
+However, as CNN’s representational capacity depends
+on the width of conv layers, it is difficult to reduce the
+width without performance drops. On practical CNN architectures like ResNet-50 [22] and large-scale datasets like
+ImageNet [6], lossless pruning with high compression ratio has long been considered challenging. For reasonable
+trade-off between compression ratio and performance, a
+typical paradigm (Fig. 1.A) [2, 3, 9, 36, 39, 62, 63] trains
+the model with magnitude-related penalty loss (e.g., group
+Lasso [57, 60]) on the conv kernels to produce structured
+sparsity, which means all the parameters of some channels
+become small in magnitude. Ideally, if the parameters of
+pruned channels are small enough, the pruned model may
+deliver the same performance as before (i.e., after training
+but before pruning), which we refer to as perfect pruning.
+Since both the training and pruning may degrade the
+performance, we evaluate a training-based pruning method
+from two aspects. 1) Resistance. The training phase tends
+to decrease the accuracy (referred to as training-caused
+damage) as it introduces some desired properties such as
+structured sparsity into the model, which may be harmful
+because the objective of optimization is changed and the
+parameters are deviated from the optima. We say a model
+has high resistance if the performance maintains high during training. 2) Prunability. When we prune the model into
+a smaller one after training, the properties obtained (e.g.,
+
+4510
+
+

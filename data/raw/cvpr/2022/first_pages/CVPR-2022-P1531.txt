@@ -1,0 +1,75 @@
+DeltaCNN: End-to-End CNN Inference of Sparse Frame Differences in Videos
+Mathias Parger1
+
+Chengcheng Tang2 Christopher D. Twigg2 Cem Keskin2
+Robert Wang2
+Markus Steinberger1
+1
+Graz University of Technology, 2 Meta Reality Labs
+1 {mathias.parger, steinberger}@icg.tugraz.at
+
+2 {chengcheng.tang, cdtwigg, cemkeskin, rywang}@fb.com
+
+Abstract
+Convolutional neural network inference on video data
+requires powerful hardware for real-time processing. Given
+the inherent coherence across consecutive frames, large
+parts of a video typically change little. By skipping identical image regions and truncating insignificant pixel updates,
+computational redundancy can in theory be reduced significantly. However, these theoretical savings have been difficult
+to translate into practice, as sparse updates hamper computational consistency and memory access coherence; which
+are key for efficiency on real hardware. With DeltaCNN, we
+present a sparse convolutional neural network framework
+that enables sparse frame-by-frame updates to accelerate
+video inference in practice. We provide sparse implementations for all typical CNN layers and propagate sparse feature updates end-to-end – without accumulating errors over
+time. DeltaCNN is applicable to all convolutional neural
+networks without retraining. To the best of our knowledge,
+we are the first to significantly outperform the dense reference, cuDNN, in practical settings, achieving speedups of up
+to 7x with only marginal differences in accuracy. Our CUDA
+kernels and PyTorch extensions can be found at https:
+//github.com/facebookresearch/DeltaCNN .
+
+1. Introduction
+Convolutional neural networks (CNN) are the state-ofthe-art method for many image understanding tasks such as
+object detection, segmentation and pose estimation. Compared to multi-layer perceptrons, they require fewer parameters by spatially sharing parameters and perform better on
+image understanding tasks. However, to address the increasing complexity of datasets and tasks, CNNs have grown to
+hundreds of convolutional layers requiring tens of billions
+of floating point operations (FLOPs).
+In the last few years, researchers have found many ways
+to lower the cost of convolutional layers: Depth-wise separable convolutions [28], optimizing the ratio between pixels,
+
+channels and layer count [30], quantization [14,20,22], pruning [13, 18] and specialized hardware [5, 6, 12], to name a
+few. While these methods achieve a significant improvement
+in general purpose inference, there still is strong interest to
+further reduce the computational cost of CNNs, particularly
+for real-time applications on mobile devices.
+Recently, researchers started to exploit the temporal similarity commonly seen in surveillance cameras, license plate
+recognition cameras or webcams [1, 3, 9, 11, 16, 19, 23, 24,
+27, 33, 34]. These applications often use CNNs on video
+input from fixed cameras, where high frame-to-frame similarity offers an orthogonal direction to reduce computational
+complexity. State-of-the art frameworks for CNNs process
+each frame individually and therefore are not able to exploit
+frame-to-frame similarity. By reusing the results from previous frames in unchanged regions, the computational cost
+can theoretically be reduced greatly [1, 3, 11, 24] without
+reduction in accuracy. Furthermore, small and insignificant
+updates can be truncated to retain a high level of sparsity
+in activation throughout all layers of the CNN with only
+marginal differences in the final output [11, 24].
+While researchers have shown that truncating small
+changes increases the sparsity and thereby reduces FLOPs
+theoretically, leveraging data sparsity efficiently to speed up
+inference with actual hardware remains an unsolved challenge. Since parallel SIMD devices, like GPUs, are typically
+used for CNN inference due to the advantage in operations
+per watt and memory bandwidth, it is necessary to evaluate
+the real-word speedup of sparse neural networks on such
+devices. Specialized inference hardware as well as GPUs
+are less efficient for excessive conditional statements than
+CPUs and suffer under less structured memory access, both
+conditions that naturally arise when processing sparse activations in neural networks. Thus, previous research results on
+sparse activation in CNNs do not translate to high speedup
+numbers in practice.
+In this paper, we present the first fully sparse CNN,
+DeltaCNN, working on and optimized for GPUs. Our implementation translates potential savings of sparse activation
+
+12497
+
+

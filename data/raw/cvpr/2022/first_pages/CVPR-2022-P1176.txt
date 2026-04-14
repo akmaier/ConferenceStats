@@ -1,0 +1,117 @@
+Reversible Vision Transformers
+Karttikeya Mangalam*, 1, 2
+Haoqi Fan1
+Yanghao Li1
+Chao-Yuan Wu1
+Bo Xiong 1
+Christoph Feichtenhofer *, 1
+Jitendra Malik 1, 2
+∗
+
+1
+
+equal technical contribution
+2
+
+Facebook AI Research
+
+We present Reversible Vision Transformers, a memory
+efficient architecture design for visual recognition. By decoupling the GPU memory footprint from the depth of the
+model, Reversible Vision Transformers enable memory efficient scaling of transformer architectures. We adapt two
+popular models, namely Vision Transformer and Multiscale
+Vision Transformers, to reversible variants and benchmark
+extensively across both model sizes and tasks of image classification, object detection and video classification. Reversible Vision Transformers achieve a reduced memory
+footprint of up to 15.5× at identical model complexity, parameters and accuracy, demonstrating the promise of reversible vision transformers as an efficient backbone for resource limited training regimes. Finally, we find that the additional computational burden of recomputing activations
+is more than overcome for deeper models, where throughput can increase up to 3.9× over their non-reversible counterparts. Code and models are available at https://
+github.com/facebookresearch/mvit.
+
+1. Introduction
+The deep learning revolution in computer vision has
+rested on the bedrock of high performance hardware accelerators. Fueled by special purpose AI accelerators, the
+compute requirements for state-of-the-art models are growing exponentially. However, compute is only half the story.
+The other, and often overlooked half, is memory bandwidth
+bottleneck, which has been difficult to proportionally scale
+as compared to peak accelerator FLOPs [51]. In particular,
+the peak accelerator FLOPs have been increasing at a rate
+of ∼3.1× every 2 years. However, peak bandwidth only
+scales at a rate of ∼1.4× every 2 years. This disparity is
+exacerbated in transformers, which have been doubling in
+required compute roughly every three months for the past
+three years, resulting in a so-called memory wall [21] where
+both the overall model performance as well as the training
+speed have become tightly memory-bound [33].
+As such, for bandwidth bound models, trading compute
+for memory through re-computation could actually be more
+efficient than using work-optimal algorithms [67,68]. In the
+
+GPU Memory (MB/img)
+
+Abstract
+
+UC Berkeley
+MViT
+Rev-MViT
+ViT
+
+102
+
+Rev-ViT
+RegNetY
+ResNet
+
+4.5x
+
+Large (81.5)
+
+Base (81.8)
+
+15.5x
+
+Base (81.8)
+
+Large (81.4)
+
+Small (79.9)
+
+101
+
+Small (79.9)
+
+10
+
+20
+30
+40
+50
+Model Complexity (GFLOPs)
+
+60
+
+Figure 1. Reversible Vision Transformers are more memoryefficient, yet powerful reversible counterparts of state-of-theart Vision Transformer (ViT) [15] and Multiscale Vision Transformer (MViT) [18] architectures with varying model complexity. Numbers in parentheses denote top-1 ImageNet performance.
+ResNet [27] and RegNet [55] are only shown for reference. For
+detailed discussion please refer to §4.1.
+
+case of training neural network models, this can be achieved
+by re-computing activations instead of storing and then
+loading them from DRAM [30]. Besides training speed,
+scaling vision transformers in depth naturally hits the GPU
+memory capacity, especially in memory starved regimes
+such as video recognition where state-of-the-art models are
+often limited to batch size 1 due to high memory footprint
+of intermediate activations.
+In this work, we propose Reversible Vision Transformers, a family of expressive visual recognition architectures
+with very favorable activation memory footprints (Figure 1)
+compared to their non-reversible variants. By trading-off
+GPU activation caching with efficient on-the-fly activation
+re-computation, reversible vision transformers effectively
+decouple the activation memory growth from the depth of
+the model. While the natural language processing community has performed some early exploration of reversible
+transformers for machine translation [37], these techniques
+focus on longer sequence lengths rather than depth.
+Our experiments show that a straightforward adaptation
+of vision transformers to reversible architectures fails to
+scale for deeper models because of training convergence in-
+
+10830
+
+

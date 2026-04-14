@@ -1,0 +1,144 @@
+AdaFocus V2: End-to-End Training of
+Spatial Dynamic Networks for Video Recognition
+Yulin Wang1∗
+Yang Yue1∗
+Yuanze Lin2
+Haojun Jiang1
+Zihang Lai3
+Victor Kulikov4
+Nikita Orlov4
+Humphrey Shi4,5
+Gao Huang1
+BNRist, Tsinghua University
+4
+
+Recent works have shown that the computational efficiency of video recognition can be significantly improved
+by reducing the spatial redundancy. As a representative
+work, the adaptive focus method (AdaFocus) has achieved
+a favorable trade-off between accuracy and inference speed
+by dynamically identifying and attending to the informative regions in each video frame. However, AdaFocus requires a complicated three-stage training pipeline (involving reinforcement learning), leading to slow convergence
+and is unfriendly to practitioners. This work reformulates
+the training of AdaFocus as a simple one-stage algorithm by
+introducing a differentiable interpolation-based patch selection operation, enabling efficient end-to-end optimization. We further present an improved training scheme to
+address the issues introduced by the one-stage formulation, including the lack of supervision, input diversity and
+training stability. Moreover, a conditional-exit technique
+is proposed to perform temporal adaptive computation on
+top of AdaFocus without additional training. Extensive
+experiments on six benchmark datasets (i.e., ActivityNet,
+FCVID, Mini-Kinetics, Something-Something V1&V2, and
+Jester) demonstrate that our model significantly outperforms the original AdaFocus and other competitive baselines, while being considerably more simple and efficient
+to train. Code is available at https://github.com/
+LeapLabTHU/AdaFocusV2.
+
+1. Introduction
+Deep networks have achieved remarkable success in
+large-scale video recognition tasks [3, 14, 16, 25, 58]. Their
+high accuracy has fueled the desire to deploy them for automatically recognizing the actions, events, or other contents
+within the explosively growing online videos in recent years
+(e.g., on YouTube). However, the models with state-of-theCorresponding authors.
+
+3
+
+U of Washington
+
+Picsart AI Research (PAIR)
+
+Abstract
+
+∗ Equal contribution.
+
+2
+
+5
+
+CMU
+
+U of Oregon
+
+Table 1. A comparison of training the original AdaFocus model
+(AdaFocusV1, from ¶ to º) and AdaFocusV2 (end-to-end) on
+Something-Something (Sth-Sth) V1 dataset. Both procedures
+start from the same initial backbone networks. Herein, fG , fL , fC
+and π are the model components (see Section 3.1 for details).
+AdaFocusV1
+Pre-training
+
+AdaFocusV2
+
+¶ Pre-train fG on Sth-Sth V1.
+· Pre-train fL on Sth-Sth V1.
+
+Stage-1
+
+¸ Train fL and fC using
+random patches.
+
+Stage-2
+
+¹ Train π using
+reinforcement learning.
+
+Stage-3
+
+º Fine-tune fL and fC .
+
+End-to-End
+Training
+(fG , fL , fC , π)
+
+AdaFocusV2-TSM
+AdaFocusV1-TSM
+
+49.5
+
+Accuracy (%)
+
+1
+
+49.0
+
+Speedup 2.2×
+Accuracy ↑1.0%
+
+48.5
+
+Speedup 2.2×
+Accuracy ↑1.5%
+
+48.0
+47.5
+
+Speedup 2.4×
+Accuracy ↑1.2%
+
+47.0
+20
+
+30
+
+40
+
+50
+
+60
+
+Wall-time Training Cost (hours)
+Figure 1. Comparisons of AdaFocusV1 and AdaFocusV2 on
+Sth-Sth V1 in terms of accuracy v.s. training cost. The training
+time is measured based on 4 NVIDIA 3090 GPUs. The two sides
+of grey arrows correspond to the same network architecture (i.e.,
+the same inference cost). Our AdaFocusV2 accelerates the training
+by 2.2-2.4×, while boosting the accuracy by 1.0-1.5%.
+
+art performance [1,13,20,42,51,59] tend to be computationally intensive during inference. In real-world applications
+such as recommendation [8, 9, 18], surveillance [4, 7] and
+content-based searching [30], computation translates into
+power consumption and latency, both of which should be
+minimized for environmental, safety or economic reasons.
+Several algorithms have been proposed to reduce the
+temporal redundancy of videos [19, 21, 35, 36, 47, 57, 67,
+68, 73] by allocating the majority of computation to the
+
+20062
+
+

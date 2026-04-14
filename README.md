@@ -119,8 +119,19 @@ For the `ICCV/ECCV` family, the year resolves automatically to the right source 
 
 ```bash
 make iccv-eccv-show-target YEAR=2024
+make iccv-eccv-first-pages YEAR=2016 FIRST_PAGE_START=0 FIRST_PAGE_LIMIT=100
+make iccv-eccv-first-pages-sample-2015-2016
+make iccv-eccv-first-pages-sample-remaining
 make iccv-eccv-prepare-llm YEAR=2024
 make iccv-eccv-llm-country YEAR=2024
+```
+
+For ECCV years, the family target now auto-discovers linked Springer proceedings volumes from the Part I page and excludes workshop volumes. If we ever need to override or pin a year manually, we can still add a manifest under `config/proceedings_volumes/eccv/<year>.csv`.
+
+To probe a custom year range for the first 100 papers, use:
+
+```bash
+make iccv-eccv-first-pages-range ICCV_ECCV_START_YEAR=2017 ICCV_ECCV_END_YEAR=2025 FIRST_PAGE_START=0 FIRST_PAGE_LIMIT=100
 ```
 
 ## Repository Layout
@@ -128,6 +139,7 @@ make iccv-eccv-llm-country YEAR=2024
 ```text
 config/
   conferences.csv          # list of conference/year collection targets
+  proceedings_volumes/     # optional per-year multi-volume proceedings manifests
 data/
   raw/                     # raw downloaded or copied source material
   normalized/              # canonical CSV outputs per conference/year

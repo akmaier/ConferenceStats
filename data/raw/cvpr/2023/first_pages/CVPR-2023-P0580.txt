@@ -1,0 +1,85 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+The Dialog Must Go On:
+Improving Visual Dialog via Generative Self-Training
+Gi-Cheon Kang1,2 Sungdong Kim3 * Jin-Hwa Kim3,2∗ Donghyun Kwak4∗ Byoung-Tak Zhang1,2
+1
+2
+3
+4
+IPAI, Seoul National University
+AIIS
+NAVER AI Lab
+NAVER Cloud CLOVA
+{chonkang, btzhang}@snu.ac.kr
+
+{sungdong.kim, j1nhwa.kim, donghyun.kwak}@navercorp.com
+
+Abstract
+Visual dialog (VisDial) is a task of answering a sequence
+of questions grounded in an image, using the dialog history
+as context. Prior work has trained the dialog agents solely
+on VisDial data via supervised learning or leveraged pretraining on related vision-and-language datasets. This paper
+presents a semi-supervised learning approach for visuallygrounded dialog, called Generative Self-Training (GST), to
+leverage unlabeled images on the Web. Specifically, GST
+first retrieves in-domain images through out-of-distribution
+detection and generates synthetic dialogs regarding the images via multimodal conditional text generation. GST then
+trains a dialog agent on the synthetic and the original VisDial data. As a result, GST scales the amount of training
+data up to an order of magnitude that of VisDial (1.2M →
+12.9M QA data). For robust training of the synthetic dialogs, we also propose perplexity-based data selection and
+multimodal consistency regularization. Evaluation on VisDial v1.0 and v0.9 datasets shows that GST achieves new
+state-of-the-art results on both datasets. We further observe
+the robustness of GST against both visual and textual adversarial attacks. Finally, GST yields strong performance
+gains in the low-data regime. Code is available at https:
+//github.com/gicheonkang/gst-visdial.
+
+1. Introduction
+Recently, there has been extensive research towards developing visually-grounded dialog systems [12, 13, 34, 36]
+due to their significance in many real-world applications
+(e.g., helping visually impaired person). Notably, Visual Dialog (VisDial) [12] has provided a testbed for studying such
+systems, where a dialog agent should answer a sequence
+of image-grounded questions. For instance, the agent is expected to answer open-ended questions like “What color is
+it?” and “How old does she look?”. This task requires a
+holistic understanding of visual information, linguistic se* Equal contribution
+
+mantics in context (e.g., it and she), and most importantly,
+the grounding of these two.
+Most of the previous approaches in VisDial [9, 10, 18, 20,
+25, 26, 30, 31, 35, 49, 54, 55, 64, 67, 78, 84] have trained the
+dialog agents solely on VisDial data via supervised learning.
+More recent studies [8,53,77] have employed self-supervised
+pre-trained models such as BERT [14] or ViLBERT [48]
+and finetuned them on VisDial data. The models are typically pre-trained to recover masked inputs and predict the
+semantic alignment between two segments. This pretrainthen-transfer learning strategy has shown promising results
+by transferring knowledge from the models pre-trained on
+large-scale data sources [4, 71, 85] to VisDial.
+Our research question is the following: How can the dialog agent expand its knowledge beyond what it can acquire
+via supervised learning or self-supervised pre-training on
+the provided datasets? Some recent studies have shown that
+semi-supervised learning and pre-training have complementary modeling capabilities in image [86] and text classification [16]. Inspired by them, we consider semi-supervised
+learning (SSL) as a way to address the above question.
+Let us assume that large amounts of unlabeled images
+are available. SSL for VisDial can be applied to generate
+synthetic conversations for the unlabeled images and train
+the agent with the synthetic data. However, there are two
+critical challenges to this approach. First, the target output
+for VisDial (i.e., multi-turn visual QA data) is more complex
+than that of the aforementioned studies [16, 86]. Specifically,
+they have addressed the classification problems, yielding
+class probabilities as pseudo labels [39]. In contrast, SSL
+for VisDial should generate a sequence of pseudo queries
+(i.e., visual questions) and pseudo labels (i.e., corresponding
+answers) in natural language to train the answering agent.
+It further indicates that the target output should be generated
+while considering the multimodal and sequential nature of
+the visual dialog task. Next, even if SSL yields synthetic
+dialogs via text generation, there may be noise, such as
+generating irrelevant questions or incorrect answers to given
+contexts. A robust training method is required to leverage
+such noisy synthetic dialog datasets.
+
+6746
+
+

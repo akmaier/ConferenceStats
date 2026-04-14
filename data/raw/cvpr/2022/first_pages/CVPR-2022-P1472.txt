@@ -1,0 +1,98 @@
+Channel Balancing for Accurate Quantization of Winograd Convolutions
+Vladimir Chikin
+Huawei Noah’s Ark Lab
+
+Vladimir Kryzhanovskiy
+Huawei Noah’s Ark Lab
+
+vladimir.chikin@huawei.com
+
+kryzhanovskiy.vladimir@huawei.com
+
+Abstract
+It is well known that Winograd convolution algorithms
+speed up the widely used small-size convolutions. However, the problem of quantization of Winograd convolutions
+is challenging – while quantization of slower Winograd algorithms does not cause problems, quantization of faster
+Winograd algorithms often leads to a significant drop in the
+quality of models. We introduce a novel class of Winograd
+algorithms that balances the filter and input channels in the
+Winograd domain. Unlike traditional Winograd convolutions, the proposed convolution balances the ranges of input channels on the forward pass by scaling the input tensor using special balancing coefficients (the filter channels
+are balanced offline). As a result of balancing, the inputs
+and filters of the Winograd convolution are much easier to
+quantize. Thus, the proposed technique allows us to obtain
+models with quantized Winograd convolutions, the quality
+of which is significantly higher than the quality of models
+with traditional quantized Winograd convolutions. Moreover, we propose a special direct algorithm for calculating the balancing coefficients, which does not require additional model training. This algorithm makes it easy to
+obtain the post-training quantized balanced Winograd convolutions – one should just feed a few data samples to the
+model without training to calibrate special parameters. In
+addition, it is possible to initialize the balancing coefficients
+using this algorithm and further train them as trainable
+variables during Winograd quantization-aware training for
+greater quality improvement.
+
+1. Introduction
+Lightweight architectural designs of Convolutional Neural Networks (CNNs) together with quantization have paved
+the way for the deployment of demanding computer vision
+applications on mobile devices. Parallel to this, alternative
+formulations of the convolution operation, such as FFT or
+Winograd, have been adapted for the use in CNNs allowing
+further speedups. Winograd convolutions [28] (also known
+as Toom-Cook algorithm [7, 27]) are the fastest known algorithm for spatially small convolutions, but their use in a
+
+quantized context is often accompanied by a quality drop
+due to significant numeric errors. The significant speed
+and power consumption advantage of quantized Winograd
+convolutions motivates the research in this direction, see
+Tab. 1. As we can see, the quantized Winograd is 2.3×
+(50/21.5) faster than the float16 direct convolution. In practice, speedups up to 4× (ARM CPUs) can be achieved [20].
+Implementation
+
+FP16, ms
+
+INT8, ms
+
+Direct conv
+Winograd conv
+
+50
+25
+
+30
+21.5
+
+Table 1. Inference time for ResNet-18 on 224 × 224 × 3 input,
+BOLT inference framework [11], ARM CPU: Kirin 990.
+
+Winograd convolutions Lavin et al. [15] generalized the
+Winograd’s minimal filtering algorithm [28] for filters with
+k × k kernels that are widely used in modern CNNs. This
+generalization is called Winograd 2D-convolution. Its main
+idea is based on the fact that the minimal filtering algorithm
+for computation of m outputs with k-tap FIR filter requires
+  \mu (F(m, k)) = m + k - 1 \label {eq:important0} 
+
+(1)
+
+multiplications, instead of mk multiplications required for
+the direct 1D-convolution. Further in the paper we will use
+the short form F (m, k) that denotes F (m × m, k × k) – a
+2D-convolution with kernel size k × k producing m × m
+outputs. The parameter m is called the tile size. In this
+paper, we consider the most popular case of Winograd convolutions – with 3 × 3 kernel and stride 1. Traditionally, the
+Winograd convolution algorithm is written in the following
+matrix form:
+  {\bf Y} = {\bf A}^T \Big (( {\bf B}^T{\bf XB} ) \odot ( {\bf GWG}^T )\Big ) {\bf A}, \label {eq:important0} 
+
+(2)
+
+where the tensor indices are omitted for simplicity. Various
+versions of Winograd transformation matrices A, B, G are
+used for different tile sizes m. Our proposed method can be
+generalized to any m (including complex Winograd [22]).
+In this paper, we use traditional Winograd transformation
+matrices from [15] for F(4, 3) and F(6, 3) Winograd algorithms. The definitions of these matrices are presented in
+Appendix A.
+
+12507
+
+

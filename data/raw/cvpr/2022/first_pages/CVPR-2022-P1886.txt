@@ -1,0 +1,102 @@
+Forecasting from LiDAR via Future Object Detection
+Neehar Peri1* Jonathon Luiten1,2 Mengtian Li1 Aljoša Ošep1,3 Laura Leal-Taixé3,4 Deva Ramanan1,4
+1
+
+Carnegie Mellon University
+
+2
+
+RWTH Aachen University
+
+3
+
+TUM Munich
+
+4
+
+Argo AI
+
+{nperi,jluiten,mengtial,aosep,deva}@andrew.cmu.edu, leal.taixe@tum.de
+
+Abstract
+Object detection and forecasting are fundamental components of embodied perception. These two problems, however, are largely studied in isolation by the community. In
+this paper, we propose an end-to-end approach for detection
+and motion forecasting based on raw sensor measurement
+as opposed to ground truth tracks. Instead of predicting the
+current frame locations and forecasting forward in time, we
+directly predict future object locations and backcast to determine where each trajectory began. Our approach not
+only improves overall accuracy compared to other modular
+or end-to-end baselines, it also prompts us to rethink the
+role of explicit tracking for embodied perception. Additionally, by linking future and current locations in a many-toone manner, our approach is able to reason about multiple
+futures, a capability that was previously considered difficult
+for end-to-end approaches. We conduct extensive experiments on the popular nuScenes dataset and demonstrate the
+empirical effectiveness of our approach. In addition, we investigate the appropriateness of reusing standard forecasting metrics for an end-to-end setup, and find a number of
+limitations which allow us to build simple baselines to game
+these metrics. We address this issue with a novel set of joint
+forecasting and detection metrics that extend the commonly
+used AP metrics from the detection community to measuring forecasting accuracy. Our code is available on GitHub.
+
+1. Introduction
+Object detection and forecasting are fundamental components of embodied perception that are often studied independently. In this paper we rethink the methods and metrics
+for trajectory forecasting from LiDAR sensor data. Trajectory forecasting is a critical perception task for autonomous
+robot navigation, thus building meaningful evaluation metrics and robust methods is of utmost importance.
+Traditional trajectory forecasting methods [6, 9, 47] de* Work done during an internship at Argo AI
+
+a)
+
+Detect, Track, Forecast
+
+LiDAR Sequence
+
+Detection
+
+b)
+
+End-to-End Forecasting
+
+Tracking
+
+LiDAR Sequence
+
+Forecasting
+
+Forecasting
+Object Detection +
+Offset Prediction
+
+c)
+
+This Work: Forecasting as Future Object Detection
+Multi-Future
+Forecasting
+
+LiDAR Sequence
+
+(Future) Object
+Detection +
+Backcasting
+
+Figure 1. (a) Current stage-wise methods independently address
+the problems of detection, tracking, and forecasting, allowing for
+compounding errors in the full pipeline. Each sub-module incorrectly assumes that its input will be perfect, leading to further integration errors. In contrast to current forecasting methods that use
+object tracks as input, end-to-end forecasting directly from LiDAR
+sensory data (b) streamlines forecasting pipelines. To this end, we
+propose FutureDet (c), an end-to-end model capable of forecasting
+multiple-future trajectories directly from LiDAR via future object
+detection. We show that our end-to-end pipeline improves upon
+state-of-the-art three-stage and end-to-end methods.
+
+tect [44–46] and track [23, 48, 50] objects in 3D LiDAR
+scans to obtain past trajectories (Fig. 1a). These can be
+used in conjunction with auto-regressive forecasting methods [1, 20, 22, 43] to estimate the future actions of surrounding agents. Recent efforts [33, 37, 51] streamline such
+multi-stage perception stacks and train multi-task neural
+networks to jointly detect, track and forecast object positions directly from raw sensor data (Fig. 1b). However,
+such end-to-end approaches tend to predict only a single
+future trajectory for each object, not accounting for future
+uncertainty. This is not surprising as estimating multiple futures is a significant challenge in forecasting, requiring machinery such as multiple-choice-loss [5] or generative models [2, 10, 11, 20, 22, 25, 29, 42].
+We rethink the forecasting task and propose FutureDet,
+an approach that reframes forecasting as the task of fu-
+
+17202
+
+

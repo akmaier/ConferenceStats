@@ -1,0 +1,69 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+HexPlane: A Fast Representation for Dynamic Scenes
+Ang Cao
+
+Justin Johnson
+
+University of Michigan, Ann Arbor
+{ancao, justincj}@umich.edu
+
+Abstract
+Modeling and re-rendering dynamic 3D scenes is a challenging task in 3D vision. Prior approaches build on NeRF
+and rely on implicit representations. This is slow since it requires many MLP evaluations, constraining real-world applications. We show that dynamic 3D scenes can be explicitly represented by six planes of learned features, leading to an elegant solution we call HexPlane. A HexPlane
+computes features for points in spacetime by fusing vectors extracted from each plane, which is highly efficient.
+Pairing a HexPlane with a tiny MLP to regress output colors and training via volume rendering gives impressive results for novel view synthesis on dynamic scenes, matching the image quality of prior work but reducing training
+time by more than 100×. Extensive ablations confirm our
+HexPlane design and show that it is robust to different feature fusion mechanisms, coordinate systems, and decoding
+mechanisms. HexPlane is a simple and effective solution
+for representing 4D volumes, and we hope they can broadly
+contribute to modeling spacetime for dynamic 3D scenes.1
+
+1. Introduction
+Reconstructing and re-rendering 3D scenes from a set
+of 2D images is a core vision problem which can enable
+many AR/VR applications. The last few years have seen
+tremendous progress in reconstructing static scenes, but this
+assumption is restrictive: the real world is dynamic, and in
+complex scenes motion is the norm, not the exception.
+Many current approaches for representing dynamic
+3D scenes rely on implicit representations, building on
+NeRF [42]. They train a large multi-layer perceptron (MLP)
+that inputs the position of a point in space and time, and outputs either the color of the point [28, 29] or a deformation
+to a canonical static scene [16, 49, 50, 54]. In either case,
+rendering images from novel views is expensive since each
+generated pixel requires many MLP evaluations. Training is
+1 Project page: https://caoang327.github.io/HexPlane.
+
+Figure 1. HexPlane for Dynamic 3D Scenes. Instead of regressing colors and opacities from a deep MLP, we explicitly compute
+features for points in spacetime via HexPlane. Pairing with a tiny
+MLP, it allows above 100× speedups with matching quality.
+
+similarly slow, requiring up to days of GPU time to model
+a single dynamic scene; this computational bottleneck prevents these methods from being widely applied.
+Several recent methods for modeling static scenes have
+demonstrated tremendous speedups over NeRF through the
+use of explicit and hybrid methods [7, 43, 66, 81]. These
+methods use an explicit spatial data structure that stores explicit scene data [14, 81] or features that are decoded by a
+tiny MLP [7, 43, 66]. This decouples a model’s capacity
+from its speed, and allows high-quality images to be rendered in realtime [43]. While effective, these methods have
+thus far been applied only to static scenes.
+In this paper, we aim to design an explicit representation of dynamic 3D scenes, building on similar advances
+for static scenes. To this end, we design a spatial-temporal
+data structure that stores scene data. It must overcome two
+key technical challenges. First is memory usage. We must
+model all points in both space and time; naı̈vely storing data
+in a dense 4D grid would scale with the fourth power of
+grid resolution which is infeasible for large scenes or long
+durations. Second is sparse observations. Moving a single
+camera through a static scene can give views that densely
+cover the scene; in contrast, moving a camera through a
+dynamic scene gives just one view per timestep. Treating
+timesteps independently may give insufficient scene coverage for high-quality reconstruction, so we must instead
+share information across timesteps.
+
+130
+
+

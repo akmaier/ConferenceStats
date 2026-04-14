@@ -1,0 +1,82 @@
+Stochastic Backpropagation:
+A Memory Efficient Strategy for Training Video Models
+Feng Cheng1 * Mingze Xu2† Yuanjun Xiong2
+1
+UNC Chapel Hill
+
+Hao Chen2 Xinyu Li2
+2
+AWS AI Labs
+
+Wei Li2
+
+Wei Xia2
+
+fengchan@cs.unc.edu, {xumingze,yuanjx,hxen,xxnl,wayl,wxia}@amazon.com
+
+Abstract
+Layer 12
+
+We propose a memory efficient method, named Stochastic Backpropagation (SBP), for training deep neural networks on videos. It is based on the finding that gradients from incomplete execution for backpropagation can
+still effectively train the models with minimal accuracy loss,
+which attributes to the high redundancy of video. SBP keeps
+all forward paths but randomly and independently removes
+the backward paths for each network layer in each training step. It reduces the GPU memory cost by eliminating the need to cache activation values corresponding to
+the dropped backward paths, whose amount can be controlled by an adjustable keep-ratio. Experiments show that
+SBP can be applied to a wide range of models for video
+tasks, leading to up to 80.0% GPU memory saving and 10%
+training speedup with less than 1% accuracy drop on action
+recognition and temporal action detection.
+
+1. Introduction
+One of the common challenge in training video understanding models is the limited availability of GPU memory.
+Although video models, such as those for action recognition [3, 42, 45, 49] and temporal action detection [6, 13], are
+known to benefit from capturing context features over the
+entire span of a video [49, 50], it is not always feasible to
+end-to-end train them while taking as many input frames
+(e.g., typically hundreds) as they need. For example, when
+training a temporal action detector using ResNet-50 [21] as
+feature extractor, 128 frames as inputs, and batch size 4, the
+feature extractor itself costs over 40 GB memory that could
+exceed the limit of most modern GPUs.
+On the other hand, video data is highly redundant, which
+suggests opportunity for optimization. We observe that in
+video models, the activation maps and gradients of different
+frames are similar at the bottom layers but become more and
+* The work was done during an Amazon internship.
+† Corresponding Author.
+
+Layer 7
+
+Layer 4
+
+Layer 1
+
+(a) activation maps
+
+(b) gradients of activation maps
+
+Video Swin-T
+Input
+
+Figure 1. The activations and gradients are obtained from different
+layers (e.g., layer 1, 4, 7, and 12) of Video Swin-T [33]. The
+activations and gradients between frames are similar at the bottom
+layers and are quite different at the top layers, which matches our
+assumption that there is much redundancy between the frames at
+the bottom layers but less at the top layers.
+
+more different at the top layers. An example of Video SwinT [33] on Kinetics-400 [7] dataset is shown in Fig. 1. During model training, the tiny difference in the seemly similar
+features (i.e., fine-grained information) of the bottom layers is crucial for producing the difference in the top layers,
+however, they may not make much difference in terms of
+updating the parameters of these bottom layers. Thus, we
+hypothesize that complete computation is necessary for the
+activation maps (forward paths) to extract important semantic information but could be unnecessary for the gradients
+(backward paths).
+In this paper, we propose a memory saving technique,
+named Stochastic Backpropagation (SBP). Different from
+previous work that jointly removes the forward and backward paths [1], SBP randomly drops a proportion of the in-
+
+8301
+
+

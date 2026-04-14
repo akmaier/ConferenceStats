@@ -1,0 +1,64 @@
+Patch Slimming for Efficient Vision Transformers
+Yehui Tang1,2 , Kai Han2 , Yunhe Wang2∗, Chang Xu3 ,
+Jianyuan Guo2,3 , Chao Xu1 , Dacheng Tao4 ,
+1
+School of Artificial Intelligence, Peking University. 2 Huawei Noah’s Ark Lab.
+3
+School of Computer Science, University of Sydney. 4 JD Explore Academy, China.
+yhtang@pku.edu.cn, {kai.han, yunhe.wang}@huawei.com, dacheng.tao@gmail.com.
+
+Abstract
+This paper studies the efficiency problem for visual
+transformers by excavating redundant calculation in given
+networks. The recent transformer architecture has demonstrated its effectiveness for achieving excellent performance
+on a series of computer vision tasks. However, similar
+to that of convolutional neural networks, the huge computational cost of vision transformers is still a severe issue. Considering that the attention mechanism aggregates
+different patches layer-by-layer, we present a novel patch
+slimming approach that discards useless patches in a topdown paradigm. We first identify the effective patches in
+the last layer and then use them to guide the patch selection process of previous layers. For each layer, the impact
+of a patch on the final output feature is approximated and
+patches with less impacts will be removed. Experimental results on benchmark datasets demonstrate that the proposed
+method can significantly reduce the computational costs of
+vision transformers without affecting their performances.
+For example, over 45% FLOPs of the ViT-Ti model can be
+reduced with only 0.2% top-1 accuracy drop on the ImageNet dataset.
+
+1. Introduction
+Recently, transformer models have been introduced into
+the field of computer vision and achieved high performance
+in many tasks such as object recognition [6], image process [2], and video analysis [21]. Compared with the convolutional neural networks (CNNs), the transformer architecture introduces less inductive biases and hence has larger
+potential to absorb more training data and generalize well
+on more diverse tasks [6, 11, 27, 35, 38, 43]. However, similar to CNNs, vision transformers also suffer high computational cost, which blocks their deployment on resourcelimited devices such as mobile phones and various IoT de∗ Corresponding author.
+
+vices. To apply a deep neural network in such real scenarios, massive model compression algorithms have been proposed to reduce the required computational cost [24, 42].
+For example, quantization algorithms approximate weights
+and intermediate features maps in neural networks with
+low-bit data [3, 32]. Knowledge distillation improves the
+performance of a compact network by transferring knowledge from giant models [17, 22].
+In addition, network pruning is widely explored and used
+to reduce the neural architecture by directly removing useless components in the pre-defined network [13, 14, 25, 28].
+Structured pruning discards whole contiguous components
+of a pre-trained model, which has attracted much attention
+in recent years, as it can realize acceleration without specific
+hardware design. In CNNs, removing a whole filter for improving the network efficiency is a representative paradigm,
+named channel pruning (or filter pruning) [16, 25]. For example, Liu et al. [25] introduce scaling factors to control the
+information flow in the neural network and filters with small
+factors will be removed. Although the aforementioned network compression methods have made tremendous efforts
+for deploying compact convolutional neural networks, there
+are only few works discussing how to accelerate vision
+transformers.
+Different from the paradigm in conventional CNNs,
+the vision transformer splits the input image into multiple
+patches and calculates the features of all these patches in
+parallel. The attention mechanism will further aggregate
+all patch embeddings into visual features as the output. Elements in the attention map reflect the relationship or similarity between any two patches, and the largest attention value
+for constructing the feature of an arbitrary patch is usually
+calculated from itself. Thus, we have to preserve this information flow in the pruned vision transformers for retaining the model performance, which cannot be guaranteed in
+the conventional CNN channel pruning methods. Moreover,
+not all the manually divided patches are informative enough
+and deserve to be preserved in all layers, e.g., some patches
+are redundant with others. Hence we consider developing
+
+12165
+
+

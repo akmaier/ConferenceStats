@@ -1,0 +1,109 @@
+Recurrent Scale Approximation for Object Detection in CNN
+Yu Liu1,2 , Hongyang Li2 , Junjie Yan1 , Fangyin Wei1 , Xiaogang Wang2 , Xiaoou Tang2
+1
+
+SenseTime Group Limited
+Multimedia Laboratory at The Chinese University of Hong Kong
+liuyuisanai@gmail.com,{yangli,xgwang}@ee.cuhk.edu.hk,
+{yanjunjie,weifangyin}@sensetime.com, xtang@ie.cuhk.edu.hk
+2
+
+Abstract
+I1
+
+瀆瀀濴濿濿
+
+Since convolutional neural network (CNN) lacks an inherent mechanism to handle large scale variations, we always need to compute feature maps multiple times for multiscale object detection, which has the bottleneck of computational cost in practice. To address this, we devise a recurrent scale approximation (RSA) to compute feature map
+once only, and only through this map can we approximate
+the rest maps on other levels. At the core of RSA is the
+recursive rolling out mechanism: given an initial map on
+a particular scale, it generates the prediction on a smaller
+scale that is half the size of input. To further increase efﬁciency and accuracy, we (a): design a scale-forecast network to globally predict potential scales in the image since
+there is no need to compute maps on all levels of the pyramid. (b): propose a landmark retracing network (LRN) to
+retrace back locations of the regressed landmarks and generate a conﬁdence score for each landmark; LRN can effectively alleviate false positives due to the accumulated error
+in RSA. The whole system could be trained end-to-end in a
+uniﬁed CNN framework. Experiments demonstrate that our
+proposed algorithm is superior against state-of-the-arts on
+face detection benchmarks and achieves comparable results for generic proposal generation. The source code of our
+system is available.1 .
+
+1. Introduction
+Object detection is one of the most important tasks in
+computer vision. The convolutional neural network (CNN) based approaches have been widely applied in object detection and recognition with promising performance
+[10, 13, 15, 18, 22, 23, 27, 34, 36]. To localize objects
+which have arbitrary scales and locations in an image, we
+1 Our codes and annotations mentioned in Sec.4.1 can be accessed at
+github.com/sciencefans/RSA-for-object-detection
+
+I1
+
+I1
+
+F1
+F1
+
+瀀濼濷濷濿濸
+I1/2
+
+I1/2
+
+N
+
+瀀濼濷濷濿濸
+
+F1/2
+
+瀆瀀濴濿濿
+
+濿濴瀅濺濸
+F1/2
+
+F1/2
+
+F1
+
+N
+
+(a) Multi-shot by single-scale detector
+
+瀆瀀濴濿濿
+
+瀀濼濷濷濿濸
+
+濿濴瀅濺濸
+F1/2
+
+N
+
+濿濴瀅濺濸
+
+(b) Single-shot by
+multi-scale detector
+
+(c) Single-shot by single-scale
+detector with
+recurrent scale approximation
+
+Figure 1. Different detection pipelines. (a) Image pyramid is generated for multi-scale test. Detector only handles a speciﬁc range
+of scale. (b) Image forwarded once in one scale and the detector
+generates all results. (c) Our proposed RSA framework. Image
+forwarded once only and feature maps for different scales are approximated by a recurrent unit. Blue plates indicate images in
+different scale and orange ones with red boarder indicate CNN
+feature maps in different levels.
+
+need to handle the variations caused by appearance, location and scale. Most of the appearance variations can now
+be handled in CNN, beneﬁting from the invariance property from convolution and pooling operations. The location variations can be naturally solved via sliding window,
+which can be efﬁciently incorporated into CNN in a fully
+convolutional manner. However, CNN itself does not have
+an inherent mechanism to handle the scale variations.
+The scale problem is often addressed via two ways,
+namely, multi-shot by single-scale detector and single-shot
+by multi-scale detector. The ﬁrst way, as shown in Fig. 1(a),
+handles objects of different scales independently by resizing
+the input into different scales and then forwarding the resized images multiple times for detection [2, 16, 28]. Models in such a philosophy probably have the highest recall
+as long as the sampling of scales is dense enough, but they
+suffer from high computation cost and more false positives.
+The second way, as depicted in Fig. 1(b), forwards the image only once and then directly regresses objects in multiple
+1571
+
+

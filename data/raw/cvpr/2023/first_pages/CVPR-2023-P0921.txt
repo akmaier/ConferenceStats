@@ -1,0 +1,100 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+SeqTrack: Sequence to Sequence Learning for Visual Object Tracking
+Xin Chen1 , Houwen Peng2,† , Dong Wang1,† , Huchuan Lu1,3 , Han Hu2
+1
+Dalian University of Technology 2 Microsoft Research 3 Peng Cheng Laboratory
+positive negative
+
+Abstract
+In this paper, we present a new sequence-to-sequence
+learning framework for visual tracking, dubbed SeqTrack.
+It casts visual tracking as a sequence generation problem,
+which predicts object bounding boxes in an autoregressive fashion. This is different from prior Siamese trackers and transformer trackers, which rely on designing complicated head networks, such as classification and regression heads. SeqTrack only adopts a simple encoder-decoder
+transformer architecture. The encoder extracts visual features with a bidirectional transformer, while the decoder
+generates a sequence of bounding box values autoregressively with a causal transformer. The loss function is a
+plain cross-entropy. Such a sequence learning paradigm
+not only simplifies tracking framework, but also achieves
+competitive performance on benchmarks. For instance, SeqTrack gets 72.5% AUC on LaSOT, establishing a new stateof-the-art performance. Code and models are available at
+https://github.com/microsoft/VideoX.
+
+1. Introduction
+Visual object tracking is a fundamental task in computer
+vision. It aims to estimate the position of an arbitrary target in a video sequence, given only its location in the initial frame. Existing tracking approaches commonly adopt a
+divide-and-conquer strategy, which decomposes the tracking problem into multiple subtasks, such as object scale estimation and center point localization. Each subtask is addressed by a specific head network. For example, SiamRPN
+[27] and its follow-up works [3, 7, 48, 55, 58] adopt classification heads for object localization and regression heads
+for scale estimation, as sketched in Fig. 1(a). STARK [53]
+and transformer-based trackers [4, 10, 17, 44] design corner
+head networks to predict the bounding box corners of target
+objects, as visualized in Fig. 1(b).
+Such a divide-and-conquer strategy has demonstrated superior performance on tracking benchmarks and thereby become the mainstream design in existing models. However,
+† Corresponding authors: Houwen Peng (houwen.peng@microsoft.com),
+
+Dong Wang (wdice@dlut.edu.cn).
+
+Classification
+Template
+&
+Search Region
+
+Bounding Box
+
+Backbone
+Regression
+
+x y w h
+
+(a) Trackers with classification and regression heads
+
+Template
+&
+Search Region
+
+Corner
+Prediction
+
+Bounding Box
+
+Backbone
+Corner
+Prediction
+
+(b) Trackers with corner heads
+Input Sequence
+start, x, y, w, h
+Template & Search Region
+
+Sequence
+Model
+
+Output Sequence
+x, y, w, h, end
+
+(c) Our sequence-to-sequence tracker (SeqTrack)
+
+Figure 1. Comparison of tracking frameworks. (a) The framework
+with object classification head and bounding box regression head.
+(b) The framework with corner prediction heads. (c) Sequence-tosequence tracking framework without complicated head networks.
+
+two deficiencies still exist. First, each subtask requires a
+customized head network, leading to a complicated tracking framework. Second, each head network requires one or
+more learning loss functions, e.g., cross-entropy loss [7,27],
+ℓ1 loss [7,27,53,55], generalized IoU loss [7,53,55], which
+make the training difficult due to extra hyperparameters.
+To address these issues, in this paper, we propose a new
+Sequence-to-sequence Tracking (SeqTrack) framework, as
+shown in Fig. 1(c). By modeling tracking as a sequence
+generation task, SeqTrack gets rid of complicated head networks and redundant loss functions. It is based upon the
+intuition that if the model knows where the target object
+is, we could simply teach it how to read the bounding box
+out, rather than explicitly performing additional classification and regression using a divide-and-conquer strategy.
+To this end, we convert the four values of a bounding
+box into a sequence of discrete tokens and make the model
+to learn generating this sequence token-by-token. We adopt
+a simple encoder-decoder transformer to model the gener-
+
+14572
+
+

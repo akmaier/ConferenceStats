@@ -1,0 +1,78 @@
+It’s All In the Teacher: Zero-Shot Quantization Brought Closer to the Teacher
+Kanghyun Choi1 , Hye Yoon Lee1 , Deokki Hong1 , Joonsang Yu2 ,
+Noseong Park1 , Youngsok Kim1 , and Jinho Lee1 *
+1
+College of Computing, Yonsei University 2 CLOVA ImageVision, CLOVA AI Lab, NAVER
+1
+
+{kanghyun.choi,hylee817,dk.hong,noseong,youngsok,leejinho}@yonsei.ac.kr
+2
+
+joonsang.yu@navercorp.com
+
+Abstract
+Model quantization is considered as a promising method
+to greatly reduce the resource requirements of deep neural
+networks. To deal with the performance drop induced by
+quantization errors, a popular method is to use training data
+to fine-tune quantized networks. In real-world environments,
+however, such a method is frequently infeasible because
+training data is unavailable due to security, privacy, or confidentiality concerns. Zero-shot quantization addresses such
+problems, usually by taking information from the weights of
+a full-precision teacher network to compensate the performance drop of the quantized networks. In this paper, we first
+analyze the loss surface of state-of-the-art zero-shot quantization techniques and provide several findings. In contrast
+to usual knowledge distillation problems, zero-shot quantization often suffers from 1) the difficulty of optimizing multiple
+loss terms together, and 2) the poor generalization capability
+due to the use of synthetic samples. Furthermore, we observe
+that many weights fail to cross the rounding threshold during
+training the quantized networks even when it is necessary
+to do so for better performance. Based on the observations,
+we propose AIT, a simple yet powerful technique for zeroshot quantization, which addresses the aforementioned two
+problems in the following way: AIT i) uses a KL distance
+loss only without a cross-entropy loss, and ii) manipulates
+gradients to guarantee that a certain portion of weights are
+properly updated after crossing the rounding thresholds. Experiments show that AIT outperforms the performance of
+many existing methods by a great margin, taking over the
+overall state-of-the-art position in the field.
+
+1. Introduction
+Deep neural network quantization [14,23,37,69] is a powerful tool for improving the computational efficiency of deep
+neural networks (DNNs). When being accompanied with the
+* Corresponding author
+
+low-bitwidth hardware design [29, 50, 59], the latency and
+energy consumption of DNNs can be greatly reduced.
+One problem of quantized models is, however, that they
+often suffer from the significant drop in accuracy, mainly
+due to quantization errors [37]. A popular way to address the
+problem is to further train or calibrate the model with training
+data [3, 9, 24, 53, 66, 69]. During the fine-tuning procedure,
+the forward pass is performed with quantized values whereas
+the backpropagation is done with floating-point values to
+recover the accuracy loss in the initial quantization.
+Unfortunately, such fine-tuning methods, which assume
+the full availability of training data at the time of quantization, are often not feasible in reality. Many models are
+disclosed to public only with their trained weights, and the
+dataset may contain proprietary, confidential, or sensitive
+data that fundamentally prohibit sharing.
+Zero-shot quantization (or data-free quantization) [4, 5,
+10, 11, 45, 62, 67, 68, 70] is therefore a necessary technique
+for quantization. It assumes that only the architecture and
+the pre-trained weights are available at the time of quantization. Current successful approaches are mainly led by
+generative approaches [5, 10, 39, 62, 67, 70]. Using synthetic
+samples from generators, knowledge distillation [22] is applied against full-precision models. It is known that the
+state-of-the-art methodology achieves almost similar performance to that of the data-driven approaches (i.e., quantization with real samples) for 5-bit fixed-point quantization, and
+comparable performance on 4-bit fixed-point setting. [10].
+However, the recipe of the fine-tuning in zero-shot quantization is mainly adopted from common knowledge distillation problems [8, 20, 22] that consider neither quantization
+nor synthetic samples. As in the knowledge distillation,
+the loss function of the zero-shot quantization is habitually
+built as a combination of the cross-entropy (CE) against
+the hard label and the Kullback–Leibler (KL) divergence
+against the full-precision network’s output.1 It works well
+1 In the remainder of this paper, we refer to CE as the cross-entropy
+against the hard label and KL as the KL divergence against the full-precision
+network unless otherwise stated.
+
+8311
+
+

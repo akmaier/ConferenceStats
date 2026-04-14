@@ -1,0 +1,86 @@
+Location-aware Single Image Reflection Removal
+Zheng Dong1 Ke Xu2,4 Yin Yang3 Hujun Bao1 Weiwei Xu∗1 Rynson W.H. Lau4
+1
+
+2
+State Key Lab of CAD&CG, Zhejiang University
+Shanghai Jiao Tong University
+3
+4
+Clemson University
+City University of Hong Kong
+
+zhengdong@zju.edu.cn, kkangwing@gmail.com, yin5@clemson.edu, {bao, xww}@cad.zju.edu.cn, Rynson.Lau@cityu.edu.hk
+
+Abstract
+This paper proposes a novel location-aware deeplearning-based single image reflection removal method.
+Our network has a reflection detection module to regress
+a probabilistic reflection confidence map, taking multiscale Laplacian features as inputs. This probabilistic map
+tells if a region is reflection-dominated or transmissiondominated, and it is used as a cue for the network to control
+the feature flow when predicting the reflection and transmission layers. We design our network as a recurrent network to progressively refine reflection removal results at
+each iteration. The novelty is that we leverage Laplacian
+kernel parameters to emphasize the boundaries of strong
+reflections. It is beneficial to strong reflection detection
+and substantially improves the quality of reflection removal
+results. Extensive experiments verify the superior performance of the proposed method over state-of-the-art approaches. Our code and the pre-trained model can be found
+at https://github.com/zdlarr/Location-aware-SIRR.
+
+1. Introduction
+Reflections often occur when images are photographed
+through reflective and transparent media (e.g., glass). Removing undesired reflections enhances the image quality
+and benefits many follow-up computer vision tasks, such as
+image classification. In reflection removal, an image I with
+reflections can be modeled as the weighted additive composition of a transmission layer T and a reflection layer R.
+Precisely, following the alpha blending model in [4, 23, 57],
+we express the composition procedure as:
+I = W ◦ T + R,
+
+(1)
+
+where W here is an alpha blending mask and ◦ indicates
+the element-wise multiplication. This model is designed to
+approximate the complex physical mechanisms involved in
+forming images with reflections.
+The task of single image reflection removal (SIRR) is to
+recover T from a given image I. It is an ill-posed prob∗ Corresponding author.
+
+(a) Input
+
+(b) Zhang et al. [57]
+
+(c) RMNet [47]
+
+(d) ERRNet [46]
+
+(e) CoRRN [44]
+
+(f) IBCLN [23]
+
+(g) RCMap
+
+(h) Ours
+
+(i) Ground truth
+
+Figure 1. State-of-the-art methods (b,c,d,e,f) typically fail to recover high-quality transmission layers from strong reflections,
+e.g., the highlights. Our method addresses this problem by learning the reflection confidence map (RCMap) for the detection of the
+reflection-dominated regions (g) and reflection removal (h). Images (a) and (i) are from [46].
+
+lem since the number of unknowns is much more than
+the number of equations derived from Eq. 1. Therefore,
+priors are necessary to constrain the solution space, such
+as natural image gradient sparsity [21, 22], ghosting cues
+for thick glasses [34], and relative smoothness that assumes the refection layer is smoother than the transmission layer [24, 52]. To disambiguate the restoration of
+T and R in the gradient domain, several works propose
+first to determine the locations of reflection-dominated and
+transmission-dominated pixels, and then exploit different
+constraints at different locations to improve the reflection
+removal results [21, 40, 42]. While these methods are sensitive to the selection of hyperparameters, for instance, the
+commonly used gradient magnitude threshold, the detected
+location information is proven to be useful to handle strong
+reflections. Therefore, such location information is expected to be beneficial for the neural networks to learn how
+the reflection information is encoded in the features. However, it is rarely investigated in deep learning-based SIRR
+
+5017
+
+
