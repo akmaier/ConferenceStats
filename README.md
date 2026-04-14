@@ -251,7 +251,8 @@ python3 scripts/extract_pdf_first_pages.py \
   --output-dir data/raw/cvpr/2015/first_pages \
   --manifest data/raw/cvpr/2015/first_page_manifest.csv \
   --start 0 \
-  --limit 100
+  --limit 100 \
+  --workers 4
 ```
 
 The equivalent `make` shortcuts for CVPR are:
@@ -259,6 +260,13 @@ The equivalent `make` shortcuts for CVPR are:
 ```bash
 make cvpr-first-pages YEAR=2018
 make cvpr-first-pages-range CVPR_START_YEAR=2018 CVPR_END_YEAR=2025
+```
+
+The first-page extractor supports bounded parallelism. The `make` targets expose it as `FIRST_PAGE_WORKERS`, which defaults to `4`.
+
+```bash
+make cvpr-first-pages YEAR=2018 FIRST_PAGE_WORKERS=6
+make iccv-eccv-first-pages YEAR=2022 FIRST_PAGE_WORKERS=6 FIRST_PAGE_START=0 FIRST_PAGE_LIMIT=100
 ```
 
 Then run the enrichment passes. The recommended one-command wrapper is:

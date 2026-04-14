@@ -275,6 +275,8 @@ For a custom family range, use:
 make iccv-eccv-first-pages-range ICCV_ECCV_START_YEAR=2017 ICCV_ECCV_END_YEAR=2025 FIRST_PAGE_START=0 FIRST_PAGE_LIMIT=100
 ```
 
+The first-page extractor supports bounded parallelism. The `make` targets expose it as `FIRST_PAGE_WORKERS`, which defaults to `4`.
+
 ## Recommended Commands
 
 For a single conference/year that already has `papers_index.csv` and extracted first-page text:

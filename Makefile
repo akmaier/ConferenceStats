@@ -14,6 +14,7 @@ ICCV_ECCV_START_YEAR ?= 2015
 ICCV_ECCV_END_YEAR ?= 2025
 FIRST_PAGE_START ?= 0
 FIRST_PAGE_LIMIT ?= 0
+FIRST_PAGE_WORKERS ?= 4
 
 .PHONY: validate stats overview all llm-country cvpr-first-pages cvpr-first-pages-range cvpr-first-pages-range-sample cvpr-first-pages-status-range cvpr-prepare-llm cvpr-prepare-llm-range iccv-eccv-show-target iccv-eccv-first-pages iccv-eccv-first-pages-range iccv-eccv-first-pages-sample-2015-2016 iccv-eccv-first-pages-sample-remaining iccv-eccv-prepare-llm iccv-eccv-llm-country clean
 
@@ -58,12 +59,13 @@ cvpr-first-pages:
 		--output-dir "data/raw/cvpr/$(YEAR)/first_pages" \
 		--manifest "data/raw/cvpr/$(YEAR)/first_page_manifest.csv" \
 		--start "$(FIRST_PAGE_START)" \
-		--limit "$(FIRST_PAGE_LIMIT)"
+		--limit "$(FIRST_PAGE_LIMIT)" \
+		--workers "$(FIRST_PAGE_WORKERS)"
 
 cvpr-first-pages-range:
 	year="$(CVPR_START_YEAR)"; \
 	while [ "$$year" -le "$(CVPR_END_YEAR)" ]; do \
-		$(MAKE) cvpr-first-pages YEAR="$$year" FIRST_PAGE_START="$(FIRST_PAGE_START)" FIRST_PAGE_LIMIT="$(FIRST_PAGE_LIMIT)"; \
+		$(MAKE) cvpr-first-pages YEAR="$$year" FIRST_PAGE_START="$(FIRST_PAGE_START)" FIRST_PAGE_LIMIT="$(FIRST_PAGE_LIMIT)" FIRST_PAGE_WORKERS="$(FIRST_PAGE_WORKERS)"; \
 		year=$$((year + 1)); \
 	done
 
@@ -143,12 +145,13 @@ iccv-eccv-first-pages:
 		--output-dir "data/raw/$$slug/$(YEAR)/first_pages" \
 		--manifest "data/raw/$$slug/$(YEAR)/first_page_manifest.csv" \
 		--start "$(FIRST_PAGE_START)" \
-		--limit "$(FIRST_PAGE_LIMIT)"
+		--limit "$(FIRST_PAGE_LIMIT)" \
+		--workers "$(FIRST_PAGE_WORKERS)"
 
 iccv-eccv-first-pages-range:
 	year="$(ICCV_ECCV_START_YEAR)"; \
 	while [ "$$year" -le "$(ICCV_ECCV_END_YEAR)" ]; do \
-		$(MAKE) iccv-eccv-first-pages YEAR="$$year" FIRST_PAGE_START="$(FIRST_PAGE_START)" FIRST_PAGE_LIMIT="$(FIRST_PAGE_LIMIT)"; \
+		$(MAKE) iccv-eccv-first-pages YEAR="$$year" FIRST_PAGE_START="$(FIRST_PAGE_START)" FIRST_PAGE_LIMIT="$(FIRST_PAGE_LIMIT)" FIRST_PAGE_WORKERS="$(FIRST_PAGE_WORKERS)"; \
 		year=$$((year + 1)); \
 	done
 

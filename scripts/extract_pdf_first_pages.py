@@ -2,13 +2,12 @@
 
 import argparse
 import csv
-import re
 import subprocess
 import tempfile
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urljoin
-from urllib.error import HTTPError
 
 
 def load_rows(path: Path):
@@ -50,13 +49,18 @@ def discover_pdf_url_from_paper_page(paper_page_url: str) -> str:
     if not paper_page_url:
         return ""
     html = fetch_text(paper_page_url)
-    match = re.search(r'href="([^"]+_paper\.pdf)"', html)
-    if not match:
+    marker = "_paper.pdf"
+    href_index = html.find(marker)
+    if href_index < 0:
         return ""
-    return urljoin(paper_page_url, match.group(1))
+    start_index = html.rfind('href="', 0, href_index)
+    if start_index < 0:
+        return ""
+    start_index += len('href="')
+    return urljoin(paper_page_url, html[start_index:href_index + len(marker)])
 
 
-def pdf_candidate_urls(row) -> list[str]:
+def initial_pdf_candidate_urls(row) -> list[str]:
     candidates = []
     for candidate in [
         row.get("pdf_url", ""),
@@ -64,12 +68,6 @@ def pdf_candidate_urls(row) -> list[str]:
     ]:
         if candidate and candidate not in candidates:
             candidates.append(candidate)
-    try:
-        discovered = discover_pdf_url_from_paper_page(row.get("paper_page_url", ""))
-    except Exception:
-        discovered = ""
-    if discovered and discovered not in candidates:
-        candidates.append(discovered)
     return candidates
 
 
@@ -86,6 +84,56 @@ def first_page_text(pdf_bytes: bytes) -> str:
         return result.stdout
 
 
+def process_row(row, output_dir: Path):
+    paper_id = row["paper_id"]
+    pdf_url = row["pdf_url"]
+    txt_path = output_dir / f"{paper_id}.txt"
+    status = "ok"
+    notes = ""
+
+    try:
+        if txt_path.exists() and txt_path.stat().st_size > 0:
+            notes = "Skipped download; existing first-page text reused"
+        else:
+            last_error = None
+            chosen_pdf_url = pdf_url
+            tried_urls = initial_pdf_candidate_urls(row)
+
+            for candidate_url in tried_urls:
+                try:
+                    pdf_bytes = download_bytes(candidate_url)
+                    txt_path.write_text(first_page_text(pdf_bytes), encoding="utf-8")
+                    chosen_pdf_url = candidate_url
+                    last_error = None
+                    break
+                except Exception as exc:
+                    last_error = exc
+
+            if last_error is not None:
+                discovered_url = discover_pdf_url_from_paper_page(row.get("paper_page_url", ""))
+                if discovered_url and discovered_url not in tried_urls:
+                    pdf_bytes = download_bytes(discovered_url)
+                    txt_path.write_text(first_page_text(pdf_bytes), encoding="utf-8")
+                    chosen_pdf_url = discovered_url
+                    last_error = None
+
+            if last_error is not None:
+                raise last_error
+
+            pdf_url = chosen_pdf_url
+    except Exception as exc:
+        status = "error"
+        notes = str(exc)
+
+    return {
+        "paper_id": paper_id,
+        "pdf_url": pdf_url,
+        "first_page_text_path": str(txt_path),
+        "status": status,
+        "notes": notes,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="Download paper PDFs and extract first-page text for later affiliation reasoning.")
     parser.add_argument("--papers-index", required=True)
@@ -93,6 +141,13 @@ def main():
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--start", type=int, default=0, help="Zero-based start index into papers_index.csv.")
     parser.add_argument("--limit", type=int, default=0, help="Optional limit for partial runs; 0 means all papers.")
+    parser.add_argument("--workers", type=int, default=4, help="Number of concurrent first-page extraction workers.")
+    parser.add_argument(
+        "--manifest-flush-every",
+        type=int,
+        default=0,
+        help="Rewrite the manifest after this many completed papers; 0 defaults to the worker count.",
+    )
     args = parser.parse_args()
 
     rows = load_rows(Path(args.papers_index))
@@ -103,55 +158,39 @@ def main():
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    manifest_rows = []
 
-    for row in rows:
-        paper_id = row["paper_id"]
-        pdf_url = row["pdf_url"]
-        txt_path = output_dir / f"{paper_id}.txt"
-        status = "ok"
-        notes = ""
-        try:
-            if txt_path.exists() and txt_path.stat().st_size > 0:
-                notes = "Skipped download; existing first-page text reused"
-            else:
-                last_error = None
-                chosen_pdf_url = pdf_url
-                for candidate_url in pdf_candidate_urls(row):
-                    try:
-                        pdf_bytes = download_bytes(candidate_url)
-                        txt_path.write_text(first_page_text(pdf_bytes), encoding="utf-8")
-                        chosen_pdf_url = candidate_url
-                        last_error = None
-                        break
-                    except Exception as exc:
-                        last_error = exc
-                if last_error is not None:
-                    raise last_error
-                pdf_url = chosen_pdf_url
-        except Exception as exc:
-            status = "error"
-            notes = str(exc)
+    workers = max(1, args.workers)
+    manifest_flush_every = max(1, args.manifest_flush_every or workers)
 
-        manifest_rows.append(
-            {
-                "paper_id": paper_id,
-                "pdf_url": pdf_url,
-                "first_page_text_path": str(txt_path),
-                "status": status,
-                "notes": notes,
-            }
-        )
-        write_csv(
-            Path(args.manifest),
-            ["paper_id", "pdf_url", "first_page_text_path", "status", "notes"],
-            manifest_rows,
-        )
+    completed_rows = {}
+    completed_since_flush = 0
+    total_rows = len(rows)
 
-    ok_count = sum(row["status"] == "ok" for row in manifest_rows)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        future_to_index = {
+            executor.submit(process_row, row, output_dir): index
+            for index, row in enumerate(rows)
+        }
+
+        for future in as_completed(future_to_index):
+            index = future_to_index[future]
+            completed_rows[index] = future.result()
+            completed_since_flush += 1
+
+            if completed_since_flush >= manifest_flush_every or len(completed_rows) == total_rows:
+                ordered_rows = [completed_rows[i] for i in sorted(completed_rows)]
+                write_csv(
+                    Path(args.manifest),
+                    ["paper_id", "pdf_url", "first_page_text_path", "status", "notes"],
+                    ordered_rows,
+                )
+                completed_since_flush = 0
+
+    ordered_rows = [completed_rows[i] for i in sorted(completed_rows)]
+    ok_count = sum(row["status"] == "ok" for row in ordered_rows)
     print(
-        f"Extracted first-page text for {ok_count} papers out of {len(manifest_rows)} "
-        f"(start={args.start}, limit={args.limit or 'all'})"
+        f"Extracted first-page text for {ok_count} papers out of {len(ordered_rows)} "
+        f"(start={args.start}, limit={args.limit or 'all'}, workers={workers})"
     )
 
 
