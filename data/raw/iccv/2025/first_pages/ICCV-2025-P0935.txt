@@ -1,0 +1,89 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+SANA-Sprint: One-Step Diffusion with Continuous-Time Consistency Distillation
+Junsong Chen1→ Shuchen Xue5→ Yuyang Zhao1† Jincheng Yu1†
+Sayak Paul4 Junyu Chen3 Han Cai1 Song Han1,2 Enze Xie1
+1
+
+NVIDIA
+
+2
+
+MIT
+
+3
+
+Tsinghua University
+
+4
+
+Huggingface
+
+5
+
+Independent Researcher
+
+→ Equal contribution. † Core contribution.
+
+Abstract
+This paper presents SANA-Sprint, an efficient diffusion model
+for ultra-fast text-to-image (T2I) generation. SANA-Sprint is
+built on a pre-trained foundation model and augmented with
+hybrid distillation, dramatically reducing inference steps
+from 20 to 1-4. We introduce three key innovations: (1)
+We propose a training-free approach that transforms a pretrained flow-matching model for continuous-time consistency distillation (sCM), eliminating costly training from
+scratch and achieving high training efficiency. Our hybrid
+distillation strategy combines sCM with latent adversarial distillation (LADD): sCM ensures alignment with the
+teacher model, while LADD enhances single-step generation fidelity. (2) SANA-Sprint is a unified step-adaptive
+model that achieves high-quality generation in 1-4 steps,
+eliminating step-specific training and improving efficiency.
+(3) We integrate ControlNet with SANA-Sprint for real-time
+interactive image generation, enabling instant visual feedback for user interaction. SANA-Sprint establishes a new
+Pareto frontier in speed-quality tradeoffs, achieving stateof-the-art performance with 7.59 FID and 0.74 GenEval in
+only 1 step — outperforming FLUX-schnell (7.94 FID / 0.71
+GenEval) while being 10! faster (0.1s vs 1.1s on H100). It
+also achieves 0.1s (T2I) and 0.25s (ControlNet) latency for
+1024→1024 images on H100, and 0.31s (T2I) on an RTX
+4090, showcasing its exceptional efficiency and potential
+for AI-powered consumer applications (AIPC). Code and
+pre-trained models will be open-sourced.
+
+1. Introduction
+The computational intensity of diffusion generative models [15, 53], typically requiring 50-100 iterative denoising steps, has driven significant innovation by time-step
+distillation to enable efficient inference. Current methodologies primarily coalesce into two dominant paradigms:
+(1) distribution-based distillations like GAN [12] (e.g.,
+ADD [52], LADD [51]) and its variational score distilla-
+
+tion (VSD) variants [37, 46, 62] leverage joint training to
+align single-step outputs with multi-step teacher’s distributions, and (2) trajectory-based distillations like Direct Distillation [35], Progressive Distillation [39, 49], Consistency
+Models (CMs) [54] (e.g. LCM [36], CTM [20], MCM [13],
+PCM [60], sCM [34]) learn ODE solution across reduced
+sampling intervals. Together, these methods achieve 10100! image generation speedup while maintaining competitive generation quality, positioning distillation as a critical
+pathway toward practical deployment.
+Despite their promise, key limitations hinder broader
+adoption. GAN-based methods suffer from training instability due to oscillatory adversarial dynamics and mode collapse. GANs face challenges due to the need to map noise
+to natural images without supervision, making unpaired
+learning more ill-posed than paired learning, as highlighted
+in [17, 76]. This instability is compounded by architectural
+rigidity, which demands meticulous hyperparameter tuning
+when adapting to new backbones or settings. VSD-based
+methods involve the joint training of an additional diffusion
+model, which increases computational overhead and imposes
+significant pressure on GPU memory, and requires careful
+tuning [69]. Consistency models, while stable, suffer quality
+erosion in ultra-few-step regimes (e.g., <4 steps), particularly in text-to-image tasks where trajectory truncation errors
+degrade semantic alignment. These challenges underscore
+the need for a distillation framework that harmonizes efficiency, flexibility, and quality.
+In this work, we present SANA-Sprint, an efficient diffusion model for one-step high-quality text-to-image (T2I)
+generation. Our approach builds on a pre-trained image generation model SANA and recent advancements in continuoustime consistency models (sCMs) [34], preserving the benefits
+of previous consistency-based models while mitigating the
+discretization errors of their discrete-time counterparts. To
+achieve the one-step generation, we first transform SANA, a
+Flow Matching model, to the TrigFlow model, which is required for sCM distillation, through a lossless mathematical
+transformation. Then, to mitigate the instability of distillation, we adapt the QK norm in self- and cross-attention in
+
+16185
+
+

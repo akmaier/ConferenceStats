@@ -1,0 +1,134 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+S TREAM M IND: Unlocking Full Frame Rate Streaming Video Dialogue through
+Event-Gated Cognition
+Hao Wu3 †
+Yifan Yang2
+Shiqi Jiang2
+Qianxi Zhang2
+2
+1
+4 †
+Donglin Bai
+Zhibo Chen
+Ting Cao
+1
+2
+University of Science and Technology of China
+Microsoft Research 3 Nanjing University
+4
+Institute for AI Industry Research (AIR), Tsinghua University
+Xin Ding1 *
+
+Abstract
+With the rise of real-world human-AI interaction applications, such as AI assistants, the need for Streaming
+Video Dialogue is critical. To address this need, we introduce S TREAM M IND, a video LLM framework that achieves
+ultra-FPS streaming video processing (100 fps on a single
+A100) and enables proactive, always-on responses in real
+time, without explicit user intervention.
+To solve the key challenge of the contradiction between
+linear video streaming speed and quadratic transformer
+computation cost, we propose a novel perception-cognition
+interleaving paradigm named “event-gated LLM invocation”, in contrast to the existing per-time-step LLM invocation. By introducing a Cognition Gate network between
+the video encoder and the LLM, LLM is only invoked when
+relevant events occur. To realize the event feature extraction with constant cost, we propose Event-Preserving Feature Extractor (EPFE) based on state-space method, generating a single perception token for spatiotemporal features.
+These techniques enable the video LLM with full-FPS perception and real-time cognition response.
+Experiments on Ego4D and SoccerNet streaming tasks,
+as well as standard offline benchmarks, demonstrate stateof-the-art performance in both model capability and realtime efficiency, paving the way for ultra-high-FPS applications, such as Game AI Copilot and interactive media. The
+code and data is available at https://aka.ms/StreamMind.
+
+f0
+
+f1
+
+t0
+
+t1
+
+f2
+
+f3
+t2
+
+t3
+
+f4 t
+t4
+
+Video Context Maintenance
+
+f1
+
+f0
+
+f2
+
+t0update t1
+State
+
+f3
+t2
+
+t3
+
+f4
+
+t
+t4
+
+State State State State
+
+gate
+
+LLM
+
+LLM LLM LLM LLM
+R1
+
+R2
+
+Existing Works 10~15 FPS on A100 GPU
+
+LLM
+
+LLM LLM LLM LLM
+R1
+
+R2
+
+Ours Up to 100 FPS on A100 GPU
+
+1. Introduction
+
+Figure 1. The paradigm of existing per-step LLM invocation (left)
+versus our event-gated LLM invocation (right) for streaming video
+dialogue task. Our paradigm boosts frame rate up-to 100 fps on
+A100. (Ri : response, fi : frame, t: time)
+
+The advancement of large foundation models is driving
+an increasing number of real-world human-AI interaction
+applications, such as AI home companions [3, 41] and
+human-robot collaboration [55, 64]. These applications
+* This work was done during Xin Ding’s internship at Microsoft Research.
+† Corresponding Author.
+
+13448
+
+heavily rely on streaming video understanding capabilities [14, 26, 45, 62, 72], specifically streaming video dialogue [8, 60]. Streaming video dialogue (StreamingVD)
+aims to continuously perceive incoming video streams and,
+based on user queries, provide proactive, real-time, and
+always-on responses without human intervention. For example, an AI companion could respond to user queries like
+“Guide me to fix this bicycle” or “Let’s watch and discuss
+the soccer game together”.
+Streaming video dialogue can be viewed as a generalization of standard offline video dialogue tasks [30, 32, 39,
+40, 49, 66, 67], extending video LLMs to broader realworld scenarios. The fundamental challenge of StreamingVD compared to its offline counterpart lies in the requirement for timing alignment between events and responses. That is, as the video progresses, the model is required to (1) proactively decide when to respond and (2)
+respond in real time before the next event occurs according to user queries, as illustrated in Fig. 2. However, with
+current techniques, these two requirements are contradictory and cannot be achieved simultaneously.
+The seminal VideoLLM-Online [8] and VideoLLMMoD [60] introduce a per-step LLM invocation paradigm
+for StreamingVD, shown in Fig. 1. At each time step,
+it inputs all past frames and the user query to the LLM,
+to decide when to respond or remain silent. However,
+
+

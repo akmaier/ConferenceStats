@@ -15,6 +15,41 @@ For context, this repository treats `ICCV` and `ECCV` as one conference family f
 - odd years: `ICCV`
 - even years: `ECCV`
 
+## Dependencies
+
+The scripts assume these command-line tools are available:
+
+- `python3`
+- `make`
+- `curl`
+- `pdftotext`
+
+On macOS with Homebrew, install the non-Python tools with:
+
+```bash
+brew install make poppler curl ollama
+```
+
+`pdftotext` is provided by the `poppler` package. You can verify it with:
+
+```bash
+pdftotext -v
+```
+
+If you want to use the optional local-LLM country pass, also install and start Ollama and pull the shared model:
+
+```bash
+open -a Ollama
+ollama pull qwen3:14b
+ollama list
+```
+
+If `python3` is missing on macOS, install it with:
+
+```bash
+brew install python
+```
+
 ## Workflow Overview
 
 ### Step 1: Collect conference/year data

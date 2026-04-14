@@ -1,0 +1,75 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Spectral Image Tokenizer
+Carlos Esteves
+
+Mohammed Suhail
+
+Ameesh Makadia
+
+{machc,suhailmhd,makadia}@google.com
+
+Google Research
+
+Abstract
+Image tokenizers map images to sequences of discrete
+tokens, and are a crucial component of autoregressive
+transformer-based image generation. The tokens are typically associated with spatial locations in the input image,
+arranged in raster scan order, which is not ideal for autoregressive modeling. In this paper, we propose to tokenize the
+image spectrum instead, obtained from a discrete wavelet
+transform (DWT), such that the sequence of tokens represents the image in a coarse-to-fine fashion. Our tokenizer
+brings several advantages: 1) it leverages that natural images are more compressible at high frequencies, 2) it can
+take and reconstruct images of different resolutions without retraining, 3) it improves the conditioning for next-token
+prediction – instead of conditioning on a partial line-by-line
+reconstruction of the image, it takes a coarse reconstruction
+of the full image, 4) it enables partial decoding where the
+first few generated tokens can reconstruct a coarse version
+of the image, 5) it enables autoregressive models to be used
+for image upsampling. We evaluate the tokenizer reconstruction metrics as well as multiscale image generation,
+text-guided image upsampling and editing.
+
+1. Introduction
+In natural language processing, tokenization associates sets
+of characters to entries in a vocabulary, which is straightforward since language is discrete. The sequence of tokens
+is suitably modeled as a categorical distribution with autoregressive (AR) transformers, which is the foundation of
+modern large language models (LLMs) [33, 46, 47].
+While natural images are represented by discrete pixel
+values, they exhibit high dimensionality, redundancies, and
+noise so it’s impractical to associate one token per pixel.
+This motivated a long line of research of learnable image
+tokenizers [15, 37, 37, 51, 57]. While there are successful autoregressive image generation models [15, 57, 58],
+
+17181
+
+images are not sequential like language, which motivated
+developing alternatives such as denoising diffusion models [11, 38, 43] and masked transformers [3, 4, 60]. Nevertheless, most of these alternatives also operate on the latent
+space of tokenizers like VQGAN [15] instead of raw pixels.
+In this work, we revisit AR transformer-based image
+generation. Our main contribution is a tokenizer operating on the image spectrum, specifically on DWT coefficients, where the coarse-to-fine representation lends itself
+more naturally to a sequential interpretation. Our Spectral
+Image Tokenizer (SIT) has several useful properties and enables different applications:
+P.1 Since the power spectrum of natural images decreases
+with frequency, high frequencies can be more heavily compressed with little effect in visual quality. SIT
+leverages this by associating tokens to larger patches at
+higher wavelet scales than at lower scales (see Fig. 2).
+P.2 SIT is transformer-based [52]; by using an attention
+mask where each scale depends on itself and lower
+scales (“Scale-Causal attention”), SIT can be trained at
+a single resolution and used to tokenize images of multiple resolutions (any number of scales up to the trained
+maximum), and detokenize partial token sequences (up
+to some scale), reconstructing a coarse image.
+P.3 Using SIT, we train an autoregressive generative transformer (AR-SIT) that models images coarse-to-fine.
+The next-token prediction is then conditioned on a
+coarse reconstruction of the image given by the partial
+token sequence, instead of the usual conditioning on the
+partial reconstruction of the previous rows of the image.
+P.4 AR-SIT can quickly generate only the first few tokens
+and reconstruct a coarse version of the image, enabling
+applications like quickly showing multiple coarse generations and letting the user select which ones to refine.
+P.5 AR-SIT can be used for text-based upsampling of an input low resolution image, by starting the decoding process with the few tokens output by SIT, and generating
+the rest of the sequence up to a desired resolution.
+P.6 AR-SIT can be used for text-guided image editing, by
+
+
