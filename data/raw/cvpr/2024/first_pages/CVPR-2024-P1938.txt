@@ -1,0 +1,112 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+From Variance to Veracity: Unbundling and Mitigating Gradient Variance in
+Differentiable Bundle Adjustment Layers
+Swaminathan Gurumurthy1 , Karnik Ram1 → 2 , Bingqing Chen3 ,
+Zachary Manchester1 , Zico Kolter1,3
+1
+Carnegie Mellon University 2 TU Munich
+3
+Bosch Center for Artificial Intelligence
+Abstract
+Various pose estimation and tracking problems in
+robotics can be decomposed into a correspondence estimation problem (often computed using a deep network) followed by a weighted least squares optimization problem to
+solve for the poses. Recent work has shown that coupling
+the two problems by iteratively refining one conditioned
+on the other’s output yields SOTA results across domains.
+However, training these models has proved challenging, requiring a litany of tricks to stabilize and speed up training.
+In this work, we take the visual odometry problem as an
+example and identify three plausible causes: (1) flow loss
+interference, (2) linearization errors in the bundle adjustment (BA) layer, and (3) dependence of weight gradients on
+the BA residual. We show how these issues result in noisy
+and higher variance gradients, potentially leading to a slow
+down in training and instabilities. We then propose a simple, yet effective solution to reduce the gradient variance by
+using the weights predicted by the network in the inner optimization loop to weight the correspondence objective in the
+training problem. This helps the training objective ‘focus’
+on the more important points, thereby reducing the variance
+and mitigating the influence of outliers. We show that the
+resulting method leads to faster training and can be more
+flexibly trained in varying training setups without sacrificing performance. In particular we show 2–2.5× training
+speedups over a baseline visual odometry model we modify.
+
+1. Introduction
+Ego and exo pose estimation are essential for agents to
+safely interact with the physical world. These tasks have
+a long history of being tackled using geometry-based optimizaton [23, 24, 36, 42], and in the last decade, using deep
+networks to directly map inputs to poses [43, 57, 59, 62].
+However, both these classes of approaches have shown britCorresponding author: gauthamsindia95@gmail.com
+Code: https://github.com/swami1995/V2V
+
+Inner Loop
+
+Update
+Operator
+
+Feature
+Extractor
+
+δ
+Σ
+
+Optimizer
+
+T, d
+
+BA
+
+ℒ = ℒflow + ℒpose
+𝛽
+
+(a) SOTA pose estimation methods [37, 54, 55] tightly-couple learned
+front-ends with traditional BA optimizers. However, they can be slow
+to converge.
+
+Bundle Adjustment
+
+p̄jk = p̄jk,i + δ
+
+δ
+
+Σ
+WeightResidue
+Dependency
+
+argmin
+
+∥p̄jk − ωjk(Ti, di))∥2Σ
+j,k
+Gauss-Newton Steps
+∑
+
+ω(T, d) = ω(Ti, di) + JTΔTi + JdΔdi
+
+Linearization Errors
+
+Ti+1
+
+di+1
+
+ℒflow
+
+Flow Loss
+Interference
+
+(b) We identify three factors that lead to high variance in gradients
+during their training.
+
+Figure 1. We propose a simple, yet effective solution to stabilize and speed-up the training of SOTA pose estimation methods. (b) We first analyze the causes for their instability related
+to variance in their gradients, and (a) then mitigate them by using
+weights from the inner-loop optimization to weigh the correspondence outer objective, which leads to improved performance.
+
+tleness — not being robust to outliers in the data or having
+poor accuracy in unseen scenes.
+More recently, approaches that combine the best of both
+worlds in learning to optimize have demonstrated substantially better performance than previous methods [37, 54,
+55]. These approaches combine a learned iterative update
+operator that mimics an optimization algorithm with im-
+
+27507
+
+

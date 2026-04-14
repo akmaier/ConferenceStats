@@ -1,0 +1,76 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+PCM : Picard Consistency Model for Fast Parallel Sampling of Diffusion Models
+Junhyuk So1 Jiwoong Shin1 Chaeyeon Jang1 Eunhyeok Park1,2
+1
+Department of Computer Science and Engineering, POSTECH
+2
+Graduate School of Artificial Intelligence, POSTECH
+{junhyukso,jwshin0610, jcy2749, eh.park}@postech.ac.kr
+
+Abstract
+Recently, diffusion models have achieved significant advances in vision, text, and robotics. However, they still face
+slow generation speeds due to sequential denoising processes. To address this, a parallel sampling method based
+on Picard iteration was introduced, effectively reducing sequential steps while ensuring exact convergence to the original output. Nonetheless, Picard iteration does not guarantee faster convergence, which can still result in slow generation in practice. In this work, we propose a new parallelization scheme, the Picard Consistency Model (PCM),
+which significantly reduces the number of generation steps
+in Picard iteration. Inspired by the consistency model, PCM
+is directly trained to predict the fixed-point solution, or the
+final output, at any stage of the convergence trajectory. Additionally, we introduce a new concept called model switching, which addresses PCM’s limitations and ensures exact
+convergence. Extensive experiments demonstrate that PCM
+achieves up to a 2.71x speedup over sequential sampling
+and a 1.77x speedup over Picard iteration across various
+tasks, including image generation and robotic control.
+
+1. Introduction
+Recently, diffusion probabilistic models [7] have achieved
+outstanding performance across diverse generative tasks in
+vision [30, 32, 35], audio [9, 15, 23], text [1, 18, 25],
+robotics [2, 12], and bioinformatics [21, 46]. Their iterative
+denoising process enables high-quality outputs by capturing
+fine details and diversity, making them versatile across applications. However, this process has a notable drawback:
+slow generation speed. For example, early diffusion models
+like DDPM [7] require 1,000 denoising steps, each involving intensive computation, resulting in high latency.
+To enable faster inference, various approaches have been
+proposed; however, most achieve speedups at the expense
+of quality degradation or inconsistent convergence. For instance, ODE-based solvers like DDIM [40] often trade off
+image quality for fewer sampling steps. Studies like the
+
+Consistency Model [43] and Progressive Distillation [37]
+use distillation to reduce sampling steps, but the final output
+may differ from the original model due to modified weights.
+In this work, we aim to explore a different question: can
+increased parallelism lead to faster convergence? While
+adding parallelism can nearly linearly enhance throughput,
+achieving low latency in sequential generative models demands innovation at the mathematical foundation level. Recently, ParaDiGMS [38] tackled this challenge with a parallel sampling method based on Picard iteration, reducing
+the sequential steps in diffusion sampling by performing
+more computations in parallel. Picard iteration ensures convergence to the exact output, guaranteeing the same output
+quality as original model; however, it does not ensure fast
+convergence, which may result in slower generation speeds
+in practice.
+In this study, we introduce the Picard Consistency Model
+(PCM) to accelerate the convergence speed of Picard iteration. Inspired by the Consistency Model [43], PCM is
+trained to directly predict the fixed-point solution at any
+point along the Picard iteration trajectory. In addition, our
+novel idea, model mixing, ensures exact convergence to the
+original output even with PCM’s acceleration. Our extensive analysis reveals that PCM with model mixing gives a
+2.71x speedup over sequential denoising and 1.77x speedup
+over Picard iteration, with guaranteeing exact convergence
+in diverse image generation and robotic applications.
+
+2. Preliminary
+2.1. Diffusion Models
+The Diffusion Probabilistic Model (DPM) was first introduced in the Denoising Diffusion Probabilistic Models [7]
+(DDPM) . The latent variable of diffusion model, xt (t ≤ T )
+is defined through following diffusion forward process q(·).
+  q(x_t|x_T) = N(x_t; \sqrt {(\alpha (t))}x_T, (1-\alpha (t))I) 
+
+(1)
+
+Here, α(t) is scalar function that setted to α(0) = 0,
+transforming q(xt ) to standard gaussian N (0, I) with t →
+
+23313
+
+

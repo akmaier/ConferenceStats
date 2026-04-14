@@ -1,0 +1,94 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Taming Self-Training for Open-Vocabulary Object Detection
+Shiyu Zhao1,∗
+Samuel Schulter2
+Long Zhao3
+Zhixing Zhang1
+Vijay Kumar B G2
+Yumin Suh2
+Manmohan Chandraker2,4
+Dimitris N. Metaxas1
+1
+
+Rutgers University
+
+2
+
+NEC Laboratories America
+
+Abstract
+Recent studies have shown promising performance
+in open-vocabulary object detection (OVD) by utilizing
+pseudo labels (PLs) from pretrained vision and language
+models (VLMs). However, teacher-student self-training, a
+powerful and widely used paradigm to leverage PLs, is
+rarely explored for OVD. This work identifies two challenges of using self-training in OVD: noisy PLs from VLMs
+and frequent distribution changes of PLs. To address these
+challenges, we propose SAS-Det that tames self-training
+for OVD from two key perspectives. First, we present a
+split-and-fusion (SAF) head that splits a standard detection into an open-branch and a closed-branch. This design
+can reduce noisy supervision from pseudo boxes. Moreover, the two branches learn complementary knowledge
+from different training data, significantly enhancing performance when fused together. Second, in our view, unlike in closed-set tasks, the PL distributions in OVD are
+solely determined by the teacher model. We introduce a
+periodic update strategy to decrease the number of updates to the teacher, thereby decreasing the frequency of
+changes in PL distributions, which stabilizes the training
+process. Extensive experiments demonstrate SAS-Det is
+both efficient and effective. SAS-Det outperforms recent
+models of the same scale by a clear margin and achieves
+37.4 AP50 and 29.1 APr on novel categories of the COCO
+and LVIS benchmarks, respectively. Code is available at
+https://github.com/xiaofeng94/SAS-Det.
+
+1. Introduction
+Traditional closed-set object detectors [4, 13, 32] are restricted to detecting objects with a limited number of categories. Increasing the size of detection vocabularies usually requires heavy human labor to collect annotated data.
+With the recent advent of strong vision and language models (VLMs) [20, 30], open-vocabulary object detection
+∗ Part of this work was done during an internship at NEC Laboratories
+America. Correspondence to: Shiyu Zhao sz553@rutgers.edu
+
+3
+
+Google Research
+
+4
+
+UC San Diego
+
+(OVD) [11] provides an alternative direction to approach
+this challenge. Typically, OVD detectors are trained with
+annotations of base categories and expected to generalize to
+novel categories with the power of pretrained VLMs.
+One promising thread of recent studies for OVD [8, 9,
+42, 49] leverages VLMs to obtain pseudo labels (PLs) beyond base categories. But they rarely explore self-training,
+a powerful and widely used schema for utilizing PLs in
+closed-set tasks [37, 38, 44, 45]. We investigate this and find
+the vanilla self-training approach does not improve OVD
+performance due to the following challenges.
+First, the typical self-training in closed-set tasks sets a
+confidence threshold to remove noisy PLs based on the fact
+that the quality of PLs is positively correlated to their confidences. However, VLMs employed in OVD are pretrained
+for image-level alignment with texts instead of instancelevel object detection that requires the localization ability.
+Thus, the confidence score from pretrained VLMs is usually
+not a good indicator for the quality of box locations (i.e.,
+pseudo boxes) provided by PLs. For example, prior studies [11, 49] show that CLIP [30] tends to output imperfect
+object boxes as predictions with high confidence. Recent
+methods for OVD [9, 49] just apply thresholding to VLMs’
+confidence scores and ignore the poor quality of pseudo
+boxes, which provides noisy supervision to the model. This
+issue becomes even worse when self-training is applied directly, since the noise accumulates which degrades the performance on novel categories. Moreover, these methods
+handle noisy PLs in the same way as ground truth of base
+categories during training, which further decreases the performance on base categories [9, 23].
+Second, self-training for closed-set object detection [19,
+38, 45] usually follows an online teacher-student manner.
+In each training iteration, the teacher generates PLs, and the
+student is trained with a mixture of ground truth and PLs.
+Then, the teacher is updated by the student with exponential
+moving average (EMA). However, we find such EMA updates degrade OVD models (see Table 4). Our hypothesis is
+that, unlike closed-set tasks, OVD provides no ground truth
+for target categories, and thus, the supervision for target cat-
+
+13938
+
+

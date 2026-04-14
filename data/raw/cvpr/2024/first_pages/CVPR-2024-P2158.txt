@@ -1,0 +1,137 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Analyzing and Improving the Training Dynamics of Diffusion Models
+Tero Karras
+NVIDIA
+
+Miika Aittala
+NVIDIA
+
+Jaakko Lehtinen
+NVIDIA, Aalto University
+
+Janne Hellsten
+NVIDIA
+
+Timo Aila
+NVIDIA
+
+Samuli Laine
+NVIDIA
+
+Abstract
+
+FID
+20
+
+Diffusion models currently dominate the field of datadriven image synthesis with their unparalleled scaling to
+large datasets. In this paper, we identify and rectify several
+causes for uneven and ineffective training in the popular
+ADM diffusion model architecture, without altering its highlevel structure. Observing uncontrolled magnitude changes
+and imbalances in both the network activations and weights
+over the course of training, we redesign the network layers
+to preserve activation, weight, and update magnitudes on expectation. We find that systematic application of this philosophy eliminates the observed drifts and imbalances, resulting
+in considerably better networks at equal computational complexity. Our modifications improve the previous record FID
+of 2.41 in ImageNet-512 synthesis to 1.81, achieved using
+fast deterministic sampling.
+As an independent contribution, we present a method for
+setting the exponential moving average (EMA) parameters
+post-hoc, i.e., after completing the training run. This allows
+precise tuning of EMA length without the cost of performing
+several training runs, and reveals its surprising interactions
+with network architecture, training time, and guidance.
+
+1. Introduction
+High-quality image synthesis based on text prompts, example images, or other forms of input has become widely
+popular thanks to advances in denoising diffusion models [21, 46, 62–65, 70]. Diffusion-based approaches produce high-quality images while offering versatile controls
+[8, 17, 20, 44, 75] and convenient ways to introduce novel
+subjects [12, 56], and they also extend to other modalities
+such as audio [38, 51], video [5, 22, 24], and 3D shapes
+[42, 50, 52, 61]. A recent survey of methods and applications is given by Yang et al. [71].
+On a high level, diffusion models convert an image of
+pure noise to a novel generated image through repeated
+application of image denoising. Mathematically, each de-
+
+ADM
+
+Previous, no guidance
+Previous, with guidance
+Ours, no guidance
+Ours, with guidance
+
+10
+
+DiT-XL/2
+ADM-U
+ADM
+
+5
+RIN
+
+XS
+
+DiT-XL/2
+
+3
+XS
+
+S
+
+VDM++
+VDM++
+StyleGAN-XL
+
+M
+L
+
+S
+2
+
+M
+L
+50
+
+ADM-U
+
+U-ViT, L
+
+100
+
+200
+
+XL XXL
+XL XXL
+500
+
+1000
+
+2000
+
+Model complexity (gigaflops per evaluation), ImageNet-512
+
+Figure 1. Our contributions significantly improve the quality of
+results w.r.t. model complexity, surpassing the previous state-of-theart with a 5× smaller model. In this plot, we use gigaflops per single
+model evaluation as a measure of a model’s intrinsic computational
+complexity; a similar advantage holds in terms of parameter count,
+as well as training and sampling cost (see Appendix A).
+
+noising step can be understood through the lens of score
+matching [26], and it is typically implemented using a U-Net
+[21, 55] equipped with self-attention [69] layers. Since we
+do not contribute to the theory behind diffusion models, we
+refer the interested reader to the seminal works of SohlDickstein et al. [62], Song and Ermon [64], and Ho et al.
+[21], as well as to Karras et al. [33], who frame various
+mathematical frameworks in a common context.
+Despite the seemingly frictionless scaling to very large
+datasets and models, the training dynamics of diffusion models remain challenging due to the highly stochastic loss function. The final image quality is dictated by faint image
+details predicted throughout the sampling chain, and small
+mistakes at intermediate steps can have snowball effects in
+subsequent iterations. The network must accurately estimate
+the average clean image across a vast range of noise levels,
+Gaussian noise realizations, and conditioning inputs. Learn-
+
+24174
+
+

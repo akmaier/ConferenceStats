@@ -1,0 +1,70 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Breaking the Memory Barrier of Contrastive Loss via Tile-Based Strategy
+Zesen Cheng1∗
+1
+
+Hang Zhang1,2∗
+Kehan Li1∗
+Fei Wu2 Deli Zhao1 Xin Li1
+
+Sicong Leng1 Zhiqiang Hu1
+Lidong Bing1,3
+
+Alibaba Group, Hangzhou, China 2 Zhejiang University, Hangzhou, China
+3
+Shanda AI Research Institute
+{chengzesen.czs,hang.zh,likehan.lkh,xinting.lx}@alibaba-inc.com
+
+Abstract
+Contrastive loss is a powerful approach for representation
+learning, where larger batch sizes enhance performance
+by providing more negative samples to better distinguish
+between similar and dissimilar data. However, the full
+instantiation of the similarity matrix demands substantial
+GPU memory, making large batch training highly resourceintensive. To address this, we propose a tile-based computation strategy that partitions the contrastive loss calculation into small blocks, avoiding full materialization of the
+similarity matrix. Additionally, we introduce a multi-level
+tiling implementation to leverage the hierarchical structure
+of distributed systems, using ring-based communication at
+the GPU level to optimize synchronization and fused kernels at the CUDA core level to reduce I/O overhead. Experimental results show that the proposed method signiﬁcantly
+reduces GPU memory usage in contrastive loss. For instance, it enables contrastive training of a CLIP-ViT-L/14
+model with a batch size of 4M using only 8 A800 80GB
+GPUs, without sacriﬁcing accuracy. Compared to state-ofthe-art memory-efﬁcient solutions, it achieves a two-orderof-magnitude reduction in memory while maintaining comparable speed. The code will be made publicly available.1
+
+Figure 1. GPU memory usage comparison between Inf-CL and
+previous methods. The dashed line marks the common GPU memory limit. Results exceeding the bottleneck are estimated by curve
+ﬁtting. With 8×A800, CLIP and OpenCLIP’s memory consumption increases quadratically, while Inf-CL achieves linear growth,
+reducing memory costs by 78× at a batch size of 256k.
+
+1. Introduction
+Contrastive learning serves as a foundational technique
+across various applications, such as multi-modality retrieval [12, 21, 25], self-supervised learning [3, 11, 14], and
+dense text retrieval [33]. It learns an embedding space in
+which similar data pairs stay close while dissimilar ones are
+far apart [13, 23, 34]. Large batch sizes are critical to the
+success of contrastive learning due to their reliance on inbatch negatives [3, 25]. Speciﬁcally, larger batches provide
+a diverse set of negative samples, enhancing the model’s
+* Equal contribution
+
+Corresponding Author
+
+1  github.com/DAMO-NLP-SG/Inf-CLIP
+
+10036
+
+ability to learn discriminative representations [24].
+Despite the potential beneﬁts of large batch sizes in contrastive learning, training with large batches remains a signiﬁcant challenge under constrained GPU memory. The
+memory required to compute and store image-text similarity
+matrices (Figure 1) grows quadratically with batch size, creating substantial barriers to scalability. This issue severely
+limits the practical adoption of large batch sizes, even when
+advanced hardware is available. To address this challenge,
+several methods have been proposed to reduce memory usage. Gradient-Cache [10] reduces memory usage by decoupling model and loss computations, but the memory cost of
+the loss still poses a signiﬁcant bottleneck. OpenCLIP [16]
+and DisCo-CLIP [6] enhance efﬁciency by distributing contrastive loss computation across n GPUs, reducing memory
+consumption by a factor of n. However, even with these advancements, the memory cost of calculating contrastive loss
+remains substantial, requiring necessitating numerous expensive high-memory GPUs to support training (Figure 1).
+In this paper, we introduce Inf-CL, a novel approach
+
+

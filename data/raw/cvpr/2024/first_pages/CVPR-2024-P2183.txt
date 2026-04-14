@@ -1,0 +1,130 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Adapters Strike Back
+
+Abstract
+
+78
+
+Accuracy (%)
+
+Adapters provide an efficient and lightweight mechanism
+for adapting trained transformer models to a variety of different tasks. However, they have often been found to be
+outperformed by other adaptation mechanisms including
+low-rank adaptation. In this paper, we provide an in-depth
+study of adapters, their internal structure, as well as various implementation choices. We uncover pitfalls for using
+adapters and suggest a concrete, improved adapter architecture, called Adapter+, that not only outperforms previous
+adapter implementations but surpasses a number of other,
+more complex adaptation mechanisms in several challenging
+settings. Despite this, our suggested adapter is highly robust
+and, unlike previous work, requires little to no manual intervention when addressing a novel scenario. Adapter+ reaches
+state-of-the-art average accuracy on the VTAB benchmark,
+even without a per-task hyperparameter optimization.†
+
+† Code is available at https://github.com/visinf/adapter_plus.
+
+hessian.AI
+
+76
+
+Fine-tuning accuracy
+
+74
+
+Adapter+ (ours)
+
+SPT-Adapter [20]
+SPT-Adapter ⟳
+
+SSF ⟳
+
+FacT-TK [31]
+
+Consolidator [19]
+LoRA [28]
+
+VPT [30]
+
+FacT-TK ⟳
+
+0
+
+SSF [38]
+
+Adapter+ opt. (ours)
+
+72
+0.1
+
+0.2
+
+0.3
+
+0.4
+
+VPT ⟳
+
+0.5
+
+0.6
+
+# Parameters (M)
+
+Figure 1. Parameter-accuracy characteristics of adaptation
+methods on the VTAB [62] test sets. We report original results
+and re-evaluations (⟳) after a complete training schedule with
+suitable data normalization. Our Adapter+ has clearly the best
+parameter-accuracy trade-off. The vertical, dashed line shows the
+possible minimal number of tunable parameters when only the
+classifiers are trained, i.e., using linear probing (61% accuracy).
+
+1. Introduction
+Transfer learning from an off-the-shelf model, pre-trained
+on a large dataset like ImageNet [53] to a downstream task
+by fully fine-tuning the model’s parameters is a common
+paradigm. A typical CNN architecture, like a ResNet [23],
+has several tens of millions of parameters. However, since
+the introduction of transformers [56] into the realm of computer vision [4, 5, 12, 49, 50, 60], model sizes have grown
+exponentially from around a hundred million parameters
+for a vision transformer (ViT) [12] to more than a billion
+parameters [9, 45]. This leads to huge storage requirements
+when fine-tuning on multiple downstream tasks because a
+complete set of the model’s parameters needs to be saved
+per task. Additionally, large models require correspondingly
+large datasets [e.g., 54] to be trained to their full potential,
+yet tend to overfit easily if the target dataset in transfer learning is too small. One solution is linear probing [11], where
+only the linear classifier is trained, but this usually yields
+inferior results compared to full fine-tuning.
+As a consequence, there is a growing interest in parameterefficient tuning methods. The main idea is to freeze the
+
+2
+
+Linear probing
+
+Jan-Martin O. Steitz1
+Stefan Roth1,2
+1
+Department of Computer Science, TU Darmstadt
+
+parameters of the pre-trained model and add a comparatively small amount of parameters to the model, which are
+then tuned together with the classifier to adapt the model
+to the downstream task at hand. Representative methods
+with different underlying concepts include VPT [30], which
+prepends the sequence of image tokens in the attention with
+trainable tokens to learn a prompt tuning, LoRA [28], where
+the attention weights are updated with learnable low-rank
+decomposition matrices, and Adapters [27], which are small
+bottleneck modules that are added to every transformer layer
+of the network. Adapters were first proposed for CNNs by
+Rebuffi et al. [51] and various formulations [21, 27, 47] exist
+for the now common ViT architecture.
+Recent work on parameter-efficient transfer learning [e.g.,
+19, 20, 30, 31, 38, 63] presents adapters as a baseline method
+for the adaptation to downstream tasks in computer vision.
+However, we identified various common issues in their implementations, which we find to have a negative influence on the
+
+23449
+
+

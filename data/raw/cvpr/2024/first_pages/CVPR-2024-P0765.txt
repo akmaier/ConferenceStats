@@ -1,0 +1,132 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Low-Latency Neural Stereo Streaming
+Qiqi Hou
+
+Hoang Le∗
+
+Farzad Farhadzadeh
+Amir Said
+Guillaume Sautiere
+Qualcomm AI Research†
+{qhou, ffarhadz, asaid, gsautie, hoanle}@qti.qualcomm.com
+
+Abstract
+The rise of new video modalities like virtual reality or
+autonomous driving has increased the demand for efﬁcient multi-view video compression methods, both in terms
+of rate-distortion (R-D) performance and in terms of delay and runtime. While most recent stereo video compression approaches have shown promising performance,
+they compress left and right views sequentially, leading
+to poor parallelization and runtime performance. This
+work presents Low-Latency neural codec for Stereo video
+Streaming (LLSS), a novel parallel stereo video coding
+method designed for fast and efﬁcient low-latency stereo
+video streaming. Instead of using a sequential cross-view
+motion compensation like existing methods, LLSS introduces a bidirectional feature shifting module to directly exploit mutual information among views and encode them effectively with a joint cross-view prior model for entropy
+coding. Thanks to this design, LLSS processes left and right
+views in parallel, minimizing latency; all while substantially improving R-D performance compared to both existing neural and conventional codecs.
+
+1. Introduction
+The rise in popularity of autonomous vehicles (AVs)
+equipped with stereo cameras, along with the widespread
+use of virtual reality (VR) headsets, has led to a signiﬁcant increase in stereo video data. For AVs, stereo cameras
+serve as a cost-effective alternative to sensors like LIDAR or
+RADAR. The data they capture is crucial for time-sensitive
+safety analyses during vehicle operation, necessitating lowlatency data transmission. In VR, to achieve an immersive
+user experience, the demands for both resolution and latency are even higher. For both AV and VR applications,
+it’s crucial that the codec encodes stereo video efﬁciently
+while maintaining low latency.
+A basic approach to stereo video coding would apply a
+low-delay, single-view codec like AVC [62] or HEVC [23]
+* Corresponding author
+† Qualcomm AI Research is an initiative of Qualcomm Technologies, Inc.
+
+HEVC [23]
+
+MV-HEVC [24]
+
+LSVC [10]
+
+R
+
+R
+
+R
+
+L
+
+L
+
+L
+
+R
+
+R
+
+R
+
+L
+
+L
+
+L
+
+R
+
+L
+
+L
+
+R
+
+R
+
+R
+
+R
+
+R
+
+L
+
+L
+
+L
+
+LLSS
+‫ݐ‬െͳ
+
+‫ݐ‬
+
+right frame
+
+left frame
+
+‫ݐ‬൅ͳ
+‫ ݐ‬time step
+
+Figure 1. Comparison of multi-view compression strategies. In
+contrast to LSVC [10], our approach processes the left and right
+frames simultaneously. This parallel processing not only facilitates more rate-efﬁcient coding, it also reduces the latency between
+the left and right views.
+
+to each view independently. While these traditional codecs
+yield promising results, and are used in commercial products, such as Meta Quest [16], they double the rate and
+ignore the similarities between two views. Consequently,
+several standard codecs have been proposed to reduce the
+redundancy between two views through disparity compensation [54, 59]. They typically ﬁrst encode the right view
+frame using a single-view codec. Then left view frame is
+predicted from the encoded right view frame. However,
+these sequential processing limits the ability to process multiple views simultaneously.
+Recent years have seen rapid progress in single-view
+neural video codecs [2, 25, 26, 31, 32, 36, 38, 47, 49], particularly in low-delay settings. For instance, recent DCVCDC Li et al. [36] has shown better Rate-Distortion (RD) performance than the H.266 standard codec [7]. Our
+method is inspired by the most recent work LSVC [10],
+which is the ﬁrst neural codec for stereo video. Although
+LSVC achieves great results and shows signiﬁcant superiority over MV-HEVC [24] codec, it sequentially processes
+the right and left view frames, which constrains its suitability for low-latency applications like VR and AVs.
+In this work, we present a Low-Latency Stereo video
+
+7974
+
+

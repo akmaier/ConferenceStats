@@ -1,0 +1,129 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+DeRS: Towards Extremely Efficient Upcycled Mixture-of-Experts Models
+Yongqi Huang1∗
+
+Peng Ye2,3∗ Chenyu Huang1 Jianjian Cao1 Lin Zhang1
+Baopu Li4 Gang Yu5 Tao Chen1†
+1
+Fudan University 2 The Chinese University of Hong Kong
+3
+Shanghai AI Laboratory 4 Baidu USA 5 StepFun
+yqhuang23@m.fudan.edu.cn, eetchen@fudan.edu.cn
+
+Abstract
+Upcycled Mixture-of-Experts (MoE) models have shown
+great potential in various tasks by converting the original
+Feed-Forward Network (FFN) layers in pre-trained dense
+models into MoE layers. However, these models still suffer from significant parameter inefficiency due to the introduction of multiple experts. In this work, we propose a
+novel DeRS (Decompose, Replace, and Synthesis) paradigm
+to overcome this shortcoming, which is motivated by our
+observations about the unique redundancy mechanisms of
+upcycled MoE experts. Specifically, DeRS decomposes the
+experts into one expert-shared base weight and multiple
+expert-specific delta weights, and subsequently represents
+these delta weights in lightweight forms. Our proposed DeRS
+paradigm can be applied to enhance parameter efficiency
+in two different scenarios, including: 1) DeRS Compression
+for inference stage, using sparsification or quantization to
+compress vanilla upcycled MoE models; and 2) DeRS Upcycling for training stage, employing lightweight sparse or
+low-rank matrixes to efficiently upcycle dense models into
+MoE models. Extensive experiments across three different
+tasks show that the proposed methods can achieve extreme
+parameter efficiency while maintaining the performance for
+both training and compression of upcycled MoE models.
+
+1. Introduction
+Recently, sparse Mixture-of-Experts [44] (MoE) models
+have made remarkable progress [1, 8, 19, 23, 31, 49]. These
+models introduce the MoE layer, which consists of multiple
+Feed-Forward Network (FFN) experts and a learnable router,
+to replace a single FFN layer. By dynamically activating only
+a subset of experts for each input, these MoE models achieve
+superior performance while maintaining computational efficiency. However, training MoE models from scratch requires
+substantial computational resources [8, 9, 43] and often en† Corresponding author.
+
+∗ Equal contribution.
+
+FFN 1.0000 0.9994 0.9992 0.9992 0.9994
+
+FFN 1.0000 0.9997 0.9997 0.9998 0.9998
+
+E1 0.9994 1.0000 0.9991 0.9991 0.9993
+
+E1 0.9997 1.0000 0.9996 0.9996 0.9996
+
+E2 0.9992 0.9991 1.0000 0.9990 0.9991
+
+E2 0.9997 0.9996 1.0000 0.9996 0.9996
+
+E3 0.9992 0.9991 0.9990 1.0000 0.9990
+
+E3 0.9998 0.9996 0.9996 1.0000 0.9996
+
+E4 0.9994 0.9993 0.9991 0.9990 1.0000
+
+E4 0.9998 0.9996 0.9996 0.9996 1.0000
+
+FFN
+
+E1
+
+E2
+
+E3
+
+E4
+
+(a) First MoE Layer
+
+FFN
+
+E1
+
+E2
+
+E3
+
+1.0000
+0.9998
+0.9996
+0.9994
+0.9992
+
+E4
+
+(b) Last MoE Layer
+
+Figure 1. Visualization of cosine similarity in the first and last MoE
+layers of the MoE-LLaVA-Phi [30] model. FFN denotes the initial
+weight while Ei denotes the trained weight of the i-th expert.
+
+counters training instabilities [41, 53].
+To address these challenges, upcycling pre-trained dense
+models into MoE models (referred to as upcycling) [21] has
+emerged as an effective alternative. This approach converts
+the original FFN layers in a pre-trained dense model into
+MoE layers with N experts, initializing each expert from the
+original FFN weight while introducing a randomly initialized router for expert selection. By leveraging the knowledge
+embedded in pre-trained dense models, upcycled MoE models facilitate more efficient optimization and demonstrate
+competitive performance under constrained training budgets [14, 30, 47]. Due to its simplicity and effectiveness,
+upcycling has been widely applied across diverse domains,
+including natural language processing [6, 14, 21], computer
+vision [13, 21, 24], and multi-modal learning [20, 27, 30].
+While upcycled MoE models have shown significant success, they still suffer from parameter inefficiency due to
+the large number of extra parameters introduced by MoE
+experts. For instance, the upcycled MoE-LLaVA-Phi [30]
+model comprises a total of 5 billion parameters, of which 3.4
+billion are occupied by MoE experts. In this paper, we focus on enhancing the parameter efficiency of upcycled MoE
+models. We first revisit the characteristics of the N experts in
+upcycled MoE models: 1) We note that N experts share the
+same initial weight Wbase , and the weights of trained experts
+can be uniformly expressed as Wi = Wbase + ∆i , where
+i = 1, .., N ; 2) We observe that, there is an extremely high
+
+10056
+
+

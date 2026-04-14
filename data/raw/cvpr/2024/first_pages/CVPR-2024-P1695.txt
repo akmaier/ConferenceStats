@@ -1,0 +1,77 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Retraining-free Model Quantization via One-Shot Weight-Coupling Learning
+Chen Tang1∗
+
+Yuan Meng1∗ Jiacheng Jiang1 Shuzhao Xie1
+Xinzhu Ma2 Zhi Wang1† Wenwu Zhu1†
+1
+
+Tsinghua University
+
+2
+
+The Chinese University of Hong Kong
+
+Abstract
+Quantization is of significance for compressing the overparameterized deep neural models and deploying them on
+resource-limited devices. Fixed-precision quantization suffers from performance drop due to the limited numerical
+representation ability. Conversely, mixed-precision quantization (MPQ) is advocated to compress the model effectively by allocating heterogeneous bit-width for layers.
+MPQ is typically organized into a searching-retraining twostage process. Previous works only focus on determining
+the optimal bit-width configuration in the first stage efficiently, while ignoring the considerable time costs in the
+second stage and thus hindering deployment efficiency significantly. In this paper, we devise a one-shot trainingsearching paradigm for mixed-precision model compression. Specifically, in the first stage, all potential bit-width
+configurations are coupled and thus optimized simultaneously within a set of shared weights. However, our observations reveal a previously unseen and severe bit-width
+interference phenomenon among highly coupled weights
+during optimization, leading to considerable performance
+degradation under a high compression ratio. To tackle
+this problem, we first design a bit-width scheduler to dynamically freeze the most turbulent bit-width of layers during training, to ensure the rest bit-widths converged properly. Then, taking inspiration from information theory, we
+present an information distortion mitigation technique to
+align the behaviour of the bad-performing bit-widths to the
+well-performing ones. In the second stage, an inferenceonly greedy search scheme is devised to evaluate the goodness of configurations without introducing any additional
+training costs. Extensive experiments on three representative models and three datasets demonstrate the effectiveness of the proposed method. Code can be available on
+https://github.com/1hunters/retraining-free-quantization.
+
+1. Introduction
+Recent years have witnessed the tremendous achievements
+made by deep network-driven applications, ranging from
+* Equal contributions.
+
+†
+
+Corresponding authors.
+
+Rongwei Lu1
+
+Z. Wang is also with TBSI.
+
+classification [19, 22, 42], object detection [40, 41, 46], and
+segmentation [5, 20]. However, the huge number of parameters in these deep models poses intractable challenges
+for both training [4, 24, 32] and inference [16, 39]. To
+enable efficient deep learning on inference, several techniques are proposed, including pruning [31, 33], quantization [12, 47, 67], and neural architecture search [21, 50].
+Ultra-low bit-width neural network quantization [12, 53,
+67] is an appealing model compression technique to simplify the hardware complexity and improve the runtime efficiency of over-parameterized deep models. However, under
+severely limited numerical representation capabilities, performing such compression across the whole neural network
+usually incurs an unacceptable performance drop. Mixedprecision quantization (MPQ) [3, 15, 23, 47, 57], by allocating unequally bit-width for weight and activation tensors
+of each layer, can largely avoid accuracy degradation while
+maintaining the proper model size and runtime overhead
+(e.g. on-device latency). The underlying principle of MPQ
+is that layers contribute very differently to the final accuracy
+[3, 47, 57], so the compression algorithm should apply heterogeneous precision rather than a uniform one across the
+whole network. Besides, hardware starts to support mixedprecision computation [6, 57] in these years, which further
+pushes the study for mixed-precision compression.
+Recently, MPQ has been extensively studied from several perspectives, e.g. through reinforcement learning [11,
+57], differentiable methods [3, 60], and proxy-based approaches [6, 9]. They all try to solve one challenge, that
+says, how to find the optimal bit-width configuration for
+each layer, in an exponentially large O(n2L ) space, where
+n is the number of bit-width candidates and L is the number of layers in the deep network. To this end, they organize a searching-then-retraining pipeline, in which the
+first stage aims to finish the bit-width allocation as fast as
+possible, and naturally becomes the focus of the research.
+Nevertheless, previous works tend to ignore the importance
+of the second stage, which in fact consumes considerable
+time cost for retraining the model to fit the obtained bitwidth configurations (a.k.a, the policy). To recover the performance, LIMPQ [47] needs about 200 GPU-hours to re-
+
+15855
+
+

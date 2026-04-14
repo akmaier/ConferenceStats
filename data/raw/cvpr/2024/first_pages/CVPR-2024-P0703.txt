@@ -1,0 +1,113 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Hierarchical Patch Diffusion Models for High-Resolution Video Generation
+Ivan Skorokhodov1,2
+
+Willi Menapace1,3
+
+Snap Inc.1
+
+KAUST2
+
+Aliaksandr Siarohin1
+University of Trento3
+
+Abstract
+Diffusion models have demonstrated remarkable performance in image and video synthesis. However, scaling them
+to high-resolution inputs is challenging and requires restructuring the diffusion pipeline into multiple independent
+components, limiting scalability and complicating downstream applications. In this work, we study patch diffusion
+models (PDMs) — a diffusion paradigm which models the
+distribution of patches, rather than whole inputs, keeping
+up to ⇡0.7% of the original pixels. This makes it very efficient during training and unlocks end-to-end optimization
+on high-resolution videos.
+We improve PDMs in two principled ways. First, to enforce consistency between patches, we develop deep context fusion — an architectural technique that propagates the
+context information from low-scale to high-scale patches
+in a hierarchical manner. Second, to accelerate training
+and inference, we propose adaptive computation, which allocates more network capacity and computation towards
+coarse image details. The resulting model sets a new stateof-the-art FVD score of 66.32 and Inception Score of 87.68
+in class-conditional video generation on UCF-101 2562 ,
+surpassing recent methods by more than 100%. Then, we
+show that it can be rapidly fine-tuned from a base 36 ⇥ 64
+low-resolution generator for high-resolution 64⇥288⇥512
+text-to-video synthesis. To the best of our knowledge,
+our model is the first diffusion-based architecture which
+is trained on such high resolutions entirely end-to-end.
+Project webpage: https://snap-research.github.io/hpdm.
+
+1. Introduction
+Recently, diffusion models (DMs) have achieved remarkable performance in image and video synthesis, greatly
+surpassing previous dominant generative paradigms, such
+as GANs [16], VAEs [33] and autoregressive models [5].
+However, scaling them to high-resolution inputs broke their
+end-to-end nature, since training the full-scale monolithic
+foundational generator led to infeasible computational demands [23, 44]. Splitting the architecture into several stages
+
+Sergey Tulyakov1
+
+Latent Diffusion Model (LDM)
+
+E
+2562
+
+D
+
+Patch Diffusion Model (PDM)
+
+2562
+
+auto-encoder (stage I)
+642
+
+642 diffusion model
+
+diffusion (stage II)
+
+tiled inference
+
+Cascaded Diffusion Model (CDM)
+642
+
+base diffusion (stage I)
+
+en
+d
+tr -to
+ai -e
+ni nd
+ng
+
+sample patches
+& add noise
+
+642
+
+1282 diffusion upsampler (stage II)
+
+1282
+
+2562 diffusion upsampler (stage III)
+
+2562
+
+Figure 1. Comparing existing diffusion paradigms: Latent Diffusion Model (LDM) [44, 60] (upper left), Cascaded Diffusion
+Model (CDM) [23] (bottom left), and Patch Diffusion Model (this
+work) during training (upper right) and inference (bottom right).
+In our work, we develop hierarchical patch diffusion, which never
+operates on full-resolution inputs, but instead optimizes the lower
+stages of the hierarchy to produce spatially aligned context information for the later pyramid levels to enforce global consistency
+between patches.
+
+satisfied the immediate practical needs, but having multiple
+components in the pipeline makes it harder to tune and complicates downstream tasks like editing or distillation.
+For example, LDM [44] trains a diffusion model in the
+latent space of an autoencoder, which requires an additional
+extensive hyperparameters search. The original work has
+dedicated more than a dozen experiments to it (see Tab. 8
+of [44]), and the search for its optimal design is still ongoing [3, 8, 41]. Moreover, retraining an auto-encoder requires retraining the latent generator, resulting in extra computational costs. Also, having multiple components complicates downstream applications: for example, SnapFusion [35] had to come with two unrelated sets of techniques
+to distill the generator and the auto-encoder separately.
+
+7569
+
+

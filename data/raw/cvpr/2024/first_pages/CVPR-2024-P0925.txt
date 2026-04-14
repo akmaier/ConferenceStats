@@ -1,0 +1,176 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+MeaCap: Memory-Augmented Zero-shot Image Captioning
+Zequn Zeng,* Yan Xie,* Hao Zhang†, Chiyu Chen, Bo Chen
+National Key Laboratory of Radar Signal Processing, Xidian University, Xi’an, 710071, China
+{zzequn99, yanxie0904, zhanghao xidian}@163.com, {chenchiyu, bchen}@mail.xidian.edu.cn
+
+Zhengjue Wang
+State Key Laboratory of Integrated Service Networks, Xidian University, Xi’an, 710071, China
+wangzhengjue@xidian.edu.cn
+
+Abstract
+Zero-shot image captioning (IC) without well-paired
+image-text data can be divided into two categories,
+training-free and text-only-training. Generally, these two
+types of methods realize zero-shot IC by integrating pretrained vision-language models like CLIP for image-text
+similarity evaluation and a pre-trained language model
+(LM) for caption generation. The main difference between them is whether using a textual corpus to train
+the LM. Though achieving attractive performance w.r.t.
+some metrics, existing methods often exhibit some common drawbacks. Training-free methods tend to produce
+hallucinations, while text-only-training often lose generalization capability. To move forward, in this paper,
+we propose a novel Memory-Augmented zero-shot image
+Captioning framework (MeaCap). Specifically, equipped
+with a textual memory, we introduce a retrieve-then-filter
+module to get key concepts that are highly related to the
+image. By deploying our proposed memory-augmented
+visual-related fusion score in a keywords-to-sentence LM,
+MeaCap can generate concept-centered captions that keep
+high consistency with the image with fewer hallucinations and more world-knowledge. The framework of MeaCap achieves the state-of-the-art performance on a series of zero-shot IC settings. Our code is available at
+https://github.com/joeyz0z/MeaCap.
+
+1. Introduction
+Image captioning (IC) aims to understand visual content and generate text descriptions. Using well-annotated
+image-text pairs, supervised models [7, 17, 23, 34, 39, 41,
+48, 49, 56] have achieved promising results on typical IC
+benchmarks [1, 25, 32, 63]. Due to the high costs of annotation, the training sets of these benchmarks often involve limited image styles/contents, which is a hard obsta* Equal contribution.
+
+†Corresponding author
+
+Text-only-training
+
+CLIP BLIP-2
+Score Score
+
+CLIP
+0.76 BLIP-2
+0.89
+MAGIC: A plate topped with cake and spoon.
+Text-only-training
+Score Score
+0.77 0.87
+DeCap: A piece of cake on a white plate with a spoon.
+0.76 0.89
+MAGIC: A plate topped with cake and spoon.
+0.75 0.73
+ViECap: Cake with white frosting on a white plate on a table.
+0.77 0.87
+DeCap: A piece of cake on a white plate with a spoon.
+𝑴𝒆𝒂𝑪𝒂𝒑𝑻𝒐𝑻: concepts: [slice lemon pie, serving plate]
+0.83 0.73
+0.83
+0.75
+ViECap: Cake
+with white frosting on a white plate on table.
+caption: A slice of lemon pie with spoon on serving plate on table.
+𝑴𝒆𝒂𝑪𝒂𝒑𝑻𝒐𝑻: concepts: [slice lemon pie, serving plate]
+CLIP
+0.83
+Training-freecaption: A slice of lemon pie with spoon on serving plate on table. 0.83
+Score
+CLIP
+0.87 0.75
+ZeroCap:
+A large dessert eaten in the 2016 New Hampshire State Hotel.
+Training-free
+Score
+1.00 0.77
+ConZIC: A butter pie served at the famous Mary Teresa restaurant.
+0.87 0.75
+ZeroCap: A large dessert eaten in the 2016 New Hampshire State Hotel.
+𝑴𝒆𝒂𝑪𝒂𝒑𝑻𝑭 : concepts: [slice lemon pie, serving plate]
+0.84 0.77
+0.82
+1.00
+ConZIC: A butter pie served at the famous Mary Teresaspiderman
+restaurant.
+𝑴𝒆𝒂𝑪𝒂𝒑𝑻𝑭 : caption: A slice of lemon pie with a spoon on a serving plate.
+𝑴𝒆𝒂𝑪𝒂𝒑𝑻𝑭 : concepts: [slice lemon pie, serving plate]
+spiderman
+0.84 0.82
+𝑴𝒆𝒂𝑪𝒂𝒑𝑻𝑭 : caption: A slice of lemon pie with a spoon on a serving plate.
+CLIP BLIP-2
+Text-only-training
+Score Score
+
+(a) Hallucination phenomenon.
+
+MAGIC: A
+red and white locomotive is being docked.
+Text-only-training
+DeCap: A person that is on the ground and is holding his device.
+MAGIC: A red and white locomotive is being docked.
+ViECap: Before and after shots of a man in a suit and tie.
+DeCap: A person that is on the ground and is holding his device.
+𝑴𝒆𝒂𝑪𝒂𝒑𝑻𝒐𝑻 : concepts: [spiderman]
+ViECap: Before
+and after shots of a man in a suit and tie.
+𝑴𝒆𝒂𝑪𝒂𝒑𝑻𝒐𝑻: caption: A picture of a spiderman comics.
+𝑴𝒆𝒂𝑪𝒂𝒑𝑻𝒐𝑻 : concepts: [spiderman]
+Training-free
+𝑴𝒆𝒂𝑪𝒂𝒑𝑻𝒐𝑻: caption: A picture of a spiderman comics.
+ZeroCap: Image of a Web Hero.
+Training-free
+ConZIC: A very attractive spiderman typical marvel definition.
+ZeroCap: Image of a Web Hero.
+𝑴𝒆𝒂𝑪𝒂𝒑 : concepts: [spiderman]
+ConZIC: A𝑻𝑭
+very attractive spiderman typical marvel definition.
+𝑴𝒆𝒂𝑪𝒂𝒑𝑻𝑭 : caption: A comic book superhero called spiderman.
+𝑴𝒆𝒂𝑪𝒂𝒑𝑻𝑭 : concepts: [spiderman]
+𝑴𝒆𝒂𝑪𝒂𝒑𝑻𝑭 : caption: A comic book superhero called spiderman.
+
+CLIP
+0.32 BLIP-2
+0.30
+Score Score
+
+0.51 0.22
+0.32 0.30
+0.42 0.31
+0.51 0.22
+0.68 0.31
+0.65
+0.42
+CLIP
+0.68
+0.65
+Score
+
+CLIP
+0.74
+Score
+
+0.27
+
+0.82 0.59
+0.74 0.27
+0.77 0.59
+0.68
+0.82
+0.77 0.68
+
+(b) Image contains world knowledge.
+
+Figure 1. The motivation of our proposed MeaCap where the red
+is incorrect and green is correct. (a) Training-free methods associate the pie with incorrect location information, which actually
+get high marks in CLIPscore. This might be due to the fact that
+CLIP is trained on web-scale noisy image-text data. (b) Existing text-only-training (ToT) methods fail to generate spiderman as
+some training-free methods do, but the ToT version of our method
+(MeaCapToT ) can also do that.
+
+cle for those supervised models to be generalized to images
+in the wild. To realize IC without human-annotated imagetext pairs, recently, zero-shot IC has drawn increasing attention. Existing works can be mainly divided into two
+groups, training-free methods and text-only-training methods. Training-free approaches [53, 54, 64] realize zero-shot
+image-to-text generation using pre-trained models without
+fine-tuning. Specifically, they employ a pre-trained visionlanguage model like CLIP to guide a pre-trained language
+model (LM), such as BERT [8] or GPT-2 [44], to generate sentences that match the given image. With iterative
+inferences, this line of work does not require any training.
+Though having achieved superior generalization ability and
+higher CLIPscore [16], these methods show extrinsic hal-
+
+14100
+
+

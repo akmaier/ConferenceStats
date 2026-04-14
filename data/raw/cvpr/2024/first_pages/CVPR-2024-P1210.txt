@@ -1,0 +1,139 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Jack of All Tasks, Master of Many: Designing General-purpose
+Coarse-to-Fine Vision-Language Model
+Shraman Pramanick∗1,2†
+Nicolas Ballas2
+1
+
+Guangxing Han∗2 Rui Hou2 Sayan Nag3 Ser-Nam Lim4
+Qifan Wang2 Rama Chellappa1 Amjad Almahairi2
+
+Johns Hopkins University, 2 Meta, 3 University of Toronto, 4 University of Central Florida
+
+Abstract
+The ability of large language models (LLMs) to process
+visual inputs has given rise to general-purpose vision systems, unifying various vision-language (VL) tasks by instruction tuning. However, due to the enormous diversity in
+input-output formats in the vision domain, existing generalpurpose models fail to successfully integrate segmentation
+and multi-image inputs with coarse-level tasks into a single
+framework. In this work, we introduce VistaLLM, a powerful visual system that addresses coarse- and fine-grained VL
+tasks over single and multiple input images using a unified
+framework. VistaLLM utilizes an instruction-guided image
+tokenizer that filters global embeddings using task descriptions to extract compressed and refined features from numerous images. Moreover, VistaLLM employs a gradientaware adaptive sampling technique to represent binary segmentation masks as sequences, significantly improving over
+previously used uniform sampling. To bolster the desired
+capability of VistaLLM, we curate CoinIt, a comprehensive
+coarse-to-fine instruction tuning dataset with 6.8M samples. We also address the lack of multi-image grounding
+datasets by introducing a novel task, AttCoSeg (Attributelevel Co-Segmentation), which boosts the model’s reasoning and grounding capability over multiple input images.
+Extensive experiments on a wide range of V- and VL tasks
+demonstrate the effectiveness of VistaLLM by achieving
+consistent state-of-the-art performance over strong baselines across many downstream tasks. Our project page can
+be found at https://shramanpramanick.github.io/VistaLLM/.
+
+1. Introduction
+Large language models (LLM) have proven to be the defacto solution to address novel natural language processing
+(NLP) tasks, thanks to their ability to comprehend usertailored prompts, instructions, and detailed task descriptions [13, 24, 71, 72, 89, 90]. However, the problem is more
+∗ Equal technical contribution.
+† Part of this work was done during an internship at Meta.
+
+POPE
+VQAv2
+
+REC
+
+90.5
+
+89.9
+
+89.8
+
+89.5
+
+76.9
+
+60.1
+
+88.7
+
+COCO Cap
+
+87.8
+
+47.9
+47.7
+
+117.5
+84.8
+85.5
+
+IconQA
+
+58.2
+
+86.2
+
+75.3
+128.4
+
+BoxQA
+
+Single-image coarse-level
+Single-image region-level
+Multi-image coarse-level
+Multi-image region-level
+
+HM
+
+TextVQA
+51.9 53.0
+
+85.3
+
+81.3
+
+78.6
+VCR 79.1
+
+NLVR2
+95.1
+54.6
+
+GREC
+
+77.2
+RES
+
+65.1
+GRES
+
+iCoSeg
+
+VistaLLM-13B
+MiniGPT-v2
+Ferret-13B
+Shikra-13B
+GPT4RoI-13B
+
+Figure 1. VistaLLM achieves the state-of-the-art performance
+across a broad range of single and multi-image coarse-to-fine
+grained reasoning and grounding tasks (see Table 1 for details)
+among general-purpose baselines. Notably, no existing baseline
+have unified segmentation and multi-image tasks in a single system. We show officially reported numbers for every baseline.
+
+challenging the vision domain due to an inherent disparity
+of input and output formats across different tasks. Though
+pre-training followed by a fine-tuning strategy is effective
+for various vision problems [15, 16, 45, 47, 52, 53, 75, 76,
+78, 94, 105], with the continuously increasing model parameters, the marginal cost for task-specific tuning comes
+with significant computational overhead. Hence, it becomes
+crucial to design general-purpose vision models that can
+perceive natural-language instructions to solve various vision problems in a zero-shot manner.
+The development of general-purpose vision models faces
+two significant challenges: first, the unification of diverse
+input-output formats, and second, an effective representation of visual features for a variety of tasks. Image-level vision tasks such as classification, captioning, and questionanswering involve textual outputs and primarily require a
+broader, coarse-grained image representation, making them
+relatively straightforward to integrate into a unified framework [14, 21, 57, 121]. In contrast, region-level prediction
+tasks like object detection and semantic segmentation ne14076
+
+

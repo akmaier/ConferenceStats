@@ -1,0 +1,147 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+ProTeCt: Prompt Tuning for Taxonomic Open Set Classification
+Tz-Ying Wu* Chih-Hui Ho* Nuno Vasconcelos
+University of California, San Diego
+{tzw001, chh279, nvasconcelos}@ucsd.edu
+
+Abstract
+Visual-language foundation models, like CLIP, learn generalized representations that enable zero-shot open-set classification. Few-shot adaptation methods, based on prompt
+tuning, have been shown to further improve performance
+on downstream datasets. However, these methods do not
+fare well in the taxonomic open set (TOS) setting, where
+the classifier is asked to make prediction from label set
+across different levels of semantic granularity. Frequently,
+they infer incorrect labels at coarser taxonomic class levels, even when the inference at the leaf level (original class
+labels) is correct. To address this problem, we propose
+a prompt tuning technique that calibrates the hierarchical
+consistency of model predictions. A set of metrics of hierarchical consistency, the Hierarchical Consistent Accuracy (HCA) and the Mean Treecut Accuracy (MTA), are
+first proposed to evaluate TOS model performance. A new
+Prompt Tuning for Hierarchical Consistency (ProTeCt) technique is then proposed to calibrate classification across
+label set granularities. Results show that ProTeCt can be
+combined with existing prompt tuning methods to significantly improve TOS classification without degrading the leaf
+level classification performance. The code is available at
+https://github.com/gina9726/ProTeCt.
+
+1. Introduction
+Vision-language foundation models (FMs) have opened up
+new possibilities for image classification. They are large
+models, trained on large corpora, to learn aligned representations of images and text. For example, CLIP [30] combines text and image encoders trained with 400M image-text
+pairs in an open vocabulary fashion, using a contrastive
+loss [3, 4, 34, 35]. Zero-shot classification can then proceed
+by leveraging the feature alignments. Each class name is
+first converted to a text prompt, e.g., “a photo of [CLASS],"
+which is fed to the text encoder. The resulting text feature is
+then used as the parameter vector of a softmax classifier of
+image feature vectors. Since the training does not emphasize
+any particular classes, CLIP supports open set classification.
+Several works [17, 42, 45, 46] have shown that classification
+
+object
+mammal
+placental
+tiger
+
+A photo of
+<CLASS>
+
+abstraction
+
+physical entity
+
+Text
+Encoder
+Φ𝑡𝑒𝑥𝑡
+
+𝐰< 𝐂𝐋𝐀𝐒𝐒 >
+
+Visual
+Encoder
+Φ𝑣𝑖𝑠
+
+𝐯
+
+person matter
+
+marsupial
+
+ground truth
+prediction
+other nodes
+
+w/o ProTeCt
+L=5
+bird
+L=6
+koala
+𝑙𝑒𝑎𝑓 fox squirrel
+w/ ProTeCt
+L=5
+mammal
+L=6
+placental
+𝑙𝑒𝑎𝑓 fox squirrel
+
+w/o ProTeCt
+L=3 natural object
+L=4
+bath towel
+𝑙𝑒𝑎𝑓 washing machine
+w/ ProTeCt
+L=3
+artifact
+L=4 consumer goods
+𝑙𝑒𝑎𝑓 washing machine
+
+Figure 1. (Top) An example of class hierarchy, where CLIP predicts
+the tiger image as “person" at the internal hierarchy level. (Bottom)
+Correct/incorrect model predictions (green/red) of CoOp w/ and
+w/o ProTeCt on ImageNet variants. L denotes the tree level.
+
+Method
+CLIP [30]
+CoOp [46]
+MaPLe [17]
+
+Accleaf
+68.36
+71.23
+70.70
+
+HCA
+3.32
+2.99
+4.15
+
+MTA
+48.21
+46.98
+48.29
+
+Table 1. TOS classification performance of CLIP-based classifiers.
+
+accuracy can be enhanced by fine-tuning the FM on the fewshot setting (i.e. few examples per class). To adapt the model
+and maintain image-text alignment, these works augment
+the FM with a few learnable prompts [17, 42, 45, 46]. The
+model parameters are then frozen and only the prompts are
+optimized. This process is known as prompt tuning and can
+outperform zero-shot performance, on the dataset of interest.
+While prompting enables classifiers to be designed for
+virtually any classes with minimal dataset curation effort,
+it should not compromise the open set nature and generality of the FM representation. In this work, we consider
+the setting where “open set" means the ability to refer to
+concepts at different levels of granularity. Consider, for
+example, an educational application in biology. While at
+grade school level it will teach students to classify animals
+into (“cat", “dog", “lizard"), at the high-school level the
+exact same images should be classified into much more
+detailed classes, e.g. (“iguana", “anole", “komodo", etc.) for
+lizards. A classifier that classifies an image as a “komodo"
+lizard for high schoolers but “dog" for gradeschoolers is not
+useful and trustworthy. Advanced biology students should
+
+16531
+
+

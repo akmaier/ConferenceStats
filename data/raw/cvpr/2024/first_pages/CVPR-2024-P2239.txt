@@ -1,0 +1,74 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+pixelSplat: 3D Gaussian Splats from Image Pairs
+for Scalable Generalizable 3D Reconstruction
+
+1
+
+David Charatan1
+Sizhe Lester Li1
+Massachusetts Institute of Technology
+
+Andrea Tagliasacchi2
+Vincent Sitzmann1
+Simon Fraser University, University of Toronto
+
+2
+
+{charatan, sizheli, sitzmann}@mit.edu
+
+andrea.tagliasacchi@sfu.ca
+
+Abstract
+We introduce pixelSplat, a feed-forward model that learns
+to reconstruct 3D radiance fields parameterized by 3D Gaussian primitives from pairs of images. Our model features
+real-time and memory-efficient rendering for scalable training as well as fast 3D reconstruction at inference time. To
+overcome local minima inherent to sparse and locally supported representations, we predict a dense probability distribution over 3D and sample Gaussian means from that
+probability distribution. We make this sampling operation
+differentiable via a reparameterization trick, allowing us to
+back-propagate gradients through the Gaussian splatting
+representation. We benchmark our method on wide-baseline
+novel view synthesis on the real-world RealEstate10k and
+ACID datasets, where we outperform state-of-the-art light
+field transformers and accelerate rendering by 2.5 orders
+of magnitude while reconstructing an interpretable and editable 3D radiance field. Additional materials can be found
+on the project website. 1
+
+1. Introduction
+We investigate the problem of generalizable novel view
+synthesis from sparse image observations. This line of
+work has been revolutionized by differentiable rendering [29, 40, 41, 50] but has also inherited its key weakness: training, reconstruction, and rendering are notoriously
+memory- and time-intensive because differentiable rendering requires evaluating dozens or hundreds of points along
+each camera ray [58].
+This has motivated light-field transformers [10, 37, 43,
+47], where a ray is rendered by embedding it into a query token and a color is obtained via cross-attention over image tokens. While significantly faster than volume rendering, such
+methods are still far from real-time. Additionally, they do
+not reconstruct 3D scene representations that can be edited
+or exported for downstream tasks in vision and graphics.
+1 dcharatan.github.io/pixelsplat
+
+Figure 1. Overview. Given a pair of input images, pixelSplat reconstructs a 3D radiance field parameterized via 3D Gaussian primitives. This yields an explicit 3D representation that is renderable in
+real time, remains editable, and is cheap to train.
+
+Meanwhile, recent work on single-scene novel view synthesis has shown that it is possible to use 3D Gaussian primitives to enable real-time rendering with little memory cost
+via rasterization-based volume rendering [19].
+We present pixelSplat, which brings the benefits of
+a primitive-based 3D representation—fast and memoryefficient rendering as well as interpretable 3D structure—
+to generalizable view synthesis. This is no straightforward
+task. First, in real-world datasets, camera poses are only
+reconstructed up to an arbitrary scale factor. We address
+this by designing a multi-view epipolar transformer that reliably infers this per-scene scale factor. Next, optimizing
+primitive parameters directly via gradient descent suffers
+from local minima. In the single-scene case, this can be
+addressed via non-differentiable pruning and division heuristics [19]. In contrast, in the generalizable case, we need
+to back-propagate gradients through the representation and
+thus cannot rely on non-differentiable operations. We thus
+propose a method by which Gaussian primitives can implicitly be spawned or deleted during training, avoiding local minima, but which nevertheless maintains gradient flow.
+Specifically, we parameterize the positions (i.e., means) of
+Gaussians implicitly via dense probability distributions predicted by our encoder. In each forward pass, we sample
+
+19457
+
+

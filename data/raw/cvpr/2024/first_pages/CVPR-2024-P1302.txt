@@ -1,0 +1,102 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+StreamingFlow: Streaming Occupancy Forecasting with Asynchronous
+Multi-modal Data Streams via Neural Ordinary Differential Equation
+Yining Shi1,3 * Kun Jiang1† Ke Wang2 Jiusi Li1 Yunlong Wang1 Mengmeng Yang1 Diange Yang1†
+1
+School of Vehicle and Mobility, Tsinghua University 2 KargoBot, Inc 3 DiDi Chuxing
+
+Abstract
+Predicting the future occupancy states of the surrounding environment is a vital task for autonomous driving.
+However, current best-performing single-modality methods
+or multi-modality fusion perception methods are only able
+to predict uniform snapshots of future occupancy states
+and require strictly synchronized sensory data for sensor
+fusion. We propose a novel framework, StreamingFlow,
+to lift these strong limitations. StreamingFlow is a novel
+BEV occupancy predictor that ingests asynchronous multisensor data streams for fusion and performs streaming forecasting of the future occupancy map at any future timestamps. By integrating neural ordinary differential equations
+(N-ODE) into recurrent neural networks, StreamingFlow
+learns derivatives of BEV features over temporal horizons,
+updates the implicit sensor’s BEV features as part of the
+fusion process, and propagates BEV states to the desired
+future time point. It shows good zero-shot generalization
+ability of prediction, reflected in the interpolation of the observed prediction time horizon and the reasonable inference
+of the unseen farther future period. Extensive experiments
+on two large-scale datasets,nuScenes [2] and Lyft L5 [14],
+demonstrate that StreamingFlow significantly outperforms
+previous vision-based, LiDAR-based methods, and shows
+superior performance compared to state-of-the-art fusionbased methods.
+
+1. Introduction
+Occupancy grid is gaining more traction in the self-driving
+community, due to its versatilities in downstream tasks, e.g.,
+irregularly shaped object representation, robot navigation,
+etc. With the help of modern deep learning technologies,
+occupancy grid maps (OGMs) have evolved significantly.
+For example, not just LiDAR point clouds, camera images
+can now be used to construct high-quality occupancy grid
+maps [26]. In addition to its fine-grained geometric infor* Work done during internship at DiDi Chuxing.
+† Corresponding author: Kun Jiang, Diange Yang.
+
+Synchronized BEV-based fusion
+Vision
+encoder
+SYNC
+
+Fuse
+BEV fuser
+
+BEV
+decoder
+
+Project
+LiDAR
+encoder
+
+Interactive
+Fuser
+
+Asynchronous N-ODE BEV fusion
+Vision
+encoder
+
+N-ODE
+predictor
+
+BEV
+decoder
+
+ASYNC
+Fuse with update
+LiDAR
+encoder
+
+N-ODE
+updater
+
+BEV
+decoder
+
+Figure 1. Comparison between conventional synchronized BEV
+fusion (top) and our asynchronous BEV fusion (bottom). We formulate fusion with an update-predict-update approach.
+
+mation, occupancy grids can also represent rich semantic
+and motion cues [1, 9–11]. Such cues grant occupancy networks the ability to predict the occupancy state of the environment at desired future timestamps. While trajectory
+forecasting only contains object-level information, the occupancy grid conveys a much more comprehensive understanding of the surrounding environment, which is the key
+to achieving better intelligence and driving safety.
+Despite the great potential of occupancy-based prediction, we notice that existing methods can only predict at
+fixed frequencies [1, 9–11, 33]. This comes from the fact
+that sensors sample the environment at predetermined frequencies, e.g., motors in mechanical LiDARs spin at 10Hz,
+and many cameras captures images at 30FPS. Thus, previous algorithms predict at the same intervals as they are
+trained with ground-truth labels of future intervals. If future
+occupancy can be predicted at any given timestamps in a
+continuous manner, self-driving algorithms can have shorter
+latency and more rapid responses. Streaming forecasting
+can also relax the sensor synchronization constraints, as
+the continuous forecasting model can update the prediction as new sensory data come in. Compared with discrete snapshot-based prediction, streaming motion forecast-
+
+14833
+
+

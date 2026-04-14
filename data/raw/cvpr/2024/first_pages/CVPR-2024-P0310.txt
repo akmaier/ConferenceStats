@@ -1,0 +1,92 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Revisiting Non-Autoregressive Transformers for Efficient Image Synthesis
+Zanlin Ni1∗ Yulin Wang1 * Renping Zhou1 Jiayi Guo1
+Jinyi Hu1 Zhiyuan Liu1 Shiji Song1 Yuan Yao2† Gao Huang1†
+1
+
+Tsinghua University
+
+2
+
+National University of Singapore
+
+Abstract
+The field of image synthesis is currently flourishing due
+to the advancements in diffusion models. While diffusion
+models have been successful, their computational intensity has prompted the pursuit of more efficient alternatives.
+As a representative work, non-autoregressive Transformers
+(NATs) have been recognized for their rapid generation.
+However, a major drawback of these models is their inferior performance compared to diffusion models. In this
+paper, we aim to re-evaluate the full potential of NATs by
+revisiting the design of their training and inference strategies. Specifically, we identify the complexities in properly
+configuring these strategies and indicate the possible suboptimality in existing heuristic-driven designs. Recognizing
+this, we propose to go beyond existing methods by directly
+solving the optimal strategies in an automatic framework.
+The resulting method, named AutoNAT, advances the performance boundaries of NATs notably, and is able to perform comparably with the latest diffusion models with a
+significantly reduced inference cost. The effectiveness of
+AutoNAT is comprehensively validated on four benchmark
+datasets, i.e., ImageNet-256 & 512, MS-COCO, and CC3M.
+Code and pre-trained models will be available at https:
+//github.com/LeapLabTHU/ImprovedNAT.
+
+1. Introduction
+In recent years, the field of image synthesis has witnessed a
+surge in popularity due to the success of highly capable diffusion models [9, 19, 36, 38, 45]. However, the iterative
+generation process of diffusion models tends to be computationally intensive [10, 29, 30, 45, 49], which leads to
+significant practical latency and energy consumption. As
+a consequence, a number of research efforts have been put
+into exploring more efficient alternatives.
+Within this context, non-autoregressive Transformers
+(NATs) [6, 7, 25, 27, 34] have emerged as a representative work. These models offer benefits akin to those of
+* Equal contribution.
+† Corresponding authors.
+
+Diffusion Models
+Non-Autoregressive
+Transformers
+
+LDM†(CVPR’22)
+DiT†(ICCV’23)
+U-ViT†( CVPR’23)
+MaskGIT‡ (CVPR’22)
+TokenCritic‡ (ECCV’22)
+MAGE‡ (CVPR’23)
+AutoNAT-L‡
+AutoNAT-S
+AutoNAT-L
+
+5.1× speedup
+
+†: Augmented with
+
+DPM-Solver (CVPR’22)
+‡: Models without
+
+classifier-free guidance
+
+Figure 1. FID-50K vs. computational cost on ImageNet-256.
+For fair comparisons, diffusion models are equipped with DPMSolver [29, 30] for efficient synthesis.
+
+diffusion models, such as high scalability [7] and sample diversity [6], while being notably faster due to their
+parallel decoding mechanism in Vector Quantized (VQ)
+space [10, 46]. As depicted in Figure 2, NATs start generation from a fully masked canvas, and swiftly progress by
+concurrently decoding multiple tokens at each step. Nevertheless, a major drawback of NATs is their inferior performance compared to diffusion models. For example,
+MaskGIT [6], a popular NAT model, can synthesize an image on ImageNet [40] in only 8 steps, but the generation
+quality measured in FID is only 6.18, which is far behind
+latest diffusion models [1, 33] (approximately 2).
+In this paper, we re-examine the performance limit of
+NATs. Our findings demonstrate that the inferior generation quality compared to diffusion models may not be their
+inherent limitation. Instead, it is largely caused by the suboptimal, heuristic-driven strategies in the training and generation process of NATs. To be specific, different from diffusion models, the parallel decoding mechanism in NATs
+introduces intricate design challenges, posing questions like
+1) how many tokens should be decoded at each step; 2)
+which tokens should be decoded; and 3) how to sample
+tokens from the VQ codebook? Configuring these aspects
+appropriately necessitates a specialized "generation strategy" comprising multiple scheduling functions. Moreover,
+a "training strategy" needs to be carefully designed to equip
+
+7007
+
+

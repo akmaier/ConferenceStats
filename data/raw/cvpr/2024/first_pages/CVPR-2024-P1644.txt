@@ -1,0 +1,171 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+A General and Efficient Training for Transformer via Token Expansion
+Wenxuan Huang1 *
+
+Jiao Xie3
+Baochang Zhang4
+Yunhang Shen2 *
+Ke Li2
+Xing Sun2
+Shaohui Lin1,5B
+
+Gaoqi He1
+
+1
+
+School of Computer Science and Technology, East China Normal University, Shanghai, China
+3
+4
+Tencent Youtu Lab, China
+Xiamen University, China
+Beihang University, China
+5
+Key Laboratory of Advanced Theory and Application in Statistics and Data Science - MOE, China
+2
+
+osilly0616@gmail.com, shenyunhang01@gmail.com, jiaoxie1990@126.com, bczhang@buaa.edu.cn
+gqhe@cs.ecnu.edu.cn, tristanli.sh@gmail.com, winfred.sun@gmail.com, shaohuilin007@gmail.com
+
+Abstract
+The remarkable performance of Vision Transformers (ViTs) typically requires an extremely large training
+cost. Existing methods have attempted to accelerate the
+training of ViTs, yet typically disregard method universality
+with accuracy dropping. Meanwhile, they break the training consistency of the original transformers, including the
+consistency of hyper-parameters, architecture, and strategy, which prevents them from being widely applied to different Transformer networks. In this paper, we propose a
+novel token growth scheme Token Expansion (termed ToE)
+to achieve consistent training acceleration for ViTs. We introduce an “initialization-expansion-merging” pipeline to
+maintain the integrity of the intermediate feature distribution of original transformers, preventing the loss of crucial learnable information in the training process. ToE can
+not only be seamlessly integrated into the training and finetuning process of transformers (e.g., DeiT and LV-ViT), but
+also effective for efficient training frameworks (e.g., EfficientTrain), without twisting the original training hyperparameters, architecture, and introducing additional training strategies. Extensive experiments demonstrate that ToE
+achieves about 1.3× faster for the training of ViTs in a
+lossless manner, or even with performance gains over the
+full-token training baselines. Code is available at https:
+//github.com/Osilly/TokenExpansion.
+
+1. Introduction
+Transformers have achieved excellent performance in the
+tasks of natural language processing (NLP) [1–3] and computer vision [4–7]. Despite their great success, modern Transformer models typically require extremely large parameters
+and computation consumption due to the quadratic com* Equal contribution.
+
+B Corresponding author.
+
+Table 1. Training results for DeiT [4] on ImageNet-1K. DeiT does not
+use the EMA strategy by default. a/b in the column of Top-1 Acc. means
+without/with EMA strategy using the official GitHub repo. The training
+time is averagely measured on one/four NVIDIA RTX A6000 GPUs 3 times
+with a batch size of 1, 024 for DeiT-Tiny/Base, respectively.
+Model
+
+Method
+
+Training consistency
+
+Top-1 Acc. (%)
+
+Training time
+
+Hyper
+
+Arch
+
+Strategy
+
+Tiny
+
+Baseline [4]
+S2 ViTE (600 epoch) [10]
+ToMeDeiT
+r8 → [11]
+NetworkExpansion6→12 [12]
+ToEr1 =0.5 (Ours)
+
+−
+×
+✓
+✓
+✓
+
+−
+×
+×
+✓
+✓
+
+−
+✓
+✓
+×
+✓
+
+72.2
+70.1 (-2.1)
+71.7 (-0.5)
+70.3 (-1.9) / 70.1 (-2.1)
+72.6 (+0.4)
+
+(GPU hours)
+54.6h
+−
+53.3h
+43.2h
+44.2h
+
+Base
+
+Baseline [4]
+StackBERT [13]
+NetworkExpansion6→12 [12]
+ToEr1 =0.5 (Ours)
+
+−
+✓
+✓
+✓
+
+−
+✓
+✓
+✓
+
+−
+×
+×
+✓
+
+81.8
+80.8 (-1.0)
+81.0 (-0.8) / 81.5 (-0.3)
+81.6 (-0.2)
+
+292.8h
+231.6h
+226.8h
+231.2h
+
+putational complexity in the self-attention module. For example, ViT-H/14 [8] requires ∼1,000B FLOPs, which is
+250× larger than ResNet-50 [9]. The entire training process
+needs a significant amount of computing resources to reach
+model convergence, resulting in a substantial computation
+overhead. To reduce the computational cost of large models,
+there has been growing research attention on accelerating
+Transformers for either training or inference.
+Existing Transformer pruning methods [14–22] aim to
+reduce the inference complexity. Among them, structure
+pruning [14–17] and token pruning [18–22] focus on reducing the neurons or tokens of Transformers to accelerate the
+inference. However, these pruning methods require additional training computational cost in each forward-backward
+iteration to determine which neurons or tokens are important
+enough to be retained, or the fine-tuning for pruned models.
+Recently, Transformer quantization [23–26] accelerates the
+inference via low-bit computation, but they also cannot reduce the training computation cost. Thus, it is challenging for
+them to effectively accelerate the training of Transformers
+in practical scenarios, e.g., cloud service.
+To reduce the training computation overhead, recent
+works [12, 13, 27–29] have proposed structure growth methods. They update a smaller number of model parameters
+during the early stages of training and gradually increase
+
+15783
+
+

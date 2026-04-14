@@ -1,0 +1,153 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+FlashEval: Towards Fast and Accurate Evaluation of
+Text-to-image Diffusion Generative Models
+Lin Zhao2∗ , Tianchen Zhao12 *, Zinan Lin3 , Xuefei Ning1† , Guohao Dai24 , Huazhong Yang1 , Yu Wang1†
+1
+Tsinghua University, 2 Infinigence-AI, 3 Microsoft Research, 4 Shanghai Jiao Tong University
+{lllzz0309zz,suozhang1998,linzinan1995,foxdoraame}@gmail.com
+
+daiguohao@sjtu.edu.cn
+
+{yanghz, yu-wang}@mail.tsinghua.edu.cn
+
+Applications that
+Requires Repeated Evaluations
+
+Abstract
+In recent years, there has been significant progress in the
+development of text-to-image generative models. Evaluating
+the quality of the generative models is one essential step in
+the development process. Unfortunately, the evaluation process could consume a significant amount of computational
+resources, making the required periodic evaluation of model
+performance (e.g., monitoring training progress) impractical. Therefore, we seek to improve the evaluation efficiency
+by selecting the representative subset of the text-image
+dataset. We systematically investigate the design choices,
+including the selection criteria (textural features or imagebased metrics) and the selection granularity (prompt-level or
+set-level). We find that the insights from prior work on subset
+selection for training data do not generalize to this problem,
+and we propose FlashEval, an iterative search algorithm
+tailored to evaluation data selection. We demonstrate the
+effectiveness of FlashEval on ranking diffusion models with
+various configurations, including architectures, quantization
+levels, and sampler schedules on COCO and DiffusionDB
+datasets. Our searched 50-item subset could achieve comparable evaluation quality to the randomly sampled 500-item
+subset for COCO annotations on unseen models, achieving
+a 10x evaluation speedup. We release the condensed subset
+of these commonly used datasets to help facilitate diffusion
+algorithm design and evaluation, and open-source FlashEval as a tool for condensing future datasets, accessible at
+https://github.com/thu-nics/FlashEval.
+
+1. Introduction
+Diffusion models could generate high-fidelity images
+based on textual descriptions (referred to as prompts) and
+achieve substantial research interest [23, 27, 28, 39]. Researchers have designed a range of techniques aimed at en* Equal contribution
+† Corresponding authors: Xuefei Ning and Yu Wang.
+
+SD-V1.2
+
+Better Evaluation
+Quality-Speed Trade-off
+Acceptable Eval. Cost
+
+SD-V1.5
+
+SD-V2.1
+
+&
+
+50
+
+10
+
+10
+
+DDIM
+
+PNDM
+
+DPMSolver
+
+(1) Model & Schedule Selection
+
+(2) Weight Tuning
+
+Eval Quality
+0.87
+
+Good Eval. Quality
+
+FlashEval (Ours)
+
+(Kendall’s Tau)
+
+Random Sample
+(Current)
+
+(3) Design Choices
+
+FlashEval: Search Subset
+
+Large Dataset
+(40K)
+
+Condense
+dataset
+
+Representative
+Subet (10-100)
+Eval Cost
+(Subset Size)
+
+Bad Eval. Quality
+
+Good Eval. Quality
+
+Acceptable Eval. Cost
+
+Excessive Eval. Cost
+
+Figure 1. The Motivation and Effectiveness of FlashEval. Left:
+Applications and the search method. Right: The excessive evaluation cost and how FlashEval improves the evaluation speed-quality
+trade-off (evaluation quality is represented by the ranking correlation of a variety of diffusion models w.r.t subset size on COCO).
+
+Compac
+
+Different se
+Same pru
+
+Conv11
+80%
+
+Decoup
+pruni
+of 2 bra
+
+hancing these models from various angles. Some algorithm
+design applications often necessitate a large number of iterative evaluations, such as: (1) Model & Schedule Selection:
+The quality of image generation exhibits varying trends over
+different timesteps for different models and solvers. Consequently, evaluations and comparisons are needed to strike
+a balance between generation quality and computational
+cost. (2) Weight Tuning: In the process of training and
+fine-tuning the model, evaluating the performance of current
+parameters is required for refining the training strategy. (3)
+Design Choices: The iterative testing of multiple design
+options, such as layer-wise pruning rates, layer-wise mixed
+precision configurations, and other hyperparameter choices.
+To evaluate the diffusion model, prior research [15,21,37]
+points out that the denoising loss does not necessarily reflect the generation quality. Therefore, existing evaluation schemes estimate the image quality (e.g., FID [14],
+IS [30], ImageReward [39]) over text annotations of existing
+text-image datasets [20, 36] or manually-designed textual
+dataset [16] (we refer them as “test prompts”). However, as
+
+16122
+
+Conv11
+80%
+
+(a) Without
+Compactor
+
+

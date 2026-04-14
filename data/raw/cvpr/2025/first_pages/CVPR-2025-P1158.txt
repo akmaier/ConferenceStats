@@ -1,0 +1,245 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+MergeVQ: A Unified Framework for Visual Generation and Representation with
+Disentangled Token Merging and Quantization
+Siyuan Li1,3→ Luyuan Zhang2→ Zedong Wang4 Juanxi Tian3 Cheng Tan1,3
+Zicheng Liu1,3 Chang Yu3 Qingsong Xie5† Haonan Lu5 Haoqian Wang2 Zhen Lei6,7,8†
+1
+Zhejiang University 2 Tsinghua University 3 Westlake University
+4
+The Hong Kong University of Science and Technology 5 OPPO AI Center
+6
+CAIR, HKISI-CAS 7 MAIS CASIA 8 University of Chinese Academy of Sciences
+Abstract
+
+Ground-truth
+Source Matrix
+
+Masked Image Modeling (MIM) with Vector Quantization (VQ) has achieved great success in both self-supervised
+pre-training and image generation. However, most existing
+methods struggle to address the trade-off in shared latent
+space for generation quality vs. representation learning and
+efficiency. To push the limits of this paradigm, we propose
+MergeVQ, which incorporates token merging techniques
+into VQ-based generative models to bridge the gap between
+image generation and visual representation learning in a
+unified architecture. During pre-training, MergeVQ decouples top-k semantics from latent space with the token merge
+module after self-attention blocks in the encoder for subsequent Look-up Free Quantization (LFQ) and global alignment and recovers their fine-grained details through crossattention in the decoder for reconstruction. As for secondstage generation, we introduce MergeAR, which performs
+KV Cache compression for efficient raster-order prediction.
+Extensive experiments on ImageNet verify that MergeVQ as
+an AR generative model achieves competitive performance
+in both visual representation learning and image generation tasks while maintaining favorable token efficiency and
+inference speed. Code and model will be available at
+https://apexgen-x.github.io/MergeVQ.
+
+ToMe
+Encoder
+
+𝑋
+
+1
+
+1
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+1
+
+1
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+1
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+1
+
+𝐿×𝐾
+
+Decoder
+
+𝑋෠
+
+Decoder
+
+𝑋෠
+
+Decoder
+
+𝑋෠
+
+LFQ
+
+(a) MergeVQ Tokenizer Pre-training
+Predicted
+Source Matrix
+
+Random-order NTP
+
+[S]
+Start
+
+𝑃1
+
+𝑃3
+
+𝑃5
+
+Start [S]
+
+𝑃1
+
+𝑃3
+
+1
+
+1
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+1
+
+1
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+1
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+1
+
+𝐿×𝐾
+
+Source
+Recovery
+
+𝑃6
+
+Randomized AR
+Generator
+
+Position Cache 𝑃1
+
+(b) Randomized AR Generation
+…
+
+Is duplicate?
+
+[S]
+
+𝑃1
+
+𝑃1
+
+𝑃3
+
+…
+
+…
+
+…
+
+𝑃3
+
+𝑃5
+
+𝑃6
+
+Is duplicate?
+
+…
+
+KVCache
+
+Raster-order NTP
+
+(c) MergeAR Generation
+
+Figure 1. MergeVQ learning paradigms. (a) MergeVQ Tokenizer extracts K semantic tokens with decoupled positional information (retained in source matrix) by ToMe [6] while quantizing
+spatial details by LFQ [47, 70], which will be recovered and reconstructed correspondingly. (b) MergeVQ with random-order Generator [49] generates K discrete tokens with associated position
+instructions while trained Source Prediction and decoder restore
+position details. (c) MergeAR Generator predicts L tokens efficiently in raster-order by Next-token Prediction (NTP) [55] with
+KV Cache compression to remove the redundancy.
+
+1. Introduction
+Vector Quantization (VQ) [58] has garnered increasing attention for its ability to encode continuous visual signals
+into discrete tokens, enabling autoregressive (AR) models
+to process visual modalities. Since VQGAN [20], most visual AR generative models have adopted a two-stage design: first encode signals into discrete latent space for pretraining, then generate them with an autoregressive Transformer. Besides generation, BEiT [3] proposed Masked Image Modeling (MIM) based on the VQ framework, achieving successful latent-based pretraining [35, 37] and thus at* Equal contribution.
+
+Source
+Recovery
+
+† Corresonding authors.
+
+tracting growing interest in unifying visual representation
+learning and generation tasks in a shared latent space [78].
+However, recent studies [43, 79] have shown that visual
+generation and representation capabilities often lack consistency [69] under VQ-based learning framework, i.e., improvements in one task may not necessarily benefit the others. This inconsistency is conjectured to arise from the competing objectives for identical embedding space: represen-
+
+19713
+
+

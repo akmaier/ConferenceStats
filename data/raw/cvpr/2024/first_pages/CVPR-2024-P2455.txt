@@ -1,0 +1,180 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Learning to Transform Dynamically for Better Adversarial Transferability
+†
+* Rongyi Zhu
+
+∗†
+
+Zeliang Zhang Susan Liang Zhuo Liu
+University of Rochester
+
+‡
+
+Chenliang Xu
+
+{rongyi.zhu, zeliang.zhang, susan.liang, zhuo.liu, chenliang.xu}@rochester.edu
+
+Abstract
+Adversarial examples, crafted by adding perturbations
+imperceptible to humans, can deceive neural networks. Recent studies identify the adversarial transferability across
+various models, i.e., the cross-model attack ability of adversarial samples. To enhance such adversarial transferability,
+existing input transformation-based methods diversify input
+data with transformation augmentation. However, their effectiveness is limited by the finite number of available transformations. In our study, we introduce a novel approach named
+Learning to Transform (L2T). L2T increases the diversity of
+transformed images by selecting the optimal combination
+of operations from a pool of candidates, consequently improving adversarial transferability. We conceptualize the
+selection of optimal transformation combinations as a trajectory optimization problem and employ a reinforcement
+learning strategy to effectively solve the problem. Comprehensive experiments on the ImageNet dataset, as well as
+practical tests with Google Vision and GPT-4V, reveal that
+L2T surpasses current methodologies in enhancing adversarial transferability, thereby confirming its effectiveness
+and practical significance. The code is available at https:
+//github.com/ZhangAIPI/TransferAttack.
+
+1. Introduction
+Neural networks have been adopted as the building block for
+various real-world applications, such as face detection [37,
+41], autonomous driving [12, 25], and medical diagnosis [1,
+35]. However, neural networks are vulnerable to adversarial
+examples, which contain human imperceptible adversarial
+perturbations on the benign input. This issue is increasingly
+concerning researchers, as it is essential for ensuring the
+trustworthy use of neural networks [3, 19, 65, 66].
+In real-world scenarios of adversarial attacks, the target
+model is usually inaccessible. To attack these inaccessible models, many studies instead rely on surrogate models
+* Equal contribution
+† Project lead
+‡ Corresponding author
+
+Iteration 1
+
+Iteration n
+
+Iteration 2
+
+...
+Admix
+
+ASR: 53.1%
+
+ASR: 71.8%
+
+Iteration 2
+
+Iteration n
+
+ASR: 39.8%
+Fixed Transformation
+
+Spectrum
+Rotation
+Padding
+
+Candidates Operation
+
+Mixup
+
+Spectrum
+
+Padding
+
+Resize
+
+Dropout
+
+Scale
+
+Shuffle
+
+Mask
+
+Rotation
+
+Translate
+
+Iteration 1
+
+...
+
+Benign example
+
+ASR: 62.2%
+
+ASR: 45.3%
+
+ASR: 79.3%
+
+Learned Transformation
+Pre-trained Network
+
+Mixup
+Spectrum
+𝜕𝔼 [ℒ
+Padding
+Mask
+𝜕𝔼 [ℒ
+
+(𝒙 , 𝒚; 𝜃
+𝜕𝑜
+
+𝜕𝔼 [ℒ
+
+(𝒙 , 𝒚; 𝜃
+𝜕𝑜
+
+)]
+
+Iteration 1
+
+(𝒙 , 𝒚; 𝜃
+𝜕𝑜
+
+Mask
+Shuffle
+
+)]
+
+Iteration n
+
+Iteration 2
+
+)]
+
+...
+
+Operation Sampling
+Operation Inference
+
+ASR: 59.9%
+
+ASR: 71.8%
+
+ASR: 92.6%
+
+Learning to Transform (Ours)
+
+Figure 1. For input transformation-based attacks, most works
+design a fixed transformation and use it to craft the adversarial
+perturbation. The learning-based methods preliminarily predict
+augmentation strategies for current images for better adversarial
+transferability. These methods cannot respond to the distribution
+shifts between benign images and adversarial examples. We propose Learning to Transform (L2T), which uses the dynamic of
+the optimal transformation in each iteration to further boost the
+adversarial transferability.
+
+to generate adversarial examples [7, 57] and use generated
+samples to mislead the target model. This cross-model attack ability of samples generated on the surrogate models
+is called “adversarial transferability.” Numerous research
+studies are dedicated to enhancing adversarial transferability,
+which can be classified into four categories: gradient-based
+methods [7, 26, 44, 47], input transformation-based methods [8, 26, 46, 57], architecture-based methods [23, 52],
+and ensemble-based methods [28, 60]. Among these attack
+methodologies, input transformation-based methods gain
+much popularity because of their plug-n-play advantage,
+which can be seamlessly integrated into other attack techniques [7, 44]. However, we discover that existing input
+
+24273
+
+

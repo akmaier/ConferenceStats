@@ -1,0 +1,90 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+LotusFilter: Fast Diverse Nearest Neighbor Search via a Learned Cutoff Table
+Yusuke Matsui
+The University of Tokyo
+matsui@hal.t.u-tokyo.ac.jp
+
+Abstract
+Approximate nearest neighbor search (ANNS) is an essential building block for applications like RAG but can sometimes yield results that are overly similar to each other. In
+certain scenarios, search results should be similar to the
+query and yet diverse. We propose LotusFilter, a postprocessing module to diversify ANNS results. We precompute a cutoff table summarizing vectors that are close to
+each other. During the filtering, LotusFilter greedily looks
+up the table to delete redundant vectors from the candidates.
+We demonstrated that the LotusFilter operates fast (0.02
+[ms/query]) in settings resembling real-world RAG applications, utilizing features such as OpenAI embeddings. Our
+code is publicly available at https://github.com/
+matsui528/lotf.
+
+1. Introduction
+An approximate nearest neighbor search (ANNS) algorithm, which finds the closest vector to a query from
+database vectors [7, 28, 29], is a crucial building block
+for various applications, including image retrieval and information recommendation. Recently, ANNS has become
+an essential component of Retrieval Augmented Generation (RAG) approaches, which integrate external information into Large Language Models [4].
+The essential problem with ANNS is the lack of diversity. For example, consider the case of image retrieval using ANNS. Suppose the query is an image of a cat, and the
+database contains numerous images of the same cat. In that
+case, the search results might end up being almost uniform,
+closely resembling the query. However, users might prefer
+more diverse results that differ from one another.
+Diverse nearest neighbor search (DNNS) [14, 40, 47]
+is a classical approach to achieving diverse search results
+but often suffers from slow performance. Existing DNNS
+methods first obtain S candidates (search step) and then select K(< S) results to ensure diversity (filter step). This
+approach is slow for three reasons. First, integrating modern ANN methods is often challenging. Second, selecting
+
+𝜀
+𝒙13 𝒙25
+
+𝒙28
+
+𝒙25
+
+𝒒
+
+𝒒
+𝒙𝑖 − 𝒙𝑗
+
+(a) Usual ANNS
+
+2
+2
+
+𝒙61
+
+≥𝜀
+
+𝒙19
+
+(b) DNNS with the LotusFilter
+
+Figure 1. (a) Usual ANNS. The search results are close to the
+query q but similar to each other. (b) DNNS with the proposed
+√
+LotusFilter. The obtained vectors are at least ε apart from each
+other. The results are diverse despite being close to the query.
+
+K items from S candidates is a subset selection problem,
+which is NP-hard. Lastly, existing methods require access
+to the original vectors during filtering, which often involves
+slow disk access if the vectors are not stored in memory.
+We propose a fast search result diversification approach
+called LotusFilter, which involves precomputing a cutoff table and using it to filter search results. Diverse outputs are
+ensured by removing vectors too close to each other. The
+data structure and algorithm are both simple and highly efficient (Fig. 1), with the following contributions:
+• As LotusFilter is designed to operate as a pure postprocessing module, one can employ the latest ANNS
+method as a black-box backbone. This design provides
+a significant advantage over existing DNNS methods.
+• We introduce a strategy to train the hyperparameter, eliminating the need for complex parameter tuning.
+• LotusFilter demonstrates exceptional efficiency for largescale datasets, processing queries in only 0.02 [ms/query]
+for 9 × 105 1536-dimensional vectors.
+
+30430
+
+2. Related work
+2.1. Approximate nearest neighbor search
+Approximate nearest neighbor search (ANNS) has been
+extensively studied across various fields [28, 29]. Since
+
+

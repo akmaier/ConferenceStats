@@ -85,14 +85,21 @@ def fill_unknown_countries_with_local_llm(authors, config_path: Path | None = No
     if limit is not None:
         pending = pending[:limit]
 
+    pending_by_institution = {}
+    institution_order = []
+    for row in pending:
+        institution = row["institution"]
+        if institution not in pending_by_institution:
+            pending_by_institution[institution] = []
+            institution_order.append(institution)
+        pending_by_institution[institution].append(row)
+
     applied_updates = 0
-    for index, row in enumerate(pending, start=1):
-        existing_country = row["country"]
+    for index, institution in enumerate(institution_order, start=1):
+        sample_row = pending_by_institution[institution][0]
         prompt = (
             f"Infer the country from this institution string.\n"
-            f"Institution: {row['institution']}\n"
-            f"Conference: {row['conference']}\n"
-            f"Year: {row['year']}\n"
+            f"Institution: {institution}\n"
         )
         result = None
         for attempt in range(retries + 1):
@@ -113,32 +120,37 @@ def fill_unknown_countries_with_local_llm(authors, config_path: Path | None = No
 
         llm_country = normalize_country_value(str(result.get("country", "UNKNOWN")).strip())
         applied = should_apply(result, min_confidence)
-        if applied:
-            authors_by_id[row["author_id"]]["country"] = llm_country
-            source_note = authors_by_id[row["author_id"]].get("source_note", "").strip()
-            if DEFAULT_SOURCE_NOTE not in source_note:
-                if source_note:
-                    source_note = f"{source_note}; {DEFAULT_SOURCE_NOTE}"
-                else:
-                    source_note = DEFAULT_SOURCE_NOTE
-                authors_by_id[row["author_id"]]["source_note"] = source_note
-            applied_updates += 1
 
-        review_rows.append(
-            {
-                "author_id": row["author_id"],
-                "author_name": row["author_name"],
-                "institution": row["institution"],
-                "existing_country": existing_country,
-                "llm_country": llm_country,
-                "llm_confidence": str(result.get("confidence", "low")).strip().lower(),
-                "llm_reason": str(result.get("reason", "")).strip(),
-                "applied": "yes" if applied else "no",
-            }
-        )
-        if progress_every > 0 and (index % progress_every == 0 or index == len(pending)):
+        for row in pending_by_institution[institution]:
+            existing_country = row["country"]
+            row_applied = applied
+            if row_applied:
+                authors_by_id[row["author_id"]]["country"] = llm_country
+                source_note = authors_by_id[row["author_id"]].get("source_note", "").strip()
+                if DEFAULT_SOURCE_NOTE not in source_note:
+                    if source_note:
+                        source_note = f"{source_note}; {DEFAULT_SOURCE_NOTE}"
+                    else:
+                        source_note = DEFAULT_SOURCE_NOTE
+                    authors_by_id[row["author_id"]]["source_note"] = source_note
+                applied_updates += 1
+
+            review_rows.append(
+                {
+                    "author_id": row["author_id"],
+                    "author_name": row["author_name"],
+                    "institution": row["institution"],
+                    "existing_country": existing_country,
+                    "llm_country": llm_country,
+                    "llm_confidence": str(result.get("confidence", "low")).strip().lower(),
+                    "llm_reason": str(result.get("reason", "")).strip(),
+                    "applied": "yes" if row_applied else "no",
+                }
+            )
+
+        if progress_every > 0 and (index % progress_every == 0 or index == len(institution_order)):
             print(
-                f"Processed {index}/{len(pending)} local-LLM country rows; "
+                f"Processed {index}/{len(institution_order)} unique institution prompts; "
                 f"applied {applied_updates} updates so far",
                 flush=True,
             )

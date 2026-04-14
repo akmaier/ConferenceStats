@@ -1,0 +1,79 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Learning Structure-from-Motion with Graph Attention Networks
+Lucas Brynte
+
+José Pedro Iglesias
+Carl Olsson
+Chalmers University of Technology
+
+Fredrik Kahl
+
+{brynte,jose.iglesias,caols,fredrik.kahl}@chalmers.se
+
+Abstract
+In this paper we tackle the problem of learning Structurefrom-Motion (SfM) through the use of graph attention networks. SfM is a classic computer vision problem that is
+solved though iterative minimization of reprojection errors,
+referred to as Bundle Adjustment (BA), starting from a good
+initialization. In order to obtain a good enough initialization to BA, conventional methods rely on a sequence
+of sub-problems (such as pairwise pose estimation, pose
+averaging or triangulation) which provide an initial solution that can then be refined using BA. In this work we replace these sub-problems by learning a model that takes
+as input the 2D keypoints detected across multiple views,
+and outputs the corresponding camera poses and 3D keypoint coordinates. Our model takes advantage of graph
+neural networks to learn SfM-specific primitives, and we
+show that it can be used for fast inference of the reconstruction for new and unseen sequences. The experimental results show that the proposed model outperforms competing learning-based methods, and challenges COLMAP
+while having lower runtime. Our code is available at:
+https://github.com/lucasbrynte/gasfm/.
+
+1. Introduction
+Structure-from-Motion (SfM) is a classic and still relevant
+problem in computer vision. The goal of SfM is to estimate camera poses and 3D coordinates of keypoints detected across multiple images, and can be formulated as an
+optimization over m camera matrices {Pi }, i = 1, . . . , m
+and n 3D points {Xj } , j = 1, . . . , n of the form
+  \begin {aligned} & \underset {\{\mathbf {P}_i\},\{\mathbf {X}_j\}}{\text {minimize}} & & \sum _{ij} r\left (\mathbf {m}_{ij}, \mathbf {z}_{ij} \right ) \\ & \text {subject to} & & \mathbf {z}_{ij} = \mathbf {P}_i \mathbf {\bar {X}}_j, \text { } \forall i,j \end {aligned} \label {eq:sfm_optimization} 
+(1)
+where mij holds the 2D coordinates of the j th keypoint in
+the ith image. The loss in (1) is generally chosen as the
+reprojection error
+  r\left (\mathbf {m}_{ij}, \mathbf {z}_{ij} \right ) = || \mathbf {m}_{ij} - \Pi \left (\mathbf {z}_{ij}\right ) ||^2 
+
+(2)
+
+
+
+where Π(x) = xx13 , xx23 , and the nonlinear least squares
+problem (1), referred to as Bundle Adjustment (BA) [15],
+can be solved iteratively using second-order methods like
+Levenberg-Marquardt [15, 41]. Given the sparsity of the
+problem, sparse computation methods [27] can be used in
+order to increase the efficiency of the optimization, allowing BA to be used even for scenes with a large number of
+views or points. However, it is widely known that BA is
+highly non-convex and tends to converge to the nearest local
+minimum when not initialized close to the globally optimal
+solution. As a consequence, BA is typically the last step of
+a reconstruction pipeline, preceeding global SfM methods
+such as [9, 10, 20, 25], or incremental SfM methods such
+as [2, 37, 38] that solve a sequence of subproblems like pairwise pose estimation, pose averaging, triangulation or camera resection [13, 15, 22, 32]. A different approach consists
+of projective factorization methods [8, 17, 18, 28, 39, 48]
+which factorize the 2m × n measurement matrix into two
+rank four matrices corresponding to the camera matrices
+and 3D points (in homogeneous coordinates). In particular,
+works like [17, 18, 48] allow initialization-free SfM given
+their wide basin of convergence, meaning that their methods can be initialized with random camera poses and still
+converge with a high rate of success to the desired global
+minimum. Even though these methods have been improving in terms of accuracy and robustness to missing data,
+factorization-based methods require the input data to be almost completely free of outliers which unfortunately cannot
+be guaranteed in most real world sequences or datasets, and
+hence severely compromises the usability of these methods.
+A common challenge with all these approaches to solve
+SfM is their scalability as the number of views and keypoints increase. Incremental SfM tries to tackle this issue by starting with a subset of the views, estimate its reconstruction and incrementally adding more views. Some
+factorization-based methods can also take advantage of the
+same sparse computation methods used in BA, which significantly improves their ability to scale with sequence size.
+While this allows to reconstruct scenes with thousands of
+views and millions of points, it can still take hours to recover the reconstruction of a single scene.
+
+4808
+
+

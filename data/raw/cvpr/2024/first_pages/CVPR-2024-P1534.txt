@@ -1,0 +1,114 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Seg2Reg: Differentiable 2D Segmentation to 1D Regression Rendering for 360
+Room Layout Reconstruction
+Cheng Sun1
+Wei-En Tai2
+Yu-Lin Shih2
+Kuan-Wei Chen2
+2
+2
+Yong-Jing Syu
+Kent Selwyn The
+Yu-Chiang Frank Wang1,3
+Hwann-Tzong Chen2,4
+1
+
+NVIDIA
+
+2
+
+National Tsing Hua University
+
+3
+
+4
+
+National Taiwan University
+
+Abstract
+State-of-the-art single-view 360◦ room layout reconstruction methods formulate the problem as a high-level
+1D (per-column) regression task. On the other hand, traditional low-level 2D layout segmentation is simpler to learn
+and can represent occluded regions, but it requires complex
+post-processing for the targeting layout polygon and sacrifices accuracy. We present Seg2Reg to render 1D layout
+depth regression from the 2D segmentation map in a differentiable and occlusion-aware way, marrying the merits
+of both sides. Specifically, our model predicts floor-plan
+density for the input equirectangular 360◦ image. Formulating the 2D layout representation as a density field enables us to employ ‘flattened’ volume rendering to form
+1D layout depth regression. In addition, we propose a
+novel 3D warping augmentation on layout to improve generalization. Finally, we re-implement recent room layout
+reconstruction methods into our codebase for benchmarking and explore modern backbones and training techniques
+to serve as the strong baseline. The code is at https:
+//PanoLayoutStudio.github.io .
+
+1. Introduction
+Room layout estimation is one of the fundamental vision
+problems toward scene understanding. The goal is to reconstruct the outermost room structure, usually comprising the floor, ceiling, walls, and sometimes columns and
+beams. Room layout is crucial in various indoor tasks, such
+as holistic 3D reconstruction [22, 45, 47, 49], image synthesis [10, 41], floor-plan estimation [4, 33], and extreme baseline SfM [14, 32]. Automatic layout annotation for panoramas is also a sought-after feature in real estate portals.
+Traditional deep-learning methods view room-layout estimation as semantic segmentation tasks for perspective images [15, 21, 50] or panoramas [31, 43, 52, 53]. The downside of previous segmentation-based methods is that they
+need heuristic post-processing steps, which introduce errors
+
+Aeolus Robotics
+
+Regression methods
+2D-to-1D
+network
+
+Per-column reg.
+
+Geometry
+projection
+Primary-view
+layout
+
+Segmentation methods
+2D-to-2D
+network
+
+Non-differentiable
+post-processing
+Complete layout
+Differentiable Seg2Reg
+
+Ours
+
+2D-to-2D
+network
+Primary view
+
+Primary-view layout
+
+⋮
+
+⋮
+
+Sampled views
+
+Secondary layouts
+
+Union
+Complete layout
+
+Density map
+
+Figure 1. Regression methods directly predict layout geometry. A powerful 2D-to-1D decoder is essential to capture highlevel cues within an image column. The regressed layout pertains solely to the visible region from the camera origin (dubbed
+primary-view layout). Segmentation methods predict lower-level
+per-pixel probabilities of layout facades, corners, and boundaries.
+While capable of modeling occluded regions, they require a nondifferentiable post-heuristic to convert segmentation to layout geometry. Our proposed Seg2Reg aims to synergize the strengths
+of both. We re-formulate 2D layout representation as 2D density
+field via projecting pixels onto the floor or ceiling. We use the
+classical volume rendering technique to render depth on the density map, which is differentiable and occlusion-aware. The 1D
+depth maps rendered from the primary view and the sampled secondary views directly outline the layout polygons.
+
+and gaps between the training objective and the targeted
+layout outcomes. Recent advancements in 360◦ roomlayout estimation involve training deep models to regress
+the boundary [34, 35] or distance to layout wall [18, 37] for
+each image column (i.e., 1D regression). The regressed geometry information can then be directly projected onto the
+floor to form a layout floor-plan polygon. Despite achieving
+state-of-the-art accuracy, regression-based methods require
+
+10435
+
+

@@ -1,0 +1,169 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Streaming Dense Video Captioning
+Xingyi Zhou* Anurag Arnab* Shyamal Buch Shen Yan
+Austin Myers Xuehan Xiong Arsha Nagrani Cordelia Schmid
+Google
+[ 0s -> 10s] A group of people gather in snow.
+
+Abstract
+An ideal model for dense video captioning – predicting
+captions localized temporally in a video – should be able
+to handle long input videos, predict rich, detailed textual
+descriptions, and be able to produce outputs before processing the entire video. Current state-of-the-art models,
+however, process a fixed number of downsampled frames,
+and make a single full prediction after seeing the whole
+video. We propose a streaming dense video captioning
+model that consists of two novel components: First, we
+propose a new memory module, based on clustering incoming tokens, which can handle arbitrarily long videos as the
+memory is of a fixed size. Second, we develop a streaming
+decoding algorithm that enables our model to make predictions before the entire video has been processed. Our
+model achieves this streaming ability, and significantly improves the state-of-the-art on three dense video captioning
+benchmarks: ActivityNet, YouCook2 and ViTT. Our code is
+released at https://github.com/google-research/scenic.
+
+1. Introduction
+Video is ubiquitous in modern society, quickly becoming
+one of the most prevalent media formats for transmitting
+information. The majority of computer vision models designed for video understanding only process a handful of
+frames, mostly covering only a few seconds [28, 30, 36, 46,
+55], and are typically limited to classifying these short segments into a fixed number of concepts. In order to achieve a
+comprehensive, fine-grained video understanding, we study
+the task of dense video captioning – jointly localizing events
+temporally in video and generating captions for them. Ideal
+models for this goal should be able to handle both long input sequences – to reason over long, untrimmed videos –
+and also to handle long output sequences in text space, to
+describe in detail all the events within the video.
+Prior work on dense video captioning does not handle either long inputs or long outputs. Given a video of
+* Equal contribution. {zhouxy, aarnab}@google.com
+
+Global
+video
+encoder
+
+[10s -> 15s] A man runs down a track.
+
+Language
+Decoder
+
+[15s -> 20s] He throws a javelin.
+
+Global video features
+
+Dense captions of the whole videos
+
+(a) Conventional global dense video captioning models [48, 56].
+
+Per-frame
+Image
+encoder
+Per-frame
+
+Image encoder
+
+Memory
+T=1
+
+T=2
+
+T=3
+
+Per-frame
+Image
+encoder
+Per-frame
+
+Per-frame
+Image
+encoder
+Per-frame
+
+Image encoder
+
+Memory
+
+Image encoder
+
+Memory
+T=2
+
+…
+…
+
+...
+
+Per-frame
+Image
+encoder
+Per-frame
+
+Image encoder
+
+Updated
+Memory
+
+[ 0s -> 10s] A group of people gather in snow.
+[10s -> 15s] A man runs down a track.
+
+Memory
+Memory
+= 2 past decoding points T = 3
+Captions Tfrom
+
+Language
+Language
+Decoder
+Decoder
+
+[15s -> 20s]
+[10s
+-> a
+15s]javelin.
+He
+throws
+A man runs down track.
+
+Prefix
+
+Language
+Decoder
+
+[15s
+-> 20s]
+Dense
+captions since
+He
+a javelin.
+thethrows
+last decoding
+point
+
+(b) Our streaming dense video captioning model.
+
+Figure 1. Comparing our streaming model (b) to conventional
+global models (a). Conventional global models encode the entire
+video at once, and produce captions for all events at the end. Our
+model encodes images frame-by-frame, uses them to update a running memory, and predicts captions sequentially.
+
+any length, state-of-the-art models either sample very few
+frames (e.g., 6 frames [45]) with large strides [10, 27, 45]
+(i.e., temporal downsampling), or keep one feature perframe for all the frames [48, 56, 62] (i.e., spatial downsampling). With long textual output, current models solely rely
+on auto-regressive decoding [17] to generate multiple sentences at the end.
+In this work, we design a streaming model for dense
+video captioning as shown in Fig. 1. Our streaming model
+does not require access to all input frames concurrently in
+order to process the video thanks to a memory mechanism.
+Moreover, our model can produce outputs causally without processing the entire input sequence, thanks to a new
+streaming decoding algorithm. Streaming models such as
+ours are inherently suited to processing long videos – as
+they ingest frames one at a time. Moreover, as the output
+is streamed, intermediate predictions are produced before
+processing the full video. This property means that streaming models can in theory be applied to process live video
+streams, as required for applications such as video conferencing, security and continuous monitoring among others.
+In order to develop our streaming model, we first propose
+
+18243
+
+

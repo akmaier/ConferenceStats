@@ -1,0 +1,126 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Reg-PTQ: Regression-specialized Post-training Quantization for Fully
+Quantized Object Detector
+
+1
+
+Yifu Ding1, 2 , Weilun Feng3 , Chuyan Chen3 , Jinyang Guo1, 4 , Xianglong Liu1, 5, 6†
+State Key Laboratory of Complex & Critical Software Environment, Beihang University
+2
+Shen Yuan Honors College, Beihang University 3 Beihang University
+4
+Institute of Artificial Intelligence, Beihang University 5 Zhongguancun Laboratory
+6
+Institute of data space, Hefei Comprehensive National Science Center
+{yifuding, fwl2023, ccy2006, jinyangguo, xlliu}@buaa.edu.cn
+
+Abstract
+Although deep learning based object detection is of great
+significance for various applications, it faces challenges
+when deployed on edge devices due to the computation
+and energy limitations. Post-training quantization (PTQ)
+can improve inference efficiency through integer computing. However, they suffer from severe performance degradation when performing full quantization due to overlooking the unique characteristics of regression tasks in object detection. In this paper, we are the first to explore
+regression-friendly quantization and conduct full quantization on various detectors. We reveal the intrinsic reason
+behind the difficulty of quantizing regressors with empirical and theoretical justifications, and introduce a novel
+Regression-specialized Post-Training Quantization (RegPTQ) scheme. It includes Filtered Global Loss Integration
+Calibration to combine the global loss with a two-step filtering mechanism, mitigating the adverse impact of false
+positive bounding boxes, and Learnable Logarithmic-Affine
+Quantizer tailored for the non-uniform distributed parameters in regression structures. Extensive experiments on
+prevalent detectors showcase the effectiveness of the welldesigned Reg-PTQ. Notably, our Reg-PTQ achieves 7.6×
+and 5.4× reduction in computation and storage consumption under INT4 with little performance degradation, which
+indicates the immense potential of fully quantized detectors
+in real-world object detection applications.
+
+1. Introduction
+Object detection [10, 11, 23, 42, 45, 57] is one of the most
+fundamental and challenging problems in computer vision.
+The current popular architectures, including convolution
+neural networks (CNNs) based [22, 46, 47, 50, 52, 53] and
+∗ Corresponding author: xlliu@buaa.edu.cn
+
+backbone
+Faster RCNN-R50
+YOLOF-R50
+RetinaNet-R50
+
+neck
+42%
+
+49%
+
+6%
+
+78%
+79%
+
+head
+10%
+16%
+21%
+0.4%
+
+(a) The proportion of FLOPs for full-precision structures.
+Faster RCNN-R50
+YOLOF-R50
+RetinaNet-R50
+
+56%
+
+37%
+
+7%
+9%
+12%
+
+42%
+39%
+
+49%
+49%
+
+(b) The proportion of memory footprint for full-precision structures.
+Faster RCNN-R50
+YOLOF-R50
+RetinaNet-R50
+
+24.25%
+15.14%
+13.37%
+
+100%
+
+(c) The compression of FLOPs under INT4 quantization.
+Faster RCNN-R50
+YOLOF-R50
+RetinaNet-R50
+
+18.55%
+40.73%
+27.66%
+
+100%
+
+(d) The compression of memory footprint under INT4 quantization.
+
+Figure 1. Comparison of FLOPs and parameters in full-precision
+and W4A4 quantized detection models. Head structures take nonneglectable percentage of computation and memory. And quantization significantly reduces the overall FLOPs and memory storage.
+
+transformer-based [7, 14, 30, 33–35, 60] detection models,
+which are designed as powerful yet complex structures to
+deal with the detection of visual objects [61]. However, the
+existing detection models suffer from extremely high computational costs, making them infeasible to deploy on edge
+devices. This limits the broader application in practical
+scenarios. To mitigate this gap, several compression techniques [1, 15–17, 58] have been proposed to improve the
+efficiency of networks, among which quantization reduces
+the computational complexity and memory footprint by using lower bit-widths to represent network parameters. Posttraining quantization (PTQ) is a widely used approach because of its wide versatility and low production cost, which
+directly applies quantization to a well-trained floating-point
+model without time-consuming retraining.
+However, although quantization techniques are proven
+effective in classification, they still lack sufficient investi-
+
+16174
+
+

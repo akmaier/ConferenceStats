@@ -1,0 +1,86 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Unsupervised Deep Unrolling Networks for Phase Unwrapping
+Zhile Chen1,2
+1
+
+Yuhui Quan1,2 *
+
+Hui Ji3
+
+School of Computer Science and Engineering, South China University of Technology, Guangzhou 510006, China
+2
+Pazhou Lab, Guangzhou 510320, China
+3
+Department of Mathematics, National University of Singapore, 119076, Singapore
+cs zhilechen@mail.scut.edu.cn, csyhquan@scut.edu.cn, matjh@nus.edu.sg
+
+Abstract
+Phase unwrapping (PU) is a technique to reconstruct
+original phase images from their noisy wrapped counterparts, finding many applications in scientific imaging. Although supervised learning has shown promise in PU, its
+utility is limited in ground-truth (GT) scarce scenarios.
+This paper presents an unsupervised learning approach that
+eliminates the need for GTs during end-to-end training.
+Our approach leverages the insight that both the gradients
+and wrapped gradients of wrapped phases serve as noisy
+labels for GT phase gradients, along with sparse outliers
+induced by the wrapping operation. A recorruption-based
+self-reconstruction loss in the gradient domain is proposed
+to mitigate the adverse effects of label noise, complemented
+with a self-distillation loss for improved generalization. Additionally, by unfolding a variational model of PU that utilizes wrapped gradients of wrapped phases for its datafitting term, we develop a deep unrolling network that encodes physics of phase wrapping and incorporates special
+treatments on outliers. In the experiments on three types
+of phase data, our approach outperforms existing GT-free
+methods and competes well against the supervised ones.
+
+1. Introduction
+In many imaging systems, the direct acquisition of original
+phases of a target signal is both challenging and costly. Typically, initial measurement yields a phase image wrapped in
+[−π, π). Let X ∈ RM ×N and Y ∈ [−π, π)M ×N denote
+the true phase image and its noisy wrapped counterpart, respectively. The wrapping process can be formulated as:
+Y = W(X + N ),
+
+W : RM ×N → [−π, π)M ×N , (1)
+
+* Corresponding author: Yuhui Quan.
+This work is supported by National Natural Science Foundation of
+China (Grant No. 62372186), Natural Science Foundation of Guangdong
+Province (Grant No. 2022A1515011755, 2023A1515012841), Fundamental Research Funds for Central Universities (Grant No. x2jsD2230220),
+and Singapore MOE AcRF Tier 1 (Grant No. A-8000981-00-00).
+
+where W denotes the wrapping operator with its entry-wise
+
+operation defined as W(θ) = (θ + π) mod 2π − π for
+θ ∈ R, and N ∈ RM ×N denotes the measurement noise,
+typically assumed to be Gaussian [22]. Consequently, the
+original phase image, which exhibits strong smoothness, is
+degraded to a wrapped version with both incorrect values
+and artificial discontinuities induced by the modulo operation, which adversely affects subsequent processing.
+Phase unwrapping (PU) is about recovering the original unwrapped phase image X (up to an additive constant)
+from its noisy wrapped counterpart Y . Serving as a critical step in many optical imaging techniques for generating clear and coherent phase images, PU finds extensive
+applications in diverse domains such as quantitative phase
+imaging, magnetic resonance imaging, synthetic aperture
+radar interferometry, 3D depth sensing, phase contrast microscopy, fringe projection, and digital holographic interferometry; see e.g. [10, 14, 16, 23, 41, 47, 56, 57].
+The model (1) is also usually formulated as follows:
+Y = X − 2πK + N ′ , K ∈ ZM ×N ,
+
+(2)
+
+where K ∈ ZM ×N denotes the map of wrap counts, indicating the number of times a phase value has been wrapped
+around by 2π, and N ′ denotes the noise dependent on both
+X and N , whose distribution can be complex even when
+N follows a simple distribution such as the normal distribution. It can be seen that PU is a challenging ill-posed inverse
+problem involving a continuous variable X and a discrete
+variable K. Direct solutions by integrating wrapped phase
+differences are insufficient for ensuring spatial consistency
+in all directions of the unwrapped phases and may accumulate significant errors due to substantial noise.
+Limitations of existing works: Conventional approaches
+for PU include reliability-guided methods (e.g. [3, 9, 11,
+23, 36]), filtering-based methods (e.g. [2, 45]), and modeldriven methods (e.g. [1, 12, 15]). These approaches are either sensitive to measurement noise, due to their heuristic
+rules, or overly simplistic for complex phase structures, due
+to their handcrafted image priors. In contrast, deep learning
+
+25182
+
+

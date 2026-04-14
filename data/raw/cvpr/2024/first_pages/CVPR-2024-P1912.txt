@@ -1,0 +1,157 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Learning to Select Views for Efficient Multi-View Understanding
+Yunzhong Hou, Stephen Gould, and Liang Zheng
+Australian National University
+{firstname.lastname}@anu.edu.au
+
+Abstract
+Multiple camera view (multi-view) setups have proven
+useful in many computer vision applications. However,
+the high computational cost associated with multiple views
+creates a significant challenge for end devices with limited computational resources. In modern CPU, pipelining
+breaks a longer job into steps and enables parallelism over
+sequential steps from multiple jobs. Inspired by this, we
+study selective view pipelining for efficient multi-view understanding, which breaks computation of multiple views
+into steps, and only computes the most helpful views/steps
+in a parallel manner for the best efficiency. To this end, we
+use reinforcement learning to learn a very light view selection module that analyzes the target object or scenario from
+initial views and selects the next-best-view for recognition
+or detection for pipeline computation. Experimental results
+on multi-view classification and detection tasks show that
+our approach achieves promising performance while using
+only 2 or 3 out of N available views, significantly reducing computational costs while maintaining parallelism over
+GPU through selective view pipelining1 .
+
+1. Introduction
+Multiple camera views (multi-view) are popular in computer vision systems for their ability to address challenges
+such as occlusions, ambiguities, and limited field-of-view
+(FoV) coverage. Tasks like classification [30, 37] and detection [6, 17] have shown significant benefits from using
+multiple cameras. With reduced hardware cost and easy
+deployment, real-world products now include more cameras at larger scales. However, the use of multiple cameras comes at a high computational cost, which can be
+a significant challenge for end devices with limited computational resources, especially with higher image resolutions and deeper neural network backbones. Limiting image resolution or using lighter networks [19, 27] are current
+options to reduce computation, but they may impede the
+1 Code available at https://github.com/hou-yz/MVSelect.
+
+𝑡𝑡
+𝑡𝑡
+𝑡𝑡
+
+step 1
+
+step 2
+
+step 3
+
+step 4
+
+step 1
+
+step 2
+step 1
+
+step 3
+step 2
+
+step 4
+step 3
+
+step 4
+
+step 1
+
+step
+step21
+
+step
+step32
+step 1
+
+step
+step43
+step 2
+
+step 4
+step 3
+
+step 4
+
+step 1
+
+step
+step21
+
+step
+step132
+step
+
+step
+step243
+step
+
+step34
+step
+
+step 1
+
+step
+step21
+
+step
+step32
+
+step
+step43
+
+step 4
+
+step 1
+
+step 2
+
+step 3
+
+step 4
+
+step 4
+
+(a) Piplining in modern CPU
+
+…
+
+𝑡𝑡
+𝑡𝑡
+𝑡𝑡
+
+(b) Parallel in modern GPU
+
+…
+
+(c) Selective view pipelining
+
+𝑡𝑡
+𝑡𝑡
+𝑡𝑡
+…
+
+Figure 1. Demonstration of the proposed selective view pipelining. Inspired by instruction pipelining in modern CPU (a), selective view pipelining (c) breaks the multi-view perception task
+into sequential steps, and only computes the chosen views (see
+Fig. 2) to minimize the computation. At the same time, computation across multiple objects (different border colors) can still enjoy
+parallelism in GPU (b). In this example, for a N = 6 view system, traditional computation (b) on GPU hardware that only supports two images at the same time will produce a throughput of
+2 instances during 6 time steps. In contrast, by taking advantage
+of the parallelism, selective view pipelining computes 6 instances
+within 7 time steps.
+
+progress in camera sensors or neural network architecture.
+In modern CPU, instruction pipelining [10] breaks individual instructions into steps to enable parallelism across
+multiple instructions within the same CPU (see Fig. 1a).
+For multi-view perception, although computations for different images can be paralleled over GPU [9], the level of
+parallelism is still limited by hardware. As an example, the
+GPU in Fig. 1b might only support parallel computing for
+two images at a time, resulting in at least 3 time steps for
+
+20135
+
+

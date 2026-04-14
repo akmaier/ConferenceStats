@@ -1,0 +1,101 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Object Recognition as Next Token Prediction
+Kaiyu Yue12 * Bor-Chun Chen1
+1
+
+Meta
+
+2
+
+University of Maryland
+
+Jonas Geiping3
+3
+
+Hengduo Li1
+
+Tom Goldstein2
+
+ELLIS Institute & MPI-IS Tübingen
+
+4
+
+Ser-Nam Lim4
+
+University of Central Florida
+
+Abstract
+We present an approach to pose object recognition as next
+token prediction. The idea is to apply a language decoder
+that auto-regressively predicts the text tokens from image
+embeddings to form labels. To ground this prediction process in auto-regression, we customize a non-causal attention mask for the decoder, incorporating two key features:
+modeling tokens from different labels to be independent,
+and treating image tokens as a prefix. This masking mechanism inspires an efficient method one-shot sampling
+to simultaneously sample tokens of multiple labels in parallel and rank generated labels by their probabilities during
+inference. To further enhance the efficiency, we propose a
+simple strategy to construct a compact decoder by simply
+discarding the intermediate blocks of a pretrained language
+model. This approach yields a decoder that matches the
+full model’s performance while being notably more efficient.
+The code is available at github.com/kaiyuyue/nxtp.
+
+1. Introduction
+This paper delves into a fundamental problem in computer
+vision object recognition translating an image into object labels. Generally speaking, the recognition framework
+comprises an image encoder and a decoder. The image encoder, either in the form of a convolutional neural network
+(CNN) [43, 60, 72, 106, 110] or a vision transformer (ViT)
+[28, 93, 120], produces image embeddings, while the decoder propagates them to predict object labels.
+If the decoder is a linear classifier [28, 43, 60, 72, 106, 110],
+it needs to be initialized with fixed object concepts. ResNet
+[43], for instance, initializes its final linear layer with 1K
+embeddings, a.k.a. weights, to represent 1K objects in ImageNet [25]. Such static weights, however, limit the model’s
+ability to recognize any object. This limitation can be mitigated using a language model [26, 114] as the decoder to
+generate a flexible set of object embeddings from input descriptions. For example, CLIP [93] encodes the object descriptions into dynamic weights by prompting with “a photo
+of a {L}”, where L could be any object name, and matches
+these weights with image embeddings to recognize objects.
+* Work done during an internship at Meta AI. kaiyuyue@cs.umd.edu.
+
+Auto-Regression
+so fa
+cat
+blank et
+
+Generative Decoder
+
+Image Token Embeddings
+
+Probability
+
+Figure 1. Object recognition as next token prediction using a
+generative decoder such as a transformer-based language model to
+auto-regressively predict object labels. Photo authorized with CC BY 4.0.
+
+Note that CLIP predefines the gallery with a fixed number
+of object descriptions prior to inference. This requirement
+reveals that CLIP’s object embeddings cover only a portion
+of the textual space in practical scenarios, rather than its entirety. Additionally, enlarging the gallery has been shown
+to diminish its performance [19]. Given these observations,
+a question arises: Can we eliminate the predefined object
+labels or descriptions?
+A direct strategy could use a generative model, particularly
+a large language model (LLM) [11, 87, 91, 92, 112–114],
+to decode labels from image embeddings. For instance,
+Flamingo [1, 3] employs a LLM to transform image embeddings into textual outputs for various vision tasks such
+as object recognition, image captioning, and visual question answering (VQA). But producing the desired results
+for a specific task needs several reference samples as fewshot prompts for the model. In other words, it requires predefined reference pivots to refine and align its predictions
+more precisely with the target task.
+The most straightforward alternative is to skip any predefining procedure and align the LLM with the recognition task
+directly. This approach hinges on the fact that a LLM’s token embeddings represent the entire textual space, including all object labels. This is as opposed to predefining subsets, i.e., query galleries or reference pivots, of this space
+that potentially constrains the model’s capability.
+Building on this concept, we propose a simple method that
+employs a language decoder to auto-regressively decode
+object labels token-by-token from image embeddings, as depicted in Figure 1. We operate a pretrained CLIP image encoder [93] to produce image embeddings, already aligned
+with text, and linearly transform them to match the language
+decoder’s embedding dimension.
+
+16645
+
+

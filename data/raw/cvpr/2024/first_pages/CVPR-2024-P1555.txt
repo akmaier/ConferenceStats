@@ -1,0 +1,69 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+PTQ4SAM: Post-Training Quantization for Segment Anything
+Chengtao Lv1∗ , Hong Chen1∗ , Jinyang Guo1,3† , Yifu Ding1 , Xianglong Liu1,2,4
+1
+State Key Laboratory of Complex & Critical Software Environment, Beihang University
+2
+Zhongguancun Laboratory 3 Institute of Artificial Intelligence, Beihang University
+4
+Institute of data space, Hefei Comprehensive National Science Center
+
+Abstract
+Segment Anything Model (SAM) has achieved impressive
+performance in many computer vision tasks. However, as a
+large-scale model, the immense memory and computation
+costs hinder its practical deployment. In this paper, we propose a post-training quantization (PTQ) framework for Segment Anything Model, namely PTQ4SAM. First, we investigate the inherent bottleneck of SAM quantization attributed
+to the bimodal distribution in post-Key-Linear activations. We analyze its characteristics from both per-tensor
+and per-channel perspectives, and propose a Bimodal Integration strategy, which utilizes a mathematically equivalent sign operation to transform the bimodal distribution
+into a relatively easy-quantized normal distribution offline.
+Second, SAM encompasses diverse attention mechanisms
+(i.e., self-attention and two-way cross-attention), resulting
+in substantial variations in the post-Softmax distributions.
+Therefore, we introduce an Adaptive Granularity Quantization for Softmax through searching the optimal power-oftwo base, which is hardware-friendly. Extensive experimental results across various vision tasks (instance segmentation, semantic segmentation and object detection), datasets
+and model variants show the superiority of PTQ4SAM. For
+example, when quantizing SAM-L to 6-bit, we achieve lossless accuracy for instance segmentation, about 0.5% drop
+with theoretical 3.9× acceleration. The code is available at
+https://github.com/chengtao-lv/PTQ4SAM .
+
+1. Introduction
+With remarkable zero-shot ability and user-friendly flexible
+prompt technique, Segment Anything Model (SAM) [20]
+has recently become a novel foundation model in a range of
+generic vision applications, including image segmentation
+[3, 21, 23, 70], object detection [50, 54], tracking [4, 38, 63]
+∗ Equal contribution.
+† Corresponding author: jinyangguo@buaa.edu.cn
+
+voidinterval
+interval
+void
+
+(a) bimodal distribution
+
+(b) post-Softmax distribution
+
+Figure 1. The histogram of two special distributions in SAM:
+(a) bimodal distribution in post-Key-Linear activations. (b)
+post-Softmax distributions of self-attention, token-to-image crossattention and image-to-token cross-attention.
+
+and other downstream tasks [31, 33, 49, 52, 64, 66]. However, the transformer architectures in SAM require intensive
+computation and memory footprint, which hurdles the practical deployment on resource-constrained edge-devices.
+To address this issue, several quantization approaches [5,
+10, 17, 26, 27, 42, 43, 56, 59] were proposed to convert weights and activations from floating-point to lowbit. There are two categories of quantization methods: 1)
+Quantization-Aware Training (QAT) and 2) Post-Training
+Quantization (PTQ). QAT retrains a model by utilizing
+the whole labeled training dataset, which will be timeconsuming due to the corresponding massive dataset (SA1B). On the other hand, PTQ is more promising because it
+only requires small unlabeled samples to calibrate the pretrained networks. In this paper, we focus on designing the
+PTQ approach as it is more effective in practical usage.
+Although previous PTQ methods have showcased significant accomplishments in various scenarios, including convolutional neural networks (CNNs) [5, 26, 42, 56, 59], vision transformers (ViTs) [7, 27, 67] as well as large language models (LLMs) [57, 58, 61], directly adopting these
+methods to Segment Anything Models will raise two unique
+challenges that necessitate a revisiting of traditional PTQ
+schemes: 1) we observe the bimodal distribution appears
+in post-Key-Linear activations, i.e., the output activations of key linear, as shown in Figure 1a. The two peaks
+
+15941
+
+

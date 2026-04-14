@@ -1,0 +1,110 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+DiffForensics: Leveraging Diffusion Prior to Image Forgery Detection and
+Localization
+Zeqin Yu*∗,1
+Jiangqun Ni†,2,3
+Yuzhen Lin∗,4
+Haoyi Deng4
+Bin Li†,4
+1
+School of Computer Science and Engineering, Sun Yat-sen University
+2
+School of Cyber Science and Technology, Sun Yat-sen University
+3
+Department of New Networks, Peng Cheng Laboratory
+4
+Guangdong Key Laboratory of Intelligent Information Processing, Shenzhen University
+
+Abstract
+
+#𝟏 𝑪𝒍𝒂𝒔𝒔𝒊𝒇𝒊𝒄𝒂𝒕𝒊𝒐𝒏
+
+#𝟏 𝑻𝒂𝒎𝒑𝒆𝒓 𝒄𝒍𝒂𝒔𝒔𝒊𝒇𝒊𝒄𝒂𝒕𝒊𝒐𝒏
+
+#𝟐 𝑺𝒆𝒈𝒎𝒆𝒏𝒕𝒂𝒕𝒊𝒐𝒏
+
+As manipulating images may lead to misinterpretation
+of the visual content, addressing the image forgery detection and localization (IFDL) problem has drawn serious
+public concerns. In this work, we propose a simple assumption that the effective forensic method should focus on
+the mesoscopic properties of images. Base on the assumption, a novel two-stage self-supervised framework leveraging the diffusion model for IFDL task, i.e., DiffForensics, is
+proposed in this paper. The DiffForensics begins with selfsupervised denoising diffusion paradigm equipped with the
+module of encoder-decoder structure, by freezing the pretrained encoder (e.g., in ADE-20K) to inherit macroscopic
+features for general image characteristics, while encouraging the decoder to learn microscopic feature representation of images, enforcing the whole model to focus the
+mesoscopic representations. The pre-trained model as a
+prior, is then further fine-tuned for IFDL task with the customized Edge Cue Enhancement Module (ECEM), which
+progressively highlights the boundary features within the
+manipulated regions, thereby refining tampered area localization with better precision. Extensive experiments on several public challenging datasets demonstrate the effectiveness of the proposed method compared with other state-ofthe-art methods. The proposed DiffForensics could significantly improve the model’s capabilities for both accurate
+tamper detection and precise tamper localization while concurrently elevating its generalization and robustness.
+
+1. Introduction
+Manipulating images has become increasingly effortless as
+rapid advances in image editing tools, such as GAN [24, 25]
+and diffusion models [2, 36]. Users can easily forge on-thefly images that do not exist or realize. The risks posed by
+* Equal contribution.
+
+†Corresponding author.
+
+Encoder
+
+#𝟐 𝑫𝒐𝒖𝒃𝒍𝒆 𝑱𝑷𝑬𝑮 𝒅𝒆𝒕𝒆𝒄𝒕𝒊𝒐𝒏
+
+Encoder
+
+#𝟑 𝑾𝒂𝒗𝒆𝒍𝒆𝒕 𝒕𝒓𝒂𝒏𝒔𝒇𝒐𝒓𝒎 𝑪𝑳
+
+#𝟑 𝑶𝒃𝒋𝒆𝒄𝒕 𝑫𝒆𝒕𝒆𝒄𝒕𝒊𝒐𝒏
+
+……
+
+……
+
+𝐌𝐚𝐜𝐫𝐨 𝐅𝐞𝐚𝐭𝐮𝐫𝐞 𝐄𝐱𝐭𝐫𝐚𝐜𝐭𝐢𝐨𝐧
+
+𝐌𝐢𝐜𝐫𝐨 𝐅𝐞𝐚𝐭𝐮𝐫𝐞 𝐄𝐱𝐭𝐫𝐚𝐜𝐭𝐢𝐨𝐧
+𝐷𝑒𝑡𝑒𝑐𝑡𝑖𝑜𝑛
+
+𝑅𝑒𝑎𝑙 𝑣. 𝑠. 𝐹𝑜𝑟𝑔𝑒𝑟𝑦
+
+𝑅𝑒𝑎𝑙
+
+ADE20K
+
+DDPM
+
+𝐹𝑜𝑟𝑔𝑒𝑟𝑦
+𝐸𝑑𝑖𝑡𝑖𝑛𝑔
+
+𝐷𝐺𝑀
+
+𝐿𝑜𝑐𝑎𝑙𝑖𝑧a𝑡𝑖𝑜𝑛
+
+M𝐞𝐬𝐨𝐬𝐜𝐨𝐩𝐢𝐜 𝐅𝐞𝐚𝐭𝐮𝐫𝐞 𝐄𝐱𝐭𝐫𝐚𝐜𝐭𝐢𝐨𝐧
+
+Figure 1. Comparison of the proposed pipeline (lower) with the
+conventional one (upper). Our approach could effectively integrate the macroscopic features with the microscopic features so
+that the model concentrates on the mesoscopic properties of tampered images and achieves better IFDL performance in both Artificial Editing and Deep Generative Model (DGM) images.
+
+such forged images in the wrong hands are obvious in terms
+of politics, economics, and personal privacy. Accordingly,
+the countermeasures being desired to identify image forgery
+have become an urgent topic in social security.
+To push the frontier of image forensics, in this work, we
+study the image forgery detection and localization (IFDL)
+task, particularly partial modifications that change the image semantics. In general, the IFDL task involves binary
+classification (authentic versus forgery) at both the image
+level (detection) and the pixel level (localization). Until
+now, the state-of-the-arts [8, 16, 17, 22, 30, 31, 42, 45, 46]
+are commonly built upon the deep learning-based semantic segmentation meta-framework, consisting of two components, i.e., the encoder and decoder. The encoder extracts
+the image features, subsequently processed by the decoder
+to predict classification results and forgery masks. Despite
+considerable advances in the area, current SOTA detectors
+are not yet performant enough for in-the-wild deployment,
+mainly due to their shortfall in generalization, robustness,
+and detection performance.
+
+12765
+
+

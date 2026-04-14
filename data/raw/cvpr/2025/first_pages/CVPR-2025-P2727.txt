@@ -1,0 +1,101 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Factored-NeuS: Reconstructing Surfaces, Illumination, and Materials of Possibly
+Glossy Objects
+Yue Fan1
+
+Ningjing Fan1
+Ivan Skorokhodov2
+Oleg Voynov3,4
+3,4
+2
+Evgeny Burnaev
+Peter Wonka
+Yiqun Wang1 *
+1
+
+Chongqing University
+
+2
+
+KAUST
+
+Abstract
+We develop a method that recovers the surface, materials,
+and illumination of a scene from its posed multi-view images.
+In contrast to prior work, it does not require any additional
+data and can handle glossy objects or bright lighting. It
+is a progressive inverse rendering approach, which consists of three stages. In the first stage, we reconstruct the
+scene radiance and signed distance function (SDF) with a
+novel regularization strategy for specular reflections. We
+propose to explain a pixel color using both surface and volume rendering jointly, which allows for handling complex
+view-dependent lighting effects for surface reconstruction.
+In the second stage, we distill light visibility and indirect
+illumination from the learned SDF and radiance field using
+learnable mapping functions. Finally, we design a method
+for estimating the ratio of incoming direct light reflected in a
+specular manner and use it to reconstruct the materials and
+direct illumination. Experimental results demonstrate that
+the proposed method outperforms the current state-of-theart in recovering surfaces, materials, and lighting without
+relying on any additional data.
+
+1. Introduction
+Reconstructing shape, material, and lighting from multiple views has wide applications in computer vision, virtual
+reality, augmented reality, and shape analysis. The emergence of neural radiance fields [27] provides a framework
+for high-quality scene reconstruction. Subsequently, many
+works [11, 31, 42, 43, 49] have incorporated implicit neural
+surfaces into neural radiance fields, further enhancing the
+quality of surface reconstruction from multi-views. Recently,
+several works [29, 38, 53, 55, 56] have utilized coordinatebased networks to predict materials and learned parameters
+to represent illumination, followed by synthesizing image
+color using physically-based rendering equations to achieve
+material and lighting reconstruction. However, these meth* Corresponding author: yiqun.wang@cqu.edu.cn
+
+3
+
+Skoltech
+
+4
+
+Savva Ignatyev3
+
+AIRI
+
+ods typically do not fully consider the interdependence between different components, leading to the following issues
+with glossy surfaces when using real data.
+First, surfaces with glossy materials typically result in
+highlights. The best current methods [11, 42, 43] for reconstructing implicit neural surfaces rarely consider material
+information and directly reconstruct surfaces. The surface
+parameters can then be frozen for subsequent material reconstruction. Since neural radiance fields typically model such
+inconsistent colors as bumpy surfaces as shown in Fig. 1 left,
+the artifacts from surface reconstruction will affect material
+reconstruction if surfaces and materials are reconstructed
+sequentially. Second, a glossy surface can affect the decomposition of the reflected radiance into a diffuse component and a specular component. Typically, the specular
+component leaks into the diffuse component, resulting in
+inaccurate modeling as shown in Fig. 1 right. Third, focusing on synthetic data makes it easier to incorporate complex
+physically-based rendering algorithms [5, 45], but they may
+not be robust enough to work on real data.
+In this work, we consider the impact of glossy surfaces
+on surface and material reconstruction based on implicit representation. Although existing methods based on explicit
+representations, such as 3D Gaussian Splatting (3DGS) [20],
+have made progress in surface reconstruction [8, 16, 51] and
+inverse rendering [12, 18, 21, 24, 36], the unique advantages
+of implicit representations, such as low storage requirements
+and smooth surface modeling, still make them worthy of
+being explored as a separate research branch. This paper
+focuses solely on methods based on implicit representation
+and further extends research in reconstructing glossy objects.
+To better handle glossy surfaces, we jointly use surface and
+volume rendering. Volume rendering does not decompose
+the reflected radiance, while surface rendering considers
+the diffuse and specular radiance separately. The learned
+SDF network enables accurate radiance reconstruction in volume rendering while also being capable of providing correct
+surface information in surface rendering to model specular
+and diffuse components into directional and non-directional
+parts. Both work together to regularize accurate and ef-
+
+21317
+
+

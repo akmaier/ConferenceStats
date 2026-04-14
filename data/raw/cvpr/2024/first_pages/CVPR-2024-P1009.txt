@@ -1,0 +1,121 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+LSK3DNet: Towards Effective and Efficient 3D Perception with Large Sparse Kernels
+Tuo Feng1 , Wenguan Wang2 , Fan Ma2 ,* Yi Yang2
+1
+
+ReLER, AAII, University of Technology Sydney 2 ReLER, CCAI, Zhejiang University
+https://github.com/FengZicai/LSK3DNet
+
+Abstract
+Autonomous systems need to process large-scale, sparse,
+and irregular point clouds with limited compute resources.
+Consequently, it is essential to develop LiDAR perception
+methods that are both efficient and effective. Although naively enlarging 3D kernel size can enhance performance, it will
+also lead to a cubically-increasing overhead. Therefore, it is
+crucial to develop streamlined 3D large kernel designs that
+eliminate redundant weights and work effectively with larger
+kernels. In this paper, we propose an efficient and effective
+Large Sparse Kernel 3D Neural Network (LSK3DNet) that
+leverages dynamic pruning to amplify the 3D kernel size.
+Our method comprises two core components: Spatial-wise
+Dynamic Sparsity (SDS) and Channel-wise Weight Selection
+(CWS). SDS dynamically prunes and regrows volumetric
+weights from the beginning to learn a large sparse 3D kernel. It not only boosts performance but also significantly
+reduces model size and computational cost. Moreover, CWS
+selects the most important channels for 3D convolution during training and subsequently prunes the redundant channels
+to accelerate inference for 3D vision tasks. We demonstrate
+the effectiveness of LSK3DNet on three benchmark datasets
+and five tracks compared with classical models and large kernel designs. Notably, LSK3DNet achieves the state-of-the-art
+performance on SemanticKITTI (i.e., 75.6% on single-scan
+and 63.4% on multi-scan), with roughly 40% model size reduction and 60% computing operations reduction compared
+to the naive large 3D kernel model.
+
+1. Introduction
+Autonomous systems are equipped with 3D LiDAR sensors
+and data processing platforms. The LiDAR sensor generates point clouds, which serve as the input for the processing platform. The platform performs perception tasks such
+as semantic segmentation [1–3] and object detection [4–6],
+providing a foundation for motion planning and decisionmaking [7] in autonomous systems. On the one hand, the
+processing platform is required to handle large-scale, sparse,
+* Corresponding author.
+
+The partition of spatial groups
+
+K3
+
+K2
+
+K1
+
+1 spatial group
+
+Activated weight in example group
+
+w×Ddimensional
+channels
+
+Sort Channels
+
+8 shared weights
+
+Spatial-Wise Convolution [18]
+Pruning &
+Growth
+
+Ks
+
+Select
+Channels
+
+Din /Dout
+
+Most salient
+D-dimensional
+channels
+Ks
+
+K3
+K1
+
+1 spatial group
+K2
+
+Din /Dout
+
+Sparse weights
+
+Spatial-Wise Dynamic Sparsity
+
+Channel-Wise
+Weight Selection
+
+Figure 1. Illustrations on Spatial-wise Group Convolution [18],
+SDS, and CWS. The spatial dimensions Ks (i.e., K1 , K2 , K3 ) and
+channel dimensions (Din /Dout ) are shown. Spatial-wise Group
+Convolution shares the weights within each spatial group during
+training, leading to redundant model weights. In contrast, SDS
+removes non-salient weights and redundancies that are not sensitive
+to the input in each group, while CWS eliminates redundant weights
+in a channel-wise manner (Sec.1).
+
+and irregular point clouds. On the other hand, the platform’s computing resources are limited. Therefore, it is
+crucial to develop effective and efficient LiDAR perception
+methods. Point-based methods [1, 8, 9] rely on computationally expensive, memory inefficient, and time-consuming
+point sampling strategy [10]. In contrast, sparse convolution [11–14] has been widely adopted for processing largescale point clouds up to 160×160×20 meters [5, 11, 12, 15–
+17]. Nevertheless, the application of such a technique in
+autonomous systems has also been hindered by limited computational resources [16]. PV-KD [19] attempts to reduce the
+model size with knowledge distillation, but its performance
+is bounded by its teacher model [15]. In opposition, large
+kernels can enhance performance through the advantages of
+large receptive fields [18, 20, 21]. However, naive 3D large
+kernels will significantly increase computational burdens.
+LargeKernel3D [18] explores large 3D kernels with Spatialwise Group Convolution to circumvent optimization and
+efficiency problems caused by naive 3D large kernels. However, LargeKernel3D has a lot of redundant model weights
+during training as it shares the weights in each spatial group.
+Moreover, the performance of LargeKernel3D [18] drops
+
+14916
+
+

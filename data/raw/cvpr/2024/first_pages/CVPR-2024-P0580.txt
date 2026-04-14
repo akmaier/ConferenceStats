@@ -1,0 +1,93 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Towards More Accurate Diffusion Model Acceleration with A Timestep Tuner
+Mengfei Xia1
+
+Yujun Shen2 Changsong Lei1 Yu Zhou1
+Ran Yi4 Wenping Wang5 Yong-Jin Liu1 *
+
+Deli Zhao3
+
+1
+
+Tsinghua University 2 Ant Group 3 Alibaba Group
+4
+Shanghai Jiao Tong University 5 Texas A&M University
+
+Abstract
+A diffusion model, which is formulated to produce an
+image using thousands of denoising steps, usually suffers
+from a slow inference speed. Existing acceleration algorithms simplify the sampling by skipping most steps yet
+exhibit considerable performance degradation. By viewing
+the generation of diffusion models as a discretized integral
+process, we argue that the quality drop is partly caused
+by applying an inaccurate integral direction to a timestep
+interval. To rectify this issue, we propose a timestep tuner
+that helps find a more accurate integral direction for a particular interval at the minimum cost. Specifically, at each
+denoising step, we replace the original parameterization
+by conditioning the network on a new timestep, enforcing
+the sampling distribution towards the real one. Extensive
+experiments show that our plug-in design can be trained
+efficiently and boost the inference performance of various
+state-of-the-art acceleration methods, especially when there
+are few denoising steps. For example, when using 10
+denoising steps on LSUN Bedroom dataset, we improve the
+FID of DDIM from 9.65 to 6.07, simply by adopting our
+method for a more appropriate set of timesteps. Code is
+available at https://github.com/THU-LYJ-Lab/time-tuner.
+
+1. Introduction
+Diffusion probabilistic models (DPMs) [8, 37, 39], known
+simply as diffusion models, have recently received growing
+attention due to its efficacy of modeling complex data distributions [5, 8, 28]. A DPM first defines a forward diffusion
+process (i.e., either discrete-time [8, 38] or continuoustime [39]) by gradually adding noise to data samples, and
+then learns the reverse denoising process with a timestepconditioned parameterization. Consequently, it usually
+requires thousands of denoising steps to synthesize an
+image, which is time-consuming [8, 16, 38].
+* Corresponding author.
+
+To accelerate the generation process of diffusion models,
+a common practice is to reduce the number of inference
+steps. For example, instead of a step-by-step evolution from
+the state of timestep 1,000 to the state of timestep 900,
+previous works [1, 8, 39] manage to directly link these two
+states with a one-time transition. That way, it only needs to
+evaluate the denoising network once instead of 100 times,
+thus substantially saving the computational cost.
+A side effect of the above acceleration pipeline is the
+performance degradation that appears as artifacts in the
+synthesized images. In this paper, we aim to identify and
+address the cause of this side effect. As the gray dashed
+line shown in Fig. 1a, the generation process of diffusion
+models can be viewed as a discretized integrating process,
+where the direction of each integral step is calculated by the
+pre-learned noise prediction model. To reduce the number
+of steps, existing algorithms [1, 28, 38] typically apply the
+direction predicted for the initial state for the following
+timestep interval, as the red line shown in Fig. 1a, resulting
+in a gap between the sampling distribution and the real
+distribution. Karras [14] identifies this distribution gap as
+the truncation error, which accumulates over the whole
+steps intuitively and theoretically. As the red line shown in
+Fig. 1b, the gap between the sampling distribution and the
+real distribution increases as the integrating process evolves.
+To alleviate the problem arising from skipping steps, we
+propose a timestep tuner, termed as TimeTuner, which
+targets at finding a more accurate integral direction for a
+particular interval. As the green line shown in Fig. 1a,
+our approach is designed to achieve this purpose efficiently
+by searching a more appropriate timestep τ replacing the
+previous t as the new condition input of the pre-learned
+noise prediction model. By doing so, we are able to
+significantly reduce the one-step truncation error, and hence
+the accumulative truncation error, as demonstrated with
+the green line in Fig. 1a and Fig. 1b respectively. Our
+motivation is intuitive – it is based on the observation that
+“although the direction estimated from the initial state may
+not be appropriate for integration on the interval, the one
+
+5736
+
+

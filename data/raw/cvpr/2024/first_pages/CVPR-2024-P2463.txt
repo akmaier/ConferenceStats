@@ -1,0 +1,83 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+UniPT: Universal Parallel Tuning for Transfer Learning with
+Efficient Parameter and Memory
+
+1
+
+Haiwen Diao1 , Bo Wan2 , Ying Zhang3 , Xu Jia1 , Huchuan Lu* 1 , Long Chen4
+Dalian University of Technology 2 KU Leuven 3 Tencent WeChat 4 HKUST
+
+diaohw@mail.dlut.edu.cn; bwan@esat.kuleuven.be; yinggzhang@tencent.com;
+xjia@dlut.edu.cn;
+
+lhchuan@dlut.edu.cn;
+
+Abstract
+Parameter-efficient transfer learning (PETL), i.e., finetuning a small portion of parameters, is an effective strategy
+for adapting pre-trained models to downstream domains.
+To further reduce the memory demand, recent PETL works
+focus on the more valuable memory-efficient characteristic. In this paper, we argue that the scalability, adaptability,
+and generalizability of state-of-the-art methods are hindered
+by structural dependency and pertinency on specific pretrained backbones. To this end, we propose a new memoryefficient PETL strategy, Universal Parallel Tuning (UniPT),
+to mitigate these weaknesses. Specifically, we facilitate the
+transfer process via a lightweight and learnable parallel
+network, which consists of: 1) A parallel interaction module that decouples the sequential connections and processes
+the intermediate activations detachedly from the pre-trained
+network. 2) A confidence aggregation module that learns
+optimal strategies adaptively for integrating cross-layer features. We evaluate UniPT with different backbones (e.g.,
+T5 [69], VSE∞ [12], CLIP4Clip [58], Clip-ViL [73], and
+MDETR [42]) on various vision-and-language and pure NLP
+tasks. Extensive ablations on 18 datasets have validated that
+UniPT can not only dramatically reduce memory consumption and outperform the best competitor, but also achieve
+competitive performance over other plain PETL methods
+with lower training memory overhead. Our code is publicly
+available at: https://github.com/Paranioar/UniPT.
+
+1. Introduction
+Large-scale deep neural networks [5, 17, 21, 68] trained on
+massive data have been successfully investigated in various
+vision and multimodal learning tasks [2, 18, 19, 26, 75, 87].
+The most prevalent and straightforward strategy for transferring the knowledge from pre-trained models to downstream tasks is fully fine-tuning [12, 42, 58, 73]. However,
+* Corresponding author. Work was done when Haiwen visited HKUST.
+
+longchen@ust.hk
+
+fine-tuning the entire network is prohibitively expensive, especially given a large model with millions of parameters.
+Meanwhile, it easily suffers from the over-fitting problem
+with a relatively “small” downstream dataset. To address it,
+there is an increasing interest in parameter-efficient transfer
+learning (PETL) [3, 34, 49, 65], which facilitates domain
+adaptation by adjusting or inserting a few modules.
+Currently, mainstream state-of-the-art PETL approaches
+can be coarsely grouped into three categories: (a) Partially
+Tuning [44, 90]: It only updates a few task-specific parameters and freezes most original parameters, such as modifies
+the bias items [6, 90] or the normalization layers [44]. (b)
+Adapter Tuning [24, 32, 34, 59]: It usually inserts a new
+bottleneck-shaped module after each backbone layer, which
+is the only part that needs to be updated. Typically, the
+new module consists of a linear down-projection, a nonlinearity activation, and a linear up-projection. (c) Prompt
+Tuning [27, 39, 49, 95]: It first integrates a fixed number of
+learnable vectors as additional input tokens (i.e., prompts).
+Then, it only learns the prompts and freezes all the raw parameters of the pre-trained network during the fine-tuning
+stage. Although all the above PETL methods can dramatically reduce the trainable parameters and storage constraints,
+their memory consumption remains costly during the training stage. As shown in Figure 1(a-c), the backward gradients
+still need to go through (nearly the entire) foundation models.
+This memory-extensive characteristic severely limits their
+applications in resource-constrained scenarios.
+Consequently, a few recent works [6, 22, 54, 77, 80, 91]
+emphasize the requirements of both parameter and memory
+efficiency during the training process. In particular, the most
+successful method that achieves a good balance between performance and efficiency is Ladder Side Tuning (LST) [77].
+As shown in Figure 1(d), it first constructs a lightweight side
+network by keeping the same structure as the pre-trained
+network but reducing the dimension of each original layer by
+a predefined reduction factor. Then, it learns a static gated
+ladder connection to combine the pair-wise features at each
+layer between the side and pre-trained network.
+
+28729
+
+

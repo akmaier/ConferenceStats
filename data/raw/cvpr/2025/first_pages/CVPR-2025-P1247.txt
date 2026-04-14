@@ -1,0 +1,95 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Rectified Diffusion Guidance for Conditional Generation
+Mengfei Xia1,2 * Nan Xue2
+
+Yujun Shen2† Ran Yi3
+
+Tieliang Gong4
+
+Yong-Jin Liu1†
+
+1
+
+Tsinghua University 2 Ant Group
+3
+Shanghai Jiao Tong University 4 Xi’an Jiao Tong University
+
+Abstract
+Classifier-Free Guidance (CFG), which combines the
+conditional and unconditional score functions with two
+coefficients summing to one, serves as a practical technique
+for diffusion model sampling. Theoretically, however,
+denoising with CFG cannot be expressed as a reciprocal
+diffusion process, which may consequently leave some
+hidden risks during use. In this work, we revisit the
+theory behind CFG and rigorously confirm that the improper configuration of the combination coefficients (i.e.,
+the widely used summing-to-one version) brings about
+expectation shift of the generative distribution. To rectify this issue, we propose ReCFG1 with a relaxation on
+the guidance coefficients such that denoising with ReCFG
+strictly aligns with the diffusion theory. We further show
+that our approach enjoys a closed-form solution given the
+guidance strength. That way, the rectified coefficients can
+be readily pre-computed via traversing the observed data,
+leaving the sampling speed barely affected. Empirical
+evidence on real-world data demonstrate the compatibility
+of our post-hoc design with existing state-of-the-art diffusion models, including both class-conditioned ones (e.g.,
+EDM2 on ImageNet) and text-conditioned ones (e.g., SD3
+on CC12M), without any retraining. Code is available at
+https://github.com/thuxmf/recfg.
+
+1. Introduction
+Diffusion probabilistic models (DPMs) [13, 27, 29], known
+simply as diffusion models, have achieved unprecedented
+capability improvement of high-resolution image generation. It is well recognized that, DPMs are the most
+prominent generative paradigm for a broad distribution
+(i.e., text-to-image generation) [3, 9, 22]. Among DPM
+literature, Classifier-Free Guidance (CFG) [12] serves as
+* Work finished during internship at Ant Group.
+† Corresponding author.
+1 ReCFG, pronounced as “reconfigure”, is the abbreviation for “rectified
+Classifier-Free Guidance”.
+
+an essential factor, enabling better conditional sampling in
+various fields [23, 25]. Vanilla conditional sampling via
+DPMs introduces the conditional score function st (x, c) =
+∇xt log qt (xt |c), resulting in poor performance in which
+synthesized samples appear to be visually incoherent and
+not faithful to the condition, even for large-scale models [25]. By drawing lessons from Bayesian theory, CFG
+employs an interpolation between conditional and unconditional score functions with a preset weight γ, i.e.,
+  s_{t,\gamma }(\mathbf x,c)=\gamma \nabla _{\mathbf x}\log q_t(\mathbf x|c)+(1-\gamma )\nabla _{\mathbf x}\log q_t(\mathbf x), (1)
+in which ∇xt log qt (xt ) is the unconditional score function
+by annihilating the condition effect. By doing so, DPMs
+turn out to formulate the underlying distribution with a
+gamma-powered distribution [1], i.e.,
+  q_{t,\gamma }(\mathbf x|c)=q_t(\mathbf x|c)^\gamma q_t(\mathbf x)^{1-\gamma },
+
+(2)
+
+which is proportional to qt (x)qt (c|x)γ . Enlarging γ > 1
+focuses more on the classifier effect qt (c|x), concentrating
+on better exemplars of given condition and thereby sharpening the gamma-powered distribution. In other words, CFG
+is designed to promote the influence of the condition.
+However, inspired by seminal works [1], we argue that
+denoising with CFG cannot be expressed as a reciprocal of
+vanilla diffusion process by adding Gaussian noises, since
+the normally nonzero score function expectation of gammapowered qt,γ (x|c) violates the underlying theory of DPMs.
+Theoretically, score functions with zero expectation at all
+timesteps guarantee that the denoised x̃0 has expectation
+E[x̃0 ] = ααT0 E[xT ], thus E[x̃0 ] = E[x0 ] and no bias on
+the conditional fidelity. Therefore, this theoretical flaw
+leaves some hidden risks during use, manifesting as a severe
+expectation shift phenomenon, i.e., the expectation of the
+gamma-powered distribution will be shifted away from the
+ground-truth of the conditional distribution qt (x|c). This is
+more conspicuous when applying larger γ. Fig. 1 clearly
+clarifies the expectation shift, in which the peak of induced
+distribution via CFG in red fails to coincide with that of
+ground-truth q0 (x0 |c). This theoretical flaw is known in
+theory [1, 8, 15], while being largely ignored in practice.
+
+13371
+
+

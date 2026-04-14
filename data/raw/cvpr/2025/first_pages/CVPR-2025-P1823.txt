@@ -1,0 +1,75 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Volumetrically Consistent 3D Gaussian Rasterization
+Chinmay Talegaonkar Yash Belhe Ravi Ramamoorthi
+University of California San Diego
+
+Nicholas Antipa
+
+{ctalegaonkar, ybelhe, ravir, nantipa}@ucsd.edu
+
+Abstract
+Recently, 3D Gaussian Splatting (3DGS) has enabled
+photorealistic view synthesis at high inference speeds.
+However, its splatting-based rendering model makes several approximations to the rendering equation, reducing
+physical accuracy. We show that the core approximations
+in splatting are unnecessary, even within a rasterizer; we
+instead volumetrically integrate 3D Gaussians directly to
+compute the transmittance across them analytically. We
+use this analytic transmittance to derive more physicallyaccurate alpha values than 3DGS, which can directly be
+used within their framework. The result is a method that
+more closely follows the volume rendering equation (similar
+to ray-tracing) while enjoying the speed benefits of rasterization. Our method represents opaque surfaces with higher
+accuracy and fewer points than 3DGS. This enables it to
+outperform 3DGS for view synthesis (measured in SSIM and
+LPIPS). Being volumetrically consistent also enables our
+method to work out of the box for tomography. We match
+the state-of-the-art 3DGS-based tomography method with
+fewer points. Our code is publicly available at:
+https://github.com/chinmay0301ucsd/Vol3DGS
+
+1. Introduction
+Recently, there has been tremendous progress in view synthesis methods using differentiable volume rendering [5, 27,
+37, 39, 51]. These techniques can be broadly categorized as
+rasterization or ray-tracing methods. Both produce photorealistic results but with distinct trade-offs.
+The speed of rasterization-based methods like 3D Gaussian Splatting (3DGS) [27] comes at the cost of reduced physical accuracy compared to their ray-tracingbased counterparts. Rasterization itself makes some unavoidable approximations for faster rendering, like per-tile
+sorting and no overlap handling (though these can be mitigated at some computational expense [22, 35, 41], which
+3DGS inherits. However, 3DGS makes further approximations due to its use of Ellipsoidal Weighted Averaging
+(EWA) splatting [60]. These approximations do not merely
+
+have a theoretical impact — they have important practical
+consequences too. For example, as we show Fig. 3, they
+make it harder for 3D Gaussians to represent opaque surfaces prevalent in 3D scenes.
+Recent works have taken inspiration from raytracing-based methods to make 3DGS more physicallyaccurate [23, 25, 53]. However, these methods don’t
+volumetrically integrate 3D Gaussians for color computation. Instead, like 3DGS, they rely on splatting, i.e.,
+projecting 3D Gaussians to 2D Gaussians in screen space.
+We identify that we do not need splatting, including all
+its approximations, to have a fast rasterization-based technique. Instead of splatting, we analytically evaluate the volume rendering equation by integrating Gaussians directly in
+3D space (assuming correct sorting and no overlap) — all
+within a rasterizer. See Fig. 1 for a qualitative illustration.
+We first show the volume rendering equation (without splatting approximations) can be expressed as an
+alpha-blending operation over 3D Gaussians (Sec. 4.1).
+Next, we derive the corresponding alpha values which are
+more physically-accurate than 3DGS and use them within
+3DGS’s rasterization framework (Sec. 4.2). We then show
+that our alpha values enable representing opaque objects
+better than 3DGS (Sec. 4.3).
+In practice, our method consistently matches or exceeds
+3DGS’s view synthesis quality (as measured by LPIPS and
+SSIM) over a wide variety of scenes (Sec. 6.1). Our method
+also works out-of-the-box for 3DGS-based tomographic reconstruction and is able to match a recent state-of-the-art
+method’s quality with a lower memory footprint (Sec. 6.2).
+
+2. Related Work
+2.1. Volume rendering with ray marching
+Image-based rendering (view synthesis) works have a long
+history in computer graphics [10, 18, 32, 45]. Recently,
+NeRF and its followups [3, 16, 37, 39, 51] pioneered using differentiable volume rendering [36] and have achieved
+photorealistic reconstruction. These methods use neural
+networks and grids to represent a scene’s volumetric density and color. Colors along rays are computed evaluating
+
+10953
+
+

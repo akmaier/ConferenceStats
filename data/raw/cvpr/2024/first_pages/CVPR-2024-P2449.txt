@@ -1,0 +1,89 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Test-Time Adaptation for Depth Completion
+Hyoungseob Park
+Yale Vision Lab
+
+Anjali Gupta
+Yale Vision Lab
+
+Alex Wong
+Yale Vision Lab
+
+hyoungseob.park@yale.edu
+
+anjali.gupta@yale.edu
+
+alex.wong@yale.edu
+
+Abstract
+It is common to observe performance degradation when
+transferring models trained on some (source) datasets to target testing data due to a domain gap between them. Existing
+methods for bridging this gap, such as domain adaptation
+(DA), may require the source data on which the model was
+trained (often not available), while others, i.e., source-free
+DA, require many passes through the testing data. We propose an online test-time adaptation method for depth completion, the task of inferring a dense depth map from a single
+image and associated sparse depth map, that closes the performance gap in a single pass. We first present a study on
+how the domain shift in each data modality affects model performance. Based on our observations that the sparse depth
+modality exhibits a much smaller covariate shift than the
+image, we design an embedding module trained in the source
+domain that preserves a mapping from features encoding
+only sparse depth to those encoding image and sparse depth.
+During test time, sparse depth features are projected using
+this map as a proxy for source domain features and are used
+as guidance to train a set of auxiliary parameters (i.e., adaptation layer) to align image and sparse depth features from
+the target test domain to that of the source domain. We evaluate our method on indoor and outdoor scenarios and show
+that it improves over baselines by an average of 21.1%. Code
+available at github.com/seobbro/TTA-depth-completion.
+
+1. Introduction
+Reconstructing the 3-dimensional (3D) structure of an environment can support a number of spatial tasks, from robotic
+navigation and manipulation to augmented and virtual reality.
+Most systems addressing these tasks are built for sensor platforms equipped with range (i.e., lidar or radar) or optics (i.e.,
+camera or sensors). While range sensors can measure the
+3D coordinates of the surrounding space, they often yield
+point clouds that are sparse. Likewise, these coordinates
+can also be estimated from images by means of Structurefrom-Motion (SfM) or Visual Inertial Odometry (VIO). For
+the goal of dense mapping, depth completion is the task of
+
+recovering the dense depth of a 3D scene as observed from
+a sparse point cloud, which is often post-processed into a
+sparse depth map by projecting the points onto the image
+plane, and guided by a synchronized calibrated image.
+Training a depth completion model can be done in a supervised (using ground truth) or unsupervised (using SfM)
+manner. The former dominates in performance, but requires
+expensive annotations that are often unavailable; the latter
+uses unannotated images, but they must satisfy SfM assumptions between frames, i.e., motion, covisibility, etc. Like
+most learning-based methods, models trained under both
+paradigms typically experience a performance drop when
+tested on a new dataset due to a covariate shift, i.e., domain
+gap. As we can only assume that a single pair of image
+and sparse depth map is available in the target domain for
+the depth completion, models belonging to either learning
+paradigms cannot easily be trained or adapted to the new
+domain even when given the testing data. We focus on testtime adaptation (TTA) for depth completion, where one is
+given access to the test data in a stream, i.e., one batch at a
+time, without being able to revisit previously-seen examples.
+The goal is to learn causally and to quickly adapt a set of
+pre-existing weights trained on a source domain to a target
+test domain, so one can reduce the performance gap.
+We begin with some motivating observations on the effects of the domain gap: (i) Errors in target domain tend
+to be higher when feed both the image and sparse depth as
+input rather than sparse depth only, as shown in Fig. 1. This
+implies that the depth modality exhibits a smaller covariate
+shift between the source and target domains than the image
+modality, to the extent that forgoing the image altogether
+often yields superior results than using either both sparse
+depth and image or the image alone. (ii) Yet, when operating
+in the source domain, we observe the opposite effect – forgoing the image is detrimental to performance. Naturally, this
+begs the question: How should one leverage data modalities
+that are less sensitive to the domain shift (e.g., sparse depth)
+to support alignment between source and target domains for
+modalities that are more sensitive (e.g., RGB image)?
+To answer this question, we investigate a test-time adaptation approach that learns an embedding for guiding the
+
+20519
+
+

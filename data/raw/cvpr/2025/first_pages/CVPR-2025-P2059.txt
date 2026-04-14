@@ -1,0 +1,77 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Floxels: Fast Unsupervised Voxel Based Scene Flow Estimation
+David T. Hoffmann∗,1,2 Syed Haseeb Raza∗,3 Hanqiu Jiang∗,1
+Denis Tananaev1 Steffen Klingenhoefer3 Martin Meinke∗,1
+∗
+Equal contribution 1 Robert Bosch GmbH 2 University of Freiburg 3 CARIAD SE
+syed.haseeb.raza@cariad.technology
+
+Abstract
+Scene flow estimation is a foundational task for many
+robotic applications, including robust dynamic object detection, automatic labeling, and sensor synchronization.
+Two types of approaches to the problem have evolved: 1)
+Supervised and 2) optimization-based methods. Supervised
+methods are fast during inference and achieve high-quality
+results, however, they are limited by the need for large
+amounts of labeled training data and are susceptible to domain gaps. In contrast, unsupervised test-time optimization
+methods do not face the problem of domain gaps but usually
+suffer from substantial runtime, exhibit artifacts, or fail to
+converge to the right solution. In this work, we mitigate several limitations of existing optimization-based methods. To
+this end, we 1) introduce a simple voxel grid-based model
+that improves over the standard MLP-based formulation in
+multiple dimensions and 2) introduce a new multi-frame
+loss formulation. 3) We combine both contributions in our
+new method, termed Floxels. On the Argoverse 2 benchmark, Floxels is surpassed only by EulerFlow among unsupervised methods while achieving comparable performance
+at a fraction of the computational cost. Floxels achieves a
+massive speedup of more than ∼ 60 − 140× over EulerFlow, reducing the runtime from a day to 10 minutes per
+sequence. Over the faster but low-quality baseline, NSFP,
+Floxels achieves a speedup of ∼ 14×.
+
+1. Introduction
+We live in a dynamic, three-dimensional world. To operate
+safely in this complex environment, any autonomous agent
+must perceive its three-dimensional structure and dynamics.
+This is reflected in many tasks, such as moving object detection, trajectory prediction, camera-lidar synchronization,
+collision avoidance, or point cloud densification. Sensors
+that provide information about the structure of the 3D world
+are widespread nowadays, particularly in the form of Lidar
+scanners found in cars, robots, phones, and augmented reality devices. However, estimating the dynamics of a scene
+
+hanqiu.jiang@de.bosch.com
+
+remains a challenge. A common formulation of the problem
+is referred to as scene flow estimation: The task of estimating a dense 3D motion field that represents how points move
+in space across consecutive lidar scans.
+As diverse as the devices and applications that require
+scene flow estimation are, so are the proposed algorithms.
+Existing scene flow algorithms can be coarsely sorted into
+two categories, both of which come with an individual set
+of advantages and disadvantages. (Semi-)supervised methods [1, 8, 9, 16, 21, 22, 29, 32] and optimization-based
+approaches [11–13, 23, 24, 33]. (Semi-)Supervised methods tend to be fast and perform well. However, they require large and expensive datasets for training and large
+GPUs even for inference. Additionally, they demonstrate
+the typical issues associated with learning-based methods
+when exposed to domain shifts, such as new environments
+or variations in motion characteristics. In this work, we will
+focus on test-time optimization methods. These methods
+are limited mainly by their significantly longer inference
+time [11, 24], but they promise high-quality results, generalization capabilities by design and can be used to generate pseudo ground truth data for supervised methods [23].
+However, as we will show, current methods often fall short
+of delivering the anticipated levels of quality (see Fig. 1) or
+require massive amounts of compute [24].
+In this work, we will address both problems of previous methods. While EulerFlow [24] exhibits stunning results, the enormous computational demand limits its practical use. The alternatives are lightweight optimization-based
+methods like NSFP, but they usually lead to low-quality
+flow. To overcome these limitations we first analyze the
+methods NSFP [11] and FNSF [12]. Our analysis reveals
+that MLP-based methods exhibit a “homogeneous motion”
+bias in the shadow of objects (Fig. 1c) and predict wrong
+flow patterns in empty regions, referred to as “windmill artifacts”, as they resemble the sails of a windmill (see Fig. 1d).
+Last, we observe false flow associations, when a dynamic
+point is closer to a false point than to its true counterpart
+(Fig. 1a). While using EulerFlow might resolve such problems, the enormous computational demand will prohibit its
+
+22328
+
+

@@ -1,0 +1,88 @@
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Soften to Defend: Towards Adversarial Robustness via
+Self-Guided Label Refinement
+Zhuorong Li1,∗,† Daiwei Yu1,∗ Lina Wei1 Canghong Jin1 Yun Zhang1 Sixian Chan2
+1
+Hangzhou City University 2 Zhejiang University of Technology
+{lizr, weiln, jinch, yunzhang}@hzcu.edu.cn, ydw.ccm@gmail.com, sxchan@zjut.edu.cn
+
+Abstract
+Adversarial training (AT) is currently one of the most effective ways to obtain the robustness of deep neural networks
+against adversarial attacks. However, most AT methods
+suffer from robust overfitting, i.e., a significant generalization gap in adversarial robustness between the training and
+testing curves. In this paper, we first identify a connection
+between robust overfitting and the excessive memorization
+of noisy labels in AT from a view of gradient norm. As such
+label noise is mainly caused by a distribution mismatch and
+improper label assignments, we are motivated to propose
+a label refinement approach for AT. Specifically, our SelfGuided Label Refinement first self-refines a more accurate
+and informative label distribution from over-confident hard
+labels, and then it calibrates the training by dynamically
+incorporating knowledge from self-distilled models into the
+current model and thus requiring no external teachers. Empirical results demonstrate that our method can simultaneously boost the standard accuracy and robust performance
+across multiple benchmark datasets, attack types, and architectures. In addition, we also provide a set of analyses
+from the perspectives of information theory to dive into our
+method and suggest the importance of soft labels for robust
+generalization.
+
+1. Introduction
+Recent studies have reported that deep neural networks
+(DNNs) are vulnerable to adversarial examples, i.e., malicious inputs perturbed by an imperceptible noise to confuse
+the classifier prediction [14, 25]. This vulnerability raises
+serious security concerns and motivates a growing body
+of works on defense techniques [18, 24, 39]. Adversarial
+training (AT) is arguably the most promising way to harden
+classifiers against adversarial examples, which directly augments the training set with adversarial examples [3, 18]. It
+† Corresponding author.
+∗ The first two authors contribute equally.
+
+is formulated as a min-max problem [18] to find model parameters w that minimize the adversarial risk:
+  \min _w \mathcal {L}_\mathcal {S}(x^\prime ,y;w) 
+where LS (x′ , y; w) =
+
+1/n
+
+P|S|
+
+i=1
+
+(1)
+
+max ℓ(f (x′i ; w), yi )
+
+x′ ∈Br (x)
+
+and f (·; w) is a model parameterized by w, ℓ(·) is the
+loss function such as cross-entropy loss, and Br (x) denotes
+the set of the allowed perturbations under the given metric space M = (X, d) and the suitable radius r > 0, i.e.,
+Br (x) = {x + δ ∈ X : d(x, x + δ) < r}.
+However, most AT methods suffer from a dominant phenomenon that is referred to as “robust overfitting”. That is,
+an adversarially trained model can reach almost 100% robust
+accuracy on the training set while the performance on the
+test set is much inferior, witnessing a significant gap of adversarial robustness [22]. Various regularization techniques
+including classic ℓ1 , ℓ2 regularization and more advanced
+regularizations using data augmentation, such as Mixup [38]
+and Cutout [9], have been attempted to mitigate robust overfitting, whereas they are reported to perform no better than a
+simple early stopping [22]. However, early stopping raises
+another concern as the checkpoint of the best robustness and
+that of the best standard accuracy often do not coincide [5].
+To outperform data augmentations and early stopping, regularizations specifically designed for robust training are thus
+proposed, to name a few, loss reweighting [27, 29, 37, 40]
+and weight smoothing [5, 33, 36, 37]. These regularization
+methods are likely to restrict the change of training loss by
+suppressing perturbations with respect to either the inputs
+x or the weights w, whereas few explorations attempt to
+combat robust overfittiing from the perspective of labels y.
+Previous investigations on labels in AT [10, 35] emphasised the existence of label noise in AT to provide an understanding of robust generalization, for instance, from a
+classic bias-variance perspective. We take a step still further
+to investigate the memorization of label noise in AT, which
+is characterised by a non-monotonical increase of gradient
+norm, as illustrated in Fig. 1, resulting in robust overfitting.
+In light of our analyses, we are motivated to design a strategy
+
+24776
+
+
