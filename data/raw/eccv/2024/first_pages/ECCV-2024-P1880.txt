@@ -1,0 +1,74 @@
+T OWARDS F EDERATED L EARNING AT S CALE : S YSTEM D ESIGN
+Keith Bonawitz 1 Hubert Eichner 1 Wolfgang Grieskamp 1 Dzmitry Huba 1 Alex Ingerman 1 Vladimir Ivanov 1
+Chloé Kiddon 1 Jakub Konečný 1 Stefano Mazzocchi 1 H. Brendan McMahan 1 Timon Van Overveldt 1
+David Petrou 1 Daniel Ramage 1 Jason Roselander 1
+
+A BSTRACT
+Federated Learning is a distributed machine learning approach which enables model training on a large corpus of
+decentralized data. We have built a scalable production system for Federated Learning in the domain of mobile
+devices, based on TensorFlow. In this paper, we describe the resulting high-level design, sketch some of the
+challenges and their solutions, and touch upon the open problems and future directions.
+
+1
+
+I NTRODUCTION
+
+Federated Learning (FL) (McMahan et al., 2017) is a distributed machine learning approach which enables training
+on a large corpus of decentralized data residing on devices
+like mobile phones. FL is one instance of the more general
+approach of “bringing the code to the data, instead of the
+data to the code” and addresses the fundamental problems
+of privacy, ownership, and locality of data. The general
+description of FL has been given by McMahan & Ramage
+(2017), and its theory has been explored in Konečný et al.
+(2016a); McMahan et al. (2017; 2018).
+A basic design decision for a Federated Learning infrastructure is whether to focus on asynchronous or synchronous
+training algorithms. While much successful work on deep
+learning has used asynchronous training, e.g., Dean et al.
+(2012), recently there has been a consistent trend towards
+synchronous large batch training, even in the data center
+(Goyal et al., 2017; Smith et al., 2018). The Federated Averaging algorithm of McMahan et al. (2017) takes a similar
+approach. Further, several approaches to enhancing privacy
+guarantees for FL, including differential privacy (McMahan et al., 2018) and Secure Aggregation (Bonawitz et al.,
+2017), essentially require some notion of synchronization on
+a fixed set of devices, so that the server side of the learning
+algorithm only consumes a simple aggregate of the updates
+from many users. For all these reasons, we chose to focus on support for synchronous rounds, while mitigating
+potential synchronization overhead via several techniques
+we describe subsequently. Our system is thus amenable to
+running large-batch SGD-style algorithms as well as Feder1
+
+Google Inc., Mountain View, CA, USA. Correspondence to: Wolfgang Grieskamp <wgg@google.com>, Vladimir
+Ivanov <vlivan@google.com>, Brendan McMahan <mcmahan@google.com>.
+Proceedings of the 2 nd SysML Conference, Palo Alto, CA, USA,
+2019. Copyright 2019 by the author(s).
+
+ated Averaging, the primary algorithm we run in production;
+pseudo-code is given in Appendix B for completeness.
+In this paper, we report on a system design for such algorithms in the domain of mobile phones (Android). This work
+is still in an early stage, and we do not have all problems
+solved, nor are we able to give a comprehensive discussion
+of all required components. Rather, we attempt to sketch the
+major components of the system, describe the challenges,
+and identify the open issues, in the hope that this will be
+useful to spark further systems research.
+Our system enables one to train a deep neural network, using
+TensorFlow (Abadi et al., 2016), on data stored on the phone
+which will never leave the device. The weights are combined
+in the cloud with Federated Averaging, constructing a global
+model which is pushed back to phones for inference. An
+implementation of Secure Aggregation (Bonawitz et al.,
+2017) ensures that on a global level individual updates from
+phones are uninspectable. The system has been applied in
+large scale applications, for instance in the realm of a phone
+keyboard.
+Our work addresses numerous practical issues: device availability that correlates with the local data distribution in
+complex ways (e.g., time zone dependency); unreliable device connectivity and interrupted execution; orchestration of
+lock-step execution across devices with varying availability;
+and limited device storage and compute resources. These
+issues are addressed at the communication protocol, device, and server levels. We have reached a state of maturity
+sufficient to deploy the system in production and solve applied learning problems over tens of millions of real-world
+devices; we anticipate uses where the number of devices
+reaches billions.
+
+

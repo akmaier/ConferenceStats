@@ -1,0 +1,84 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Adaptive Guidance: Training-free Acceleration of Conditional Diffusion Models
+Angela Castillo1 * , Jonas Kohler2 * , Juan C. Pérez2,3 * , Juan Pablo Pérez1 , Albert Pumarola2 ,
+Bernard Ghanem3 , Pablo Arbeláez1 , Ali Thabet2
+1
+
+Center for Research and Formation in Artificial Intelligence, Universidad de los Andes
+2
+GenAI, Meta
+3
+King Abdullah University of Science and Technology (KAUST)
+
+Abstract
+
+cific criteria such as a class, a text, or an image (Nichol et al.
+2021). DMs perform conditional generation by replacing unconditional denoising steps with conditional ones, in which
+the neural network processes both the input and the condition. While conditional denoising steps provide competitive
+results, Ho et al. proposed Classifier-Free Guidance (C FG)
+(Ho and Salimans 2022) as a technique to enhance sample
+quality. C FG enriches the conditional denoising process by
+leveraging implicit priors of the diffusion model itself. Despite its simplicity, C FG significantly improves sample quality in tasks such as text-to-image generation (Nichol et al.
+2021; Peebles and Xie 2023; Dai et al. 2023), image editing (Brooks, Holynski, and Efros 2023; Meng et al. 2021;
+Sheynin et al. 2023), and text-to-3D (Poole et al. 2022; Lin
+et al. 2023). Yet, the benefits of C FG come at the cost of duplicating the Number of Function Evaluations (NFEs), since
+each denoising iteration requires evaluating the neural network both conditionally and unconditionally. Adding to the
+problem, neural networks used in practice for DMs exceed
+the parallelization capacity of production-grade GPUs. For
+instance, with bfloat16 precision and a batch size of 1, an
+EMU-768 model requires 1,553 ms on an A100 GPU without C FG and nearly doubles to 2,865 ms with C FG. This fact
+prevents simultaneous computation of the conditional and
+unconditional function evaluations.
+In this paper, we improve the efficiency of text-to-image
+DMs that use C FG. Our analysis reveals that not all denoising steps contribute equally to image quality, suggesting that the traditional policy of applying C FG in all steps
+is sub-optimal. Instead, we search for policies offering
+more desirable trade-offs between quality and NFEs by employing techniques from differentiable neural architecture
+search (Liu, Simonyan, and Yang 2018). Our search uncovers that unnecessary function evaluations occur in the latter part of the denoising process. based on this we propose
+“Adaptive Guidance” (AG), an adaptive version of C FG that
+maintains image quality while reducing NFEs by 25%. See
+Fig. 1 for AG’s generation quality.
+Compared to the popular alternative of Guidance Distillation (G D) (Meng et al. 2023), AG is easy to implement,
+training-free, and preserves the capacity to handle negative
+prompts and image conditioning, which are useful capabilities for editing tasks. Finally, we propose L INEAR AG, a fast
+version of AG that estimates updates required by AG as a
+
+This paper presents a comprehensive study on the role of
+Classifier-Free Guidance (C FG) in text-conditioned diffusion
+models from the perspective of inference efficiency. In particular, we relax the default choice of applying C FG in all
+diffusion steps and instead propose to search for more efficient guidance policies. We formulate the discovery of such
+policies in the framework of differentiable neural architecture
+search. Our findings suggest that, as denoising progresses,
+the updates produced by C FG become increasingly aligned
+with simple conditional steps, which renders C FG’s additional neural network evaluation redundant, especially in the
+second half of the denoising process. Building upon this insight, we propose “Adaptive Guidance” (AG), an efficient
+variant of C FG that adaptively omits network evaluations
+when the denoising process displays convergence. Our experiments demonstrate that AG preserves C FG’s image quality
+while reducing computation by 25%. Thus, AG constitutes a
+plug-and-play alternative to Guidance Distillation, achieving
+50% of the speed-ups of the latter, while being training-free
+and retaining the capacity to handle negative prompts. We
+conclude by uncovering further redundancies of C FG in the
+first half of the diffusion process, showing that entire neural
+network evaluations can be replaced by simple affine transformations of past score estimates1 .
+
+Introduction
+Diffusion Models (DMs) (Ho, Jain, and Abbeel 2020; Song
+et al. 2020) exhibit outstanding generative capacities across
+domains such as images (Rombach et al. 2022), video (Ho
+et al. 2022a), audio (Kong et al. 2020), human pose estimation (Castillo et al. 2023), and even cosmological simulations (Schanz, List, and Hahn 2023). DMs generate data
+by sampling noise and iteratively denoising it with a neural
+network. The sequential nature of this denoising operation
+makes sampling from DMs a slow and expensive process. In
+particular, the time required to sample from a given DM is
+a function of (i) the latency of each denoising iteration, and
+(ii) the number of denoising steps.
+Many practical applications target “conditional generation”, where DMs synthesize samples conditioned on spe* These authors contributed equally.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+1
+Find more at bcv-uniandes.github.io/adaptiveguidance-wp/
+
+1962
+
+

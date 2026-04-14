@@ -1,0 +1,104 @@
+Neural Ordinary Differential Equations
+Ricky T. Q. Chen*, Yulia Rubanova*, Jesse Bettencourt*, David Duvenaud
+University of Toronto, Vector Institute
+���������� ��������� ���������� ������������������������
+
+Abstract
+We introduce a new family of deep neural network models. Instead of specifying a
+discrete sequence of hidden layers, we parameterize the derivative of the hidden
+state using a neural network. The output of the network is computed using a blackbox differential equation solver. These continuous-depth models have constant
+memory cost, adapt their evaluation strategy to each input, and can explicitly trade
+numerical precision for speed. We demonstrate these properties in continuous-depth
+residual networks and continuous-time latent variable models. We also construct
+continuous normalizing ﬂows, a generative model that can train by maximum
+likelihood, without partitioning or ordering the data dimensions. For training, we
+show how to scalably backpropagate through any ODE solver, without access to its
+internal operations. This allows end-to-end training of ODEs within larger models.
+
+Introduction
+
+Residual Network
+
+ht+1 = ht + f (ht , θt )
+
+(1)
+
+where t ∈ {0 . . . T } and ht ∈ R . These iterative
+updates can be seen as an Euler discretization of a
+continuous transformation (Lu et al., 2017; Haber
+and Ruthotto, 2017; Ruthotto and Haber, 2018).
+D
+
+What happens as we add more layers and take smaller
+steps? In the limit, we parameterize the continuous
+dynamics of hidden units using an ordinary differential equation (ODE) speciﬁed by a neural network:
+
+�
+
+�
+
+�
+
+�
+
+�
+
+�����
+
+Models such as residual networks, recurrent neural
+network decoders, and normalizing ﬂows build complicated transformations by composing a sequence of
+transformations to a hidden state:
+
+�
+
+�����
+
+1
+
+�
+
+�
+
+�
+
+�
+
+ODE Network
+
+�
+
+�
+�
+�
+�������������������
+
+�
+
+�
+�
+�
+�������������������
+
+Figure 1: Left: A Residual network deﬁnes a
+discrete sequence of ﬁnite transformations.
+Right: A ODE network deﬁnes a vector
+ﬁeld, which continuously transforms the state.
+Both: Circles represent evaluation locations.
+
+dh(t)
+= f (h(t), t, θ)
+(2)
+dt
+Starting from the input layer h(0), we can deﬁne the output layer h(T ) to be the solution to this
+ODE initial value problem at some time T . This value can be computed by a black-box differential
+equation solver, which evaluates the hidden unit dynamics f wherever necessary to determine the
+solution with the desired accuracy. Figure 1 contrasts these two approaches.
+Deﬁning and evaluating models using ODE solvers has several beneﬁts:
+
+Memory efﬁciency In Section 2, we show how to compute gradients of a scalar-valued loss with
+respect to all inputs of any ODE solver, without backpropagating through the operations of the solver.
+Not storing any intermediate quantities of the forward pass allows us to train our models with constant
+memory cost as a function of depth, a major bottleneck of training deep models.
+32nd Conference on Neural Information Processing Systems (NeurIPS 2018), Montréal, Canada.
+
+

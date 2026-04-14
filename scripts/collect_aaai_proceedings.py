@@ -14,7 +14,7 @@ USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/123.0.0.0 Safari/537.36"
 )
-TRACK_LINK_RE = re.compile(r"<li>\s*<a href=\"([^\"]+)\"[^>]*>(.*?)</a>\s*</li>", flags=re.I | re.S)
+TRACK_LINK_RE = re.compile(r"<a href=\"([^\"]+)\"[^>]*>(.*?)</a>", flags=re.I | re.S)
 AAAI_PAPER_RE = re.compile(
     r'<li class="paper-wrap">.*?<h5><a href="([^"]+)">(.*?)</a></h5>'
     r'.*?<span class="papers-author-page"><p>(.*?)</p>'
@@ -80,6 +80,8 @@ def discover_track_pages(proceedings_url: str, landing_html: str):
         normalized_label = normalize_space(label)
         full_url = urljoin(proceedings_url, href)
         if href.startswith("#"):
+            continue
+        if "/proceeding/" not in full_url and "/issue/view/" not in full_url:
             continue
         if not include_track(normalized_label) or full_url in seen:
             continue

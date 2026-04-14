@@ -1,0 +1,94 @@
+View-Consistent 3D Editing with Gaussian
+Splatting
+Yuxuan Wang1 , Xuanyu Yi1,2 , Zike Wu1 , Na Zhao3 , Long Chen5 , and
+Hanwang Zhang1,4
+1
+
+Nanyang Technological University 2 Institute for Infocomm Research, A*STAR
+3
+Singapore University of Technology and Design 4 Skywork AI
+5
+Hong Kong University of Science and Technology
+
+Appendix: Overview
+In the supplementary material, we provide more details of our algorithm and
+the implementation in Sec. 1. Additionally, further discussion regarding the two
+Consistency Modules of VcEdit is available in Sec. 2. An extensive qualitative
+evaluation, including comparisons with NeRF-based editing methods, is conducted in Sec. 3. The settings of the user study are detailed in Sec. 4. Lastly,
+more visual results, extending the qualitative analysis of VcEdit, are presented
+in Sec. 5.
+Algorithm 1 Detailed Pipeline of VcEdit in One Iteration
+Input:
+U-Net of Conditional Diffusion Model εθ (·)
+Sequence of timesteps T = t1 > t2 > . . . > tN = 1
+Source 3DGS G src
+Source/target prompts as conditions y src (e.g., “man”), y tgt (e.g., “clown”)
+
+1: 3DGS → Images (Input: G src → Output: I src )
+2:
+Rendering 3DGS to images: I src = R(G src )
+3: Multi-view Images Editing (Input: I src → Output: I edit )
+4:
+Encoding images to latents: z src , z ori = E(I src )
+5:
+for t = t1 , t2 , . . . tN do
+6:
+Sample noise: ε ∼
+√ N (0, I) √
+7:
+Add noise: zt = αt z src + 1 − αt ε
+√
+√
+8:
+Add noise to original latents: ztori = αt z ori + 1 − αt ε
+ori
+9:
+Noise prediction by CCM-applied U-Net: εθ , εθ = εθ (zt , y tgt ), εθ (ztori , y src )
+√
+√
+10:
+Compute a noise offset proposed in [5]: ∆ε = (ztori − αt z ori )/ 1 − αt
+√
+√
+edit
+src
+ori
+11:
+Obtain the edited latents: z
+= (z
+− 1 − αt (εθ − εθ + ∆ε))/ αt
+12:
+Copy a 3DGS from source (ECM starts): Gft = copy(G src )
+P
+edit
+13:
+Fine-tune the 3DGS: Gft = argmin
+))
+v∈V Ledit (R(G, v), D(zv
+G
+
+14:
+15:
+16:
+17:
+18:
+
+Render and encode to latents (ECM ends): z con = E(R(Gft , v)), v ∈ V
+Blend by the CCM’s consistent mask: z bld = Mcon ∗ z con + (1 − Mcon ) ∗ z src
+Next timestep: z src = z bld
+end for
+Decoding latents to edited guidance images: I edit = D(z bld )
+
+19: Images → 3DGS (Input: I edit → Output: G edit
+)
+P
+edit
+20:
+Fine-tune the source 3DGS: G edit = argmin
+)
+v∈V L(R(G, v), I
+G
+
+Output: The final edited 3DGS G edit .
+
+

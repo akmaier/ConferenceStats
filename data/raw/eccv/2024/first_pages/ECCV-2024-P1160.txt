@@ -1,0 +1,78 @@
+Supplementary for MoVideo: Motion-Aware Video Generation with Diffusion
+Model
+Supplementary Material
+1. Experimental Details
+
+tors, we use the discriminator in [4] as the 2D one, and upgrade it by replacing all 2D convolutions to 3D convolutions
+as the 3D one. For training, λ1 , λ2 , λ3 and λ4 in the loss
+function are set to 1.0, 10.0, 0.8 and 0.8, respectively.
+More details are summarized in Table 1 and Table 2.
+
+Architectural and training details. For depth and flowguided video generation, similar to Latent Diffusion [16],
+we use the VQGAN encoder [4] to encode the video into the
+latent space as 17×32×32×4 and then conduct latent diffusion to generate the video in the latent space. We build our
+model based on the 2D UNet from “stable-diffusion-v1.4”.
+We add the same numbers of 1D temporal convolution layers and 1D temporal attention layers, respectively after the
+2D spatial convolution layers and 2D spatial attention layers. Most of the hyper-parameters, including channel number, convolution kernel size, attention head dim, etc., are
+kept the same. To concatenate the depth, warped latent
+video and occlusion mask with the noise as the input, we increase input channel of the first convolution layer from 4 to
+10. As for f ps, it is encoded by two fully-connected layers
+with an in-between ReLU activation layer. During initialization, we initialize the original 2D spatial modules with
+the open-sourced weight and pretrain it on Laion-5B [18]
+using the unpooled CLIP image embedding [14] for cross
+attention. After that, the spatial modules are jointly trained
+with the newly added 1D temporal modules, but the learning rate is reduced to be one tenth of the global learning
+rate. To stabilize training, we initialize the temporal modules randomly but zero the last layers to make sure that they
+have no impact at the beginning of training.
+For depth and optical flow generation, we use exactly
+the same UNet design as in the video generation stage, but
+we halve the channel numbers of each layer and randomly
+initialize all layers. For the input video of size 17 × 256 ×
+256 × 3, we use MiDaS DPT-Large [15] and RAFT [22] to
+estimate the video depth and optical flows, and then resize
+them as 17 × 32 × 32 × 1 and 17 × 32 × 32 × 4 (including 2
+channels for image-to-video flow and 2 channels for videoto-image flow), respectively. This means both the input and
+output channels of this model are 5.
+For video decoding, we use a similar strategy to upgrade
+the 2D decoder to the 3D decoder. Since there are only convolution layers in the original decoder, we only add temporal convolution layers and do not add temporal attention
+layers. In the alignment module, we use a convolution neural network with four 3 × 3 convolution layers and three
+ReLU activation layers between them to predict the offset
+and mask. Then, the deformable convolution with 3 × 3
+kernel and 16 deformable groups is used for flow-guided
+deformable alignment. In the refinement module, 30 ResBlocks [5] are used to refine the features. For discrimina-
+
+Classifier-free guidance. For better sampling quality
+in diffusion models, we use the classifier-free guidance
+(CFG) [8] for depth and optical flow generation, as well as
+depth and flow-based video generation. Taking video generation for example, we randomly drop the conditional clip
+image feature input as ϵθ (xt , t, d, o, m, ∅) and use to adjust
+the predictions at each step t in testing as
+ϵeθ (xt , t, d, o, m, c) = ϵθ (xt , t, d, o, m, ∅)+
+
+ω ϵθ (xt , t, d, o, m, c) − ϵθ (xt , t, d, o, m, ∅) ,
+
+(1)
+
+where the guidance scale ω is set as 7.5 in our case. Depth
+and optical flow generation are trained and tested in a similar way.
+Maximum flow estimation. To estimate the maximum
+flow omax during inference, we first initialize omax as 10
+and set it as an optimizable tensor. Then, we calculate
+the warping error and use the AdamW [12] optimizer with
+β1 = 0.9 and β2 = 0.999 to optimize omax for 500 iterations. The learning rate is initialized as 10 and scheduled
+to halve for every 50 iterations. Since we estimate omax for
+each video, the batch size is always 1.
+Model testing and evaluation. In testing, we use deterministic sampling from Denoising Diffusion Implicit Models (DDIM) [20] to speed up the reverse denoising process.
+For evaluation, we compare our model with other methods on text-to-video generation and image-to-video generation. For text-to-video generation, we report results in three
+cases: zero-shot text-to-video generation on UCF-101 [21],
+zero-shot text-to-video generation on MSR-VTT [27] and
+open-domain text-to-video generation. For evaluation on
+UCF-101, following [2, 9, 19], we compare the Inception
+Score (IS) [17] by a C3D model [23] trained on UCF-101
+and the Frechet Video Distance (FVD) [24]. For MSRVTT, following [1, 2, 9, 19, 26], we compare the Frechet Inception Distance (FID) [6] and the CLIP Similarity (CLIPSIM) [25], which is defined as the average cosine similarity between the CLIP text embedding of the text and the
+CLIP image embeddings of all frames. For open-domain
+text-to-video generation, we compare our method with the
+only open-sourced text-to-video model VideoDiffusion [13]
+1
+
+

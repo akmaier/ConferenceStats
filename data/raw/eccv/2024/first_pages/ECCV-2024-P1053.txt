@@ -1,0 +1,47 @@
+MobileNetV4: Universal Models for the Mobile Ecosystem
+
+A
+
+19
+
+Search space details
+
+The following is how we construct the search space for NAS.
+Search Space Construction:
+– Fixed Initial Layers: We started with a Conv2D layer (3x3 kernel, stride 2)
+in the first stage for quick resolution reduction, followed by NAS-optimized
+FusedIB blocks (stride 2) in the second stage to balance between efficiency
+and accuracy.
+– NAS-Driven Optimization: The NAS process precisely determined the ideal
+number of UIB blocks and parameter instantiations across the remaining
+four stages, ensuring an optimal structure for performance.
+– Fixed Head Layers: We use the same head layer configuration as MobileNet
+V3.
+Observing that pointwise convolutions within UIB blocks tend to exhibit low
+operational intensity at higher resolutions, we prioritized operations with higher
+computational density in the initial layers to balance efficiency and accuracy.
+Our optimization targets:
+– MNv4-Conv-S: Dual goals—285M MACs and 0.2ms latency (Pixel 6 EdgeTPU, 224px inputs).
+– MNv4-Conv-M: 0.6ms latency (Pixel 6 EdgeTPU, 256px inputs).
+– MNv4-Conv-L: Dual latency goals of 2.3ms (Pixel 6 EdgeTPU) and 2.0ms
+(Pixel 7 EdgeTPU) with 384px inputs.
+To be noted, by restricting our search space to components with well-correlated
+cost models across devices, we found that EdgeTPU latency optimization directly
+yields universally efficient models, as demonstrated in later sections.
+
+B
+
+Benchmarking methodology
+
+We applied a consistent benchmarking strategy across various mobile platforms,
+with an exception for the Apple Neural Engine. To enhance efficiency, models
+were converted to TensorFlow Lite format and quantized to INT8 for mobile
+CPUs, Hexagon, and EdgeTPUs, while FP16 was used for mobile GPUs. We
+run each model roughly 1000 times and take the mean latency of those runs. We
+then repeat that process 5 times for each model and report the median of means.
+To optimize performance, we set the CPU affinity to the fastest core and use
+the XNNPACK backend for CPU evaluations. In contrast, for benchmarks on
+the Apple Neural Engine (conducted on an iPhone 13 with iOS 16.6.1, CoreMLTools 7.1, and Xcode 15.0.1 for profiling), PyTorch models were converted to
+CoreML’s MLProgram format in Float16 precision, with float16 MultiArray inputs to minimize input copying.
+
+

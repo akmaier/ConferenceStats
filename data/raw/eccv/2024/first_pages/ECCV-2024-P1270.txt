@@ -1,0 +1,51 @@
+CoSIGN
+
+A
+
+1
+
+Limitations
+
+Compared to traditional diffusion-based inverse problem solvers (DIS), CoSIGN
+reduces number of sampling steps to 1-2 NFEs. However, the training of a ControlNet for each inverse task may limit the generalizability of the proposed
+method. Although we demonstrated its robustness against number of angles
+and noise scales in sparse-view CT reconstruction, a performance gap still exists
+when adapting the trained ControlNet to a different task. Future works may explore ways to utilize few-shot adaptation method for the training of ControlNet,
+or improve zero-shot inference ability of the proposed method.
+
+B
+
+Implementation Details
+
+We implement our proposed algorithm (CoSIGN) based on the consistency model
+(CM) codebase5 so that we can make use of the CM checkpoint pretrained on the
+LSUN bedroom dataset [52]. The UNet structure of CM contains 6 resolution
+levels for the input size of 256×256. There are two residual blocks for each
+resolution level in both the encoder and the decoder. In the architecture of the
+additional encoder for guiding the CM backbone with the conditional input, we
+replaced each decoder layer with a zero-initialized convolution layer. We also add
+a zero-convolution layer before the additional encoder. We maintain the middle
+block in CM at the end of the additional encoder. The output of the middle
+block will pass through a zero-initialized convolution layer before entering the
+CM. We inject these conditions into CM by directly adding them with the skip
+connections between the encoder and the decoder. For medical images, we change
+the input channel of the first layer in both CM and the additional encoder into
+one.
+In experiments on natural images, we train the additional encoder for 50k
+steps with a batch size of 144. In experiments on medical images, we start from
+training the diffusion model since no pretrained checkpoint is available. Specifically, we first train an EDM [16] model on LDCT training set [29] for 9k steps
+with a batch size of 144. Then we distill this diffusion model into a consistency
+model by training for another 12k steps. Finally, we train the additional encoder
+for 9k steps with the CM backbone frozen. We do not train these models for
+further steps since it might induce over-fitting on such a small dataset.
+We adopt the forward operator of different inverse problems from DPS codebase6 and add hard measurement constraints like DDNM [48] into it.
+For evaluation, we adopt codes from DPS [3] to calculate PSNR and SSIM
+whereas codes from CM [44] to calculate FID. Following [44], the intermediate
+noise level is determined by ternary search in multistep sampling.
+5
+6
+
+https://github.com/openai/consistency_models
+https://github.com/DPS2022/diffusion-posterior-sampling
+
+

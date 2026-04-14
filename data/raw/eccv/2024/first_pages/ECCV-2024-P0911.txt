@@ -1,0 +1,66 @@
+Deep Equilibrium Models
+
+Shaojie Bai
+Carnegie Mellon University
+
+J. Zico Kolter
+Carnegie Mellon University
+Bosch Center for AI
+
+Vladlen Koltun
+Intel Labs
+
+Abstract
+We present a new approach to modeling sequential data: the deep equilibrium
+model (DEQ). Motivated by an observation that the hidden layers of many existing
+deep sequence models converge towards some fixed point, we propose the DEQ
+approach that directly finds these equilibrium points via root-finding. Such a
+method is equivalent to running an infinite depth (weight-tied) feedforward network,
+but has the notable advantage that we can analytically backpropagate through the
+equilibrium point using implicit differentiation. Using this approach, training
+and prediction in these networks require only constant memory, regardless of the
+effective “depth” of the network. We demonstrate how DEQs can be applied to
+two state-of-the-art deep sequence models: self-attention transformers and trellis
+networks. On large-scale language modeling tasks, such as the WikiText-103
+benchmark, we show that DEQs 1) often improve performance over these stateof-the-art models (for similar parameter counts); 2) have similar computational
+requirements to existing models; and 3) vastly reduce memory consumption (often
+the bottleneck for training large sequence models), demonstrating an up-to 88%
+memory reduction in our experiments. The code is available at ❤tt♣s✿✴✴❣✐t❤✉❜✳
+❝♦♠✴❧♦❝✉s❧❛❜✴❞❡q.
+
+1
+
+Introduction
+
+Most modern feedforward deep networks are built on the core concept of layers. In the forward pass,
+each network consists of a stack of some L transformations, where L is the depth of the network. To
+update these networks, the backward passes rely on backpropagating through the same L layers via the
+chain rule, which typically necessitates that we store the intermediate values of these layers. The value
+for L is usually a hyperparameter and is picked by model designers (e.g., ResNet-101 [25]). Among
+the many applications of deep networks, sequence modeling has witnessed continuous advances in
+model architectures. Specifically, while recurrent networks have long been the dominant model for
+sequences [21, 26, 14, 34], deep feedforward architectures based on temporal convolutions [49, 47, 7]
+and self-attention [48, 16, 13] have (re-)emerged to claim superior performance on a variety of
+sequence prediction tasks.
+In very general terms, a deep feedforward sequence model can be written as the following iteration:
+
+[i+1]
+[i] [i]
+z1:T = fθ z1:T ; x1:T
+for i = 0, 1, 2, . . . , L − 1
+(1)
+[i]
+
+where i is the layer index; z1:T is the hidden sequence of length T at layer i; x1:T is the input
+sequence (i.e., we are choosing to explicitly model skip connections, for reasons we explain later);
+[i]
+and fθ is some nonlinear transformation which typically enforces causality (i.e., future time points
+cannot influence past ones). Our paper derives its motivation from surprising recent works that
+[i]
+employ the same transformation in each layer (known as weight tying, with fθ = fθ , ∀i) and still
+achieve results competitive with the state-of-the-art [18, 8, 15]. This raises an interesting question: If
+the same transformation is applied at each layer of a deep network, what is the limit of this process,
+and how do we model it?
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

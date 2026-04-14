@@ -1,0 +1,46 @@
+Unifying 3D Vision-Language Understanding via Promptable Queries
+
+A1
+
+Appendix
+A
+
+Implementation Details
+
+This section introduces more details about model architecture, training details,
+and downstream task settings.
+A.1
+
+Model architecture
+
+Prompt Encoding To encode textual prompts, we utilize the CLIP (clip-vitlarge-patch14) text encoder with a projection layer. This allows us to encode
+text and images into a joint embedding space. For numerical prompts, we employ a linear layer to project locations and bounding box sizes into RD space.
+This projection aligns the feature space with CLIP. When it comes to image
+prompts, our goal is to utilize image semantics to replace text prompts for zeroshot transfer. To achieve this, we encode the text in the form of “[SOS] [object]
+[EOS]”, where [object] is substituted with image semantic features encoded by
+the CLIP image encoder. This approach allows us to leverage the semantic information contained within images and use it as a replacement for traditional
+text prompts, facilitating zero-shot transfer learning.
+Scene Representation For point cloud encoding, we utilize a three-layer PointNet++ [55] architecture. This architecture operates on the input points with different radii: 0.2, 0.4, and sampling all points within this ball. The output of this
+PointNet++ is an aggregated 768-dimensional feature representation. For voxel
+encoding, we use MinkowskiRes16UNet34C [16] with a voxel size of 0.02m. It
+combines the ResNet-16 backbone with the UNet architecture in the Minkowski
+Engine framework. It applies 3D convolutions and pooling operations to extract
+hierarchical features from the input voxelized data. The network progressively
+downsamples the spatial resolution in the encoder path and upsamples it in the
+decoder path, while capturing and fusing features at multiple scales through
+skip connections. We use four levels of voxel features and project them all to
+dimension 768. For image encoding, we use a pre-trained OpenSeg feature backbone [24].
+Prompt-guided Query Learning In query initialization, we first use furthest
+point sampling [62] to sample points from original point clouds. After we acquire
+the location of sampled points, we apply Fourier spatial position encoding [44]
+to encode points pi as follows:
+⇥
+⇤
+li = cos(2⇡pi WfT )k sin(2⇡pi WfT )
+(A1)
+During masked cross-attention, the location information l is incorporated into
+the computation of attention by adding it to the queries Q̃l and keys F̃. Here,
+Q̃l represents the instance queries, and F̃ denotes the features augmented by
+locations. Following the approach described in [62], we enforce attention restriction using a mask generated from the previous layer, denoted as Ml 1 . This
+
+

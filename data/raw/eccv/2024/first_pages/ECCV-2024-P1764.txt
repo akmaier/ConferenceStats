@@ -1,0 +1,58 @@
+Appendix
+
+PyTorch implementation of Sparo
+
+A
+
+We provide an example implementation of Sparo in PyTorch [14] as follows:
+class Sparo(nn.Module):
+def __init__(self, d, L, V, D, grp_size=1):
+"""See Sec. 3 for descriptions of d, L, V, D.
+Each key/value projection weight is shared between grp_size slots."""
+super().__init__()
+self.L, self.V, self.D = L, V, D
+self.grp_size, self.nkeys = grp_size, L // grp_size
+self.scale = D ** -0.5
+self.q = nn.Parameter(torch.randn(1, self.nkeys, grp_size, 1, D))
+self.KVproj = nn.Linear(d, self.nkeys * D)
+self.Wproj = nn.Linear(D, V)
+nn.init.xavier_uniform_(self.KVproj.weight)
+nn.init.zeros_(self.KVproj.bias)
+nn.init.zeros_(self.Wproj.bias)
+def forward(self, x, eos_idx=None):
+"""Provide eos_idx for text to prevent attending to positions after it."""
+batch_size, n, d = x.shape
+kv = self.KVproj(x).view(batch_size, n, self.nkeys, 1, self.D)
+kv = kv.expand(-1, -1, -1, self.grp_size, -1).permute(0, 2, 3, 1, 4)
+attn = (self.q * self.scale) @ kv.transpose(-2, -1)
+if eos_idx is not None:
+attn_mask = (
+torch.arange(n, device=eos_idx.device)[None, None, None, None, :]
+> eos_idx[:, None, None, None, None]
+)
+attn_mask = torch.where(
+attn_mask, -torch.inf, torch.zeros_like(attn_mask, dtype=attn.dtype)
+)
+attn += attn_mask
+attn = attn.softmax(dim=-1)
+x = (attn @ kv).view(batch_size, self.L, self.D)
+return self.Wproj(x)
+
+Here, we optionally utilize multi-query attention [18] to reduce the model
+size further by setting grp_size>1, allowing larger values of L with the same
+resources. For example, when grp_size=2 and L=64, only 32 Kl parameters are
+created. We encourage practitioners to explore optimal grp_size settings for
+their applications.
+
+B
+
+Additional results
+
+B.1
+
+Hyperparameters L and V
+
+Sparo encodings are concatenations of L separately-attended slots of V dimensions each. We study the eﬀect of L and V with CLIP32 +Sparo trained on
+CC15M, comparing its ImageNet zero-shot accuracy and model size with that of
+
+

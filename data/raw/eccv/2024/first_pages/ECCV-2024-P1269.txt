@@ -1,0 +1,44 @@
+Supplemental Material for
+NeRF-XL: NeRF at Any Scale with Multi-GPU
+Ruilong Li1,2 , Sanja Fidler1 , Angjoo Kanazawa2 , and Francis Williams1
+1
+2
+
+1
+
+NVIDIA
+UC Berkeley
+
+Implementation Details
+
+In this section, we elaborate on the implementation intricacies of our multiGPU NeRF representation, multi-GPU volume rendering and distortion loss, as
+well as the spatial partitioning strategy we employed. Additionally, we outline
+detailed differences between the baseline approaches and our method from the
+implementation perspective.
+1.1
+
+NeRF Representation
+
+Our experiments are all conducted with the hash-grid based NeRF representation
+introduced in Instant-NGP [3]. In single GPU experiments, we adhere to the
+original configuration of Instant-NGP. This entails predicting sample density
+through hash encoding followed by a one-layer MLP, and predicting sample color
+through another two-layer MLP. The latter is conditioned on the view direction
+and, optionally, an appearance embedding.
+In the multi-GPU joint training scenario, we assign each GPU a NeRF with
+its own independent hash encoding and density MLP. However, for the color
+MLP, we adopt a different approach. As the sample color is conditioned on
+the view direction and optionally an appearance embedding, which can be out
+of training distribution during novel-view rendering, independent color MLPs
+will lead to inconsistent color prediction given the same input. Thus we adopt
+parameter sharing across all GPUs for the color MLP utilizing Distributed Data
+Parallel (DDP), to ensure consistent interpretation of novel view direction and
+appearance embedding among all GPUs. Notably, when enabled during training,
+an appearance embedding of zero is utilized for rendering novel-view images.
+Similarly, when camera optimization is enabled, the camera pose embedding of
+each camera is also shared across GPUs.
+While our experiments specifically focus on the Instant-NGP representation,
+we believe our approach can be generalized to many other NeRF representations. The Instant-NGP representation combines grid-based and MLP elements,
+suggesting that our multi-GPU distribution strategy is applicable to both gridbased and MLP-based NeRFs, as long as each NeRF is confined within a nonoverlapping bounding box for proper integration. In essence, regardless of which
+
+

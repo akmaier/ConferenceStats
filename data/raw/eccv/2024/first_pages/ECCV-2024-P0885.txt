@@ -1,0 +1,66 @@
+ATOM : L OW-B IT Q UANTIZATION FOR E FFICIENT AND ACCURATE LLM
+S ERVING
+Yilong Zhao 1 2 * Chien-Yu Lin 2 Kan Zhu 2 Zihao Ye 2 Lequn Chen 2 Size Zheng 2 3 *
+Luis Ceze 2 4 Arvind Krishnamurthy 2 Tianqi Chen 4 5 Baris Kasikci 2
+
+A BSTRACT
+The growing demand for Large Language Models (LLMs) in applications such as content generation, intelligent
+chatbots, and sentiment analysis poses considerable challenges for LLM service providers. To efficiently use
+GPU resources and boost throughput, batching multiple requests has emerged as a popular paradigm; to further
+speed up batching, LLM quantization techniques reduce memory consumption and increase computing capacity.
+However, prevalent quantization schemes (e.g., 8-bit weight-activation quantization) cannot fully leverage the
+capabilities of modern GPUs, such as 4-bit integer operators, resulting in sub-optimal performance.
+To maximize LLMs’ serving throughput, we introduce Atom, a low-bit quantization method that achieves high
+throughput improvements with negligible accuracy loss. Atom significantly boosts serving throughput by using
+low-bit operators and considerably reduces memory consumption via low-bit quantization. It attains high accuracy
+by applying a novel mixed-precision and fine-grained quantization process. We evaluate Atom on 4-bit weightactivation quantization in the serving context. Atom improves end-to-end throughput (token/s) by up to 7.73×
+compared to the FP16 and by 2.53× compared to INT8 quantization, while maintaining the same latency target.
+
+1
+
+I NTRODUCTION
+
+Large Language Models (LLMs) are increasingly being integrated into our work routines and daily lives, where we
+use them for summarization, code completion, and decisionmaking. Studies report that ChatGPT has over 100 million users, with more than 1 billion website accesses per
+month (Duarte, 2023). Furthermore, the size and capabilities
+of LLMs continue to grow to accommodate a broader range
+of tasks. The high inference demand and model complexity
+have significantly increased the operational costs, i.e., compute/memory and energy, for LLM service providers to near
+$1 million daily (Elimian, 2023).
+Unsurprisingly, optimizing LLM serving is becoming a
+pressing concern. Most efforts have focused on improving LLM serving throughput, which is typically achieved by
+batching requests from various users (Yu et al., 2022; Chen,
+2023; Kwon et al., 2023). Batching multiple requests in*
+
+Work done at UW. 1 Department of Computer Science and Engineering, Shanghai Jiao Tong University, Shanghai, China 2 School
+of Computer Science & Engineering, University of Washington,
+Seattle, United States 3 School of Computer Science, Peking University, Beijing, China 4 OctoAI 5 School of Computer Science,
+Carnegie Mellon University, Pittsburgh, United States. Correspondence to: Yilong Zhao <zhaoyilong217@sjtu.edu.cn>.
+th
+
+Proceedings of the 7 MLSys Conference, Santa Clara, CA, USA,
+2024. Copyright 2024 by the author(s).
+
+creases compute intensity and amortizes the cost of loading
+weight matrices, thereby improving throughput. Prior work
+has explored LLM quantization techniques to further improve batching efficiency. These techniques employ smaller
+data types to replace 16-bit floating point (FP16) values,
+thereby reducing memory consumption and accelerating
+computation (Lin et al., 2023; Xiao et al., 2023).
+However, current quantization schemes do not leverage the
+full extent of capabilities provided by emerging efficient
+low-bit hardware support (e.g., Nvidia Ampere (Abdelkhalik et al., 2022) and Qualcomm Hexagon (Wikipedia contributors, 2023)). For instance, several prior approaches have
+explored weight-only quantization (Lin et al., 2023; Frantar
+et al., 2023). In these quantization schemes, weights are
+quantized to a low-bit representation (e.g., INT3), whereas
+activations remain in a floating point representation (e.g.,
+FP16). Consequently, weights must be dequantized to the
+appropriate floating point representation (e.g., FP16) before being multiplied with activations using floating point
+representation. Therefore, even though weight-only quantization reduces memory consumption, it still requires costly
+floating-point arithmetic, which is inefficient, especially for
+large batch sizes.
+Another prominent quantization scheme is weight-activation
+quantization, where both weights and activations are quantized to low-bit representations. In this scheme, weights and
+activations can be directly multiplied using low-precision
+
+

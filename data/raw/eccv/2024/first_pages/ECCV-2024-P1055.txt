@@ -1,0 +1,39 @@
+1
+
+Appendix
+A. Implementation Details
+A2. Architecture
+We leverage the advanced pre-existing knowledge from pretrained MLLMs to aid
+in model convergence. Specifically, we initialize our multi-modal decoder with
+LLaVA-v1.5-7B checkpoint [2] from HuggingFace. Its vision encoder is CLIP-vitwb
+large-patch14 (CLIP-L) [5] and takes in Iref
+. We use ViT-H/1 [3] to extract the
+image embedding of Iref . Thus, a trained linear mapping is added at the output
+of MLLM to map the learned text token from R4096 to R1024 . The model is built
+on top of the IP-Adapter [7] and the training code on LDM [6]. Our foundation
+model is StableDiffusion v1.5 [6] with Realistic-Vision-v4.0 [1] checkpoint. Both
+subject and context cross-attentions are implemented with the diffusers attention
+processor class. We call our MLLM as multi-modal decoder because: it takes in
+wb
+visual features of Iref
+and text instruction and "generates the full image Iref "
+in the form of CLIP embeddings. So our MLLM is not a typical subject-feature
+encoder like in most existing works, but instead a generative MLLM decoder.
+A2. Training
+we lock the parameters of the image encoders and only adjust the MLLM parameters along with the newly incorporated learnable token. In stage two training, the image/text encoder, multi-modal decoder, and the entirety of the UNet
+parameters are frozen. We optimize exclusively the linear mappings of subjetcross-attention and context-cross-attentions.To expedite convergence, we employ
+attention mapping layers from the IP-adapter [7] and start with a zero-initialized
+subject-cross-attention. We apply large gradient accumulation steps (200) and
+clip grad norm for smoother training. In both stages, we use the AdamW optimizer with a learning rate of  1^{-5}  . Training takes 7 days in total on 16 A100 80G
+GPUs.
+A3. Evaluation
+We use the DDIM sampler with default parameters and 50 denoising steps.
+Evaluation requires 23.5G GPU RAM for 512 × 512 resolution. The iterative
+masking is disabled in the first denoising step since Mgen(t) is unavailable yet.
+We apply classifier-free guidance on both the text prompt and Context-crossattention side, but not the subject-cross-attention. On the text prompt side,
+simply replace the target prompt Ptgt with null embedding. On the contextcross-attention side, we zero out the contextualized features before feeding them
+to attention linear mappings. We use β = 1.0 in the recontextualization task for
+better subject detail accuracy and, empirically, β = 0.5 in the texture editing
+task for better balance between subject and prompt.
+
+
