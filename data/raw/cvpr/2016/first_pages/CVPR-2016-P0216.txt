@@ -1,0 +1,75 @@
+Efficient Large-scale Approximate Nearest Neighbor Search on the GPU
+Patrick Wieschollek1,4
+
+Oliver Wang2
+Alexander Sorkine-Hornung3
+Hendrik P.A. Lensch1
+
+1
+
+University of Tübingen 2 Adobe Systems Inc.
+3
+Disney Research
+4
+Max Planck Institute for Intelligent Systems, Tübingen
+
+Abstract
+We present a new approach for efficient approximate
+nearest neighbor (ANN) search in high dimensional spaces,
+extending the idea of Product Quantization. We propose
+a two level product and vector quantization tree that reduces the number of vector comparisons required during
+tree traversal. Our approach also includes a novel highly
+parallelizable re-ranking method for candidate vectors by
+efficiently reusing already computed intermediate values.
+Due to its small memory footprint during traversal the
+method lends itself to an efficient, parallel GPU implementation. This Product Quantization Tree (PQT) approach significantly outperforms recent state of the art methods for
+high dimensional nearest neighbor queries on standard reference datasets. Ours is the first work that demonstrates
+GPU performance superior to CPU performance on high
+dimensional, large scale ANN problems in time-critical
+real-world applications, like loop-closing in videos.
+
+1. Introduction
+Finding the nearest neighbors (NN) of a query vector
+in a high dimensional space is a fundamental task in computer vision. For a given query vector y ∈ RD , the nearest
+neighbor problem consists of finding an element N (y) ∈ X
+from a predefined fixed set X ⊂ RD , which minimizes
+a distance metric, most commonly the Euclidean distance
+2
+d(·) := k·k . This NN-problem can be written as
+N (y) = arg min d(y, x).
+
+(1)
+
+x∈X
+
+In many computer vision tasks these query vectors represent visual descriptors, meaning both D as well as X are
+often large, leading to NN searches being a significant computational bottleneck in many applications. This is due to
+the necessity of computing exact distances in a high dimensional space between many pairs of vectors, a problem ex-
+
+acerbated by the phenomenon known as the curse of dimensionality. More precisely, consider a D-dimensional hyper
+unit-cube enclosing X . To explore a ν fraction of the volume, we need to visit a ν 1/D percent of each hyper-cube
+edge. This means that to explore 10% of a set of SIFTvectors (D = 128) in a hypercube, one has to search an
+interval covering ≈ 98% of the possible values per coordinate.
+Due to this computational complexity, most applications
+rely on approximate nearest-neighbor (ANN) search techniques, which try to find the nearest neighbor with a high
+probability. There exists many CPU-approaches for computing ANN in the literature, the most common of which
+are KD-trees [6], which hierarchically subdivide the vector
+space. While these methods are widely used in graphics
+and vision, it has been shown that KD-trees are no more efficient than brute force searches when D is large [9]. The
+FLANN software package [16] proposes randomized KDforests and K-Means trees, which prune the overall search
+space by identifying small regions around the query vectors, yielding better performance with higher dimensional
+vectors.
+Another family of approaches are based on Locality Sensitive Hashing (LSH) [5]. These methods hash database
+vectors with a number of random projections, and perform
+nearest distance checks only on vectors that are hashed to
+the same bin. The speed and accuracy of such methods
+depends on the hashing function used. Andoni and Indyk [1] describe a family of hashing functions which are
+near-optimal. These ideas have since been extended into
+the image domain for patch-based nearest neighbor computation [13]. While these methods work well, they have
+not yet achieved the same performance as space partitioning methods [16].
+While leveraging GPU parallelism seems obvious, in
+practice accelerating ANN search techniques using GPU
+parallelism is notoriously difficult, largely due to the memory restrictions of GPUs when compared to the amount
+12027
+
+

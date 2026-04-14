@@ -1,0 +1,77 @@
+Principled Parallel Mean-Field Inference for Discrete Random Fields
+Pierre Baqué1∗
+
+Timur Bagautdinov1∗
+François Fleuret1,2
+1
+CVLab, EPFL, Lausanne, Switzerland
+2
+IDIAP, Martigny, Switzerland
+
+Pascal Fua1
+
+{firstname.lastname}@epfl.ch
+
+Abstract
+Mean-field variational inference is one of the most popular approaches to inference in discrete random fields. Standard mean-field optimization is based on coordinate descent
+and in many situations can be impractical. Thus, in practice, various parallel techniques are used, which either rely
+on ad hoc smoothing with heuristically set parameters, or
+put strong constraints on the type of models.
+In this paper, we propose a novel proximal gradientbased approach to optimizing the variational objective. It
+is naturally parallelizable and easy to implement.
+We prove its convergence, and demonstrate that, in practice, it yields faster convergence and often finds better optima than more traditional mean-field optimization techniques. Moreover, our method is less sensitive to the choice
+of parameters.
+
+1. Introduction
+Many Computer Vision problems, ranging from image
+segmentation to depth estimation from stereo, can be naturally formulated in terms of Conditional Random Fields
+(CRFs). Solving these problems then requires either estimating the most probable state of the CRF, or the marginal
+distributions over the unobserved variables. Since there are
+many such variables, it is usually impossible to get an exact
+answer, and one must instead look for an approximation.
+Mean-field variational inference [33] is one of the most
+effective ways to do approximate inference and has become
+increasingly popular in our field [29, 32, 24]. It involves
+introducing a variational distribution that is a product of
+terms, typically one per hidden variable. These terms are
+then estimated by minimizing the Kullback-Leibler (KL)
+divergence between the variational and the true posterior.
+The standard scheme is to iteratively update each factor
+of the distribution one-by-one. This is guaranteed to converge [5, 21], but is not very scalable, because all variables
+have to be updated sequentially. It becomes impractical for
+∗
+
+The authors contributed equally.
+
+input
+
+baseline
+
+ours
+
+ground truth
+
+Figure 1. First two rows: VOC2012 images in which we outperform a baseline by adding simple co-ocurrence terms, which
+our optimization scheme, unlike earlier ones, can handle. Bottom
+row: Our scheme also allows us to improve upon a baseline for
+the purpose of recovering a character from its corrupted version.
+
+realistically-sized problems when there are substantial interactions between the variables. This can be remedied by
+replacing the sequential updates by parallel ones, often at
+the cost of failing to converge.
+It has nonetheless recently been shown that parallel updates could be done in a provably convergent way for pairwise CRFs, provided that the potentials are concave [24].
+When they are not, an ad hoc heuristic designed to achieve
+convergence, which essentially smooths steps by averaging between the next and current iterate, has been used
+over the years. This heuristic is mentioned explicitly in
+some works [30, 7, 14], or used implicitly in optimization
+schemes [13, 32] by introducing an additional damping parameter.
+However, a formal justification for such smoothing is
+never provided, which we do in this paper. More specifically, we show that, by damping in the natural parameter
+space instead of the mean-parameter one, we can reformulate the optimization scheme as a specific form of proximal gradient descent. This yields a theoretically sound
+and practical way to chose the damping parameters, which
+guarantees convergence, no matter the shape of the potentials. When they are attractive, we show that our approach is
+equivalent to that of [24]. However, even when they are re-
+
+5848
+
+

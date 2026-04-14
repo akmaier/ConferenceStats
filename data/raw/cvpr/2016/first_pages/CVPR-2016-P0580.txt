@@ -1,0 +1,73 @@
+HyperDepth: Learning Depth from Structured Light Without Matching
+Sean Ryan Fanello∗ Christoph Rhemann∗ Vladimir Tankovich
+Adarsh Kowdle Sergio Orts Escolano David Kim Shahram Izadi
+Microsoft Research
+
+Abstract
+Structured light sensors are popular due to their robustness to untextured scenes and multipath. These systems
+triangulate depth by solving a correspondence problem between each camera and projector pixel. This is often framed
+as a local stereo matching task, correlating patches of pixels
+in the observed and reference image. However, this is computationally intensive, leading to reduced depth accuracy
+and framerate. We contribute an algorithm for solving this
+correspondence problem efficiently, without compromising
+depth accuracy. For the first time, this problem is cast as
+a classification-regression task, which we solve extremely
+efficiently using an ensemble of cascaded random forests.
+Our algorithm scales in number of disparities, and each
+pixel can be processed independently, and in parallel. No
+matching or even access to the corresponding reference pattern is required at runtime, and regressed labels are directly
+mapped to depth. Our GPU-based algorithm runs at a 1KHz
+for 1.3MP input/output images, with disparity error of 0.1
+subpixels. We show a prototype high framerate depth camera running at 375Hz, useful for solving tracking-related
+problems. We demonstrate our algorithmic performance,
+creating high resolution real-time depth maps that surpass
+the quality of current state of the art depth technologies,
+highlighting quantization-free results with reduced holes,
+edge fattening and other stereo-based depth artifacts.
+
+1. Introduction
+Consumer depth cameras have revolutionized many aspects of computer vision. With over 24 million Microsoft
+Kinects sold alone, structured light sensors are still the most
+widespread depth camera technology. This ubiquity is both
+due to their affordability, and well-behaved noise characteristics, particularly compared with time-of-flight cameras
+that suffer from multipath errors [17]; or passive stereo techniques which can fail in textureless regions [43, 5].
+Structured light systems date back many decades; see
+∗ Authors equally contributed to this work.
+
+[39, 16]. Almost all follow a similar principle: A calibrated
+camera and projector (typically both near infrared-based)
+are placed at a fixed, known baseline. The structured light
+pattern helps establish correspondence between observed
+and projected pixels. Depth is derived for each corresponding pixel through triangulation. The process is akin to two
+camera stereo [43], but with the projector system replacing
+the second camera, and aiding the correspondence problem.
+Broadly, structured light systems fall into two categories:
+spatial or temporal. The former uses a single spatially varying pattern, e.g. [14, 45], and algorithms akin to stereo
+matching to correlate a patch of pixels from the observed
+image to the reference pattern, given epipolar constraints.
+Conversely, the latter uses a varying pattern over time to
+encode a unique temporal signature that can be decoded at
+each observed pixel, directly establishing correspondence.
+Temporal techniques are highly efficient computationally,
+allowing for a simple, fast lookup to map from observed to
+projected pixels, and estimate depth. However, they require
+complex optical systems e.g. MEMS based projectors and
+fast sensors, suffer from motion artifacts even with higher
+framerate imagers, and are range limited given the precision
+of the coding scheme. Therefore many consumer depth
+cameras are based on spatially varying patterns, typically
+using a cheap diffractive optical element (DOE) to produce
+a pseudo-random pattern, such as in Kinect.
+However, spatial structured light systems carry a fundamental algorithmic challenge: high computational cost
+associated with matching pixels between camera and projector, analogous to stereo matching. This computational
+barrier has also motivated many local stereo methods; see
+[43, 5]. Whilst progress has been made on efficient stereo
+methods, especially so called O(1) or constant time methods
+[5], these often trade accuracy or precision for performance,
+and even then very high framerates cannot be achieved.
+Just a single disparity hypothesis often requires two local patches (in left and right images) to be compared, with
+many pixel lookups and operations. Spatial structured light
+algorithms e.g. in Kinect [14, 26], attempt to reduce these
+comparisons, but even then ∼20 patch comparisons are re15441
+
+

@@ -1,0 +1,65 @@
+Training Region-based Object Detectors with Online Hard Example Mining
+Abhinav Shrivastava1
+Abhinav Gupta1
+Ross Girshick2
+1
+2
+Carnegie Mellon University
+Facebook AI Research
+{ashrivas,abhinavg}@cs.cmu.edu
+
+Abstract
+The ﬁeld of object detection has made signiﬁcant advances riding on the wave of region-based ConvNets, but
+their training procedure still includes many heuristics and
+hyperparameters that are costly to tune. We present a simple yet surprisingly effective online hard example mining
+(OHEM) algorithm for training region-based ConvNet detectors. Our motivation is the same as it has always been –
+detection datasets contain an overwhelming number of easy
+examples and a small number of hard examples. Automatic
+selection of these hard examples can make training more
+effective and efﬁcient. OHEM is a simple and intuitive algorithm that eliminates several heuristics and hyperparameters in common use. But more importantly, it yields consistent and signiﬁcant boosts in detection performance on
+benchmarks like PASCAL VOC 2007 and 2012. Its effectiveness increases as datasets become larger and more difﬁcult,
+as demonstrated by the results on the MS COCO dataset.
+Moreover, combined with complementary advances in the
+ﬁeld, OHEM leads to state-of-the-art results of 78.9% and
+76.3% mAP on PASCAL VOC 2007 and 2012 respectively.
+
+1. Introduction
+Image classiﬁcation and object detection are two fundamental computer vision tasks. Object detectors are often
+trained through a reduction that converts object detection
+into an image classiﬁcation problem. This reduction introduces a new challenge that is not found in natural image classiﬁcation tasks: the training set is distinguished by
+a large imbalance between the number of annotated objects and the number of background examples (image regions not belonging to any object class of interest). In the
+case of sliding-window object detectors, such as the deformable parts model (DPM) [12], this imbalance may be
+as extreme as 100,000 background examples to every one
+object. The recent trend towards object-proposal-based detectors [15, 32] mitigates this issue to an extent, but the imbalance ratio may still be high (e.g., 70:1). This challenge
+opens space for learning techniques that cope with imbal-
+
+rbg@fb.com
+
+ance and yield faster training, higher accuracy, or both.
+Unsurprisingly, this is not a new challenge and a standard solution, originally called bootstrapping (and now often called hard negative mining), has existed for at least 20
+years. Bootstrapping was introduced in the work of Sung
+and Poggio [30] in the mid-1990’s (if not earlier) for training face detection models. Their key idea was to gradually grow, or bootstrap, the set of background examples by
+selecting those examples for which the detector triggers a
+false alarm. This strategy leads to an iterative training algorithm that alternates between updating the detection model
+given the current set of examples, and then using the updated model to ﬁnd new false positives to add to the bootstrapped training set. The process typically commences
+with a training set consisting of all object examples and a
+small, random set of background examples.
+Bootstrapping has seen widespread use in the intervening decades of object detection research. Dalal and Triggs
+[7] used it when training SVMs for pedestrian detection.
+Felzenszwalb et al. [12] later proved that a form of bootstrapping for SVMs converges to the global optimal solution deﬁned on the entire dataset. Their algorithm is often referred to as hard negative mining and is frequently
+used when training SVMs for object detection [15, 16, 32].
+Bootstrapping was also successfully applied to a variety of
+other learning models, including shallow neural networks
+[25] and boosted decision trees [9]. Even modern detection methods based on deep convolutional neural networks
+(ConvNets) [19, 20], such as R-CNN [15] and SPPnet [16],
+still employ SVMs trained with hard negative mining.
+It may seem odd then that the current state-of-the-art object detectors, embodied by Fast R-CNN [14] and its descendants [24], do not use bootstrapping. The underlying
+reason is a technical difﬁculty brought on by the shift towards purely online learning algorithms, particularly in the
+context of deep ConvNets trained with stochastic gradient
+descent (SGD) on millions of examples. Bootstrapping, and
+its variants in the literature, rely on the aforementioned alternation template: (a) for some period of time a ﬁxed model
+is used to ﬁnd new examples to add to the active training set;
+(b) then, for some period of time the model is trained on the
+1761
+
+

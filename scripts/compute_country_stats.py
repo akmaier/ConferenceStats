@@ -4,6 +4,11 @@ import argparse
 import csv
 from pathlib import Path
 
+try:
+    from affiliation_pipeline import normalize_country_name
+except ModuleNotFoundError:
+    from scripts.affiliation_pipeline import normalize_country_name
+
 
 REQUIRED_AUTHOR_COLUMNS = {
     "author_id",
@@ -47,7 +52,13 @@ def ensure_columns(path: Path, actual_columns, required_columns):
 
 
 def country_matches(author_country: str, target_country: str) -> bool:
-    return author_country.strip().casefold() == target_country.strip().casefold()
+    normalized_target = normalize_country_name(target_country)
+    author_countries = [
+        normalize_country_name(part)
+        for part in author_country.split("|")
+        if normalize_country_name(part) != "UNKNOWN"
+    ]
+    return normalized_target in author_countries
 
 
 def find_dataset_roots(input_dir: Path):

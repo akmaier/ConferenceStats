@@ -1,0 +1,73 @@
+Joint calibration of Ensemble of Exemplar SVMs
+Davide Modolo1 , Alexander Vezhnevets1 , Olga Russakovsky2 , Vittorio Ferrari1
+1
+
+University of Edinburgh
+
+Abstract
+We present a method for calibrating the Ensemble of Exemplar SVMs model. Unlike the standard approach, which
+calibrates each SVM independently, our method optimizes
+their joint performance as an ensemble. We formulate joint
+calibration as a constrained optimization problem and devise an efficient optimization algorithm to find its global
+optimum. The algorithm dynamically discards parts of the
+solution space that cannot contain the optimum early on,
+making the optimization computationally feasible. We experiment with EE-SVM trained on state-of-the-art CNN descriptors. Results on the ILSVRC 2014 and PASCAL VOC
+2007 datasets show that (i) our joint calibration procedure
+outperforms independent calibration on the task of classifying windows as belonging to an object class or not; and (ii)
+this improved window classifier leads to better performance
+on the object detection task.
+
+1. Introduction
+The Ensemble of Exemplar SVMs [1] (EE-SVM) is a
+powerful non-parametric approach to object detection. It
+is widely used [2–12] because it explicitly associates a
+training example to each object it detects in a test image. This enables transferring meta-data such as segmentation masks [1, 7], 3D models [1], viewpoints [12], GPS
+locations [10] and part-level regularization [4]. Furthermore, EE-SVM can also be used for discovering objects
+parts [3, 5], scene classification [3, 9], object classification [6], image parsing [7], image matching [2], automatic
+image annotation [11] and 3D object detection [8].
+An EE-SVM is a large collection of linear SVM classifiers, each trained from one positive example and many
+negative ones (an E-SVM). At test time each window is
+scored by all E-SVMs, and the highest score is assigned
+to the window. Because of this max operation, it is necessary to calibrate the E-SVMs to make their scores comparable. A common procedure is to calibrate each SVM
+independently, by fitting a logistic sigmoid to its output on
+a validation set [1]. Such independent calibration, however,
+does not take into account that the final score is the max
+over many E-SVMs. Moreover, calibrating one E-SVM in
+isolation requires choosing which positive training samples
+
+2
+
+Stanford University
+
+it should score high and which ones it can afford to score
+low. Such a prior association of positive training samples
+to E-SVMs is arbitrary, as there is no predefined notion of
+how much and in which way a particular E-SVM should
+generalize. What truly matters is the interplay between all
+E-SVMs through the max operation.
+In this paper we present a joint calibration procedure that
+takes into account the max operation. We calibrate all ESVMs at the same time by optimizing their joint performance after the max. Our method finds a threshold for
+each E-SVM, so that (i) all positive windows are scored
+positively by at least one E-SVM, and (ii) the number of
+negative windows scored positively by any E-SVM is minimized. The first criterion ensures that there are no positive
+windows scored negatively after the max, while the second
+criterion minimizes the number of false positives.
+We formalize these two criteria in a well-defined constrained optimization problem. The first requirement is formalised in its constraints, while the second comes in as
+a loss function to be minimized. Each threshold defines
+which training samples the respective E-SVM is scoring
+positively. By lowering a threshold we cover more positives
+and thereby satisfy more constraints, but we also include
+more negatives and therefore suffer a greater loss. Any positive sample can be potentially covered by any E-SVM, but
+at a different loss. This combinatorial nature of the problem
+makes it difficult to find the global optimum. We propose
+an efficient, globally optimal optimization technique. By
+exploiting the structure of the problem we are able to identify areas of the solution space that cannot contain the optimal solution and discard them early on. Our globally optimal algorithm is able to calibrate a few hundred E-SVMs
+quickly. In order to solve larger problems with thousands
+of E-SVMs, we present a simple modification of our exact
+algorithm to deliver high quality approximate solutions.
+The rest of the paper is organized as follows. We start by
+reviewing related work in sec. 2. Sec. 3 introduces the formulation of our optimization problem, while sec. 4 presents
+our algorithm for efficiently finding the global optimal solution as well as its approximation. We train EE-SVM on
+state-of-the-art CNN descriptors [23] and present experiments on 10 classes of the ILSVRC 2014 dataset [13] and
+
+

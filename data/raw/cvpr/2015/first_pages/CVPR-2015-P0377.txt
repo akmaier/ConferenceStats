@@ -1,0 +1,106 @@
+Material Recognition in the Wild with the Materials in Context Database
+Sean Bell∗
+Paul Upchurch∗
+Noah Snavely
+Kavita Bala
+Department of Computer Science, Cornell University
+{sbell,paulu,snavely,kb}@cs.cornell.edu
+
+Abstract
+Recognizing materials in real-world images is a challenging task. Real-world materials have rich surface texture,
+geometry, lighting conditions, and clutter, which combine
+to make the problem particularly difficult. In this paper, we
+introduce a new, large-scale, open dataset of materials in
+the wild, the Materials in Context Database (MINC), and
+combine this dataset with deep learning to achieve material
+recognition and segmentation of images in the wild.
+MINC is an order of magnitude larger than previous material databases, while being more diverse and well-sampled
+across its 23 categories. Using MINC, we train convolutional neural networks (CNNs) for two tasks: classifying
+materials from patches, and simultaneous material recognition and segmentation in full images. For patch-based classification on MINC we found that the best performing CNN
+architectures can achieve 85.2% mean class accuracy. We
+convert these trained CNN classifiers into an efficient fully
+convolutional framework combined with a fully connected
+conditional random field (CRF) to predict the material at
+every pixel in an image, achieving 73.1% mean class accuracy. Our experiments demonstrate that having a large,
+well-sampled dataset such as MINC is crucial for real-world
+material recognition and segmentation.
+
+1. Introduction
+Material recognition plays a critical role in our understanding of and interactions with the world. To tell whether
+a surface is easy to walk on, or what kind of grip to use
+to pick up an object, we must recognize the materials that
+make up our surroundings. Automatic material recognition
+can be useful in a variety of applications, including robotics,
+product search, and image editing for interior design. But recognizing materials in real-world images is very challenging.
+Many categories of materials, such as fabric or wood, are
+visually very rich and span a diverse range of appearances.
+Materials can further vary in appearance due to lighting and
+shape. Some categories, such as plastic and ceramic, are of∗ Authors contributed equally
+
+(a) Constructing MINC
+Flickr
+
+AMT
+
+AMT
+
+Houzz
+
+MINC
+3 million
+patches
+
+AMT
+
+OpenSurfaces
+
+(b) Patch material classification
+(trained)
+CNN
+Patch
+(c) Full scene material classification
+
+“wood”
+P(material)
+
+Transfer weights
+
+Sliding
+CNN
+
+Dense
+CRF
+
+(fixed)
+
+(discretely
+optimized)
+
+Material
+Labels
+
+Figure 1. Overview. (a) We construct a new dataset by combining
+OpenSurfaces [1] with a novel three-stage Amazon Mechanical
+Turk (AMT) pipeline. (b) We train various CNNs on patches from
+MINC to predict material labels. (c) We transfer the weights to a
+fully convolutional CNN to efficiently generate a probability map
+across the image; we then use a fully connected CRF to predict the
+material at every pixel.
+
+ten smooth and featureless, requiring reasoning about subtle
+cues or context to differentiate between them.
+Large-scale datasets (e.g., ImageNet [21], SUN [31, 19]
+and Places [34]) combined with convolutional neural networks (CNNs) have been key to recent breakthroughs in
+object recognition and scene classification. Material recognition is similarly poised for advancement through large-scale
+data and learning. To date, progress in material recognition
+has been facilitated by moderate-sized datasets like the Flickr
+Material Database (FMD) [26]. FMD contains ten material
+categories, each with 100 samples drawn from Flickr photos.
+These images were carefully selected to illustrate a wide
+range of appearances for these categories. FMD has been
+used in research on new features and learning methods for
+material perception and recognition [17, 10, 20, 25]. While
+FMD was an important step towards material recognition, it
+is not sufficient for classifying materials in real-world im-
+
+

@@ -1,0 +1,74 @@
+Human Pose Estimation with Iterative Error Feedback
+João Carreira∗
+carreira@eecs.berkeley.edu
+UC Berkeley
+Katerina Fragkiadaki†
+katef@eecs.berkeley.edu
+UC Berkeley
+
+Abstract
+Hierarchical feature extractors such as Convolutional
+Networks (ConvNets) have achieved impressive performance on a variety of classification tasks using purely feedforward processing. Feedforward architectures can learn
+rich representations of the input space but do not explicitly model dependencies in the output spaces, that are quite
+structured for tasks such as articulated human pose estimation or object segmentation. Here we propose a framework
+that expands the expressive power of hierarchical feature
+extractors to encompass both input and output spaces, by
+introducing top-down feedback. Instead of directly predicting the outputs in one go, we use a self-correcting model
+that progressively changes an initial solution by feeding
+back error predictions, in a process we call Iterative Error
+Feedback (IEF). IEF shows excellent performance on the
+task of articulated pose estimation in the challenging MPII
+and LSP benchmarks, matching the state-of-the-art without
+requiring ground truth scale annotation.
+
+1. Introduction
+Feature extractors such as Convolutional Networks
+(ConvNets) [23] represent images using a multi-layered hierarchy of features and are inspired by the structure and
+functionality of the visual pathway of the human brain
+[13, 1]. Feature computation in these models is purely feedforward, however, unlike in the human visual system where
+feedback connections abound [11, 21, 22]. Feedback can be
+used to modulate and specialize feature extraction in early
+layers in order to model temporal and spatial context (e.g.
+priming [42]), to leverage prior knowledge about shape for
+segmentation and 3D perception, or simply for guiding visual attention to image regions relevant for the task under
+∗ Now at Google DeepMind.
+† Now at Google.
+
+Pulkit Agrawal
+pulkitag@eecs.berkeley.edu
+UC Berkeley
+Jitendra Malik
+malik@eecs.berkeley.edu
+UC Berkeley
+
+consideration.
+Here we are interested in using feedback to build predictors that can naturally handle complex, structured output
+spaces. We will use as running example the task of 2D human pose estimation [48, 39, 37, 28], where the goal is to
+infer the 2D locations of a set of keypoints such as wrists,
+ankles, etc, from a single RGB image. The space of 2D
+human poses is highly structured because of body part proportions, left-right symmetries, interpenetration constraints,
+joint limits (e.g. elbows do not bend back) and physical connectivity (e.g. wrists are rigidly related to elbows), among
+others. Modeling this structure should make it easier to pinpoint the visible keypoints and make it possible to estimate
+the occluded ones.
+Our main contribution is in providing a generic framework for modeling rich structure in both input and output
+spaces by learning hierarchical feature extractors over their
+joint space. We achieve this by incorporating top-down
+feedback – instead of trying to directly predict the target
+outputs, as in feedforward processing, we predict what is
+wrong with their current estimate and correct it iteratively.
+We call our framework Iterative Error Feedback, or IEF.
+In IEF, a feedforward model f operates on the augmented input space created by concatenating (denoted by
+⊕) the RGB image I with a visual representation g of the
+estimated output yt to predict a “correction” (ǫt ) that brings
+yt closer to the ground truth output y. The correction signal ǫt is applied to the current output yt to generate yt+1
+and this is converted into a visual representation by g, that
+is stacked with the image to produce new inputs xt+1 = I
+⊕ g(yt ) for f , and so on iteratively. This procedure is initialized with a guess of the output (y0 ) and is repeated until
+a predetermined termination criterion is met. The model
+is trained to produce bounded corrections at each iteration,
+e.g. ||ǫt ||2 < L. The motivation for modifying yt by a
+bounded amount is that the space of xt is typically highly
+non-linear and hence local corrections should be easier to
+14733
+
+

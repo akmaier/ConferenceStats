@@ -14,8 +14,9 @@ This step is intended to be performed by agents in parallel, one conference/year
 
 - Find the official proceedings or table of contents for a conference/year.
 - Expand multi-volume proceedings into the full main-conference corpus when applicable.
+- Use scripts to retrieve and structure raw data before any LLM-based enrichment.
 - Extract paper titles, author names, and author order.
-- Record institution and country information for each author when available.
+- Derive institution and country information in explicit passes rather than one monolithic enrichment step.
 - Save both raw source artifacts and normalized CSV outputs.
 - Keep provenance notes so later analysis can be audited.
 
@@ -59,6 +60,12 @@ To run both steps together:
 make all COUNTRY=China
 ```
 
+To run the optional local-LLM country pass yourself for one dataset:
+
+```bash
+make llm-country CONFERENCE_SLUG=cvpr YEAR=2016
+```
+
 ## Repository Layout
 
 ```text
@@ -67,11 +74,21 @@ config/
 data/
   raw/                     # raw downloaded or copied source material
   normalized/              # canonical CSV outputs per conference/year
-  intermediate/            # optional temporary merged datasets
+  intermediate/            # step-1 intermediate artifacts per enrichment pass
 output/                    # generated statistics and overview tables
 scripts/
+  affiliation_pipeline.py
   compute_country_stats.py
   build_overview_table.py
+  collect_cvf_openaccess.py
+  extract_affiliation_candidates.py
+  extract_pdf_first_pages.py
+  enrich_from_first_pages.py
+  fill_unknown_countries_with_local_llm.py
+  link_author_affiliations.py
+  local_llm.py
+  normalize_institutions.py
+  infer_countries.py
   validate_collection.py
 get_conference_stats.md    # markdown workflow for agent-driven collection
 Makefile                   # entry points for steps 2 and 3
@@ -144,6 +161,144 @@ make validate
 ```
 
 4. Compute country-specific statistics and overview tables with `make`.
+
+For CVF Open Access conferences, the script-first path is:
+
+```bash
+python3 scripts/collect_cvf_openaccess.py \
+  --conference CVPR \
+  --conference-slug cvpr \
+  --year 2015 \
+  --proceedings-url https://openaccess.thecvf.com/CVPR2015 \
+  --raw-dir data/raw/cvpr/2015 \
+  --normalized-dir data/normalized/cvpr/2015
+```
+
+Then retrieve raw first-page text for later affiliation/country enrichment:
+
+```bash
+python3 scripts/extract_pdf_first_pages.py \
+  --papers-index data/raw/cvpr/2015/papers_index.csv \
+  --output-dir data/raw/cvpr/2015/first_pages \
+  --manifest data/raw/cvpr/2015/first_page_manifest.csv \
+  --start 0 \
+  --limit 100
+```
+
+Then run the enrichment passes. The recommended one-command wrapper is:
+
+```bash
+python3 scripts/enrich_from_first_pages.py \
+  --authors-csv data/normalized/cvpr/2015/authors.csv \
+  --paper-authors-csv data/normalized/cvpr/2015/paper_authors.csv \
+  --papers-index data/raw/cvpr/2015/papers_index.csv \
+  --first-pages-dir data/raw/cvpr/2015/first_pages \
+  --output-authors-csv data/normalized/cvpr/2015/authors.csv \
+  --intermediate-dir data/intermediate/cvpr/2015
+```
+
+That wrapper now performs four explicit passes:
+
+1. `extract_affiliation_candidates.py`
+Creates `data/intermediate/<conference_slug>/<year>/affiliation_candidates.csv` with all variant-based author-affiliation candidates from the first pages.
+
+2. `link_author_affiliations.py`
+Chooses one affiliation candidate per author and writes `author_affiliations.csv`.
+
+3. `normalize_institutions.py`
+Normalizes the chosen affiliations and writes `author_institutions.csv` plus an updated `authors.csv` with populated `institution`.
+
+4. `infer_countries.py`
+Derives `country` from normalized `institution` and writes `author_countries.csv` plus the final updated `authors.csv`.
+
+You can also run those passes separately when debugging:
+
+```bash
+python3 scripts/extract_affiliation_candidates.py \
+  --authors-csv data/normalized/cvpr/2015/authors.csv \
+  --paper-authors-csv data/normalized/cvpr/2015/paper_authors.csv \
+  --papers-index data/raw/cvpr/2015/papers_index.csv \
+  --first-pages-dir data/raw/cvpr/2015/first_pages \
+  --output-candidates-csv data/intermediate/cvpr/2015/affiliation_candidates.csv
+
+python3 scripts/link_author_affiliations.py \
+  --candidates-csv data/intermediate/cvpr/2015/affiliation_candidates.csv \
+  --output-links-csv data/intermediate/cvpr/2015/author_affiliations.csv
+
+python3 scripts/normalize_institutions.py \
+  --authors-csv data/normalized/cvpr/2015/authors.csv \
+  --links-csv data/intermediate/cvpr/2015/author_affiliations.csv \
+  --output-authors-csv data/normalized/cvpr/2015/authors.csv \
+  --output-institutions-csv data/intermediate/cvpr/2015/author_institutions.csv
+
+python3 scripts/infer_countries.py \
+  --authors-csv data/normalized/cvpr/2015/authors.csv \
+  --output-authors-csv data/normalized/cvpr/2015/authors.csv \
+  --output-countries-csv data/intermediate/cvpr/2015/author_countries.csv \
+  --use-local-llm \
+  --llm-review-csv data/intermediate/cvpr/2015/author_country_llm_review.csv
+```
+
+For large conferences, step 1 should be run as a loop:
+
+1. Develop or fix the conference-family retrieval/parsing script.
+2. Run raw-data extraction in chunks.
+3. Rerun the four enrichment passes after each chunk.
+4. Validate the normalized outputs.
+5. Repeat until the conference/year dataset is complete or reaches acceptable coverage.
+
+## Optional Local LLM Pass
+
+For author rows where `institution` is known but `country` remains `UNKNOWN`, the repository can use a local Ollama model as a conservative follow-up pass.
+
+Project-level config lives in [local_llm.json](/Users/maier/Documents/code/ConferenceStats/config/local_llm.json). The default setup uses:
+
+- provider: `ollama`
+- base URL: `http://localhost:11434`
+- model: `qwen3:14b`
+
+Use the shared client in [local_llm.py](/Users/maier/Documents/code/ConferenceStats/scripts/local_llm.py) so all scripts talk to the same local model configuration.
+
+The recommended project-wide setup is:
+
+```bash
+open -a Ollama
+ollama pull qwen3:14b
+ollama list
+```
+
+Once that is in place, any script can opt into the shared local model by reading `config/local_llm.json` through `scripts/local_llm.py`.
+
+The recommended console entry point is:
+
+```bash
+make llm-country CONFERENCE_SLUG=cvpr YEAR=2016
+```
+
+That runs the shared `infer_countries.py --use-local-llm` flow and writes:
+
+- `data/normalized/<conference_slug>/<year>/authors.csv`
+- `data/intermediate/<conference_slug>/<year>/author_countries.csv`
+- `data/intermediate/<conference_slug>/<year>/author_country_llm_review.csv`
+
+To fill `UNKNOWN` countries from institution strings:
+
+```bash
+python3 scripts/infer_countries.py \
+  --authors-csv data/normalized/cvpr/2015/authors.csv \
+  --output-authors-csv data/normalized/cvpr/2015/authors.csv \
+  --output-countries-csv data/intermediate/cvpr/2015/author_countries.csv \
+  --use-local-llm \
+  --llm-review-csv data/intermediate/cvpr/2015/author_country_llm_review.csv \
+  --llm-min-confidence medium
+```
+
+This step should remain optional and conservative:
+
+- only run it after institution normalization
+- only target rows with known `institution` and `UNKNOWN` `country`
+- keep a review CSV with the model's proposed country, confidence, and explanation
+- avoid overwriting good country assignments from deterministic rules
 
 ## Notes on Author IDs
 
