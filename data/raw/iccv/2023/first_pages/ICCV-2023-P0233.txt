@@ -1,0 +1,73 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Convolutional Networks with Oriented 1D Kernels
+Alexandre Kirchmeyer *
+Carnegie Mellon University
+
+Jia Deng
+Princeton University
+
+akirchme@cs.cmu.edu
+
+jiadeng@princeton.edu
+
+Abstract
+In computer vision, 2D convolution is arguably the most
+important operation performed by a ConvNet. Unsurprisingly, it has been the focus of intense software and hardware optimization and enjoys highly efficient implementations. In this work, we ask an intriguing question: can
+we make a ConvNet work without 2D convolutions? Surprisingly, we find that the answer is yes—we show that a
+ConvNet consisting entirely of 1D convolutions can do just
+as well as 2D on ImageNet classification. Specifically, we
+find that one key ingredient to a high-performing 1D ConvNet is oriented 1D kernels: 1D kernels that are oriented
+not just horizontally or vertically, but also at other angles.
+Our experiments show that oriented 1D convolutions can
+not only replace 2D convolutions but also augment existing architectures with large kernels, leading to improved
+accuracy with minimal FLOPs increase. A key contribution of this work is a highly-optimized custom CUDA
+implementation of oriented 1D kernels, specialized to the
+depthwise convolution setting. Our benchmarks demonstrate that our custom CUDA implementation almost perfectly realizes the theoretical advantage of 1D convolution:
+it is faster than a native horizontal convolution for any arbitrary angle. Code is available at https://github.
+com/princeton-vl/Oriented1D.
+
+1. Introduction
+Convolutional Networks (ConvNets) [27, 25] are widely
+used in computer vision. They have been successfully applied to a variety of tasks [15, 40, 16, 63] and domains
+[25, 34, 23, 39, 59], and many new ConvNet-based building blocks [47, 8, 57] and design practices [44, 50, 32] have
+emerged over the years.
+In the computer vision context, a 2D convolution is arguably the most important operation performed by a ConvNet. In virtually all ConvNet architectures [25, 18, 32],
+2D convolution is the default choice and accounts for the
+bulk of the computation. Unsurprisingly, 2D convolution
+has been the focus of intense software and hardware optimization and enjoys highly efficient implementations.
+* Work done during an internship at Princeton University.
+
+In this work, we ask an intriguing question: can we make
+a ConvNet work without 2D convolution? Surprisingly, we
+find that the answer is yes—we show that a ConvNet consisting entirely of 1D convolutions can do as well on ImageNet classification, a surprising result given that 2D convolution has been the go-to design choice.
+Specifically, we find that one key ingredient to a highperforming 1D ConvNet is oriented 1D kernels: 1D kernels
+that are oriented not just horizontally or vertically, but also
+at other angles. This is a novel finding—although horizontal
+and vertical 1D convolutions have been frequently used in
+the past, 1D kernels oriented at arbitrary angles have not
+been well studied.
+Oriented 1D kernels are motivated by the fact that 2D
+kernels can be approximated by 1D kernels, which are more
+efficient computationally. In particular, it is well known that
+convolution with a separable 2D kernel (i.e. rank 1 as a matrix) is equivalent to consecutive convolutions with a vertical 1D kernel and a horizontal 1D kernel, leading to significant efficiency gain. However, in practice, not all learned
+2D kernels are rank 1; if we only use vertical and horizontal
+1D kernels, 2D kernels with a full rank, such as diagonal
+matrices, are poorly approximated, which can lead to a loss
+in accuracy: for example, the network may be less able to
+detect a 45◦ edge. This is when oriented 1D kernels can be
+helpful. By orienting a 1D kernel at more angles, we expand the set of 2D kernels that can be well approximated by
+1D kernels while retaining the efficiency of 1D kernels.
+Oriented 1D kernels are also motivated by the increasing use of large 2D kernels in recent convolutional architectures. Large 2D kernels improve the modeling of long-range
+dependencies, which have been shown to result in better
+accuracy [32, 12, 30]. However, large 2D kernels are significantly more expensive because the cost scales quadratically. A 31 × 31 kernel is 19 times more costly in terms
+of multiply-add operations than the standard 7 × 7 kernels. This motivates oriented 1D kernels as an alternative
+for modeling long-range dependencies, because the cost of
+1D kernels scale only linearly with the kernel size.
+The concept of oriented 1D kernels is simple, but nontrivial to implement in a way that realizes its efficiency advantage over 2D kernels. This is because on a GPU, the pat-
+
+6222
+
+

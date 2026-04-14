@@ -1,0 +1,54 @@
+1
+
+A
+
+Algorithm
+
+Algorithm 1: PyTorch-style pseudocode for DeCUR.
+# f1, f2: encoder networks
+# BN, N, K: batch normalization, batch size and embedding dimension
+# on_diag, off_diag: on- and off-diagonal elements of a matrix
+# loss function for common and intra-modal
+def loss_c(C, lambda):
+l_on = (on_diag(C)-1).pow(2).sum()
+l_off = off_diag(C).pow(2).sum()
+return l_on + lambda x l_off
+# loss function for unique
+def loss_u(C, lambda):
+l_on = on_diag(C).pow(2).sum()
+l_off = off_diag(C).pow(2).sum()
+return l_on + lambda x l_off
+# training
+for x1,x2 in loader: # load a batch pairs
+(x1_1, x1_2), (x2_1, x2_2) = augment1(x1), augment2(x2)
+# compute embeddings and normalize
+z1_1, z1_2 = BN(f1(x1_1)), BN(f1(x1_2))
+z2_1, z2_2 = BN(f2(x2_1)), BN(f2(x2_2))
+# cross-correlation matrices
+C1 = z1_1.T @ z1_2 / N # KxK
+C2 = z2_1.T @ z2_2 / N # KxK
+Cm = z1_1.T @ z2_1 / N # KxK
+Cc = Cm[:K_c,:K_c] # KcxKc
+Cu = Cm[K_c:,K_c:] # KuxKu
+# calculate losses
+L1 = loss_c(C1,lmb1) # intra-modal M1
+L2 = loss_c(C2,lmb2) # intra-modal M2
+Lc = loss_c(Cc,lmbc) # cross-m. common
+Lu = loss_u(Cu,lmbu) # cross-m. unique
+loss = L1 + L2 + Lc + Lu # total loss
+# optimization
+loss.backward()
+optimizer.step()
+
+B
+
+Implementation Details
+
+B.1
+
+Pretraining
+
+SAR-optical pretraining SSL4EO-S12 [10] dataset is used for SAR-optical
+pretraining: Sentinel-1 GRD (2 bands VV and VH) and Sentinel-2 L1C (13 mul-
+
+

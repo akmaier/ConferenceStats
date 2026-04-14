@@ -1,0 +1,90 @@
+Data-Free Quantization
+Through Weight Equalization and Bias Correction
+Markus Nagel∗
+
+Mart van Baalen∗
+
+Tijmen Blankevoort
+
+Max Welling
+
+Qualcomm AI Research†
+Qualcomm Technologies Netherlands B.V.
+{markusn, mart, tijmen, mwelling}@qti.qualcomm.com
+
+Abstract
+We introduce a data-free quantization method for deep
+neural networks that does not require fine-tuning or hyperparameter selection. It achieves near-original model performance on common computer vision architectures and
+tasks. 8-bit fixed-point quantization is essential for efficient inference on modern deep learning hardware. However, quantizing models to run in 8-bit is a non-trivial task,
+frequently leading to either significant performance reduction or engineering time spent on training a network to be
+amenable to quantization. Our approach relies on equalizing the weight ranges in the network by making use of a
+scale-equivariance property of activation functions. In addition the method corrects biases in the error that are introduced during quantization. This improves quantization
+accuracy performance, and can be applied to many common computer vision architectures with a straight forward
+API call. For common architectures, such as the MobileNet
+family, we achieve state-of-the-art quantized model performance. We further show that the method also extends to
+other computer vision architectures and tasks such as semantic segmentation and object detection.
+
+1. Introduction
+In recent years, deep learning based computer vision
+models have moved from research labs into the cloud and
+onto edge devices. As a result, power consumption and
+latency of deep learning inference have become an important concern. For this reason fixed-point quantization is often employed to make inference more efficient. By quantizing floating point values onto a regularly spaced grid,
+the original floating point values can be approximated by
+a set of integers, a scaling factor, and an optional zero point
+∗ Equal Contribution
+† Qualcomm AI Research is an initiative of Qualcomm Technologies,
+
+Inc.
+
+70
+60
+50
+40
+30
+20
+10
+0
+
+Imagenet Top1 Accuracy
+
+FP32
+
+INT16
+
+INT12
+
+INT10
+
+INT8
+
+DFQ (ours)
+Baseline
+
+INT6
+
+INT5
+
+Figure 1. Fixed point inference for MobileNetV2 on ImageNet.
+The original model has significant drop in performance at 12-bit
+quantization whereas our model maintains close to FP32 performance even at 6-bit quantization.
+
+offset [16]. This allows for the use of faster and more
+power-efficient integer operations in matrix multiplication
+and convolution computations, at the expense of lower representational power. We refer the reader to [18] for details
+on commonly used, hardware-friendly quantization methods for deep learning models.
+Quantization of 32-bit full precision (FP32) models into
+8-bit fixed point (INT8) introduces quantization noise on
+the weights and activations, which often leads to reduced
+model performance. This performance degradation ranges
+from very minor to catastrophic. To minimize the quantization noise, a wide range of different methods have been
+introduced in the literature (see Section 2). A major drawback of these quantization methods is their reliance on data
+and fine-tuning. As an example, consider real-world actors
+that manage hardware for quantized models, such as cloudbased deep learning inference providers or cellphone manufacturers. To provide a general use quantization service they
+would have to receive data from the customers to fine-tune
+the models, or rely on their customers to do the quantization. In either case, this can add a difficult step to the process. For such stakeholders it would be preferable if FP32
+models could be converted directly to INT8, without needing the know-how, data or compute necessary for running
+traditional quantization methods. Even for model develop-
+
+1325
+
+

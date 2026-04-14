@@ -1,0 +1,91 @@
+RePOSE: Fast 6D Object Pose Refinement via Deep Texture Rendering
+Shun Iwase1
+
+Xingyu Liu1
+Rawal Khirodkar1
+Rio Yokota2
+Kris M. Kitani1
+1
+2
+Carnegie Mellon University
+Tokyo Institute of Technology
+
+Abstract
+We present RePOSE, a fast iterative refinement method
+for 6D object pose estimation. Prior methods perform refinement by feeding zoomed-in input and rendered RGB
+images into a CNN and directly regressing an update of
+a refined pose. Their runtime is slow due to the computational cost of CNN, which is especially prominent in
+multiple-object pose refinement. To overcome this problem,
+RePOSE leverages image rendering for fast feature extraction using a 3D model with a learnable texture. We call
+this deep texture rendering, which uses a shallow multilayer perceptron to directly regress a view-invariant image
+representation of an object. Furthermore, we utilize differentiable Levenberg-Marquardt (LM) optimization to refine
+a pose fast and accurately by minimizing the distance between the input and rendered image representations without the need of zooming in. These image representations
+are trained such that differentiable LM optimization converges within few iterations. Consequently, RePOSE runs
+at 92 FPS and achieves state-of-the-art accuracy of 51.6%
+on the Occlusion LineMOD dataset - a 4.1% absolute improvement over the prior art, and comparable result on the
+YCB-Video dataset with a much faster runtime. The code is
+available at https://github.com/sh8/repose.
+
+1. Introduction
+In many applications of 6D object pose estimation like
+robotic grasping and augmented reality (AR), fast runtime
+is critical. State-of-the-art 6D object pose estimation methods [19, 40, 28] demonstrate that iterative 6D object pose refinement improves the accuracy largely. Nevertheless, since
+recent 6D object pose refinement methods [21, 19] directly
+regress an update of a pose to align a zoomed-in input image
+of an object against a template image (e.g., 3D rendering of
+that object) using a Convolutional Neural Network (CNN),
+we presume that the CNN’s computational cost of zoomedin inputs can be a bottleneck toward the real-time 6D object
+pose estimation.
+We have mainly two choices of refinement strategies. As
+described, the former one is CNN-based direct regression,
+
+Refined Pose
+(a)
+Textured
+3D Model
+
+(b)
+Rendered
+Feature
+Deep Texture
+Renderer
+
+2
+
+𝑁 times
+
+LM
+Optim.
+
+(c)
+Refined Pose
+
+(e)
+CNN Feature
+
+(d)
+Input Image
+CNN
+
+2
+
+Figure 1: RePOSE Framework: (a) 3D model with deep
+texture is projected to obtain (b) the rendered image representation with the deep texture renderer. (c) The pose is
+refined iteratively by minimizing the projection error of the
+rendered image representation and (e) the CNN feature extracted from (d) the input image via Levenberg-Marquardt
+(LM) optimization.
+
+which generally requires large computational cost. The latter one is a classical non-linear optimization [24] which iteratively updates a pose by minimizing the photometric error
+between input and template images. Their runtime per iteration is quite fast. Since the photometric error explicitly considers each pixel, they can obtain enough details for accurate optimization without the need of zooming in. However,
+they can fail under diverse illumination or gross pose differences. Although non-linear least squares methods such as
+inverse compositional image alignment [5, 22] or active appearance models [13, 23] are extremely efficient, straightforward implementations of such methods can be unstable
+under significant illumination or pose changes. In addition,
+their runtime can be slower if many iterations are performed
+until convergence.
+We leverage and improve the latter method to realize
+both quick and accurate refinement. In this paper, we propose RePOSE, a new feature-based non-linear optimization
+framework for 6D object pose refinement. The main tech-
+
+3303
+
+

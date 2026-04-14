@@ -315,6 +315,43 @@ make cvpr-first-pages YEAR=2018
 make cvpr-first-pages-range CVPR_START_YEAR=2018 CVPR_END_YEAR=2025
 ```
 
+For the first-pass workflow probes on `ICML`, `NeurIPS`, and `AAAI`, use the sample range targets:
+
+```bash
+make icml-first-pages-range-sample
+make neurips-first-pages-range-sample
+make aaai-first-pages-range-sample
+```
+
+Those targets intentionally keep the proceedings parse small enough for debugging:
+
+- `ICML`: first `10` papers per year from the PMLR proceedings page
+- `NeurIPS`: first `10` papers per year, with `2025` collected from OpenReview instead of the legacy proceedings site
+- `AAAI`: first `10` papers overall after resolving at least the first `2` main-conference sub-track pages for each year
+
+For the full first-page extraction run across `2015` through `2025` with `6` workers, use:
+
+```bash
+make icml-first-pages-range ICML_START_YEAR=2015 ICML_END_YEAR=2025 FIRST_PAGE_START=0 FIRST_PAGE_LIMIT=0 FIRST_PAGE_WORKERS=6
+make neurips-first-pages-range NEURIPS_START_YEAR=2015 NEURIPS_END_YEAR=2025 FIRST_PAGE_START=0 FIRST_PAGE_LIMIT=0 FIRST_PAGE_WORKERS=6
+make aaai-first-pages-range AAAI_START_YEAR=2015 AAAI_END_YEAR=2025 FIRST_PAGE_START=0 FIRST_PAGE_LIMIT=0 FIRST_PAGE_WORKERS=6 AAAI_TRACK_LIMIT=0
+```
+
+For `AAAI`, `AAAI_TRACK_LIMIT=0` means no track limit, so all discovered main-conference track pages are included.
+
+After first-page extraction, the deterministic pre-LLM step and the local-LLM country step are available for these families too:
+
+```bash
+make icml-prepare-llm YEAR=2025
+make icml-llm-country YEAR=2025
+
+make neurips-prepare-llm YEAR=2025
+make neurips-llm-country YEAR=2025
+
+make aaai-prepare-llm YEAR=2025
+make aaai-llm-country YEAR=2025
+```
+
 Or run the wrapper:
 
 ```bash

@@ -1,0 +1,43 @@
+Portrait4D-v2: Pseudo Multi-View Data Creates
+Better 4D Head Synthesizer
+——Supplementary Material——
+Yu Deng , Duomin Wang , and Baoyuan Wang
+Xiaobing.AI
+https://yudeng.github.io/Portrait4D-v2/
+
+A
+
+More Implementation Details
+
+Learning the 3D synthesizer Ψ3d . We use GenHead [4] trained on FFHQ [5]
+at 5122 to synthesize multi-view supervisions for learning Ψ3d . For high-quality
+data synthesis, we extract FLAME parameters from real images in FFHQ and
+VFHQ [10] as input conditions to GenHead. For camera pose, we follow [4] to
+sample it from a pre-defined uniform distribution, with pitch from [−0.25, 0.65]
+rad, yaw from [−0.78, 0.78] rad, and roll from [−0.25, 0.25] rad. We also sample the camera radius from [3.65, 4.45], and the camera look-at position from
+[−0.01, 0.01] × [−0.01, 0.01] × [0.02, 0.04]. The camera intrinsics are fixed with a
+12◦ field of view (fov).
+We use the balancing weights of [4] for each loss term in Eq. (2) in the main
+paper during training. At the first 1M images, we deactivate the adversarial loss
+Ladv and fix the learnable network parameters within the renderer R, where we
+use an MLP for radiance decoding and a StyleGAN2-based [2,6] super-resolution
+module for synthesizing the final images of high resolution. After seeing 1M
+images, we activate Ladv and update all parameters in R along with Ψ3d . Ldepth
+and LT are removed at this stage. Besides, we use a neural rendering resolution
+of 642 at the first 1M images, and linearly increase it to 1282 during the next
+1M-image period, while the final image resolution is consistently set to 5122 .
+We sample 48 coarse points and 48 fine points per ray following [2] for volume
+rendering. We adopt an Adam optimizer [7] with a learning rate of 1e − 4 and a
+batch size of 32, and train Ψ3d to see 10M images in total, which takes 8 days
+on 8 Tesla A100 GPUs with 80GB memory.
+Learning the 4D synthesizer Ψ. We initialize Ψ using the pre-trained weights
+of Ψ3d except the motion-related cross-attention layers that are initialized at
+random. We then use a training split of 10K video clips from VFHQ [10] and
+sample 50 frames per clip to learn Ψ. During each iteration, we randomly choose
+2 frames in a video clip as the source and driving, respectively, and send the
+driving image to the pre-trained Ψ3d to obtain its pseudo multi-view frames,
+where we use a similar camera distribution for rendering as described in the
+above section. We adopt the balancing weights used in learning Ψ3d for the four
+loss terms in Eq. (5) in the main paper. We use a neural rendering resolution of
+
+

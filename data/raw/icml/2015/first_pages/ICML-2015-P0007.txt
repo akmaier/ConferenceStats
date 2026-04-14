@@ -1,0 +1,74 @@
+Efficient Training of LDA on a GPU by Mean-for-Mode Estimation
+
+Jean-Baptiste Tristan
+Oracle Labs, USA
+
+JEAN . BAPTISTE . TRISTAN @ ORACLE . COM
+
+Joseph Tassarotti
+Department of Computer Science, Carnegie Mellon University, USA
+Guy L. Steele Jr.
+Oracle Labs, USA
+
+JTASSARO @ CS . CMU . EDU
+
+GUY. STEELE @ ORACLE . COM
+
+Abstract
+We introduce Mean-for-Mode estimation, a variant of an uncollapsed Gibbs sampler that we use
+to train LDA on a GPU. The algorithm combines
+benefits of both uncollapsed and collapsed Gibbs
+samplers. Like a collapsed Gibbs sampler — and
+unlike an uncollapsed Gibbs sampler — it has
+good statistical performance, and can use sampling complexity reduction techniques such as
+sparsity. Meanwhile, like an uncollapsed Gibbs
+sampler — and unlike a collapsed Gibbs sampler
+— it is embarrassingly parallel, and can use approximate counters.
+
+1. Introduction
+The performance of GPUs makes them an appealing choice
+for machine learning. However, there are several challenges
+in using them efficiently. First, there must be enough parallelism to make use of all the many thousands of GPU cores.
+Second, GPUs have small amounts of memory, and with
+enough parallelism, memory bandwidth becomes a bottleneck. Finally, it is often unclear how to translate techniques
+that have been developed for CPUs into improvements for
+GPUs.
+Topic models, such as LDA (Blei et al., 2003), are a good
+example of these challenges of using GPUs. Although there
+are several methods that can be used to train LDA (Asuncion et al., 2009), earlier work targeting the GPU (Yan et al.,
+2009; Lu et al., 2013) has primarily used collapsed Gibbs
+sampling (Griffiths & Steyvers, 2004) and adapted techniques from distributed implementations of LDA (Newman
+et al., 2009).
+Proceedings of the 32 nd International Conference on Machine
+Learning, Lille, France, 2015. JMLR: W&CP volume 37. Copyright 2015 by the author(s).
+
+Since collapsed Gibbs sampling is inherently sequential,
+this earlier work has tried to adapt collapsed sampling to
+recover some parallelism. However, as the number of cores
+on GPUs continues to grow, it becomes more and more
+difficult to extract enough parallelism to scale effectively.
+In addition, the amount of memory required for collapsed
+Gibbs sampling and its memory access patterns can limit the
+amount of data that can be processed at a time. Furthermore,
+techniques that have been developed to reduce sampling
+complexity, such as working with sparse matrices (Yao et al.,
+2009), are difficult to adapt to GPUs.
+In contrast, a standard uncollapsed Gibbs sampler is embarrassingly parallel. Tristan et al. (2014) show that a GPU
+implementation of uncollapsed Gibbs sampling for LDA
+can scale to a large number of GPU cores. However, Newman et al. (2009) have shown that the statistical performance of an uncollapsed Gibbs sampler is not as good as
+that of the collapsed Gibbs sampler: it requires more iterations to converge, and it generates estimates that are not
+as good. Moreover, as pointed out by Smola & Narayanamurthy (2010), the standard uncollapsed sampler cannot
+use the sparse representations that have been developed for
+collapsed samplers.
+In this paper, we present Mean-for-Mode estimation, a modification of the uncollapsed Gibbs sampler that is related to
+stochastic expectation maximization as presented by Celeux
+et al. (1995). In §2 we describe the algorithm and empirically demonstrate that its convergence rate is similar to
+that of the collapsed Gibbs sampler. Next, we describe a
+simple GPU implementation in §3 and show that there is
+more than enough parallelism to scale effectively. One important difference between our work and previous work here
+is that instead of adapting popular inference methods for
+LDA that were implicitly designed for a CPU architecture,
+we rethink the inference method in light of the needs of the
+GPU architecture.
+
+

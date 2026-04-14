@@ -1,0 +1,77 @@
+SSD-6D: Making RGB-Based 3D Detection and 6D Pose Estimation Great Again
+Wadim Kehl 1,2,∗ Fabian Manhardt 2,∗ Federico Tombari 2 Slobodan Ilic 2,3 Nassir Navab 2
+1
+Toyota Research Institute, Los Altos 2 Technical University of Munich 3 Siemens R&D, Munich
+wadim.kehl@tri.global
+
+fabian.manhardt@tum.de
+
+Abstract
+We present a novel method for detecting 3D model instances and estimating their 6D poses from RGB data in
+a single shot. To this end, we extend the popular SSD
+paradigm to cover the full 6D pose space and train on synthetic model data only. Our approach competes or surpasses current state-of-the-art methods that leverage RGBD data on multiple challenging datasets. Furthermore, our
+method produces these results at around 10Hz, which is
+many times faster than the related methods. For the sake
+of reproducibility, we make our trained networks and detection code publicly available.1
+
+1. Introduction
+While category-level classification and detection from
+images has recently experienced a tremendous leap forward
+thanks to deep learning, the same has not yet happened for
+what concerns 3D model localization and 6D object pose estimation. In contrast to large-scale classification challenges
+such as PASCAL VOC [9] or ILSVRC [26], the domain of
+6D pose estimation requires instance detection of known 3D
+CAD models with high precision and accurate poses, as demanded by applications in the context of augmented reality
+and robotic manipulation.
+Most of the best performing 3D detectors follow a viewbased paradigm, in which a discrete set of object views
+is generated and used for subsequent feature computation
+[31, 14]. During testing, the scene is sampled at discrete
+positions, features computed and then matched against the
+object database to establish correspondences among training views and scene locations. Features can either be an
+encoding of image properties (color gradients, depth values, normal orientations) [12, 16, 18] or, more recently, the
+result of learning [4, 29, 5, 6, 17]. In either case, the accuracy of both detection and pose estimation hinges on three
+aspects: (1) the coverage of the 6D pose space in terms of
+viewpoint and scale, (2) the discriminative power of the fea1 https://wadimkehl.github.io/
+
+* The first two authors contributed equally to this work.
+
+tombari@in.tum.de
+
+tures to tell objects and views apart and (3) the robustness
+of matching towards clutter, illumination and occlusion.
+CNN-based category detectors such as YOLO [25] or
+SSD [22] have shown terrific results on large-scale 2D
+datasets. Their idea is to inverse the sampling strategy such
+that scene sampling is not anymore a set of discrete input
+points leading to continuous output. Instead, the input space
+is dense on the whole image and the output space is discretized into many overlapping bounding boxes of varying
+shapes and sizes. This inversion allows for smooth scale
+search over many differently-sized feature maps and simultaneous classification of all boxes in a single pass. In order
+to compensate for the discretization of the output domain,
+each bounding box regresses a refinement of its corners.
+The goal of this work is to develop a deep network for
+object detection that can accurately deal with 3D models
+and 6D pose estimation by assuming an RGB image as
+unique input at test time. To this end, we bring the concept of SSD over to this domain with the following contributions: (1) a training stage that makes use of synthetic 3D
+model information only, (2) a decomposition of the model
+pose space that allows for easy training and handling of
+symmetries and (3) an extension of SSD that produces 2D
+detections and infers proper 6D poses.
+We argue that in most cases, color information alone can
+already provide close to perfect detection rates with good
+poses. Although our method does not need depth data, it is
+readily available with RGB-D sensors and almost all recent
+state-of-the-art 3D detectors make use of it for both feature computation and final pose refinement. We will thus
+treat depth as an optional modality for hypothesis verification and pose refinement and will assess the performance of
+our method with both 2D and 3D error metrics on multiple
+challenging datasets for the case of RGB and RGB-D data.
+Throughout experimental results on multiple benchmark
+datasets, we demonstrate that our color-based approach is
+competitive with respect to state-of-the-art detectors that
+leverage RGB-D data or can even outperform them, while
+being many times faster. Indeed, we show that the prevalent
+trend of overly relying on depth for 3D instance detection is
+not justified when using color correctly.
+11521
+
+

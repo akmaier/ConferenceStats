@@ -1,0 +1,89 @@
+Fooling LiDAR Perception via Adversarial Trajectory Perturbation
+Yiming Li†,∗
+†
+New York University
+
+Congcong Wen†,§,∗ Felix Juefei-Xu‡ Chen Feng†
+§
+University of Chinese Academy of Sciences ‡ Alibaba Group
+yimingli@nyu.edu, cfeng@nyu.edu
+
+Abstract
+LiDAR point clouds collected from a moving vehicle
+are functions of its trajectories, because the sensor motion
+needs to be compensated to avoid distortions. When autonomous vehicles are sending LiDAR point clouds to deep
+networks for perception and planning, could the motion
+compensation consequently become a wide-open backdoor
+in those networks, due to both the adversarial vulnerability
+of deep learning and GPS-based vehicle trajectory estimation that is susceptible to wireless spooﬁng? We demonstrate such possibilities for the ﬁrst time: instead of directly
+attacking point cloud coordinates which requires tampering
+with the raw LiDAR readings, only adversarial spooﬁng of
+a self-driving car’s trajectory with small perturbations is
+enough to make safety-critical objects undetectable or detected with incorrect positions. Moreover, polynomial trajectory perturbation is developed to achieve a temporallysmooth and highly-imperceptible attack. Extensive experiments on 3D object detection have shown that such attacks
+not only lower the performance of the state-of-the-art detectors effectively, but also transfer to other detectors, raising a red ﬂag for the community. The code is available on
+https://ai4ce.github.io/FLAT/.
+
+1. Introduction
+Autonomous driving systems are generally equipped
+with all kinds of sensors to perceive the complex environment [7]. Among the sensors, LiDAR has played a crucial
+role due to its plentiful geometric information sampled by
+incessantly spinning a set of laser emitters and receivers.
+However, LiDAR scans are easily distorted by vehicle’s motion, i.e., the points in a full sweep are sampled at different
+timestamps when vehicle is at different locations and orientations, as shown in Fig. 1. Imagine that a self-driving
+car is on a highway at a speed of 30m/s, its LiDAR with a
+20Hz scanning frequency would move 1.5 meters during a
+* indicates equal contribution. The work is done during Congcong’s
+visit at NYU. Chen Feng is the corresponding author.
+
+Spoofer
+
+GNSS Signal
+࢚=10ms
+
+࢚=20ms
+
+࢚=30ms
+
+࢚=100ms
+
+Perception
+
+…
+
+Spoofed Results
+Motion
+Correction
+
+Real Trajectory
+
+Original Results
+
+Undetected
+
+Spoofed Trajectory
+
+Undetected
+
+Figure 1: Illustration of our trajectory-based attack and the motion correction process. The top right and bottom right ﬁgures are respectively original and distorted LiDAR sweep as well as the detection results. Green/red
+boxes denote the ground truth/prediction. In this example, our method
+(named as FLAT) makes the detector miss eight out of eleven vehicles.
+
+full sweep, severely distorting the captured point cloud.
+Such distortions are typically compensated by querying
+the vehicle/LiDAR’s pose at any time from a continuous
+vehicle ego-motion tracking module that fuses pose estimation from Global Navigation Satellite System (GNSS, e.g.,
+GPS, GLONASS, and BeiDou), Inertial Navigation System (INS), and SLAM-based localization using LiDAR or
+cameras. Well-known LiDAR datasets like KITTI [7] and
+nuScenes [2] have already corrected such motion distortions prior to the dataset release. Researchers then made
+impressive progresses by processing those distortion-free
+point clouds using deep neural networks (DNNs) for many
+tasks, e.g., 3D object detection, semantic/instance segmentation, motion prediction, multiple object tracking.
+However, using DNNs on LiDAR point clouds creates a potentially dangerous and less cognizant vulnerability in self-driving systems. First, the above perception
+tasks are functions of LiDAR point clouds implemented
+via DNNs. Second, the motion compensation makes LiDAR point clouds a function of the vehicle trajectories.
+This functional composition leads to a simple but surprising fact that those perception tasks are now also functions of the trajectories. Thus, such a connection exposes
+the well-known adversarial robustness issue of DNNs to
+
+7898
+
+

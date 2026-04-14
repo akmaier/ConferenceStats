@@ -1,0 +1,91 @@
+Progressive Sparse Local Attention for Video Object Detection
+Chaoxu Guo1,2
+
+Bin Fan1∗ Jie Gu1 Qian Zhang3 Shiming Xiang1,2
+Véronique Prinet1 Chunhong Pan1
+1
+National Laboratory of Pattern Recognition, Institute of Automation, Chinese Academy of Sciences
+2
+School of Artificial Intelligence, University of Chinese Academy of Sciences
+3
+Horizon Robotics
+{chaoxu.guo,bfan,smxiang,prinet,chpan}@nlpr.ia.ac.cn, {qian01.zhang}@horizon.ai
+
+C t;t+²
+
+Abstract
+Transferring image-based object detectors to the domain
+of videos remains a challenging problem. Previous efforts
+mostly exploit optical flow to propagate features across
+frames, aiming to achieve a good trade-off between accuracy and efficiency. However, introducing an extra model
+to estimate optical flow can significantly increase the overall model size. The gap between optical flow and highlevel features can also hinder it from establishing spatial
+correspondence accurately. Instead of relying on optical
+flow, this paper proposes a novel module called Progressive Sparse Local Attention (PSLA), which establishes the
+spatial correspondence between features across frames in a
+local region with progressively sparser stride and uses the
+correspondence to propagate features. Based on PSLA, Recursive Feature Updating (RFU) and Dense Feature Transforming (DenseFT) are proposed to model temporal appearance and enrich feature representation respectively in
+a novel video object detection framework. Experiments on
+ImageNet VID show that our method achieves the best accuracy compared to existing methods with smaller model
+size and acceptable runtime speed.
+
+1. Introduction
+Object detection is a fundamental problem in computer
+vision and serves as a core technique in many practical applications, e.g. robotics, autonomous driving and human
+behavior analysis. With the development of convolutional
+neural networks (CNNs), remarkable successes have been
+achieved on detecting objects from images [7, 12, 13, 16,
+17, 26, 28, 29, 31]. However, applying those techniques
+on a frame-by-frame basis to a video is often unsatisfactory
+∗ Bin Fan is the corresponding author
+
+Aggregate
+
+Compare
+
+f(F t+² )
+
+ĸ
+
+C t;t+²
+
+ķ
+
+g(F t )
+
+: (x; y)
+: ©0(x; y)
+: ©1 (x; y) : ©2(x; y) : ©3(x; y)
+
+F^ t+²
+: Correspondence Weights
+: Aligned Feature Cell
+
+Ft
+
+Figure 1. Illustration of Progressive Sparse Local Attention (PSLA). The
+goal of PSLA is to align feature map Ft with F t+ǫ in an attention way,
+which is formulated into two steps: the first step 1 is that each feature
+cell in embedded feature map f (F t+ǫ ) compares to the surrounding cells
+in the embedded feature map g(F t ), in a progressive sparser stride from
+center to outside. Regions with different colors in g(F t ) represent regions
+in different strides, which are illustrated in equation 2 and 3. The resulting feature affinities are used to compute correspondence weights C t,t+ǫ ,
+which capture the spatial correspondence between features. The second
+step 2 is that the chosen feature cells in F t are aggregated with the corresponding weights to generate a feature cell in F̂ t+ǫ , which is the aligned
+feature map from F t .
+
+due to the deteriorated appearance caused by issues such as
+motion blur, out-of-focus camera, and rare poses frequently
+encountered in videos. The temporal information encoded
+inherently in videos has been used to improve the performance of video object detection, as it provides rich cues
+about the motion in videos that are absent from still images.
+Existing methods that leverage temporal information for
+object detection from videos mainly fall into two categories. The first one relies on dedicated post-processing
+[15, 20, 21, 23]. These methods firstly run an image-based
+detector on single frames and then integrate the per-frame
+results by box-level post-processing, which usually requires
+an extra object tracker or off-the-shelf optical flow to estimate the motion field and associate the bounding boxes.
+Modeling temporal coherence in this way is sub-optimal
+
+3909
+
+

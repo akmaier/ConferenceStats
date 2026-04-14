@@ -1,0 +1,101 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+MIMO-NeRF: Fast Neural Rendering
+with Multi-input Multi-output Neural Radiance Fields
+Takuhiro Kaneko
+NTT Communication Science Laboratories, NTT Corporation
+
+Abstract
+Neural radiance fields (NeRFs) have shown impressive
+results for novel view synthesis. However, they depend on
+the repetitive use of a single-input single-output multilayer
+perceptron (SISO MLP) that maps 3D coordinates and view
+direction to the color and volume density in a sample-wise
+manner, which slows the rendering. We propose a multiinput multi-output NeRF (MIMO-NeRF) that reduces the
+number of MLPs running by replacing the SISO MLP with
+a MIMO MLP and conducting mappings in a group-wise
+manner. One notable challenge with this approach is that
+the color and volume density of each point can differ according to a choice of input coordinates in a group, which
+can lead to some notable ambiguity. We also propose a
+self-supervised learning method that regularizes the MIMO
+MLP with multiple fast reformulated MLPs to alleviate this
+ambiguity without using pretrained models. The results of
+a comprehensive experimental evaluation including comparative and ablation studies are presented to show that
+MIMO-NeRF obtains a good trade-off between speed and
+quality with a reasonable training time. We then demonstrate that MIMO-NeRF is compatible with and complementary to previous advancements in NeRFs by applying it
+to two representative fast NeRFs, i.e., a NeRF with a sampling network (DONeRF) and a NeRF with alternative representations (TensoRF).1
+
+1. Introduction
+Images are two-dimensional (2D) projections of threedimensional (3D) scenes. Solving the inverse problem, that
+is, learning 3D representations from 2D images and synthesizing novel views, is a fundamental concern in computer
+vision and graphics and has been extensively studied for
+various applications such as photo editing, content creation,
+virtual reality, and environmental understanding.
+With the advent of implicit neural representations
+1 The project page is available at https://www.kecl.ntt.co.
+jp/people/kaneko.takuhiro/projects/mimo-nerf/.
+
+(xj , d)
+
+SISO MLP
+
+(cj , σj )
+
+(xj , d)
+
+(cj , σj )
+
+SISO MLP
+MIMO MLP
+SISO MLP
+(xi , d)
+
+SISO MLP
+
+(ci , σi )
+
+(xi , d)
+
+d
+
+(ci , σi )
+d
+
+o
+
+o
+
+(a) NeRF
+
+(b) MIMO-NeRF (proposed)
+
+Figure 1. Comparison between NeRF and MIMO-NeRF (proposed). (a) A typical NeRF uses a SISO MLP that maps 3D coordinates and view direction to the color and volume density in a
+sample-wise manner. (b) In contrast, the proposed MIMO-NeRF
+uses a MIMO MLP that performs mappings in a group-wise manner. This change reduces the number of MLPs running and improves the rendering speed, but also requires addressing ambiguity in the color and volume density caused by the fact that these
+values are determined in a non-unique manner by a set of input
+coordinates that vary by viewpoint, grouping, and sampling. The
+main technical contribution of the present work is that of providing
+methods to mitigate this challenge. We demonstrate the impact of
+the proposed technique in Figure 2.
+
+(e.g., [56, 44, 39, 28, 69, 71, 55]), substantial advancements
+have been made towards addressing this problem. Neural
+radiance fields (NeRFs) [39] have been noted as a successful approach. A NeRF represents a scene using a continuous
+function that maps 3D coordinates and view direction to the
+color and volume density and renders a pixel by integrating the outputs on a ray using volume rendering [34]. This
+formulation enables NeRF to learn to synthesize geometrically consistent and high-fidelity novel views with only 2D
+supervision.
+Despite this advantage, a typical NeRF suffers from
+slow rendering because it uses a single-input single-output
+(SISO) MLP that calculates the RGB color and volume
+density in a sample-wise manner (Figure 1(a)). Although
+this architecture ensures the independent representation of
+each point, which is useful, for example, for learning
+view-independent volume density, its computational cost
+increases in proportion to the number of samples for each
+
+3273
+
+

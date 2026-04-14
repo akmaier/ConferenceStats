@@ -1,0 +1,90 @@
+Calibrated Adversarial Refinement for Stochastic Semantic Segmentation
+Elias Kassapis1,2,∗
+1
+
+Georgi Dikov2
+
+Deepak K. Gupta1
+
+Cedric Nugteren2
+
+Informatics Institute, University of Amsterdam, The Netherlands
+2
+TomTom, Amsterdam, The Netherlands
+∗
+kassapiselias@hotmail.co.uk
+
+Abstract
+In semantic segmentation tasks, input images can often
+have more than one plausible interpretation, thus allowing
+for multiple valid labels. To capture such ambiguities, recent work has explored the use of probabilistic networks that
+can learn a distribution over predictions. However, these
+do not necessarily represent the empirical distribution accurately. In this work, we present a strategy for learning a
+calibrated predictive distribution over semantic maps, where
+the probability associated with each prediction reflects its
+ground truth correctness likelihood. To this end, we propose
+a novel two-stage, cascaded approach for calibrated adversarial refinement: (i) a standard segmentation network is
+trained with categorical cross entropy to predict a pixelwise
+probability distribution over semantic classes and (ii) an
+adversarially trained stochastic network is used to model
+the inter-pixel correlations to refine the output of the first
+network into coherent samples. Importantly, to calibrate
+the refinement network and prevent mode collapse, the expectation of the samples in the second stage is matched to
+the probabilities predicted in the first. We demonstrate the
+versatility and robustness of the approach by achieving stateof-the-art results on the multigrader LIDC dataset and on
+a modified Cityscapes dataset with injected ambiguities. In
+addition, we show that the core design can be adapted to
+other tasks requiring learning a calibrated predictive distribution by experimenting on a toy regression dataset. We
+provide an open source implementation of our method at
+https://github.com/EliasKassapis/CARSSS.
+
+1. Introduction
+Real-world datasets are often riddled with ambiguities,
+allowing for multiple valid solutions for a given input. These
+can emanate from an array of sources, such as sensor noise,
+occlusions, inconsistencies during manual data annotation,
+or an ambiguous label space [38]. Despite the fact that the
+empirical distribution can be multimodal, the majority of the
+
+conventional segmentation pipeline
+
+ambiguous data
+input image
+
+unconfident
+prediction
+
+argmax
+
+sampling
+
+F
+
+CAR
+p()
+sample labels
+
+G
+
+Figure 1: Conceptual diagram of stochastic semantic segmentation: blue and red pixels are separable by several different vertical boundaries, resulting in multiple valid labels. F
+is a network parametrising a factorised categorical likelihood,
+which captures the pixelwise data ambiguity. Extracting the
+mode via the argmax operation deterministically yields a
+single coherent prediction, while direct sampling gives multiple incoherent ones. Instead, calibrated adversarial refinement (CAR) uses a second stochastic adversarial network, G,
+which refines the output of F into diverse, coherent labels.
+
+research encompassing semantic segmentation focuses on
+optimising models that assign only a single solution to each
+input image [47, 26, 53, 9, 10, 11, 7, 8], and are thus often
+incapable of capturing the entire empirical distribution.
+These approaches typically model each pixel independently with a factorised categorical likelihood, and therefore do not consider inter-pixel correlations during sampling
+(see Fig. 13b in Appendix B.3). Further, since maximising
+the likelihood on noisy datasets leads to unconfident predictions in regions of label inconsistencies, direct sampling
+yields incoherent semantic maps. Alternatively, coherent
+predictions can be obtained by applying the argmax function, essentially extracting the mode of the likelihood. This,
+however, comes at the cost of limiting the model’s representation capabilities to deterministic, one-to-one mappings
+between inputs and outputs (see Fig. 1).
+
+7057
+
+

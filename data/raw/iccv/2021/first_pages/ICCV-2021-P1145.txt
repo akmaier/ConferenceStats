@@ -1,0 +1,89 @@
+Learning to Hallucinate Examples from Extrinsic and Intrinsic Supervision
+Liangke Gui1 * Adrien Bardes2 * † Ruslan Salakhutdinov1
+Alexander Hauptmann1
+Martial Hebert1
+Yu-Xiong Wang3
+1
+2
+CMU Facebook AI Research, Inria 3 UIUC
+{liangkeg, rsalakhu, alex, hebert}@cs.cmu.edu
+
+adrien.bardes@inria.fr
+
+yxw@illinois.edu
+
+Abstract
+Learning to hallucinate additional examples has recently
+been shown as a promising direction to address few-shot
+learning tasks. This work investigates two important yet
+overlooked natural supervision signals for guiding the hallucination process – (i) extrinsic: classifiers trained on hallucinated examples should be close to strong classifiers that
+would be learned from a large amount of real examples;
+and (ii) intrinsic: clusters of hallucinated and real examples belonging to the same class should be pulled together,
+while simultaneously pushing apart clusters of hallucinated
+and real examples from different classes. We achieve (i) by
+introducing an additional mentor model on data-abundant
+base classes for directing the hallucinator, and achieve (ii)
+by performing contrastive learning between hallucinated
+and real examples. As a general, model-agnostic framework,
+our dual mentor- and self-directed (DMAS) hallucinator
+significantly improves few-shot learning performance on
+widely-used benchmarks in various scenarios.
+
+1. Introduction
+To alleviate the reliance on large, labeled datasets for
+learning deep models, few-shot learning has attracted increasing attention, with the goal of learning novel concepts from
+one, or only a few, annotated examples [20, 68, 71, 59, 21].
+Existing work tries to solve this problem from the perspective of meta-learning [55, 7, 64], which is motivated by the
+human ability to leverage prior experiences when tackling a
+new task. Unlike the standard machine learning paradigm,
+where a model is trained on a set of examples, meta-learning
+is performed on a set of “simulated” tasks, each consisting of
+its own support and query sets [68]. The support set is used
+as the few-shot training data for the leaner, and the query
+set is used as the test data to evaluate the leaner’s quality.
+By sampling small support and query sets from a large col* equal contribution
+† work done while visiting CMU
+
+min
+
+(a)
+
+(b)
+
+(c)
+
+Figure 1: Learning a hallucinator to generate useful examples for
+few-shot learning through extrinsic and intrinsic supervision. During meta-training, we sample a few-shot task (e.g., 2-way 2-shot
+classification) on base classes (Fig. 1a). Extrinsic supervision:
+The desired classifier for this task is the (dashed) one that would be
+learned from a large set of real examples (Fig. 1b). We explicitly
+introduce this strong classifier as “mentor” (abundant examples are
+available for base classes). We then learn the hallucinator in a way
+that minimizes the discrepancy between the (solid) “student” classifier (trained on hallucinated examples together with the few real
+0
+examples) and the (dashed) mentor classifier (Fig. 1c). Intrinsic
+supervision: Through contrastive learning, clusters of hallucinated
+and real examples belonging to the same class are pulled together
+(→←), while simultaneously pushing apart (↔) clusters of hallucinated and real examples from different classes (Fig. 1c). During
+meta-testing, we use the meta-trained, fixed hallucinator to generate additional examples as augmentation for learning classifiers
+on novel classes. Real examples as light diamonds, hallucinated
+examples as dark triangles, and classifiers as solid or dashed lines.
+
+lection of labeled examples of base classes, meta-learning
+based approaches learn to extract task-agnostic knowledge,
+and apply it to a new few-shot learning task of novel classes.
+One notable type of task-agnostic (or meta) knowledge
+comes from the shared mechanism of data augmentation
+or hallucination across categories [70, 22, 56, 84]. Since
+synthesizing raw images is often challenging or sometimes
+unnecessary, recent work has instead focused on hallucinating examples in a learned feature space [70, 22, 56, 84, 76,
+83, 87]. This can be achieved by, for example, integrating a
+“hallucinator” module into a meta-learning framework, where
+it generates hallucinated examples guided by real ones from
+the support set [70]. The hallucinator captures the intra-class
+variation shared across categories, which generalizes to unseen classes. The learner then uses an augmented training set,
+which includes both the real and the hallucinated examples to
+
+8701
+
+

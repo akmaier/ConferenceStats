@@ -1,0 +1,180 @@
+CenterNet: Keypoint Triplets for Object Detection
+Kaiwen Duan1∗ Song Bai2
+
+Lingxi Xie3
+
+Honggang Qi1,4
+
+Qingming Huang1,4,5 † Qi Tian3 †
+
+1
+
+University of Chinese Academy of Sciences
+Huazhong University of Science and Technology 3 Huawei Noah’s Ark Lab
+4
+Key Laboratory of Big Data Mining and Knowledge Management, UCAS 5 Peng Cheng Laboratory
+2
+
+duankaiwen17@mails.ucas.ac.cn
+
+{songbai.site,198808xc}@gmail.com
+
+{hgqi,qmhuang}@ucas.ac.cn
+
+tian.qi1@huawei.com
+
+Abstract
+
+potted plant
+
+potted
+plant
+potted
+plant
+
+potted plant
+
+potted
+potted plant
+potted plant
+plant
+
+broccoli
+carrot
+
+potted plant
+
+In object detection, keypoint-based approaches often experience the drawback of a large number of incorrect object
+bounding boxes, arguably due to the lack of an additional
+assessment inside cropped regions. This paper presents an
+efficient solution that explores the visual patterns within individual cropped regions with minimal costs. We build our
+framework upon a representative one-stage keypoint-based
+detector named CornerNet. Our approach, named CenterNet, detects each object as a triplet, rather than a pair, of
+keypoints, which improves both precision and recall. Accordingly, we design two customized modules, cascade corner pooling, and center pooling, that enrich information
+collected by both the top-left and bottom-right corners and
+provide more recognizable information from the central regions. On the MS-COCO dataset, CenterNet achieves an
+AP of 47.0%, outperforming all existing one-stage detectors by at least 4.9%. Furthermore, with a faster inference speed than the top-ranked two-stage detectors, CenterNet demonstrates a comparable performance to these detectors. Code is available at https://github.com/
+Duankaiwen/CenterNet.
+
+1. Introduction
+Object detection has been significantly improved with
+the help of deep learning, especially convolutional neural
+networks [12] (CNNs). In the current era, one of the most
+popular flowcharts, the anchor-based flowchart [11, 13, 28,
+32, 34], places a set of rectangles with predefined sizes (anchors) on an image and regresses the anchors to the desired place with the help of ground-truth objects. These approaches often require a large number of anchors to ensure a
+sufficiently high IoU (intersection over union) rate with the
+ground-truth objects, and the size and aspect ratio of each
+∗ This work was done when the first author was interning at Huawei Noah’s Ark
+
+Lab.
+† Qingming Huang and Qi Tian are the first and second corresponding authors of
+the paper, respectively.
+
+broccoli
+
+broccoli
+
+broccoli
+broccoli
+broccoli
+broccoli
+
+broccoli
+
+potted plant
+
+broccoli
+broccoli
+broccoli
+
+carrot
+
+broccoli
+broccoli
+
+broccoli
+broccoli
+broccoli
+broccoli
+broccoli
+broccoli
+broccoli
+broccoli
+broccoli
+
+broccoli
+broccoli
+
+potted plant
+
+potted
+plantplant
+potted plant
+potted
+potted
+plant
+potted plant
+
+broccoli
+broccoli
+
+carrot broccoli
+
+potted plant
+potted plant
+person
+
+potted plant
+
+broccoli
+broccoli
+broccoli
+broccoli
+carrot
+broccoli
+broccoli
+broccoli
+
+broccoli
+
+broccoli
+
+potted plant
+plant
+potted
+
+vase
+potted plant
+
+vase
+
+horse
+horse
+
+horse
+
+horse
+
+Figure 1: In the first row, we visualize the top 100 bounding boxes (according to the MS-COCO dataset standard) of
+CornerNet. Ground-truth and predicted objects are marked
+in blue and red, respectively. In the second row, we show
+that correct predictions can be determined by checking the
+central parts of the boxes.
+anchor must be manually set. In addition, anchors and the
+convolutional features are usually misaligned, which is not
+conducive to the bounding box classification task.
+To overcome the drawbacks of anchor-based approaches,
+a keypoint-based object detection pipeline named CornerNet [21] was proposed. This pipeline represents each object
+using a pair of corner keypoints, which bypasses the need
+for anchor boxes and achieves state-of-the-art one-stage object detection accuracy. Nevertheless, the performance of
+CornerNet is still restricted by its relatively weak ability to
+refer to the global information of an object. That is, because each object is constructed by a pair of corners, the
+algorithm sensitively detects the boundaries of objects without being aware of which pairs of keypoints that should be
+grouped into objects. Consequently, as shown in Figure 1,
+CornerNet often generates incorrect bounding boxes, most
+of which could be easily filtered out with some complementary information, e.g., the aspect ratio.
+To address this issue, we equip CornerNet with the abil-
+
+6569
+
+

@@ -1,0 +1,168 @@
+Rank & Sort Loss for Object Detection and Instance Segmentation
+Kemal Oksuz, Baris Can Cam, Emre Akbas∗ , Sinan Kalkan*
+Dept. of Computer Engineering, Middle East Technical University, Ankara, Turkey
+{kemal.oksuz, can.cam, eakbas, skalkan}@metu.edu.tr
+
+Abstract
+We propose Rank & Sort (RS) Loss, a ranking-based loss
+function to train deep object detection and instance segmentation methods (i.e. visual detectors). RS Loss supervises the classifier, a sub-network of these methods, to rank
+each positive above all negatives as well as to sort positives
+among themselves with respect to (wrt.) their localisation
+qualities (e.g. Intersection-over-Union - IoU). To tackle the
+non-differentiable nature of ranking and sorting, we reformulate the incorporation of error-driven update with backpropagation as Identity Update, which enables us to model
+our novel sorting error among positives. With RS Loss, we
+significantly simplify training: (i) Thanks to our sorting objective, the positives are prioritized by the classifier without an additional auxiliary head (e.g. for centerness, IoU,
+mask-IoU), (ii) due to its ranking-based nature, RS Loss is
+robust to class imbalance, and thus, no sampling heuristic is required, and (iii) we address the multi-task nature
+of visual detectors using tuning-free task-balancing coefficients. Using RS Loss, we train seven diverse visual detectors only by tuning the learning rate, and show that it consistently outperforms baselines: e.g. our RS Loss improves
+(i) Faster R-CNN by ∼ 3 box AP and aLRP Loss (rankingbased baseline) by ∼ 2 box AP on COCO dataset, (ii) Mask
+R-CNN with repeat factor sampling (RFS) by 3.5 mask AP
+(∼ 7 AP for rare classes) on LVIS dataset; and also outperforms all counterparts. Code is available at: https:
+//github.com/kemaloksuz/RankSortLoss.
+
+1. Introduction
+Owing to their multi-task (e.g. classification, box regression, mask prediction) nature, object detection and instance
+segmentation methods rely on loss functions of the form:
+XX
+LV D =
+λkt Lkt ,
+(1)
+k∈K t∈T
+
+which combines Lkt , the loss function for task t on stage
+k (e.g. |K| = 2 for Faster R-CNN [32] with RPN and R* Equal contribution for senior authorship.
+
+(a) Ranking positives (+) above negatives (-)
+Anchor ID (𝑖)
+
+0
+
+1
+
+2
+
+3
+
+Classification Logits
+
+3.0
+
+2.0
+
+1.0
+
+0.0 -1.0 -2.0 -3.0 -4.0
+
+4
+
+5
+
+6
+
+7
+
+Binary Labels
+
+1
+
+1
+
+0
+
+0
+
+0
+
+(+)
+
+Target Ranking (𝑖) 0, 4, 1, 6 (any order) 2, 3, 5, 7 (any order)
+
+(-)
+
+1
+
+0
+
+1
+
+(b) Rank&Sort Loss: Rank (+) above (-) & Sort (+) wrt their IoU labels
+Anchor ID (𝑖)
+
+0
+
+1
+
+2
+
+3
+
+Classification Logits 3.0
+
+2.0
+
+1.0
+
+0.0 -1.0 -2.0 -3.0 -4.0
+
+Continuous Labels (IoU) 0.9
+
+0.4
+
+0.0
+
+0.0
+
+0.8
+
+0.0
+
+(+)
+
+4
+
+1
+
+6
+
+2, 3, 5, 7 (any order)
+
+(-)
+
+RS Loss Target Ranking (𝑖)
+
+0
+
+4
+
+5
+0.0
+
+6
+0.1
+
+7
+
+Figure 1. A ranking-based classification loss vs RS Loss. (a) Enforcing to rank positives above negatives provides a useful objective for training, however, it ignores ordering among positives. (b)
+Our RS Loss, in addition to raking positives above negatives, aims
+to sort positives wrt. their continuous IoUs (positives: a green tone
+based on its label, negatives: orange). We propose Identity Update
+(Section 3), a reformulation of error-driven update with backpropagation, to tackle these ranking and sorting operations which are
+difficult to optimize due to their non-differentiable nature.
+
+CNN), weighted by a hyper-parameter λkt . In such formulations, the number of hyper-parameters can easily exceed
+10 [27], with additional hyper-parameters arising from taskspecific imbalance problems [28], e.g. the positive-negative
+imbalance in the classification task, and if a cascaded architecture is used (e.g. HTC [7] employs 3 R-CNNs with
+different λkt ). Thus, although such loss functions have led
+to unprecedented successes, they require tuning, which is
+time consuming, leads to sub-optimal solutions and makes
+fair comparison of methods challenging.
+Recently proposed ranking-based loss functions, namely
+“Average Precision (AP) Loss” [6] and “average Localisation Recall Precision (aLRP) Loss” [27], offer two important advantages over the classical score-based functions
+(e.g. Cross-entropy Loss and Focal Loss [22]): (1) They directly optimize the performance measure (e.g. AP), thereby
+providing consistency between training and evaluation objectives. This also reduces the number of hyper-parameters
+as the performance measure (e.g. AP) does not typically
+have any hyper-parameters. (2) They are robust to class-
+
+3009
+
+

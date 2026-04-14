@@ -1,0 +1,77 @@
+Learning Inner-Group Relations on Point Clouds
+Haoxi Ran* † Wei Zhuo† Jun Liu† Li Lu*
+†
+* Sichuan University
+Tencent
+{ranhaoxi, junsenselee}@gmail.com
+weizhuo@tencent.com
+luli@scu.edu.cn
+
+Abstract
+The prevalence of relation networks in computer vision is
+in stark contrast to underexplored point-based methods. In
+this paper, we explore the possibilities of local relation operators and survey their feasibility. We propose a scalable
+and efficient module, called group relation aggregator. The
+module computes a feature of a group based on the aggregation of the features of the inner-group points weighted by
+geometric relations and semantic relations. We adopt this
+module to design our RPNet. We further verify the expandability of RPNet, in terms of both depth and width, on the
+tasks of classification and segmentation. Surprisingly, empirical results show that wider RPNet fits for classification,
+while deeper RPNet works better on segmentation. RPNet
+achieves state-of-the-art for classification and segmentation
+on challenging benchmarks. We also compare our local
+aggregator with PointNet++, with around 30% parameters
+and 50% computation saving. Finally, we conduct experiments to reveal the robustness of RPNet with regard to rigid
+transformation and noises.
+
+1. Introduction
+Point cloud processing has attracted considerable attention for its advantages in various applications, including autonomous driving, augmented reality, and robotics. Though
+easily accessible, unlike other visual elements (i.e., images),
+point clouds can be difficult to learn due to irregularity.
+To duplicate the success of convolutional networks on
+regular grids [24, 43], some prior works change point clouds
+into multi-view images [12, 10] or regular volumes [53, 12]
+before convolution. However, image-based projection and
+voxelization reduce the resolution of point clouds and result in the damage of internal geometric information. These
+explicit transformations also lead to complex preprocessing
+and significant computations.
+PointNet [38] diverts the attention to the methods of processing raw point clouds. To handle irregular points, it
+adopts point-wise multi-layer perceptrons (MLP) to learn
+
+on points independently and utilize a symmetric function to
+obtain the global information. For the ignorance of local
+structures, PointNet++ [40] further introduces set abstraction (SA) (shown in Fig. 1 left) as the local aggregator to
+build the hierarchical networks. However, this aggregator
+keeps learning on points independently, losing the sight of
+shape awareness.
+When a local aggregator independently learns on points,
+the shape ambiguity problem has been exposed: since no
+points inside the set react with others, the aggregator will
+be sensitive to the coordinates S ∈ RN ×3 and be confused
+about the outline and the geometric information of the set.
+Here N is the number of points inside the set. The shape
+ambiguity problem causes the damage to the robustness and
+generalization of an aggregator.
+In general, an excellent aggregator is underdeveloped for
+two reasons: it should discriminatively describe the underlying shape of point sets, and it should be robust to rigid
+transformation (i.e., translation, rotation) as well as noises.
+For a preliminary exploration, RS-CNN [33] computes a
+point feature from the aggregation of features weighted by
+predefined geometric relations (low-level relation) between
+the point Si and its neighbors N (Si ) (shown in Fig. 1 middle). Based on the low-level relations instead of coordinates
+only, RS-CNN is insensitive to coordinates and robust to
+rigid transformation. However, RS-CNN is insufficient to
+learn semantic relations (high-level relations) for the lack
+of interaction between features.
+In this case, self-attention [47] (shown in Fig. 1 right)
+may be a good instance as the supplement for high-level
+relations. Self-attention achieves great success on natural
+language processing. Recent work [64, 19] has shown that
+self-attention can be a viable alternative for convolution on
+images. However, self-attention can be depressing for significant computations as well as a large number of parameters. The goal of this work is to extend grid-based selfattention to irregular points with a high-efficiency strategy.
+To this end, we propose group relation aggregator
+(GRA) to learn from both low-level and high-level relations.
+Compared with self-attention and SA, our designed bottle-
+
+15477
+
+

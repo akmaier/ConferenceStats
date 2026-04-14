@@ -1,0 +1,84 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Q-Diffusion: Quantizing Diffusion Models
+Xiuyu Li1
+1
+
+Yijiang Liu2 Long Lian1 Huanrui Yang1 Zhen Dong1
+Daniel Kang3 Shanghang Zhang4 Kurt Keutzer1
+
+UC Berkeley 2 Nanjing University 3 University of Illinois Urbana-Champaign 4 Peking University
+
+Abstract
+Diffusion models have achieved great success in image
+synthesis through iterative noise estimation using deep neural networks. However, the slow inference, high memory
+consumption, and computation intensity of the noise estimation model hinder the efficient adoption of diffusion models.
+Although post-training quantization (PTQ) is considered a
+go-to compression method for other tasks, it does not work
+out-of-the-box on diffusion models. We propose a novel
+PTQ method specifically tailored towards the unique multitimestep pipeline and model architecture of the diffusion
+models, which compresses the noise estimation network to
+accelerate the generation process. We identify the key difficulty of diffusion model quantization as the changing output
+distributions of noise estimation networks over multiple time
+steps and the bimodal activation distribution of the shortcut
+layers within the noise estimation network. We tackle these
+challenges with timestep-aware calibration and split shortcut quantization in this work. Experimental results show
+that our proposed method is able to quantize full-precision
+unconditional diffusion models into 4-bit while maintaining
+comparable performance (small FID change of at most 2.34
+compared to >100 for traditional PTQ) in a training-free
+manner. Our approach can also be applied to text-guided
+image generation, where we can run stable diffusion in 4-bit
+weights with high generation quality for the first time.
+
+1. Introduction
+Diffusion models have shown great success in generating images with both high diversity and high fidelity
+[43, 13, 44, 42, 6, 33, 36, 34]. Recent work [16, 15]
+has demonstrated superior performance than state-of-theart GAN models, which suffer from unstable training. As a
+class of flexible generative models, diffusion models demonstrate their power in various applications such as image
+super-resolution [37, 18], inpainting [44], shape generation
+[3], graph generation [31], image-to-image translation [40],
+and molecular conformation generation [47].
+However, the generation process for diffusion models can
+be slow due to the need for an iterative noise estimation of 50
+
+to 1,000 time steps [13, 42] using complex neural networks.
+While previous state-of-the-art approaches (e.g., GANs) are
+able to generate multiple images in under 1 second, it normally takes several seconds for a diffusion model to sample
+a single image. Consequently, speeding up the image generation process becomes an important step toward broadening
+the applications of diffusion models. Previous work has
+been solving this problem by finding shorter, more effective
+sampling trajectories [42, 30, 39, 22, 1, 24], which reduces
+the number of steps in the denoising process. However, they
+have largely ignored another important factor: the noise estimation model used in each iteration itself is compute- and
+memory-intensive. This is an orthogonal factor to the repetitive sampling, which not only slows down the inference
+speed of diffusion models, but also poses crucial challenges
+in terms of high memory footprints.
+This work explores the quantization [50, 8, 49, 7, 29] of
+the noise estimation model used in the diffusion model to
+accelerate the denoising of all time steps. Specifically, we
+propose exploring post-training quantization (PTQ) on the
+diffusion model. PTQ has already been well studied in other
+learning domains like classification and object detection [4,
+2, 20, 11, 23], and has been considered a go-to compression
+method given its minimal requirement for training data and
+the straightforward deployment on real hardware devices.
+However, the iterative computation process of the diffusion
+model and the model architecture of the noise estimation
+network brings unique challenges to the PTQ of diffusion
+models. PTQ4DM [41] presents an inaugural application
+of PTQ to compress diffusion models down to 8-bit, but it
+primarily focuses on smaller datasets and lower resolutions.
+Our work, evolving concurrently with [41], offers a comprehensive analysis of the novel challenges of performing
+PTQ on diffusion models. Specifically, as visualized in Figure 1(a), we discover that the output distribution of the noise
+estimation network at each time step can be largely different,
+and naively applying previous PTQ calibration methods with
+an arbitrary time step leads to poor performance. Furthermore, as illustrated in Figure 1(b), the iterative inference of
+the noise estimation network leads to an accumulation of
+quantization error, which poses higher demands on design-
+
+17535
+
+

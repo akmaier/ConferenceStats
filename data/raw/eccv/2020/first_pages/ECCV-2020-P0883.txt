@@ -1,0 +1,52 @@
+A Differentiable Recurrent Surface for
+Asynchronous Event-Based Data
+Supplementary Material
+Marco Cannici, Marco Ciccone, Andrea Romanoni, and Matteo Matteucci
+Politecnico di Milano, Italy
+{marco.cannici,marco.ciccone,andrea.romanoni,matteo.matteucci}@polimi.it
+
+1
+
+Implementation
+
+The Matrix-LSTM feature extraction process can be implemented efficiently by
+means of two order-aware reshape operations. These two operations, namely
+groupByPixel and groupByTime, allow event streams to be split based on the
+pixel location and temporal bin. After being reshaped, the input is ready to be
+processed by a single LSTM network, implementing parameter sharing across
+all pixel locations and temporal windows. In the following we give a detailed
+overview of the two reshape operators.
+1.1
+
+GroupByPixel
+
+This operation translates from event-sequences to pixel-sequences. Let X be a
+(x,y)
+tensor of shape N × Tmax × F , representing the features fn,i of a batch of
+N samples, where Tmax is the length of the longest sequence in the batch. We
+define the groupByPixel mapping on X as an order-aware reshape operation that
+(x,y)
+rearranges the events into a tensor of pixel-sequences of shape P × Tmax × F
+(x,y)
+(x,y)
+and P is the number
+where Tmax is the length of the longest pixel sequence En
+of active pixels (i.e., having at least one event) in the batch, which equals N ·H ·W
+(x,y)
+only in the worst case. Pixel-sequences shorter than Tmax are padded with zero
+events to be processed in parallel.
+The tensor thus obtained is then processed by the LSTM cell that treats
+samples in the first dimension independently, effectively implementing parameter
+sharing and applying the transformation in parallel over all the pixels. The LSTM
+output tensor, which has the same shape of the input one, is then sampled by
+(x,y)
+taking the output corresponding to the last event in each pixel-sequence En ,
+ignoring values computed on padded values, and the obtained values are then
+used to populate the dense representation. To improve efficiency, for each pixel(x,y)
+sequence En , groupByPixel keeps also track of the original spatial position
+(x, y), the index of the sample inside the batch and the length of the pixel(x,y)
+sequence Tn , namely the index of the last event before padding. Given this set
+of indexes, the densification step can be performed as a simple slicing operation.
+See Figure 1 for visual clues. groupByPixel is implemented as a custom CUDA
+
+

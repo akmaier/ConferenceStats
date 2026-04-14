@@ -1,0 +1,80 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Pixel-Aligned Recurrent Queries for Multi-View 3D Object Detection
+Yiming Xie1
+1
+Northeastern University
+
+Huaizu Jiang1 Georgia Gkioxari∗,2 Julian Straub∗,3
+2
+California Institute of Technology 3 Meta Reality Labs Research
+
+Abstract
+We present PARQ – a multi-view 3D object detector with
+transformer and pixel-aligned recurrent queries. Unlike
+previous works that use learnable features or only encode
+3D point positions as queries in the decoder, PARQ leverages appearance-enhanced queries initialized from reference points in 3D space and updates their 3D location
+with recurrent cross-attention operations. Incorporating
+pixel-aligned features and cross attention enables the model
+to encode the necessary 3D-to-2D correspondences and
+capture global contextual information of the input images.
+PARQ outperforms prior best methods on the ScanNet and
+ARKitScenes datasets, learns and detects faster, is more robust to distribution shifts in reference points, can leverage
+additional input views without retraining, and can adapt inference compute by changing the number of recurrent iterations. Code is available at https://ymingxie.github.io/parq.
+
+1. Introduction
+The world is composed of objects positioned in 3D
+space. Humans have an innate ability to perceive 3D scenes
+which allows them to interact with their surroundings. For
+machines, understanding all objects in 3D space from one
+or few images enables new applications of embodied intelligence such as in robotics and assistive technology. The
+problem is defined by the task of 3D object detection: given
+a few images of a scene, detect all objects in 3D.
+3D object detection unites two distinct problems of computer vision, 2D recognition, and 3D reconstruction. Similar to 2D recognition, appearance cues in the input views
+drive categorical predictions. Similar to 3D reconstruction,
+the model needs to reason about the 3D position of objects from only 2D views. Modern learning-based methods build on the traditional multi-view stereopsis [45] and
+Structure from Motion (SfM) [14, 39] and lift objects to
+3D via optimization [24, 23, 22, 31] or volumetric representations [40, 41]. To do so, they require tens or hun∗ Equal advising.
+
+Geometry
+
+Appearance
++
+
+Recurrent
+
+Offset, Size,
+Rot., and Class
+
+PARQ
+Layer
+
+Figure 1. PARQ leverages appearance-enhanced queries initialized from 3D points and updates their 3D locations to the 3D object center with a recurrent PARQ layer in the decoder. The PARQ
+layer chains a transformer decoder layer and a detection head.
+
+dreds of views observing the whole scene. However, in
+many real-world applications, like robotics, models are required to make predictions online and often in real-time
+from just a short video snippet. In this work, we tackle online 3D object detection from just a few (e.g., 3) consecutive
+views with known camera poses extracted by visual-inertial
+SLAM systems [5, 35, 1].
+Learning 3D object detectors is challenging as the 3D
+prediction space is extensive while objects occupy only a
+small portion. Geometry is important. An object visible in
+the different input views occupies the same 3D world location and vice versa, a 3D object connects to 2D locations
+on the input images consistent with its camera projections.
+This observation prunes the vast prediction space. In addition, object appearance changes with viewpoint changes.
+For instance, the appearance of the chair in Fig. 1 changes
+as the camera moves. This suggests that appearance and geometry are critical. Motivated by this insight, we design a
+model that captures geometric and appearance interactions
+between the 2D input views and the 3D prediction space.
+We build on the powerful transformer architecture [42],
+and specifically DETR [6], a popular 2D object detection
+system. DETR encodes input images into feature maps and
+predicts 2D bounding boxes via cross-attention with learnable queries. We enhance DETR in three ways. First, we
+make the input feature maps 3D-aware by adding 3D posi-
+
+18370
+
+

@@ -1,0 +1,103 @@
+Video Compression With Rate-Distortion Autoencoders
+Amirhossein Habibian, Ties van Rozendaal, Jakub M. Tomczak, Taco S. Cohen
+Qualcomm AI Research∗, Amsterdam, the Netherlands
+{habibian, ties, jtomczak, tacos}@qti.qualcomm.com
+
+Abstract
+In this paper we present a deep generative model for
+lossy video compression. We employ a model that consists of a 3D autoencoder with a discrete latent space and
+an autoregressive prior used for entropy coding. Both autoencoder and prior are trained jointly to minimize a ratedistortion loss, which is closely related to the ELBO used
+in variational autoencoders. Despite its simplicity, we find
+that our method outperforms the state-of-the-art learned
+video compression networks based on motion compensation
+or interpolation. We systematically evaluate various design
+choices, such as the use of frame-based or spatio-temporal
+autoencoders, and the type of autoregressive prior.
+In addition, we present three extensions of the basic
+method that demonstrate the benefits over classical approaches to compression. First, we introduce semantic
+compression, where the model is trained to allocate more
+bits to objects of interest. Second, we study adaptive compression, where the model is adapted to a domain with limited variability, e.g. videos taken from an autonomous car,
+to achieve superior compression on that domain. Finally,
+we introduce multimodal compression, where we demonstrate the effectiveness of our model in joint compression of
+multiple modalities captured by non-standard imaging sensors, such as quad cameras. We believe that this opens up
+novel video compression applications, which have not been
+feasible with classical codecs.
+
+1. Introduction
+In recent years, tremendous progress has been made in
+generative modelling. Although much of this work has been
+motivated by potential future applications such as model
+based reinforcement learning, data compression is a very
+natural application that has received comparatively little attention. Deep learning-based video compression in particular has only recently started to be explored [11, 33, 40]. This
+is remarkable because improved video compression would
+∗ Qualcomm AI Research is an initiative of Qualcomm Technologies,
+
+Inc.
+
+code model
+p($( |$)( )
+
+encoder
+q($|")
+
+AAC
+
+sender
+receiver
+
+0
+1
+1
+0
+0
+1
+
+"
+
+*
+
+$
+
+code model
+p($( |$)( )
+
+0
+1
+1
+0
+0
+1
+
+decoder
+p("|$)
+
+AAC
+
+$
+"&
+*
+Figure 1: Overview of the proposed compression inference
+pipeline. The encoder encodes a sequence of frames x into
+a sequence of quantized latent variables z. A code model
+p(zt |z<t ) is used to transform z into a bitstream b using
+adaptive arithmetic coding (AAC). On the receiver side, the
+bitstream is used to reconstruct z which is then lossily decoded into x̂.
+
+have a large economic impact: it is estimated that very soon,
+80% of internet traffic will be in the form of video [12].
+In this paper, we present a simple yet effective and theoretically grounded method for video compression that can
+serve as the basis for future work in this nascent area. Our
+model consists of off-the-shelf components from the deep
+generative modelling literature, namely autoencoders (AE)
+and autoregressive models (ARM). Despite its simplicity,
+the model outperforms all methods to which a direct comparison is possible, including substantially more complicated approaches.
+On the theoretical side, we show that our method, as well
+as state-of-the-art image compression methods [28] can be
+interpreted as VAEs [25, 31] with a discrete latent space
+and a deterministic encoder. The VAE framework is an especially good fit for the problem of lossy compression, because it provides a natural mechanism for trading off rate
+and distortion, as measured by the two VAE loss terms [3].
+However, as we will argue in this paper, it is not beneficial
+for the purpose of compression to use a stochastic encoder
+17033
+
+

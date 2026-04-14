@@ -1,0 +1,88 @@
+RoomNet: End-to-End Room Layout Estimation
+Chen-Yu Lee
+
+Vijay Badrinarayanan Tomasz Malisiewicz
+Magic Leap, Inc.
+
+Andrew Rabinovich
+
+{clee,vbadrinarayanan,tmalisiewicz,arabinovich}@magicleap.com
+
+Abstract
+This paper focuses on the task of room layout estimation from a monocular RGB image. Prior works break the
+problem into two sub-tasks: semantic segmentation of floor,
+walls, ceiling to produce layout hypotheses, followed by an
+iterative optimization step to rank these hypotheses.
+In contrast, we adopt a more direct formulation of this
+problem as one of estimating an ordered set of room layout
+keypoints. The room layout and the corresponding segmentation is completely specified given the locations of these ordered keypoints. We predict the locations of the room layout
+keypoints using RoomNet, an end-to-end trainable encoderdecoder network. On the challenging benchmark datasets
+Hedau and LSUN, we achieve state-of-the-art performance
+along with 200× to 600× speedup compared to the most recent work. Additionally, we present optional extensions to
+the RoomNet architecture such as including recurrent computations and memory units to refine the keypoint locations
+under the same parametric capacity.
+
+1. Introduction
+Room layout estimation from a monocular image, which
+aims to delineate a 2D boxy representation of an indoor
+scene, is an essential step for a wide variety of computer
+vision tasks, and has recently received great attention from
+several applications. These include indoor navigation [29],
+scene reconstruction/rendering [19], and augmented reality [46, 25, 10].
+The field of room layout estimation has been primarily
+focused on using bottom-up image features such as local
+color, texture, and edge cues followed by vanishing point
+detection. A separate post-processing stage is used to clean
+up feature outliers and generate/rank a large set of room
+layout hypotheses with structured SVMs or conditional random fields (CRFs) [15, 11, 16, 36, 49]. In principle, the 3D
+reconstruction of the room layout can be obtained (up to
+scale) with knowledge of the 2D layout and the vanishing
+points. However, in practice, the accuracy of the final layout prediction often largely depends on the quality of the
+
+Feature
+Extraction
+
+(a)
+
+Vanishing Point
+Detection
+Layout Hypotheses
+Generation/Ranking
+
+2
+1
+
+(b)
+
+End-to-End
+Trainable
+RoomNet
+
+4
+5
+
+3
+
+6
+
+Figure 1. (a) Typical multi-step pipeline for room layout estimation. (b) Room layout estimation with RoomNet is direct and simple: run RoomNet, extract a set of room layout keypoints, and
+connect the keypoints in a specific order to obtain the layout.
+
+extracted low-level image features, which in itself is susceptible to local noise, scene clutter and occlusion.
+Recently, with the rapid advances in deep convolutional neural networks (CNNs) for semantic segmentation
+[5, 27, 32, 2], researchers have been exploring the possibility of using such CNNs for room layout estimation. More
+specifically, Mallya et al. [28] first train a fully convolutional network (FCN) [27] model to produce “informative
+edge maps” that replace hand engineered low-level image
+feature extraction. The predicted edge maps are then used
+to sample vanishing lines for layout hypotheses generation
+and ranking. Dasgupta et al. [7] use the FCN to learn semantic surface labels such as left wall, front wall, right wall,
+ceiling, and ground. Then connected components and hole
+filling techniques are used to refine the raw per pixel prediction of the FCN, followed by the classic vanishing point/line
+sampling methods to produce room layouts. However, despite the improved results, these methods use CNNs to generate a new set of “low-level” features and fall short of exploiting the end-to-end learning ability of CNNs. In other
+words, the raw CNN predictions need to be post-processed
+by an expensive hypotheses testing stage to produce the final layout. This, for example, takes the pipeline of Dasgupta et al. [7] 30 seconds to process each frame.
+In this work, we address the problem top-down by di-
+
+4865
+
+

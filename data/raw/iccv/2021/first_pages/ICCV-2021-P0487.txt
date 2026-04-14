@@ -1,0 +1,110 @@
+Contrastive Multimodal Fusion with TupleInfoNCE
+Yunze Liu1,7
+
+Qingnan Fan3
+
+Shanghang Zhang4
+
+Hao Dong5,6,8
+
+Thomas Funkhouser2
+
+Li Yi1,2
+
+IIIS, Tsinghua University 2 Google Research 3 Stanford University
+4
+UC Berkeley 5 CFCS, CS Dept., Peking University 6 AIIT, Peking University
+7
+Xidian University 8 Peng Cheng Laboratory
+1
+
+Abstract
+This paper proposes a method for representation learning
+of multimodal data using contrastive losses. A traditional
+approach is to contrast different modalities to learn the information shared among them. However, that approach could
+fail to learn the complementary synergies between modalities that might be useful for downstream tasks. Another
+approach is to concatenate all the modalities into a tuple and
+then contrast positive and negative tuple correspondences.
+However, that approach could consider only the stronger
+modalities while ignoring the weaker ones. To address these
+issues, we propose a novel contrastive learning objective,
+TupleInfoNCE. It contrasts tuples based not only on positive and negative correspondences, but also by composing
+new negative tuples using modalities describing different
+scenes. Training with these additional negatives encourages
+the learning model to examine the correspondences among
+modalities in the same tuple, ensuring that weak modalities
+are not ignored. We provide a theoretical justiﬁcation based
+on mutual-information for why this approach works, and we
+propose a sample optimization algorithm to generate positive and negative samples to maximize training efﬁcacy. We
+ﬁnd that TupleInfoNCE signiﬁcantly outperforms previous
+state of the arts on three different downstream tasks.
+
+1. Introduction
+Human perception of the world is naturally multimodal.
+What we see, hear, and feel all contain different kinds of
+information. Various modalities complement and disambiguate each other, forming a representation of the world.
+Our goal is to train machines to fuse such multimodal inputs
+to produce such representations in a self-supervised manner
+without manual annotations.
+An increasingly popular self-supervised representation
+learning paradigm is contrastive learning, which learns feature representations via optimizing a contrastive loss and
+solving an instance discrimination task [21, 10, 4]. Recently
+
+Tuple Augmentation Hyper-parameter Updates
+
+Tuple
+Augmentation
+
+Positive Samples
+
+Multimodal
+Feature Encoder
+Shared Weights
+
+Multimodality Inputs
+Anchor Samples
+
+Multimodal
+Feature Encoder
+
+TupleInfoNCE
+
+Shared Weights
+Tuple
+Disturbing
+
+Negative Samples
+
+Multimodal
+Feature Encoder
+
+Tuple Disturbing Hyper-parameter Updates
+
+Unsupervised
+Feature Evaluation
+
+Figure 1. Overview of sample-optimized TupleInfoNCE.
+
+several works have explored contrastive learning for multimodal representation learning [28, 1, 18]. Among them,
+the majority [28, 1] learn a crossmodal embedding space –
+they contrast different modalities to capture the information
+shared across modalities. However, they do not examine
+the fused representation of multiple modalities directly, failing to fully leverage multimodal synergies. To cope with
+this issue, [18] proposes an RGB-D representation learning framework to directly contrast pairs of point-pixel pairs.
+However, it is restricted to two modalities only.
+Instead of contrasting different data modalities, we propose to contrast multimodal input tuples, where each tuple
+element corresponds to one modality. We learn representations so that tuples describing the same scene (set of multimodal observations) are brought together while tuples from
+different scenes are pushed apart. This is more general than
+crossmodal contrastive learning. It not only supports extracting the shared information across modalities, but also allows
+modalities to disambiguate each other and to keep their speciﬁc information, producing better-fused representations.
+However, contrasting tuples is not as straightforward as
+contrasting single elements, especially if we want the learned
+representation to encode the information from each element
+in the tuple and to fully explore the synergies among them.
+The core challenge is: “which tuple samples to contrast?”
+Previously researchers [34, 18] have observed that always
+contrasting tuples containing corresponding elements from
+
+754
+
+

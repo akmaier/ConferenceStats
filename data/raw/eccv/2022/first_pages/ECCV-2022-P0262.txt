@@ -1,0 +1,62 @@
+Supplementary Material for
+Synthesizing Light Field Video from Monocular Video
+Shrisudhan Govindarajan1 , Prasan Shedligeri1 , Sarah1 , and Kaushik Mitra1
+1
+
+A
+
+Indian Institute of Technology Madras, India
+
+More Details Regarding Experimental Comparisons Performed
+
+Our proposed self-supervised algorithm is designed to take a monocular video as input and output a light-field
+(LF) video sequence. We evaluate our algorithm against other state-of-the-art supervised monocular LF estimation
+algorithms [1, 2, 3]. For Li et al. [1], we use their publicly available implementation to make our comparisons. To
+obtain the complete LF video from [1], we have to reconstruct each frame of the video individually. Li et al. +
+Ranftl et al. represents a modified version of [1], where we input a depth estimate from DPT [4] instead of the
+original DeepLens [5] model. Since [1] is not trained on depth inputs from DPT [4], we finetune [1] on the TAMULF
+dataset with depth maps obtained from DPT [4]. For finetuning, we use AdamW optimizer for 5 epochs, with an
+initial learning rate of 2 × 10−5 and a weight decay of 0.001. While [2] is originally trained on a dataset of flower
+images (proposed in the same work), we finetune it on a larger and diverse TAMULF dataset from [1]. This is done
+because the test data has much more diverse inputs than the images in the original flowers dataset. The network
+is finetuned in Tensorflow using Adam optimizer for 80k iterations with a learning rate of 10−4 .
+In Tab. 1 of main, we perform quantitative comparisons of various algorithms against 4 datasets: Hybrid,
+ViewSynth, TAMULF and Stanford. From the Hybrid dataset we consider the central 7 × 7 views as the groundtruth light field videos, and the center-view of each LF forms the input monocular video. The rest three datasets
+are LF image datasets, and we simulate LF videos with 8 frames from each LF following the procedure described
+in [6, 7].
+In case of Hybrid, we use the test sequences from the dataset. For ViewSynth datasets, we choose the synthesized
+video sequences from the default test set. For TAMULF dataset, we randomly chose 84 samples from 1084 light
+field frames, and these frames are used to synthesize videos which are used for testing the algorithms. The Stanford
+dataset contains 4211 light fields organised into 30 categories. Each scene is captured from 3, 4 or 5 different camera
+poses, over a total of 850 scenes. We randomly select 113 light fields frames from Tree category to synthesize videos
+which was used as the test set.
+
+B
+
+Details of our Proposed Network architecture
+
+Light field synthesis network, V
+The synthesis network V is a long short term memory (LSTM) based
+recurrent neural network consisting of a Efficient-Net encoder [8] and a convolutional decoder with skip connections
+as shown in Fig. A1. The LSTM layer follows the Efficient-Net encoder and the cell output from the LSTM layer
+is fed as input to the decoder network. The decoder network consists of 4 upsampling blocks. In the upsampling
+block, the feature maps are first doubled in size spatially using bilinear interpolation. The upsampled feature map
+is then fed to a series of two convolutional layers of filter size 3 × 3, which is then followed by batch normalization.
+The output of the final upsampling block is then input to a final convolutional layer which outputs 36 RGB (108)
+channels. These 108 channels correspond to the N = 3 layers and R = 12 rank of the low-rank LF representation
+F.
+The displacements D = {D1 , D2 , D3 } for the Adaptive TD layer are predicted from mini-vision transformer
+(m-VIT)[9] network that takes as input {It−1 ,It ,It+1 ,dt }. The m-VIT network used in our work is exactly the
+same as the one proposed in [9]. Except that in our implementation we stack successive frames and disparity
+map as input (10 channels) and provide it as input to m-VIT. The output of this network is a sequence of values
+D = {D1 , D2 , D3 } which is used to predict the LF frame.
+Supervised residual refinement module Vision Transformers(ViT) [10] form the backbone of our proposed
+refinement module. We divide the predicted LF frame L̂t into non-overlapping patches, each of size p×p (= 32×32).
+A shallow ResNet-based encoder (see Fig. A2) extracts features independently from each of the U 2 (= 49) patches.
+The encoder contains 12 bottleneck blocks [11] with max-pooling operation carried out at the first of every three
+blocks as shown in Fig. A2. The obtained feature embeddings are input to two transformer layers which applied
+multi-headed self-attention (MHSA) to these tokens. Here, P (= 6) is the number of non-overlapping patches
+cropped from each angular view. These P tokens are stacked horizontally and vertically following the order of
+1
+
+

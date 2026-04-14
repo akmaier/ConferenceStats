@@ -1,0 +1,53 @@
+Supplementary Material
+Jie Ren∗1,2[0000−0003−3332−2092] , Wenteng Liang∗1[0000−0002−3750−7695] , Ran
+Yan†1[0000−0001−6705−1644] , Luo Mai2[0000−0002−3594−1092] , Shiwen
+Liu1[0000−0003−1779−409X] , and Xiao Liu1[0000−0002−6073−030X]
+1
+
+2
+
+Megvii Inc., China
+The University of Edinburgh, United Kingdom
+
+We provide examples to describe the JecVector data structure and the edgebased BA problem partitioning method. Further, we provide extra experimental
+results, including the full BAL datasets [2], the 1DSfM dataset [8] and a large
+synthetic dataset. We finally provide reconstruction plots to illustrate the effects
+of MegBA.
+
+1
+
+JetVector Design
+
+To show the novel design of JetVector, we compare it with its predecessor: Jet
+implemented in prior BA libraries such as Ceres [1].
+A Jet object comprises value and grad (i.e., gradients). It has atomic operators such as +, −, ∗, and / which are essential for auto-differentiation. Multiple
+Jet objects are contained in an Array-of-Structures (AoS). Though effective for
+CPUs, the use of AoS makes it difficult to coalesce GPU memory transactions,
+resulting in low efficiency in utilising GPUs.
+In contrast, JetVector is implemented as a Structure-of-Arrays which allows
+GPU memory transactions to be effectively coalesced. Figure 1 compares Jet
+and JetVector. As we can see, if we stack Jet in a vector, the memory addresses
+of Value and Grad of different each Jet objects are not continuous. In JetVector,
+however Value and Grad objects are organised in a continuous manner in the
+memory, making it friendly for GPUs.
+We show how does MegBA add JetVector objects in Figure 2. Supposing there
+are N Jets in JetVector. We launch N GPU threads and each GPU thread processes a Jet object. In this way, GPU threads will access adjacent data elements,
+thus coalescing memory transactions. As a result, the memory loading/storing
+operations in a warp (a warp is 32 consecutive GPU threads) can be achieved
+by a 128-byte memory transaction. Notably, the memory transactions of a naive
+AoS structure comprises multiple serialised 32-byte memory transactions, which
+can adversely affect memory performance.
+
+2
+
+Edge-based Partitioning of BA Problems
+
+We provide an example that shows how MegBA partitions non-zero Hessian
+blocks and assigns the partitions to multiple GPUs in a load balancing manner.
+∗
+†
+
+Equal contribution, work was done during their internship in Megvii Inc.
+Corresponding author.
+
+

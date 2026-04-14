@@ -1,0 +1,83 @@
+An Exploration of Parameter Redundancy in Deep Networks with
+Circulant Projections
+Yu Cheng1,3∗
+1
+
+Felix X. Yu2,4∗ Rogerio S. Feris1 Sanjiv Kumar2 Alok Choudhary3 Shih-Fu Chang4
+
+IBM Research
+
+2
+
+Google Research
+
+3
+
+Abstract
+We explore the redundancy of parameters in deep neural networks by replacing the conventional linear projection in fully-connected layers with the circulant projection. The circulant structure substantially reduces memory
+footprint and enables the use of the Fast Fourier Transform to speed up the computation. Considering a fullyconnected neural network layer with d input nodes, and
+d output nodes, this method improves the time complexity
+from O(d2 ) to O(d log d) and space complexity from O(d2 )
+to O(d). The space savings are particularly important for
+modern deep convolutional neural network architectures,
+where fully-connected layers typically contain more than
+90% of the network parameters. We further show that the
+gradient computation and optimization of the circulant projections can be performed very efficiently. Our experiments
+on three standard datasets show that the proposed approach
+achieves this significant gain in storage and efficiency with
+minimal increase in error rate compared to neural networks
+with unstructured projections.
+
+1. Introduction
+Deep neural network-based methods have recently
+achieved dramatic accuracy improvements in many areas of
+computer vision, including image classification [23, 45, 25],
+object detection [11, 33], face recognition [38, 36], and text
+recognition [2, 20].
+These high-performing methods rely on deep networks
+containing millions or even billions of parameters. For example, the work by Krizhevsky et al. [23] achieved breakthrough results on the 2012 ImageNet challenge using a network containing 60 million parameters with five convolutional layers and three fully-connected layers. The top face
+verification results on the Labeled Faces in the Wild (LFW)
+dataset were obtained with networks containing hundreds
+of millions of parameters, using a mix of convolutional,
+∗ indicates equal contributions.
+
+Northwestern University
+
+4
+
+Columbia University
+
+locally-connected, and fully-connected layers [38, 35]. In
+architectures that rely only on fully-connected layers, the
+number of parameters can grow to billions [5].
+As larger neural networks are considered, with more layers and also more nodes in each layer, reducing their storage and computational costs becomes critical to meet the
+requirements of practical applications. Current efforts towards this goal focus mostly on the optimization of convolutional layers [21, 26, 9], which consume the bulk of
+computational processing in modern convolutional architectures. We instead explore the redundancy of parameters
+in fully-connected layers, which are often the bottleneck in
+terms of memory consumption. Our solution relies on a
+simple and efficient approach based on circulant projections
+to significantly reduce the storage and computational costs
+of fully-connected neural network layers, while mantaining
+competitive error rates. Our work brings the following advantages:
+• Fully-connected layers in modern convolutional architectures typically contain over 90% of the network parameters. Our approach significantly reduces the cost to store
+these networks in memory, which is crucial for GPUs or
+embedded systems with low-memory footprint.
+• The proposed method enables FFT-based computation,
+which provides speed up for the fully connected layers.
+This is especially useful for neural networks with a large
+portion of fully connected layers or entirely based on
+fully connected layers [34, 5].
+• With much fewer parameters, our method is empirically
+shown to require less training data.
+
+1.1. Overview of the proposed approach
+A basic computation in a fully-connected neural network
+layer is
+h(x) = φ(Rx),
+(1)
+where R ∈ Rk×d , and φ(·) is a element-wise nonlinear
+activation function. The above operation connects a layer
+
+2857
+
+

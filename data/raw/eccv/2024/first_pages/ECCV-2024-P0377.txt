@@ -1,0 +1,50 @@
+RodinHD: High-Fidelity 3D Avatar Generation
+with Diffusion Models
+Supplementary Material
+Bowen Zhang1∗ , Yiji Cheng2∗ , Chunyu Wang3† , Ting Zhang3 , Jiaolong Yang3 ,
+Yansong Tang2 , Feng Zhao1 , Dong Chen3 , and Baining Guo3
+1
+
+A
+
+University of Science and Technology of China
+2
+Tsinghua University
+3
+Microsoft Research Asia
+
+Additional Implementation Details
+
+Triplane fitting. We split the triplane fitting into two stages to reduce computation costs. In the first stage, we jointly train the MLP decoder and the
+triplanes on a subset of 64 avatars. During each inner loop iteration, 8192 rays
+are randomly sampled for loss calculation. We optimize one avatar per GPU for
+each outer loop iteration due to large GPU memory consumption. The detailed
+hyper-parameters of the first stage are listed in Tab. 1, including ablation studies.
+In the second stage, we fix the decoder’s weights and fine-tune the triplanes of
+46K avatars independently. The fitting iteration for each avatar is set to 25000.
+For rendering efficiency, an occupancy grid of 1283 resolution is maintained [9]
+to skip ray marching steps in empty space. Since we do not have the occupancy
+grid of the diffusion generated triplane, we update the occupancy grid 16 times
+from zero initialization before performing volumetric rendering.
+Diffusion training. For triplane x = (xuv , xwu , xvw ) of shape R3×H×W ×C , we
+perform triplane roll-out x = hstack(yuv , ywu , yvw ) ∈ RH×3W ×C in order to
+employ the well-designed 2D UNet model in diffusion [6, 10] following [12]. We
+also leverage 3D-aware convolution [12] for cross-plane feature communication.
+The portrait image is resized to 256 × 256 and the resulting multi-scale features
+have the resolution of 128 × 128, 64 × 64, and 32 × 32. The conditional features
+are injected to the base diffusion model at layers with resolutions of 32 × 32,
+16 × 16, and 8 × 8, respectively, through cross attention. The upsample diffusion
+model only uses the conditional features of 128 × 128, which are injected to the
+middle latent features.
+For our base diffusion model, we adopt the UNet model architecture from [6].
+We train our base model using AdamW optimizer [8] with a learning rate 1e − 5.
+To condition on the multi-scale image features of input portrait as illustrated
+in Sec. 3.2, we perform cross attention at resolutions (32, 16, 8). Our optimized
+noise schedule is based on the cosine schedule mentioned in [3], and we further
+adjust its hyper-parameters for 3D diffusion training. We provide the detailed
+configurations of the model and diffusion below.
+⋆
+
+Interns at Microsoft Research Asia. Equal contribution. † Corresponding author.
+
+

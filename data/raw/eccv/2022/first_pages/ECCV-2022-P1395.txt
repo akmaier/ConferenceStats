@@ -1,0 +1,60 @@
+1
+
+A
+
+Implementation Details
+
+We use PyTorch [35] to implement all experiments on NVIDIA A100-40GB
+GPUs.
+A.1
+
+Classification Experiments
+
+VPT. We use val set of each dataset to find best prompt length p, see Sec. 3.2.
+The prompt length is the only VPT-specific hyper-parameter that we tune. For
+Transformer backbones, the range of p is {1, 5, 10, 50, 100, 200} and {1, 5, 10, 50}
+for ViT and Swin, respectively. The maximum choice of p is approximately close
+to the number of image patch tokens within each MSA for both architectures
+(ViT: 196, Swin: 49). We also apply a dropout of 0.1 for VPT-deep. For ConvNets, the range of p is {1, 3, 5, 7, 9, 11}. Each prompt is randomly initialized
+with xavier uniform initialization scheme [11]. We follow the original backbone’
+design choices, such as the existence of the classification tokens [CLS], or whether
+or not to use the final [CLS] embeddings for the classification head input.
+Adapter. Adapters [16] insert extra lightweight modules inside each Transformer layer. One adapter module generally consists of a linear down-projection
+(with a reduction rate r), followed by a nonlinear activation function, and a linear
+up-projection, together with a residual connection. [36,37] exhaustively searched
+all possible configurations and found that only inserting adapters after the FFN
+“Add & LayerNorm” sub-layer works the best. Therefore we also use this setup
+in our own implementation. We sweep the reduction rate r in {8, 64, 256}.
+Augmentation and other hyper-parameters. We adopt standard image
+augmentation strategy during training: normalize with ImageNet means and
+standard deviation, randomly resize crop to 224×224 and random horizontal
+flip for five FGVC datasets, and resize to 224×224 for the VTAB-1k suite.1
+Table 1. Implementation details for each fine-tuning method evaluated. ⋆: we observe
+that for VPT-shallow sometimes benefit from a larger base LR for 6 out of 24 tasks
+evaluated, where we search from {1000.0, 500.0, 250.0, 100.0}
+
+Full,Partial,Bias,Adapter
+Optimizer
+Optimizer momentum
+base lr range
+Weight decay range
+Learning rate schedule
+Warm up epochs
+Total epochs
+
+1
+
+Linear,Sidetune, Mlp, VPT
+
+AdamW [29]
+SGD
+0.9
+{0.001, 0.0001, 0.0005, 0.005} {50., 25., 10., 5., 2.5, 1.,0.5, 0.25, 0.1, 0.05}⋆
+{0.01, 0.001, 0.0001, 0.0}
+cosine decay
+10
+100 (ViT-B, Swin-B), 50 (ViT-L/H)
+
+Following the default settings in VTAB, we don’t adopt other augmentations
+
+

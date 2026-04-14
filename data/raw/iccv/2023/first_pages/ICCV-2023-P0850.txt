@@ -1,0 +1,124 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+AutoAD II: The Sequel – Who, When, and What in Movie Audio Description
+Tengda Han1
+1
+
+Max Bain1
+
+Arsha Nagrani1†
+
+Visual Geometry Group, University of Oxford
+
+2
+
+Gül Varol1,2
+
+Weidi Xie1,3
+
+LIGM, École des Ponts ParisTech
+
+3
+
+Andrew Zisserman1
+
+CMIC, Shanghai Jiao Tong University
+
+Abstract
+Audio Description (AD) is the task of generating descriptions of visual content, at suitable time intervals, for the
+benefit of visually impaired audiences. For movies, this
+presents notable challenges – AD must occur only during
+existing pauses in dialogue, should refer to characters by
+name, and ought to aid understanding of the storyline as a
+whole.
+To this end, we develop a new model for automatically
+generating movie AD, given CLIP visual features of the
+frames, the cast list, and the temporal locations of the
+speech; addressing all three of the ‘who’, ‘when’, and
+‘what’ questions: (i) who – we introduce a character bank
+consisting of the character’s name, the actor that played
+the part, and a CLIP feature of their face, for the principal cast of each movie, and demonstrate how this can be
+used to improve naming in the generated AD; (ii) when –
+we investigate several models for determining whether an
+AD should be generated for a time interval or not, based
+on the visual content of the interval and its neighbours; and
+(iii) what – we implement a new vision-language model for
+this task, that can ingest the proposals from the character
+bank, whilst conditioning on the visual features using crossattention, and demonstrate how this improves over previous
+architectures for AD text generation in an apples-to-apples
+comparison.
+
+1. Introduction
+For in acts we must take note of who did it, by what aids or
+instruments he did it (with), what he did, where he did it, why
+he did it, how and when he did it.
+Thomas Aquinas
+
+Audio Description (AD) is the descriptive narration of
+visual elements in a video, that are not represented in the
+original audio track. While there has been a proliferation
+of online content with closed captioning1 due to advancements in ASR, a vast majority of video online does not
+have AD, mostly due to the prohibitive cost of generat†: also at Google Research
+
+1 Transcription of the speech
+
+video
+audio
+subtitle
+
+what did you do?
+1:18:56
+
+Can I buy you a drink?
+1:19:12
+1:19:13
+
+1:18:57
+
+1:19:02
+
+1:19:05
+
+When to describe?
+movie database
+
+Who is in the scene?
+
+What happened?
+
+Possible characters: Jack Foley
+played by George Clooney; Karen
+Sisco played by Jennifer Lopez.
+
+Target AD: As Karen stares gloomily out of the
+window, Jack approaches toying with a lighter.
+
+Figure 1. AutoAD II: We propose an automatic AD system that
+addresses key challenges - when to generate AD, who is in the
+scene and what is happening visually.
+
+ing it ($30 per minute2 ). Generating AD automatically at
+scale has multiple benefits; not only does it improve access
+for the visually impaired – it may also enhance the visual
+experience for sighted users (sight-free multitasking such
+as driving, enhanced memory for visual details, language
+learning, and also aiding those with other cognitive disabilities) [41]. Generating AD for movies is also an important
+research area in computer vision as it requires a system to
+perform multi-modal reasoning of long videos over time.
+Despite these benefits, the progress in generating AD
+is still at a very nascent stage, due to the following challenges: (a) An ideal AD generation system should perform
+two tasks simultaneously – first, determine when to generate AD by proposing temporal segments; second, generate AD for the proposed segments. Previous works ignore
+the when completely, operating on already trimmed video
+segments [62]. (b) Secondly, given the strong relevance of
+characters to stories [27, 53], AD typically includes references to a character’s name (who is in the scene), their emotion, and their actions. This is particularly challenging as
+characters change from movie to movie. Due to anonymised
+test sets (LSMDC [45]), the relevance of character names in
+AD is often ignored [62]. (c) Finally, AD also differs significantly from image or video captioning [33, 35, 46] in
+that it does not need to provide descriptions of events that
+can be understood from the sound track alone (such as dia2 https://www.3playmedia.com/blog/select-audio-description-vendor/
+
+13645
+
+

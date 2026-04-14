@@ -1,0 +1,62 @@
+Visual Transformers: Where Do Transformers Really Belong in Vision Models?
+Bichen Wu1 , Chenfeng Xu2 , Xiaoliang Dai1 , Alvin Wan2 , Peizhao Zhang1 , Zhicheng Yan1 ,
+Masayoshi Tomizuka2 , Joseph Gonzalez2 , Kurt Keutzer2 , Peter Vajda1
+Facebook Inc, 2 University of California, Berkeley
+{wbc, xiaoliangdai, stzpz, zyan3, vajdap}@fb.com,
+{xuchenfeng, alvinwan, tomizuka, jegonzal, keutzer}@berkeley.edu
+1
+
+Abstract
+A recent trend in computer vision is to replace convolutions with transformers. However, the performance gain
+of transformers is attained at a steep cost, requiring GPU
+years and hundreds of millions of samples for training.
+This excessive resource usage compensates for a misuse
+of transformers: Transformers densely model relationships
+between its inputs – ideal for late stages of a neural network, when concepts are sparse and spatially-distant, but
+extremely inefficient for early stages of a network, when
+patterns are redundant and localized. To address these issues, we leverage the respective strengths of both operations, building convolution-transformer hybrids. Critically,
+in sharp contrast to pixel-space transformers, our Visual
+Transformer (VT) operates in a semantic token space, judiciously attending to different image parts based on context.
+Our VTs significantly outperforms baselines: On ImageNet,
+our VT-ResNets outperform convolution-only ResNet by 4.6
+to 7 points and transformer-only ViT-B by 2.6 points with
+2.5× fewer FLOPs, 2.1× fewer parameters. For semantic segmentation on LIP and COCO-stuff, VT-based feature
+pyramid networks (FPN) achieve 0.35 points higher mIoU
+while reducing the FPN module’s FLOPs by 6.5x.
+
+1. Introduction
+In computer vision, visual information is captured as arrays of pixels. These pixel arrays are then processed by
+convolutions, the de facto deep learning operator for computer vision. Although this convention has produced highly
+successful vision models, there are critical challenges:
+1) Not all pixels are created equal: Image classification
+models should prioritize foreground objects over the background. Segmentation models should prioritize pedestrians
+over disproportionately large swaths of sky, road, vegetation etc. Nevertheless, convolutions uniformly process all
+image patches regardless of importance. This leads to spa-
+
+tial inefficiency in both computation and representation.
+2) Not all images have all concepts: Low-level features
+such as corners and edges exist in all natural images, so applying low-level convolutional filters to all images is appropriate. However, high-level features such as ear shape exist
+in specific images, so applying high-level filters to all images is computationally inefficient. For example, dog features may not appear in images of flowers, vehicles, aquatic
+animals etc. This results in rarely-used, inapplicable filters
+expending a significant amount of compute.
+3) Convolutions struggle to relate spatially-distant
+concepts: Each convolutional filter is constrained to operate on a small region, but long-range interactions between
+semantic concepts is vital. To relate spatially-distant concepts, previous approaches increase kernel sizes, increase
+model depth, or adopt new operations like dilated convolutions, global pooling, and non-local attention layers. However, by working within the pixel-convolution paradigm,
+these approaches at best mitigate the problem, compensating for the convolution by adding model complexity.
+To overcome the above challenges, we address the root
+cause and introduce the Visual Transformer (VT) (Figure
+1) to represent and process high-level concepts in images.
+Our intuition is that a sentence with a few words (or visual tokens) suffices to describe high-level concepts in a
+late-stage feature map. This motivates a departure from
+the fixed pixel-array representation later in the network; instead, we use spatial attention to convert the feature map
+into a compact set of semantic tokens. We then feed these
+tokens to a self-attention module or transformer [39] to capture token interactions. The resulting visual tokens computed can be directly used for image-level prediction tasks
+(e.g., classification) or be spatially re-projected to the feature map for pixel-level prediction tasks (e.g., segmentation). Unlike late-stage convolutions, our VT addresses the
+three challenges: 1) judiciously allocating computation by
+attending to important regions, instead of treating all pixels
+equally; 2) encoding semantic concepts in a few visual to-
+
+599
+
+

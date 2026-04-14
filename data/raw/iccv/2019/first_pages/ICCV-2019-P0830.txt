@@ -1,0 +1,117 @@
+Conservative Wasserstein Training for Pose Estimation
+Xiaofeng Liu1,2†∗ , Yang Zou1† , Tong Che3† , Peng Ding4 , Ping Jia4 , Jane You5 , B.V.K. Vijaya Kumar1
+1
+
+Carnegie Mellon University; 2 Harvard University; 3 MILA
+4
+CIOMP, Chinese Academy of Sciences; 5 The Hong Kong Polytechnic University
+†
+
+Contribute equally ∗ Corresponding to: liuxiaofengcmu@gmail.com
+
+Abstract
+This paper targets the task with discrete and periodic
+class labels (e.g., pose/orientation estimation) in the context of deep learning. The commonly used cross-entropy or
+regression loss is not well matched to this problem as they
+ignore the periodic nature of the labels and the class similarity, or assume labels are continuous value. We propose to
+incorporate inter-class correlations in a Wasserstein training framework by pre-defining (i.e., using arc length of a
+circle) or adaptively learning the ground metric. We extend
+the ground metric as a linear, convex or concave increasing
+function w.r.t. arc length from an optimization perspective.
+We also propose to construct the conservative target labels
+which model the inlier and outlier noises using a wrapped
+unimodal-uniform mixture distribution. Unlike the one-hot
+setting, the conservative label makes the computation of
+Wasserstein distance more challenging. We systematically
+conclude the practical closed-form solution of Wasserstein
+distance for pose data with either one-hot or conservative
+target label. We evaluate our method on head, body, vehicle and 3D object pose benchmarks with exhaustive ablation studies. The Wasserstein loss obtaining superior performance over the current methods, especially using convex mapping function for ground metric, conservative label,
+and closed-form solution.
+
+1. Introduction
+There are some prediction tasks where the output labels
+are discrete and are periodic. For example, consider the
+problem of pose estimation. Although pose can be a continuous variable, in practice, it is often discretized e.g., in
+5-degree intervals. Because of the periodic nature of pose,
+a 355-degree label is closer to 0-degree label than the 10degree label. Thus it is important to consider the periodic
+and discrete nature of the pose classiﬁcation problem.
+In previous literature, pose estimation is often cast as a
+multi-class classiﬁcation problem [49], a metric regression
+
+‫ݐ‬௝‫כ‬
+
+Pose with true label
+Expected probability (i.e., 1 in one-hot case)
+
+‫ݏ‬௝‫כ‬
+
+More ideaů
+Distribution
+
+‫ݏ‬ଷ
+
+‫ݏ‬ଶ
+
+‫ݏ‬ଵ
+
+‫ݏ‬଴
+
+‫ݏ‬ேିଵ
+
+‫ݏ‬ேିଶ
+
+‫ݐ‬௝‫כ‬
+
+Probability of Softmax prediction
+of each pose (σேିଵ
+௜ୀ଴ ‫ݏ‬௜ ൌ ͳ)
+
+‫ݏ‬௝‫כ‬
+
+Same
+Cross-entropy
+
+Inferior
+Distribution
+
+‫ݏ‬ଷ
+
+‫ݏ‬ଶ
+
+‫ݏ‬ேିଶ
+
+‫ݏ‬ଵ
+
+‫ݏ‬଴
+
+‫ݏ‬ேିଵ
+
+Figure 1. The limitation of CE loss for pose estimation. The
+ground truth direction of the car is tj ∗. Two possible softmax
+predictions (green bar) of the pose estimator have the same probability at tj ∗ position. Therefore, both predicted distributions have
+the same CE loss. However, the left prediction is preferable to the
+right, since we desire the predicted probability distribution to be
+larger and closer to the ground truth class.
+
+problem [46], or a mixture of both [37].
+In a multi-class classiﬁcation formulation using the
+cross-entropy (CE) loss, the class labels are assumed to be
+independent from each other [49, 25, 33]. Therefore, the
+inter-class similarity is not properly exploited. For instance,
+in Fig. 1, we would prefer the predicted probability distribution to be concentrated near the ground truth class, while
+the CE loss does not encourage that.
+On the other hand, metric regression methods treat the
+pose as a continuous numerical value [35, 27, 31], although the label of pose itself is discrete. As manifested
+in [36, 30, 26], learning a regression model using discrete
+labels will cause over-ﬁtting and exhibit similar or inferior
+performance compared with classiﬁcation.
+Recent works either use a joint classiﬁcation and regression loss [37] or divide a circle into several sectors with a
+coarse classiﬁcation that ignores the periodicity, and then
+applying regression networks to each sector independently
+as an ordinal regression problem [20]. Unfortunately, none
+of them fundamentally address the limitations of CE or regression loss in angular data.
+In this work, we employ the Wasserstein loss as an alternative for empirical risk minimization. The 1st Wasser-
+
+8262
+
+

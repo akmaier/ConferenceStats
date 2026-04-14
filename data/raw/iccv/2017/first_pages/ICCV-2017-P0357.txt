@@ -1,0 +1,63 @@
+Incremental Learning of Object Detectors without Catastrophic Forgetting
+Konstantin Shmelkov
+
+Cordelia Schmid
+
+Karteek Alahari
+
+Inria∗
+Abstract
+Despite their success for object detection, convolutional
+neural networks are ill-equipped for incremental learning,
+i.e., adapting the original model trained on a set of classes
+to additionally detect objects of new classes, in the absence of the initial training data. They suffer from “catastrophic forgetting”—an abrupt degradation of performance
+on the original set of classes, when the training objective
+is adapted to the new classes. We present a method to address this issue, and learn object detectors incrementally,
+when neither the original training data nor annotations for
+the original classes in the new training set are available.
+The core of our proposed solution is a loss function to balance the interplay between predictions on the new classes
+and a new distillation loss which minimizes the discrepancy between responses for old classes from the original
+and the updated networks. This incremental learning can
+be performed multiple times, for a new set of classes in
+each step, with a moderate drop in performance compared
+to the baseline network trained on the ensemble of data. We
+present object detection results on the PASCAL VOC 2007
+and COCO datasets, along with a detailed empirical analysis of the approach.
+
+1. Introduction
+Modern detection methods, such as [4,32], based on convolutional neural networks (CNNs) have achieved state-ofthe-art results on benchmarks such as PASCAL VOC [10]
+and COCO [24]. This, however, comes with a high training time to learn the models. Furthermore, in an era where
+datasets are evolving regularly, with new classes and samples, it is necessary to develop incremental learning methods. A popular way to mitigate this is to use CNNs pretrained on a certain dataset for a task, and adapt them to
+new datasets or tasks, rather than train the entire network
+from scratch.
+Fine-tuning [15] is one approach to adapt a network to
+new data or tasks. Here, the output layer of the original network is adjusted, either by replacing it with classes corre∗ Univ. Grenoble Alpes, Inria, CNRS, Grenoble INP, LJK, 38000
+Grenoble, France.
+
+Figure 1. Catastrophic forgetting. An object detector network originally trained for three classes, including person, detects the rider
+(top). When the network is retrained with images of the new class
+horse, it detects the horse in the test image, but fails to localize the
+rider (bottom).
+
+sponding to the new task, or by adding new classes to the existing ones. The weights in this layer are then randomly initialized, and all the parameters of the network are tuned with
+the objective for the new task. While this framework is very
+successful on the new classes, its performance on the old
+ones suffers dramatically, if the network is not trained on all
+the classes jointly. This issue, where a neural network forgets previously learned knowledge when adapted to a new
+task, is referred to as catastrophic interference or forgetting.
+It has been known for over a couple of decades in the context of feedforward fully connected networks [25, 30], and
+needs to be addressed in the current state-of-the-art object
+detector networks, if we want to do incremental learning.
+Consider the example in Figure 1. It illustrates catastrophic forgetting when incrementally adding a class, horse
+in this object detection example. The first CNN (top) is
+trained on three classes, including person, and localizes the
+rider in the image. The second CNN (bottom) is an incrementally trained version of the first one for the category
+horse. In other words, the original network is adapted with
+images from only this new class. This adapted network localizes the horse in the image, but fails to detect the rider,
+which it was capable of originally, and despite the fact that
+the person class was not updated. In this paper, we present
+a method to alleviate this issue.
+
+3400
+
+

@@ -1,0 +1,54 @@
+1
+
+A
+
+Implementation Details
+
+A.1
+
+Proximal Policy Optimization (PPO) Algorithm
+
+Proximal Policy Optimization (PPO) algorithm offers a balance between sample
+efficiency and ease of implementation. In this section, we elaborate in more detail
+of the PPO algorithm adopted in our paper. First, consider a surrogate objective:
+  {L}^{\textnormal {CPI}}(\bm {\phi }) = \mathbb {E}_{t} \left [ \frac {\bm {\pi }_{\bm {\phi }}(\bm {a}_t|\bm {s}_t)}{\bm {\pi }_{\bm {\phi }_{\textnormal {old}}}(\bm {a}_t|\bm {s}_t)} \hat {A}_t \right ], \label {eq:ppo_cpi} 
+where πϕ and πϕold are the policy network before and after the update, respectively. The advantage estimator Ât is computed by:
+  \hat {A}_t = -V(\bm {s}_t) + R(\bm {s}_T, \bm {a}_T), 
+where V (st ) is a learned state-value function. This objective function effectively
+π (a |s )
+maximizes the probability ratio ρt (ϕ) = πϕϕ (at t |st t ) when considering the adold
+
+vantage of taking action at in state st . However, directly maximizing LCPI (ϕ)
+usually leads to an excessively large policy update, hence, we consider how to
+modify the objective, to penalize changes to the policy that move ρt (ϕ) away
+from 1. This gives rise to the clipped surrogate objective:
+
+  {L}^{\textnormal {CLIP}}(\bm {\phi }) = \mathbb {E}_{t} \Bigg [ \min \left ( \rho _t({\bm {\phi }}) \hat {A}_t, \text {clip}\left (\rho _t({\bm {\phi }}), 1-\epsilon , 1+\epsilon \right ) \hat {A}_t \right )\Bigg ] \label {eq:ppo_clip} 
+where ϵ is a hyper-parameter that controls the range of the probability ratio.
+Finally, to learn the state-value function, we additionally add a term for value
+function estimation error to the objective following [20], which results in the
+objective in Eq. 11 in our main paper.
+
+A.2
+
+Architecture
+
+Our policy network consists of a depth-wise convolution layer, a point-wise convolution layer and a multi-layer perceptron (MLP). We take the NAT model’s
+output feature as the generation status input, and additionally use adaptive
+layernorm (AdaLN) [15, 16] layers to incorporate timestep information into the
+policy network. The architecture of the adversarial reward model follows the discriminator in StyleGAN-T [18]. Notably, the policy network is highly lightweight,
+incurring negligible additional inference cost:
+model
+T
+AdaNAT-S 4
+
+infer. cost (all)
+184.5 GFLOPs
+
+infer. cost (policy)
+0.064 GFLOPs
+
+proportion (policy/all)
+0.03%
+
+

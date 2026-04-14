@@ -1,0 +1,72 @@
+Rethinking and Improving Relative Position Encoding for Vision Transformer
+Kan Wu1,2,3,∗ , Houwen Peng3,∗,† , Minghao Chen3 , Jianlong Fu3 , Hongyang Chao1,2
+1
+
+2
+
+School of Computer Science and Engineering, Sun Yat-sen University
+
+The Key Laboratory of Machine Intelligence and Advanced Computing (Sun Yat-sen University), Ministry of Education
+3
+
+Microsoft Research Asia
+
+Abstract
+Relative position encoding (RPE) is important for transformer to capture sequence ordering of input tokens. General efﬁcacy has been proven in natural language processing. However, in computer vision, its efﬁcacy is not well
+studied and even remains controversial, e.g., whether relative position encoding can work equally well as absolute
+position? In order to clarify this, we ﬁrst review existing relative position encoding methods and analyze their
+pros and cons when applied in vision transformers. We
+then propose new relative position encoding methods dedicated to 2D images, called image RPE (iRPE). Our methods
+consider directional relative distance modeling as well as
+the interactions between queries and relative position embeddings in self-attention mechanism. The proposed iRPE
+methods are simple and lightweight. They can be easily plugged into transformer blocks. Experiments demonstrate that solely due to the proposed encoding methods,
+DeiT [21] and DETR [1] obtain up to 1.5% (top-1 Acc)
+and 1.3% (mAP) stable improvements over their original
+versions on ImageNet and COCO respectively, without tuning any extra hyperparameters such as learning rate and
+weight decay. Our ablation and analysis also yield interesting ﬁndings, some of which run counter to previous understanding. Code and models are open-sourced at
+https://github.com/microsoft/Cream/tree/main/iRPE.
+
+1. Introduction
+Transformer recently has drawn great attention in computer vision because of its competitive performance and superior capability in capturing long-range dependencies [1,
+2, 7, 21, 24]. The core of transformer is self-attention [22],
+which is capable of modeling the relationship of tokens in
+a sequence. Self-attention, however, has an inherent deﬁciency — it cannot capture the ordering of input tokens.
+∗ Equal contributions. Work performed when Kan and Minghao were
+interns of MSRA. † Corresponding author: houwen.peng@microsoft.com
+
+Therefore, incorporating explicit representations of position
+information is especially important for transformer, since
+the model is otherwise entirely invariant to sequence ordering, which is undesirable for modeling structured data.
+There are mainly two classes of methods to encode positional representations for transformer. One is absolute,
+while the other is relative. Absolute methods [8, 22] encode the absolute positions of input tokens from 1 to maximum sequence length. That is, each position has an individual encoding vector. The encoding vector is then combined
+with the input token to expose positional information to the
+model. On the other hand, relative position methods [4, 17]
+encode the relative distance between input elements and
+learn the pairwise relations of tokens. Relative position
+encoding (RPE) is commonly calculated via a look-up table with learnable parameters interacting with queries and
+keys in self-attention modules [17]. Such scheme allows the
+modules to capture very long dependencies between tokens.
+Relative position encoding has been veriﬁed to be effective
+in natural language processing [4, 6, 15, 25]. However, in
+computer vision, the efﬁcacy is still unclear. There are few
+recent works [3, 7, 18] shedding light on it, but obtaining
+controversial conclusions in vision transformers. For example, Dosovitskiy et al. [7] observed that the relative position
+encoding does not bring any gain comparing to the absolute one (please refer to Tab. 8 in [7]). On the contrary,
+Srinivas et al. [18] found that relative position encoding can
+induce an apparent gain, being superior to the absolute one
+(please refer to Tab. 4 in [18]). Moreover, the mostly recent
+work [3] claims that the relative positional encoding cannot
+work equally well as the absolute ones (please refer to Tab.
+5 in [3]). These works draw different conclusions on the
+effectiveness of relative position encoding in models, that
+motivates us to rethink and improve the usage of relative
+positional encoding in vision transformer.
+On the other hand, the original relative position encoding
+is proposed for language modeling, where the input data is
+1D word sequences [4, 17, 22]. But for vision tasks, the
+inputs are usually 2D images or video sequences, where
+the pixels are highly spatially structured. It is unclear that:
+
+10033
+
+

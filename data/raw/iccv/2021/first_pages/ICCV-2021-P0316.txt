@@ -1,0 +1,81 @@
+PreDet: Large-scale weakly supervised pre-training for detection
+Vignesh Ramanathan
+Facebook AI
+
+Rui Wang
+Facebook AI
+
+Dhruv Mahajan
+Facebook AI
+
+vigneshr@fb.com
+
+ruiw@fb.com
+
+dhruvm@fb.com
+
+Abstract
+State-of-the-art object detection approaches typically
+rely on pre-trained classification models to achieve better
+performance and faster convergence. We hypothesize that
+classification pre-training strives to achieve translation invariance, and consequently ignores the localization aspect
+of the problem. We propose a new large-scale pre-training
+strategy for detection, where noisy class labels are available for all images, but not bounding-boxes. In this setting, we augment standard classification pre-training with a
+new detection-specific pretext task. Motivated by the noisecontrastive learning based self-supervised approaches, we
+design a task that forces bounding boxes with high-overlap
+to have similar representations in different views of an image, compared to non-overlapping boxes. We redesign
+Faster R-CNN modules to perform this task efficiently. Our
+experimental results show significant improvements over
+existing weakly-supervised and self-supervised pre-training
+approaches in both detection accuracy as well as finetuning speed.
+
+1. Introduction
+We address the problem of large-scale weakly supervised
+pre-training for detection, where we assume that noisy classification labels are available for images, but localization
+(bounding-boxes) information is missing. Almost all stateof-the-art approaches use pre-trained classification models
+and fine-tune them for detection tasks. Fine-tuning mainly
+yields two significant benefits: (a) improved accuracy and
+(b) speedup in training for detection. Recently, there has
+been a lot of work on large-scale [51, 34] pre-training of
+classification models with noisy labels from the web. However, the benefits are more pronounced for classification
+tasks compared to detection or instance segmentation [34].
+We hypothesize that pre-training for classification tasks
+overemphasizes translation invariance [26] as shown in
+Fig. 1. Different crops of an image that share similar content but do not have high overlap are required to be similar
+to each other. As seen in the figure, this runs contrary to the
+
+classification
+pre-training
+
+dissimilar
+
+PreDet
+
+Figure 1. Consider the bounding boxes shown on the left. In classification pre-training, it is desirable for the model to learn similar
+representations for all of them to incorporate translation invariance. However, this is undesirable for detection, which requires
+bounding boxes with small or no overlap to be dissimilar. This
+forms the core of our pre-training method, which uses a pretext
+task to force the model to distinguish the non-overlapping boxes.
+
+detection objective and could result in feature representations that are sub-par for the target detection task. In theory,
+this could be handled by pre-training a detection model on a
+large dataset from scratch. However, this is impractical due
+to the huge effort required to annotate bounding boxes for
+images at that scale. Instead, we propose to supplement the
+standard classification pre-training task with a novel selfsupervised pretext task that is closer to detection.
+Recent self-supervised approaches such as MoCo[18]
+have shown that maximizing the agreement between two
+views (constructed via transformations) of the same image
+and minimizing it for different images works really well for
+feature learning. These tasks typically require a dictionarylookup, wherein one view serves as the query, while the
+other view is part of a dictionary. In our approach, we extend this idea to detection. We use a bounding box from
+one-view of an image as a query to retrieve the same bounding box (or a box highly overlapping with it) from another
+view of the image. We refer to this task as query-box
+lookup. This ensures that boxes with sufficiently high overlap are similar to each other, while non-overlapping boxes
+have distinct representations.
+Ideally, the query-box should be retrieved from the set
+of all bounding boxes in the image. However, this is too
+
+2865
+
+

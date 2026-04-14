@@ -1,0 +1,45 @@
+Supplementary Materials for
+“ParticleSfM: Exploiting Dense Point Trajectories
+for Localizing Moving Cameras in the Wild”
+Wang Zhao1,3 , Shaohui Liu2,3 , Hengkai Guo3 ,
+Wenping Wang4 , and Yong-Jin Liu1
+1
+
+A
+
+Tsinghua University 2 ETH Zurich 3 ByteDance Inc. 4 Texas A&M University
+
+More Implementation Details
+
+Point Trajectory. We use the pretrained raft-things model for RAFT [16] in all
+our experiments. It is trained on FlyingChairs and FlyingThings3D [10]. For
+optical flow forward-backward consistency check, we use the threshold of 1px for
+MPI Sintel dataset [2], and 3px for ScanNet dataset [4].
+Motion Segmentation. For training trajectory motion segmentation network, we
+first prepare the trajectory data of FlyingThings3D dataset [10]. The dataset
+consists of over 2000 training scenes, and each scene contains 10 video frames,
+together with groundtruth optical flow, camera parameters and depth maps. We
+run our dense point trajectory generation algorithm to track trajectories from
+groundtruth optical flows, and then calculate trajectory groundtruth motion
+labels by comparing optical flow with rigid flow from depths and camera poses.
+We infer the relative depth information by pretrained MiDaS [13] model. For all
+experiments, we use the pretrained midas-v21 model. During training, we directly
+take all the point trajectories from 10 video frames and output the per-trajectory
+motion label. Weighted binary cross-entropy loss is then applied.
+Global Bundle Adjustment (BA). The implementation of our pipeline is mainly
+based on the Theia SfM system [15]. With the dense correspondences sampled
+from the point trajectories, we first compute two-view geometry [5] between
+valid image pairs and decompose the relative poses. In particular, the view pairs
+with very few or extremely noisy correspondences are detected with geometric
+verification [14] and ignored in the subsequent stages. Then, L1-IRLS rotation
+averaging [3] is applied to estimate the global orientations from the relative
+rotations among those valid pairs. After filtering outlier pairs with large errors
+on the relative rotations, we solve for the relative translations with the global
+rotations and apply LUD translation averaging [12] to get global translations.
+With these initial global poses, we incrementally triangulate 2D observations as
+in [14] and perform bundle adjustment on all the poses and 3D points to get the
+final output camera poses. Note that since we triangulate over the correspondences
+directly sampled from the dense point trajectories, each constraint in the bundle
+adjustment exactly corresponds to a part of the original point trajectory with
+
+

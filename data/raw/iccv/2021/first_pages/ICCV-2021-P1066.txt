@@ -1,0 +1,101 @@
+Low-Shot Validation: Active Importance Sampling
+for Estimating Classifier Performance on Rare Categories
+Fait Poms*1
+
+Vishnu Sarukkai*1
+
+William R. Mark3
+
+Ravi Teja Mullapudi2
+
+Deva Ramanan2,4
+
+Nimit S. Sohoni1
+
+Kayvon Fatahalian1
+
+Abstract
+For machine learning models trained with limited labeled training data, validation stands to become the main
+bottleneck to reducing overall annotation costs. We propose a statistical validation algorithm that accurately estimates the F-score of binary classifiers for rare categories,
+where finding relevant examples to evaluate on is particularly challenging. Our key insight is that simultaneous
+calibration and importance sampling enables accurate estimates even in the low-sample regime (< 300 samples).
+Critically, we also derive an accurate single-trial estimator of the variance of our method and demonstrate that
+this estimator is empirically accurate at low sample counts,
+enabling a practitioner to know how well they can trust
+a given low-sample estimate. When validating state-ofthe-art semi-supervised models on ImageNet and iNaturalist2017, our method achieves the same estimates of model
+performance with up to 10× fewer labels than competing
+approaches. In particular, we can estimate model F1 scores
+with a variance of 0.005 using as few as 100 labels.
+
+1. Introduction
+As model training techniques become increasingly label efficient, model validation stands to become a dominant
+fraction of overall data annotation costs. For example, stateof-the-art semi-supervised [3, 9, 2], weakly supervised [19],
+few-shot [7, 15], and active learning [25, 4, 8, 24] techniques all offer the promise of training models using a
+small number of human-labeled examples, but validating
+the resulting models typically uses large, human-annotated
+datasets. As a result, the cost of annotating validation sets
+is a significant factor limiting rapid model development.
+In this paper we focus on the challenge of efficiently validating binary image classifiers for rare categories (positive instances are ≤ 0.1% of the dataset). Building binary
+classification models for rare categories is common in realworld settings—wildlife preservation monitoring requires
+identifying rare flora and fauna species; autonomous vehi* Both authors contributed equally to this paper
+1 Stanford University
+2 Carnegie Mellon University
+3 Google
+4 Argo AI
+
+Training dataset
+
+Validation dataset
+
+70% of labeled data
+
+Total labels
+
+30%
+
+100%
+
+30%
+
+31%
+
+Semi-supervised, weakly supervised, few-shot
+
+Unlabeled data
+
+1%
+
+Low-shot validation
+Unlabeled data
+
+1%
+
+Unlabeled 1%
+
+2%
+
+Figure 1: Recent model training techniques such as selfsupervised learning, few-shot learning, and weakly supervised learning have made it possible to train models with
+a fraction of the traditional fully supervised training set.
+However, these methods still mostly evaluate using a large
+validation set. In this paper, we focus on low-shot validation, which addresses the high relative cost of collecting labeled validation data for models trained using label-efficient
+techniques.
+cles must recognize rare categories, like baby strollers, to
+avoid collisions. The validation problem is particularly difficult for rare categories: while it is easy to collect a large
+amount of unlabeled data, finding even a small number of
+positives via uniform random sampling can require labeling
+thousands of images.
+Given a binary classification model to validate and a
+large unlabeled dataset, our goal is to estimate the model’s
+F-score [29] on the data using a small number of annotated
+data samples. The F-score of a model depends on the distribution of the model’s predicted labels, which are known,
+and the dataset’s ground-truth labels, which require data
+annotation. Importance sampling [27] is a powerful theoretical tool for stochastically sampling the most important
+points in a dataset to label, but the efficiency of estimating
+F-scores using importance sampling depends on accurate
+knowledge of the likelihood that a given sample is a positive. Therefore, the key challenge in using importance sampling for efficiently computing F-scores is model calibration, the task of predicting the likelihood that a given sample is a positive, conditioned on the model scores. Given
+this observation, we propose an active sampling algorithm
+that alternates between acquiring labels used to train an iso-
+
+10705
+
+

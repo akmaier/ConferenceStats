@@ -1,0 +1,41 @@
+ProMerge: Prompt and Merge
+for Unsupervised Instance Segmentation
+Supplementary Materials
+We first provide pseudo-code for our approach (Sec. 1) along with further
+details about our experiments (Sec. 2) and additional ablation studies (Sec. 3).
+We also visualize qualitative results in Sec. 4.
+
+1
+
+Pseudo-code for ProMerge
+
+In this section, we provide pseudo-code for our method (see Algorithm 1) along
+with brief descriptions for four components: (i) prompting, (ii) background aggregation, (iii) Cascade filtering, and (iv) merging.
+Prompting. Our approach generates initial mask proposals by employing pointprompting on visual features extracted from an image using an image encoder,
+such as a ViT [4], and creating affinity matrices based on cosine similarities between selected prompt tokens and all patch tokens. In this prompting stage, we
+use a hyperparameter for stride, representing the distance between two neighboring prompt tokens. We use a default value of 4. In our standard implementation,
+we use DINO [2] features of spatial dimensions 60 × 60 and generate 225 mask
+proposals, which we then classify into background and foreground categories.
+We use another hyperparameter, τb , to threshold the cosine similarity between the embeddings of the seed prompt token and the other patches in the
+affinity matrix. This step allows us to translate continuous affinities into discrete masks for each seed prompt. For our experiments, we set τb = 0.2, unless
+otherwise stated.
+Following the prompting, we split connected components from each foreground mask into separate masks, which helps separate a single large mask
+covering multiple instances.
+Background aggregation. After prompting visual features, binary masks are
+classified as foreground or background. Background masks are identified by the
+presence of numerous positive pixels along multiple image edges, and a representative background mask is created using a pixel-wise voting scheme from these
+candidates.
+Cascade filtering. In Cascade filtering, prompted masks are first sorted by
+area in ascending order, then processed sequentially to track new pixels added by
+each mask. Masks that significantly overlap with the background, as determined
+by Intersection over Area (IoA) and feature similarity, are excluded from the
+bg
+merging process. For this, we use hyperparameters, τIoA
+and τfbg . If a new mask
+mainly introduces pixels that intersect with the background or shares a high
+feature similarity with the background, we do not include it in the merging
+bg
+process. We set τIoA
+= 0.8 and τfbg = 0.1 by default.
+
+

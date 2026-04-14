@@ -1,0 +1,104 @@
+Keep CALM and Improve Visual Feature Attribution
+Jae Myung Kim1 *
+1
+3
+
+University of Tübingen
+
+Zeynep Akata1,3,4
+
+Junsuk Choe2 *
+2
+
+Seong Joon Oh5†
+
+Department of Computer Science and Engineering, Sogang University
+
+Max Planck Institute for Intelligent Systems
+
+4
+
+Max Planck Institute for Informatics
+
+5
+
+NAVER AI Lab
+
+Abstract
+The class activation mapping, or CAM, has been the cornerstone of feature attribution methods for multiple vision
+tasks. Its simplicity and effectiveness have led to wide applications in the explanation of visual predictions and weaklysupervised localization tasks. However, CAM has its own
+shortcomings. The computation of attribution maps relies
+on ad-hoc calibration steps that are not part of the training computational graph, making it difficult for us to understand the real meaning of the attribution values. In this
+paper, we improve CAM by explicitly incorporating a latent variable encoding the location of the cue for recognition in the formulation, thereby subsuming the attribution
+map into the training computational graph. The resulting model, class activation latent mapping, or CALM, is
+trained with the expectation-maximization algorithm. Our
+experiments show that CALM identifies discriminative attributes for image classifiers more accurately than CAM
+and other visual attribution baselines. CALM also shows
+performance improvements over prior arts on the weaklysupervised object localization benchmarks. Our code is
+available at https://github.com/naver-ai/calm.
+
+1. Introduction
+Interpretable AI [25, 40, 24, 52] is becoming an absolute necessity in safety-critical and high-stakes applications
+of machine learning. Along with good recognition and prediction accuracies, we require models to be able to transparently communicate the inner mechanisms with human
+users. In visual recognition tasks, researchers have developed various feature attribution methods to inspect contributions of individual pixels or visual features towards the final model prediction. Input gradients [55, 56, 58, 5, 63, 39,
+28] and input perturbation methods [59, 70, 20, 43, 23, 47]
+have been actively researched.
+In this paper, we focus on the class activation mapping
+(CAM) [68] method, which has been the cornerstone of
+* Equal contribution. Majority of work done at NAVER AI Lab.
+† Corresponding author.
+
+GT class: A
+
+wing
+
+CAM for class A
+
+CAM for class B
+
+Why class A not B?
+
+CALM for class A
+
+CALM for class B
+
+Why class A not B?
+
+head
+
+How is A ≠ B ?
+
+Figure 1. CAM vs CALM. CALM is better at locating the actual
+cues used for the recognition than CAM. Two bird classes A and B
+only differ in their head and wing attributes. Attributions for class
+A, B, and their difference are shown. While CAM fails to detect
+the head and wing, CALM captures them accurately.
+
+the feature attribution research. CAM starts from the observation that many CNN classifiers make predictions by
+aggregating location-wise
+ signals. For example, p(y|x) =
+P
+1
+softmax HW
+f
+hw yhw where f = f (x) is the extracted
+feature map in RC×H×W where C, H, W are the number
+of classes, height, and width of the feature map, respectively. CAM considers the pre-GAP feature map fyhw as
+the attribution, after scaling it to the [0, 1] range by dropping
+the negative values and dividing through by the maximum
+value: s := (maxhw fhw )−1 f + ∈ [0, 1]H×W . Thanks
+to the algorithmic simplicity and reasonable effectiveness,
+CAM has been a popular choice as an attribution method
+with many follow-up variants [53, 9, 6, 69, 61, 45, 22].
+Despite its popularity and contributions to the interpretability community, CAM still has its own limitations.
+What does the attribution map s really mean? We fail to find
+a reasonable linguistic description because s hardly encodes
+anything essential in the recognition process. s also violates
+key minimal requirements, or “axioms” [40, 59, 22], for an
+attribution method. For example, its dependence on the presoftmax values f make it ill-defined: translating f 7→ f + c
+yields an identical model because of the translation invariance of softmax, but it changes the attribution map s.
+We thus introduce a novel attribution method, class ac-
+
+8350
+
+

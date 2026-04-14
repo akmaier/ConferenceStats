@@ -1,0 +1,92 @@
+Learning to Match Features with Seeded Graph Matching Network
+Hongkai Chen1 Zixin Luo1 Jiahui Zhang2 Lei Zhou1 Xuyang Bai1 Zeyu Hu1
+Chiew-Lan Tai1 Long Quan1
+1
+
+Hong Kong University of Science and Technology
+
+2
+
+Tsinghua University
+
+{hchencf,zluoag,lzhouai,xbaiad,zhuam,taicl,quan}@cse.ust.hk
+
+jiahui-z15@mails.tsinghua.edu.cn
+
+Abstract
+Matching local features across images is a fundamental problem in computer vision. Targeting towards high accuracy and efficiency, we propose Seeded Graph Matching
+Network, a graph neural network with sparse structure to
+reduce redundant connectivity and learn compact representation. The network consists of 1) Seeding Module, which
+initializes the matching by generating a small set of reliable matches as seeds. 2) Seeded Graph Neural Network,
+which utilizes seed matches to pass messages within/across
+images and predicts assignment costs. Three novel operations are proposed as basic elements for message passing:
+1) Attentional Pooling, which aggregates keypoint features
+within the image to seed matches. 2) Seed Filtering, which
+enhances seed features and exchanges messages across images. 3) Attentional Unpooling, which propagates seed features back to original keypoints. Experiments show that our
+method reduces computational and memory complexity significantly compared with typical attention-based networks
+while competitive or higher performance is achieved.
+
+1. Introduction
+Establishing reliable correspondences across images is
+an essential step to recover relative camera pose and scene
+structure in many computer vision tasks, sush as Structurefrom-Motion (SfM) [37], Multiview Stereo(MVS) [17] and
+Simultaneous Localization and Mapping (SLAM) [31]. In
+classical pipelines, correspondences are obtained by nearest
+neighbour search (NN) of local feature descriptors and are
+usually further pruned by heuristic tricks, such as mutual
+nearest neighbour check (MNN) and ratio test (RT) [24].
+In the past few years, great efforts have been made on
+designing learnable matching strategy. Early works [60, 43,
+62] in this direction utilize PointNet [32]-like networks to
+reject outliers of putative correspondences. In these works,
+the correspondence coordinates are fed into permutationequivariant networks, then inlier likelihood scores are predicted for each correspondence. Despite showing exciting
+results, these methods are limited in two aspects: 1) They
+
+Self Attention
+
+Cross Attention
+
+(a) SuperGlue
+
+�2
+�2
+
+Attentional Pooling
+
+Seed Filtering
+
+Attentional Unpooling
+
+�×�
+�2
+�×�
+
+(b) SGMNet
+
+Figure 1. The designs of message passing layer. (a) SuperGlue
+densely connects every node in the graph, resulting in O(N 2 )
+computational complexity. (b) Instead, the proposed network,
+SGMNet, adopts pooling/unpooling operations, reducing the complexity to O(N K), where K ≪ N in general.
+
+operate on pre-matched correspondences, whereas finding
+more matches than vanilla nearest-neighbour matching is
+impossible. 2) They only reason about the geometric distribution of putative correspondences, neglecting the critical
+information of original local visual descriptors.
+Another thread of methods cast feature matching as a
+graph matching problem [35, 5, 49], which mitigates the
+limit of vanilla nearest neighbour correspondences. The
+representative work, SuperGlue [35], constructs denselyconnected graphs between image keypoints to exchange
+messages about both visual and geometric context. However, the superior performance comes along with high computation and memory cost, especially when being applied
+to keypoints of larger number (e.g. up to 10k). As illustrated in Fig. 1(a), the message passing layer of SuperGlue
+first calculates similarity scores exhaustively between every
+two nodes, then gathers features to pass messages densely
+in the graph. This results in computational complexity of
+O(N 2 C) for matrix multiplications, and memory occupation of O(N 2 ) to hold the attention matrix, supposing that
+the keypoint number is N and feature channel is C. The
+complexity increases even drastically for deeper graph networks. Given this, exploring more efficient and compact
+message passing operation is of practical significance.
+Besides the major efficiency bottleneck, it is debatable
+
+6301
+
+

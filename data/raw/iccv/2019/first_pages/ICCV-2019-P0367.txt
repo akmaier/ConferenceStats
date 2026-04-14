@@ -1,0 +1,84 @@
+EvalNorm: Estimating Batch Normalization Statistics for Evaluation
+Saurabh Singh
+Google Research
+
+Abhinav Shrivastava∗
+University of Maryland, College Park
+
+saurabhsingh@google.com
+
+abhinav@cs.umd.edu
+
+Abstract
+Batch normalization (BN) has been very effective for deep
+learning and is widely used. However, when training with
+small minibatches, models using BN exhibit a significant
+degradation in performance. In this paper we study this
+peculiar behavior of BN to gain a better understanding of
+the problem, and identify a cause. We propose ‘EvalNorm’
+to address the issue by estimating corrected normalization
+statistics to use for BN during evaluation. EvalNorm supports online estimation of the corrected statistics while the
+model is being trained, and does not affect the training
+scheme of the model. As a result, EvalNorm can also be used
+with existing pre-trained models allowing them to benefit
+from our method. EvalNorm yields large gains for models
+trained with smaller batches. Our experiments show that
+EvalNorm performs 6.18% (absolute) better than vanilla BN
+for a batchsize of 2 on ImageNet validation set and from 1.5
+to 7.0 points (absolute) gain on the COCO object detection
+benchmark across a variety of setups.
+
+1. Introduction
+Batch Normalization (BN) [11] has significantly contributed to the wide application and success of deep learning. It has enabled training of larger and deeper models [7, 8, 22, 23] leading to significant advances in computer
+vision. However, a well-acknowledged drawback of BN is
+that it requires sufficiently large minibatches [7, 10, 23], and
+results in drastically reduced model performance for smaller
+mini-batches. In this paper we study this peculiar behavior
+of BN to gain a better understanding of the source of the
+problem. We identify a cause and propose EvalNorm to address the issue. EvalNorm estimates corrected normalization
+statistics to use for BN during evaluation only. EvalNorm
+supports online estimation of the corrected statistics while
+the model is being trained and does not affect the training
+scheme of the model. As a result, EvalNorm can also be used
+with existing pre-trained models allowing them to benefit
+∗ Work done while at Google.
+
+from our method without retraining. For pre-trained models
+EvalNorm suggests: 1) a rule of thumb that is trivial to implement and, 2) an offline estimation method that requires
+a pass through data (but doesn’t update the model). The
+ability to estimate corrected statistics online for new models
+helps avoid an otherwise two step process. The model is
+still trained as it would be without our method. Note that
+proposing a new normalization technique is not a goal of
+this paper. Instead, the goal is to gain a better understanding of the behavior of BN for small minibatches. We limit
+ourselves to explorations that only affect the evaluation of
+a model trained with BN and refer to our method as ‘Eval
+Normalization’ (EvalNorm or EN).
+Reliance of BN on large minibatches is prohibitive in
+several settings due to the hardware memory limitations. For
+example, applications requiring high-resolution inputs (object detection, segmentation, medical image analysis, etc.) or
+high-capacity (deeper and wider) networks are constrained
+to using smaller minibatches and thus take a performance
+hit. As a result, several normalization techniques, such as
+Group Normalization [25] and Batch Re-normalization [10],
+have been proposed to address the problem due to smaller
+minibatches. However, these approaches don’t shed any
+light on the source of the problem with BN. Instead, they
+propose alternatives that make changes to the model and
+require retraining. As a result, many already trained and deployed models that use BN, where retraining is not possible,
+can not benefit from these alternatives. Our experimental
+evaluation of EN shows that it addresses the shortcomings
+of BN for small batches and provides a feasible alternative
+when retraining isn’t an option.
+Training and evaluation discrepancy in BN: During training, BN normalizes each channel for an example using the
+mean and variance of that channel aggregated across the full
+minibatch. This aggregation across the minibatch introduces
+a dependency on other minibatch samples. However, during
+evaluation each example is evaluated by itself and thus an
+approximation of the minibatch statistics is required. Typically, an exponential moving average (EMA) of minibatch
+moment statistics is maintained during training and used as
+a substitute during evaluation. Normalization using EMA
+
+3633
+
+

@@ -1,0 +1,63 @@
+Patchwork: A Patch-wise Attention Network for
+Efficient Object Detection and Segmentation in Video Streams
+Yuning Chai∗
+Google Inc.
+chaiy@google.com
+
+Abstract
+Recent advances in single-frame object detection and
+segmentation techniques have motivated a wide range of
+works to extend these methods to process video streams. In
+this paper, we explore the idea of hard attention aimed for
+latency-sensitive applications. Instead of reasoning about
+every frame separately, our method selects and only processes a small sub-window of the frame. Our technique
+then makes predictions for the full frame based on the subwindows from previous frames and the update from the current sub-window. The latency reduction by this hard attention mechanism comes at the cost of degraded accuracy. We
+made two contributions to address this. First, we propose
+a specialized memory cell that recovers lost context when
+processing sub-windows. Secondly, we adopt a Q-learningbased policy training strategy that enables our approach
+to intelligently select the sub-windows such that the staleness in the memory hurts the performance the least. Our
+experiments suggest that our approach reduces the latency
+by approximately four times without significantly sacrificing
+the accuracy on the ImageNet VID video object detection
+dataset and the DAVIS video object segmentation dataset.
+We further demonstrate that we can reinvest the saved computation into other parts of the network, and thus resulting in an accuracy increase at a comparable computational
+cost as the original system and beating other recently proposed state-of-the-art methods in the low latency range.
+
+1. Introduction
+The human visual system is confronted with an overwhelming amount of information in a constant visual
+stream. Fortunately, our brain is capable enough to remember our environment from previous experiences and can instantly find the best sequence of visual attention decisions to
+achieve a seemingly effortless perception of our visual surroundings. As [4, 26] pointed out, we do not perceive our
+∗ Now at Waymo LLC.
+
+entire environment at once, and the “secret” to our success
+lies in a clever interplay between our ability to remember
+the bigger picture while focusing our attention to the objects
+of interests.
+In recent years, there has been tremendous progress in
+object detection [9, 11, 25, 31] and segmentation [5, 6, 14]
+techniques thanks to the emergence of deep convolutional
+networks [15, 21, 35, 38]. It is natural to extend these powerful methods to applications that require continuous stream
+processing. However, our own human visual perception experience suggests that it is not efficient to naively apply
+single-frame detectors to every frame of a video at a fixed
+time interval without any temporal context.
+Inspired by the human visual attention system [26], we
+introduce Patchwork, a model that explores the subtle interplay between memory and attention for efficient video
+stream processing. Fig. 1a illustrates an overview of Patchwork. At each time step, Patchwork crops a small window
+from the input frame and feeds it into the feature extractor network, which has been modified to contain a set of
+specialized memory cells scattered throughout the body of
+the network. The network eventually predicts task-specific
+outputs: a set of boxes for object detection or a mask for
+segmentation. Besides, the network predicts the attention
+window for the next frame that is most likely to contain
+useful information for the task.
+The primary motivation for Patchwork is efficient stream
+processing. In other words, we aim to achieve the highest possible detection or segmentation quality while reducing latency and computational cost. For applications where
+there is no need to reduce the latency, we can re-invest the
+saved resources and boost quality. We demonstrate this
+latency reduction and quality improvement on two benchmark datasets: ImageNet VID [32] for video object detection, and DAVIS [29] for video object segmentation. This
+latency reduction is controlled a priori by a pair of hyperparameters. We explain a few hyperparameter choices in the
+experimental section. Some choices significantly reduce latency but take a hit in quality, and others save resources but
+achieve similar quality. There are also configurations where
+13415
+
+

@@ -1,0 +1,253 @@
+DATENeRF
+
+19
+
+Supplementary Material
+The supplementary material is structured into the following sections:
+Sec. 6: Algorithmic Implementation Details
+Sec. 7: From NeRF Distance to Disparity Maps
+• Sec. 8: How to Deal with Occlusions
+• Sec. 9: Quantitative Results
+• Sec. 10: Rationale for Noise Range Selection
+• Sec. 11: Our Approach Using ControlNet [57] and Instruct-Pix2Pix [5]
+• Sec. 12: Varying N in the Denoising Process
+• Sec. 13: Janus Problem
+• Sec. 14: Prompts Used for each Method
+•
+•
+
+6
+
+Algorithmic Implementation Details
+
+We have included detailed pseudocode in this supplementary material for clarification purposes. These additions aim to provide a comprehensive understanding
+of the algorithms discussed in our paper, facilitating reproducibility and deeper
+insight into the implementation. Fig. 10 shows the pseudocode representations
+for the two main algorithms discussed in Sections 3.3 and 3.4 of the paper.
+
+7
+
+From NeRF Distance to Disparity Maps
+
+In this section, we elaborate on the process of converting distance maps to disparity maps, aiming to provide a comprehensive understanding of the preparatory
+steps in our approach.
+Pretrained, inpainting-aware diffusion models, as described in [39,57], necessitate the use of disparity maps for conditioning. These disparity maps, which have
+an inverse relationship to depth maps, are derived from the distance maps genAlgorithm 1 Sec 3.3 Projection Inpainting
+erated by Neural Radiance Fields (NeRF).
+Within the context ofimages
+a {I ,
+NeRF
+frameInput: Set of sequentially organized:
+I . . . , I }, masks
+{M , M , . . . , M }, depths {D , D . . . , D }, the 1st edited image {I
+work, one can calculate the expected distance
+for each ray through a weighted}
+Output: Edited images {I , I , . . . , I }
+for k = 2 to m do
+. Iterate over the images
+sum of the distances of sample points along
+that ray.
+This
+computation
+is repI ,M
+Reproject
+(I
+,D
+, I ) . Reproject k-1 edited img
+M
+M ⇥ (1 M )
+resented by the following equation:
+z
+Encode(I ) + ✏
+. Initialize noised latent repr.
+2
+
+1
+
+1:
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+
+2
+
+p
+k
+
+p
+k
+
+m
+
+e
+2
+
+vis
+k
+
+1
+
+k
+
+p
+k
+
+e
+3
+
+1
+
+k 1!k
+vis
+k
+
+2
+e
+m
+
+e
+k 1
+
+k 1
+
+3
+
+m
+
+e
+1=ref
+
+k
+
+for n = 1 to N 1 do
+M
+if n  5 then Mkp else Mk
+. Choose mask based on step
+✏ˆ
+Blended-Di↵usion(ControlNet(zn , Dk ), M )
+. Predict noise
+zn+1
+zn ✏ˆ
+. Update latent repr.
+Decode(zN )
+Ike
+
+  \text {dist} = \frac {\sum _{i} w_i \cdot t_i}{\sum _{i} w_i + \epsilon } 
+9:
+
+m
+
+(4)
+
+Algorithm 2 Sec 3.4 Edited NeRF Optimization
+Algorithm 1 Sec 3.3 Projection Inpainting
+e
+}, masks {M1 , M2 . . . , Mm }, depths
+Input: Set of sequentially organized:
+images {I2 , I3 . . . , Im }, masks Input: Edited images {I1e , I2e , . . . , Im
+e
+{D1 , D2 . . . , Dm }, original NeRF model
+{M1 , M2 , . . . , Mm }, depths {D1 , D2 . . . , Dm }, the 1st edited image {I1=ref
+}
+e e
+e
+Output: Optimized NeRF model
+Output: Edited images {I2 , I3 , . . . , Im }
+. Initialize counter, max iters, img generation
+1: for k = 2 to m do
+. Iterate over the images 1: c = 0, T = 4000, S = 30
+. NeRF update with all edited images
+2:
+Ikp , Mkvis
+Reprojectk 1!k (Ike 1 , Dk 1 , Ik ) . Reproject k-1 edited img 2: for iteration i = 1 to 1000 do
+e
+3:
+Update NeRF with {I1e , I2e , . . . , Im
+}
+3:
+Mkp
+Mk ⇥ (1 Mkvis )
+4:
+z1
+Encode(Ikp ) + ✏
+. Initialize noised latent repr. 4: for iteration i = 1001 to T do
+. NeRF update with IDU
+5:
+for n = 1 to N 1 do
+5:
+if
+i
+%
+S
+=
+0
+then
+6:
+M
+if n  5 then Mkp else Mk
+. Choose mask based on step 6:
+z
+Encode(Ice ) + ✏
+. Initialize noised latent repr.
+7:
+✏ˆ
+Blended-Di↵usion(ControlNet(zn , Dk ), M )
+. Predict noise 7:
+Ice
+Decode(Blended-Di↵usion(ControlNet(z, Dc ), Mc ))
+8:
+zn+1
+zn ✏ˆ
+. Update latent repr. 8:
+c
+(c + 1) % m
+. Move to the next image in a cyclic manner
+e
+Decode(zN )
+9:
+Ike
+9:
+Update NeRF with {I1e , I2e , . . . , Im
+}
+
+Fig. 10: Pseudocode of DATENeRF. Left. Section 3.3 and Right. Section 3.4
+
+Algorithm 2 Sec 3.4 Edited NeRF Optimization
+e
+Input: Edited images {I1e , I2e , . . . , Im
+}, masks {M1 , M2 . . . , Mm }, depths
+{D1 , D2 . . . , Dm }, original NeRF model
+Output: Optimized NeRF model
+1: c = 0, T = 4000, S = 30
+. Initialize counter, max iters, img generation
+2: for iteration i = 1 to 1000 do
+. NeRF update with all edited images
+e
+3:
+Update NeRF with {I1e , I2e , . . . , Im
+}
+4: for iteration i = 1001 to T do
+. NeRF update with IDU
+5:
+if i % S = 0 then
+6:
+z
+Encode(Ice ) + ✏
+. Initialize noised latent repr.
+7:
+Ice
+Decode(Blended-Di↵usion(ControlNet(z, Dc ), Mc ))
+8:
+c
+(c + 1) % m
+. Move to the next image in a cyclic manner
+9:
+Update NeRF with {I1e , I2e , . . . , I em }
+
+1
+
+

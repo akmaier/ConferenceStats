@@ -1,0 +1,164 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Treating Pseudo-labels Generation as Image Matting for Weakly Supervised
+Semantic Segmentation
+Changwei Wang1,3,* , Rongtao Xu1,3,* , Shibiao Xu2,† , Weiliang Meng1,3,† , Xiaopeng Zhang1,3
+1
+The State Key Laboratory of Multimodal Artificial Intelligence Systems,
+Institute of Automation, Chinese Academy of Sciences, China
+2
+School of Artificial Intelligence, Beijing University of Posts and Telecommunications, China
+3
+School of Artificial Intelligence, University of Chinese Academy of Sciences, China
+shibiaoxu@bupt.edu.cn, weiliang.meng@ia.ac.cn
+
+Abstract
+Generating accurate pseudo-labels under the supervision of image categories is a crucial step in Weakly Supervised Semantic Segmentation (WSSS). In this work, we
+propose a Mat-Label pipeline that provides a fresh way to
+treat WSSS pseudo-labels generation as an image matting
+task. By taking a trimap as input which specifies the foreground, background and unknown regions, the image matting task outputs an object mask with fine edges. The intuition behind our Mat-Label is that generating trimap is
+much easier than generating pseudo-labels directly under
+weakly supervised setting. Although current CAM-based
+methods are off-the-shelf solutions for generating a trimap,
+they suffer from cross-category and foreground-background
+pixel prediction confusion. To solve this problem, we develop a Double Decoupled Class Activation Map (D2CAM)
+for Mat-Label to generate a high-quality trimap. By drawing on the idea of metric learning, we explicitly model class
+activation map with category decoupling and foregroundbackground decoupling. We also design two simple yet effective refinement constraints for D2CAM to stabilize optimization and eliminate non-exclusive activation. Extensive
+experiments validate that our Mat-Label achieves substantial and consistent performance gains compared to current
+state-of-the-art WSSS approaches.
+
+1. Introduction
+Semantic segmentation is a fundamental task in computer vision that aims to assign pixel-level semantic labels
+to objects in an image. In the last decade, the boom in
+deep neural networks has facilitated the rapid development
+of deep learning based semantic segmentation methods [3].
+* Equal Contribution and † Corresponding Authors.
+
+W ×H ×C
+
+Global Average
+Pooling
+
+bus 1 
+aeroplane 1 
+person 1 
+
+FC Layer
+
+ 
+0 
+0 
+ 
+0 
+
+Pseudo-labels
+Feature Maps
+
+(a) CAM
+Generate trimap
+
+Image Matting
+
+bus, aeroplane, person
+W ×H ×C
+
+Foreground
+
+⊖
+Feature Maps
+
+bus, aeroplane, person
+
+Pseudo-labels
+
+Invert
+
+⊗
+⊗
+
+CNN
+
+Background
+
+1
+0
+
+0
+
+0
+0
+
+0
+
+0
+1
+
+0
+
+0
+0
+
+0
+
+0
+0
+
+1
+
+0
+0
+
+0
+
+1
+0
+
+0
+
+0
+0
+
+0
+
+0
+1
+
+0
+
+0
+0
+
+0
+
+0
+0
+
+1
+
+0
+0
+
+0
+
+(b) Mat-Label (ours)
+
+Figure 1. The schematic diagram of the pseudo-labels generation pipeline based on the common CAM and our Mat-Label. The
+black line is the training phase workflow, and the blue line is the
+inference phase workflow, and the red line is the loss calculation.
+
+However, fully supervised semantic segmentation models
+rely on expensive and time-consuming pixel-level annotations. Therefore, weakly supervised semantic segmentation
+(WSSS) has attracted increasing attention, as it is trained
+only by inexpensive annotations (e.g. scribbles [31], bounding box [9], or image-level [47] labels). In this work, we
+focus on WSSS based on image-level labels, which aims to
+use only object category labeling supervision and is considered to be the cheapest yet most challenging setting.
+Most of existing image-level WSSS methods usually
+adopt a pipeline containing the following three sequential
+steps: i) generating pseudo-labels through class activation
+maps, e.g. CAM [47]; ii) refining the pseudo-labels as segmentation ground truth masks; iii) training the segmenta-
+
+755
+
+

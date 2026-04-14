@@ -1,0 +1,80 @@
+Practical Relative Order Attack in Deep Ranking
+Mo Zhou1 Le Wang1∗ Zhenxing Niu2 Qilin Zhang3 Yinghui Xu2 Nanning Zheng1 Gang Hua4
+1
+Xi’an Jiaotong University 2 Alibaba Group 3 HERE Technologies 4 Wormpex AI Research
+{cdluminate,zhenxingniu,samqzhang,ganghua}@gmail.com lewang@xjtu.edu.cn renji.xyh@taobao.com nnzheng@mail.xjtu.edu.cn
+
+Abstract
+Recent studies unveil the vulnerabilities of deep ranking
+models, where an imperceptible perturbation can trigger
+dramatic changes in the ranking result. While previous
+attempts focus on manipulating absolute ranks of certain
+candidates, the possibility of adjusting their relative order
+remains under-explored. In this paper, we formulate a new
+adversarial attack against deep ranking systems, i.e., the Order Attack, which covertly alters the relative order among a
+selected set of candidates according to an attacker-specified
+permutation, with limited interference to other unrelated
+candidates. Specifically, it is formulated as a triplet-style
+loss imposing an inequality chain reflecting the specified
+permutation. However, direct optimization of such white-box
+objective is infeasible in a real-world attack scenario due
+to various black-box limitations. To cope with them, we
+propose a Short-range Ranking Correlation metric as a surrogate objective for black-box Order Attack to approximate
+the white-box method. The Order Attack is evaluated on
+the Fashion-MNIST and Stanford-Online-Products datasets
+under both white-box and black-box threat models. The
+black-box attack is also successfully implemented on a major
+e-commerce platform. Comprehensive experimental evaluations demonstrate the effectiveness of the proposed methods,
+revealing a new type of ranking model vulnerability.
+
+1. Introduction
+Thanks to the widespread applications of deep neural networks [26, 21] in the learning-to-rank tasks [51, 41], deep
+ranking algorithms have witnessed significant progress, but
+unfortunately they have also inherited the long-standing adversarial vulnerabilities [46] of neural networks. Considering the “search by image” application for example, an
+imperceptible adversarial perturbation to the query image
+is sufficient to intentionally alter the ranking results of candidate images. Typically, such adversarial examples can be
+designed to cause the ranking model to “misrank” [32, 29]
+(i.e., rank items incorrectly), or purposefully raise or lower
+the ranks of selected candidates [59].
+
+Since “misranking” can be interpreted as deliberately
+lowering the ranks of well-matching candidates, previous
+attacks on ranking models unanimously focus on changing
+the absolute ranks of a set of candidates, while neglecting
+the manipulation of relative order among them. However, an
+altered relative order can be disruptive in some applications,
+such as impacting sales on e-commerce platforms powered
+by content-based image retrieval [44], where potential customers attempt to find merchandise via image search.
+As shown in Fig. 1, an attacker may want to adversarially perturb the query image and thus change the relative
+order among products A, B, C, D, and E into A ≺ E ≺
+D ≺ C ≺ B in the search-by-image result. The sales of a
+product closely correlates to its Click-Through Rate (CTR),
+while the CTR can be significantly influenced by its ranking
+position [10, 38] (which also decides the product pagination
+on the client side). Hence, subtle changes in the relative
+order of searches can be sufficient to alter CTR and impact
+the actual and relative sales among A to E.
+Such vulnerability in a commercial platform may be exploited in a malfeasant business competition among the topranked products, e.g., via promoting fraudulent web pages
+containing adversarial example product images generated in
+advance. Specifically, the attack of changing relative order
+does not aim to incur significant changes in the absolute
+ranks of the selected candidates (e.g., moving from list bottom to top), but it intentionally changes the relative order of
+them subtly without introducing conspicuous abnormality.
+Whereas such goal cannot be implemented by absolute rank
+attacks such as [59], the relative order vulnerability may
+justify and motivate a more robust and fair ranking model.
+Specifically, we propose the Order Attack (OA), a new adversarial attack problem in deep ranking. Given a query
+image q ∈ [0, 1]D , a set of selected candidates C =
+{c1 , c2 , . . . , ck }, and a predefined permutation vector p =
+[p1 , p2 , . . . , pk ], Order Attack aims to find an imperceptible
+perturbation r (∥r∥∞ ⩽ ε and q̃ = q + r ∈ [0, 1]D ), so that
+q̃ as the adversarial query can convert the relative order of
+the selected candidates into cp1 ≺ cp2 ≺ · · · ≺ cpk . For
+example, a successful OA with p = [1, 5, 4, 3, 2] will result
+in c1 ≺ c5 ≺ c4 ≺ c3 ≺ c2 , as shown in Fig. 1.
+
+* Corresponding author.
+
+16413
+
+

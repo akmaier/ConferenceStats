@@ -1,0 +1,54 @@
+OPD: Single-view 3D openable part detection
+Supplemental Materials
+Hanxiao Jiang
+
+, Yongsen Mao
+
+, Manolis Savva
+
+, and Angel Xuan Chang
+
+Simon Fraser University
+3dlg-hcvc.github.io/OPD/
+
+In this supplement to the main paper we provide implementation details
+(Appendix A), additional quantitative and qualitative results (Appendix B), as
+well as details on the dataset statistics and construction (Appendix C).
+
+A
+
+Additional implementation details
+
+A.1
+
+Training loss details
+
+Detection and Segmentation Losses. Our architecture uses the Mask RCNN [3] loss which is composed of losses for the RPN module, part detection
+and segmentation losses for each proposed region of interest: LMask R-CNN =
+Lrpn + Ldet + Lseg . We refer the reader to the original paper for details on the
+implementation of these losses.
+Motion Losses. We extend the Mask R-CNN network with extra heads for
+motion prediction. To train the motion prediction heads, we add additional
+loss terms to the loss associated with each ROI. We construct the motion loss
+Lm as a weighted sum of cross-entropy loss for the motion type (Lc ), and
+smooth L1 losses for regressing the motion axis (La ) and motion origin (Lo ):
+Lm = λc Lc + λa La + λo Lo . The motion loss terms for each RoI i are given by:
+  \begin {split} L_{c_i} &= \lossce (\hat {c}_i, c_i) \\ L_{a_i} &= \losshuber (\hat {a}_i, a_i) \\ L_{o_i} &= \losshuber (\hat {o}_i, o_i) \indicator \{c_i = \text {rotation}\} \end {split} \label {eq:cc_additional_loss} 
+(1)
+where ĉi is the predicted motion type and ci is the ground truth motion type,
+âi is the predicted axis and ai is the ground truth axis, ôi ∈ R3 is the predicted
+origin and oi is the ground truth origin. We set λc = 1, λa = 8, λo = 8 for
+our experiments. For OpdRcnn-C, the motion axis and origin are in camera
+coordinates. The overall loss is given by LCC = LMask R-CNN + Lm . OpdRcnnO has the same additional loss as OpdRcnn-C for motion parameters, but with
+additional smooth L1 loss for the extrinsic matrix Lext .
+  L_{\text {OC-S}} = L_{\text {CC}} + L_{\text {ext}_s} = L_{\text {CC}} + \lambda _\text {ext} \losshuber (\hat {e}_s, e_s) \label {eq:ocs_total_loss} 
+
+(2)
+
+We represent the extrinsic matrix as a vector es of length 12 (9 for rotation, 3
+for translation). The extrinsic matrix es is predicted by taking the features for
+the entire images directly from the backbone network. For OpdRcnn-O, the
+motion axis and motion origin are in the canonical object coordinate instead of
+the camera coordinate. We set λext = 15 for our experiments.
+
+

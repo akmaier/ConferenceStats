@@ -1,0 +1,75 @@
+Cherry-Picking Gradients: Learning Low-Rank Embeddings of Visual Data via
+Differentiable Cross-Approximation
+Mikhail Usvyatsov1 , Anastasia Makarova1 , Rafael Ballester-Ripoll2 , Maxim Rakhuba3 , Andreas
+Krause1 , and Konrad Schindler1
+1
+
+ETH Zürich, 2 IE University, 3 HSE University
+
+Abstract
+We propose an end-to-end trainable framework that processes large-scale visual data tensors by looking at a fraction of their entries only. Our method combines a neural network encoder with a tensor train decomposition
+to learn a low-rank latent encoding, coupled with crossapproximation (CA) to learn the representation through a
+subset of the original samples. CA is an adaptive sampling algorithm that is native to tensor decompositions and
+avoids working with the full high-resolution data explicitly.
+Instead, it actively selects local representative samples that
+we fetch out-of-core and on demand. The required number
+of samples grows only logarithmically with the size of the
+input. Our implicit representation of the tensor in the network enables processing large grids that could not be otherwise tractable in their uncompressed form. The proposed
+approach is particularly useful for large-scale multidimensional grid data (e.g., 3D tomography), and for tasks that
+require context over a large receptive field (e.g., predicting
+the medical condition of entire organs). The code is available at https://github.com/aelphy/c-pic.
+
+1. Introduction
+Over the past decade, convolutional neural networks
+(CNNs) in combination with parallel processing on GPUs
+have brought about dramatic improvements in machine
+learning for image data. Unfortunately, parallel hardware is
+memory-limited, leading to a curse of dimensionality: stateof-the-art 2D network architectures are typically not viable
+for data with 3 or more dimensions, because one runs out of
+memory to store the corresponding tensors. Despite efforts
+to mitigate the problem via sparse convolutions [11, 18, 19]
+or octrees [42, 50], one must in practice limit the size of
+the inputs. E.g., the upper bound for 3D volumetric data is
+about 5123 voxels on high-end commodity hardware.
+
+X
+
+Ur
+
+Encoder
+
+X
+
+T
+r Vr
+
+Decoder
+
+X̂ = Ur
+
+X̂
+
+T
+r Vr
+
+Figure 1: 2D illustration of learned low-rank embedding:
+rank-3 compression of the input with SVD (the matrix
+equivalent of TT decomposition) severely degrades the image (bottom row). In contrast, our encoder warps the image
+such that the same rank-3 truncation loses little information
+and can be decoded almost perfectly (top row).
+It is well-known that visual data usually lives on lowerdimensional manifolds and, therefore, is in principle compressible; c.f . classical ideas like Eigenfaces [48] or nonnegative tensor factorisation [44]. This motivates us
+to seek a more memory-efficient representation of highdimensional visual data that is more efficient, and at the
+same time compatible with the gradient-based learning process of neural networks.
+Selecting a sampling resolution at which data is recorded
+and/or processed is always a trade-off between resources
+(memory, run-time, power, etc.) and the level of detail and
+context that the algorithm has access to. Indeed, relatively
+small tensors are sufficient for applications where either
+high-frequency details are not crucial and one can operate
+at low spatial resolution (e.g., face recognition), or longrange context has little impact and one can process local
+windows (e.g., character recognition). But some tasks do
+require sharp details and long-range context. For instance,
+it has been shown that 3D object classification performance
+111426
+
+

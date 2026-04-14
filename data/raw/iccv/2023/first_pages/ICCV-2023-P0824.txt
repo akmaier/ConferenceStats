@@ -1,0 +1,114 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Improving Transformer-based Image Matching by Cascaded Capturing Spatially
+Informative Keypoints
+Chenjie Cao, Yanwei Fu†
+School of Data Science, Fudan University
+{20110980001,yanweifu}@fudan.edu.cn
+
+Abstract
+Learning robust local image feature matching is a fundamental low-level vision task, which has been widely explored
+in the past few years. Recently, detector-free local feature
+matchers based on transformers have shown promising results, which largely outperform pure Convolutional Neural
+Network (CNN) based ones. But correlations produced by
+transformer-based methods are spatially limited to the center of source views’ coarse patches, because of the costly
+attention learning. In this work, we rethink this issue and
+find that such matching formulation degrades pose estimation, especially for low-resolution images. So we propose a
+transformer-based cascade matching model – Cascade feature Matching TRansformer (CasMTR)§ , to efficiently learn
+dense feature correlations, which allows us to choose more
+reliable matching pairs for the relative pose estimation. Instead of re-training a new detector, we use a simple yet effective Non-Maximum Suppression (NMS) post-process to filter
+keypoints through the confidence map, and largely improve
+the matching precision. CasMTR achieves state-of-the-art
+performance in indoor and outdoor pose estimation as well
+as visual localization. Moreover, thorough ablations show
+the efficacy of the proposed components and techniques.
+
+1. Introduction
+Image matching is an important vision problem that is
+widely employed for many downstream tasks like Structurefrom-Motion [39], Simultaneous Localization and Mapping [31], and visual localization [28]. However, accurately
+matching two or more images remains difficult due to various factors, such as differences in viewpoints, illuminations,
+seasons, and surroundings. Classical approaches [26, 36]
+address it via the pipeline of detection, description, and
+matching of features by hand-crafted features. Recently,
+learning Convolutional Neural Network (CNN) based de† Corresponding author.
+§ Code is available at https://github.com/ewrfcas/CasMTR
+
+Table 1: Summary of test image size, backbones, memory cost
+(GB), and inference speed (s/image) on MegaDepth [22] with
+AUC of different pose errors (%). Suffixes ‘-8c’, ‘-4c’, and ‘2c’ denote matching at 1/8, 1/4, and 1/2 of image size. Baseline:
+QuadTree [47] with the same backbone as ours. Directly implementing QuadTree-4c causes Out-of-memory (OOM) error in a
+32GB GPU, so its inference speed is estimated in brackets.
+Pose Est. AUC
+Mem.(G) s/img
+@5° @10° @20°
+Baseline-8c Twins+FPN 704 51.63 68.54 80.98
+3.83
+0.146
+CasMTR-4c Twins+FPN 704 52.59 69.78 82.31
+3.99
+0.212
+CasMTR-2c Twins+FPN 704 54.91 71.27 83.01
+6.29
+0.311
+QuadTree-8c
+FPN
+832 52.87 69.24 81.32
+5.72
+0.203
+Baseline-8c Twins+FPN 832 52.90 69.78 82.05
+4.91
+0.207
+FPN
+832
+–
+–
+–
+OOM (0.602)
+QuadTree-4c
+CasMTR-4c Twins+FPN 832 53.63 70.34 82.55
+4.91
+0.304
+CasMTR-2c Twins+FPN 832 55.61 71.96 83.52
+7.55
+0.444
+QuadTree-8c
+FPN
+1152 55.09 71.31 83.20 12.62
+0.424
+Baseline-8c Twins+FPN 1152 55.77 72.01 83.64 13.33
+0.423
+QuadTree-4c
+FPN
+1152 –
+–
+–
+OOM (1.442)
+CasMTR-4c Twins+FPN 1152 56.34 72.11 83.55 12.40
+0.649
+CasMTR-2c Twins+FPN 1152 56.90 72.94 84.24 14.36
+0.887
+Methods
+
+Backbone
+
+Size
+
+tectors [9, 33, 38, 49, 55] have been utilized to detect and
+describe keypoints, leading to significant improvements in
+this pipeline. But such detector-based CNNs suffer from
+limited receptive fields and search space, as noticed in [43].
+To solve this issue, transformer-based detector-free methods have emerged as more robust alternatives, demonstrating impressive matching abilities in texture-less regions [43, 18, 47, 57, 4]. However, the high computational cost of attention limits transformer-based methods
+to ‘semi-dense’ matching, where source matching points are
+spaced apart at intervals of coarse feature space, as shown
+in Fig.1(a,d). Such semi-dense matching leads to an issue
+that keypoint locations are not informative enough: the spatially restricted source points in coarse feature maps lack the
+necessary details to express structural information, making
+it difficult to accurately estimate pose. This problem is especially challenging for low-resolution images, as seen in
+our pilot study (Tab. 1). More experiments based on extreme
+resolutions are discussed in the supplementary. Furthermore, it remains unclear whether transformer-based methods
+
+12129
+
+

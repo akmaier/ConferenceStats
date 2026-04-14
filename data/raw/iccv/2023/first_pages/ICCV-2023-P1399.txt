@@ -1,0 +1,96 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Single Image Deblurring with Row-dependent Blur Magnitude
+Xiang Ji1 Zhixiang Wang1,2
+1
+The University of Tokyo, Japan
+
+Shin’ichi Satoh2,1 Yinqiang Zheng1†
+2
+National Institute of Informatics, Japan
+
+{jixiang,wangzhixiang}@g.ecc.u-tokyo.ac.jp, satoh@nii.ac.jp, yqzheng@ai.u-tokyo.ac.jp
+
+Abstract
+Image degradation often occurs during fast camera or
+object movements, regardless of the exposure modes: global
+shutter (GS) or rolling shutter (RS). Since these two exposure
+modes give rise to intrinsically different degradations, two
+restoration threads have been explored separately, i.e. motion deblurring of GS images and distortion correction of RS
+images, both of which are challenging restoration tasks, especially in the presence of a single input image. In this paper,
+we explore a novel in-between exposure mode, called global
+reset release (GRR) shutter, which produces GS-like blur but
+with row-dependent blur magnitude. We take advantage of
+this unique characteristic of GRR to explore the latent frames
+within a single image and restore a clear counterpart by only
+relying on these latent contexts. Specifically, we propose
+a residual spatially-compensated and spectrally-enhanced
+Transformer (RSS-T) block for row-dependent deblurring of
+a single GRR image. Its hierarchical positional encoding
+compensates global positional context of windows and enables order-awareness of the local pixel’s position, along
+with a novel feed-forward network that simultaneously uses
+spatial and spectral information for gaining mixed global
+context. Extensive experimental results demonstrate that our
+method outperforms the state-of-the-art GS deblurring and
+RS correction methods on single GRR input.
+
+1. Introduction
+As a fundamental research task of computer vision, image restoration has been explored for many years, aiming to
+recover a high-quality clean image from its corrupted counterpart by removing undesired degradation. Fast or even
+extreme motion, which is a major inducement to image degeneration and highly correlated to the camera’s exposure
+mode: global shutter (GS) and rolling shutter (RS).
+In a GS image sensor, all pixels are reset simultaneously
+and immediately charged with exposure, then stored for
+sequential readout (Figure 1a). In the presence of fast and
+sudden motion, blurring effects will happen. [25, 39] depict
+† Corresponding author
+
+this motion-blurred output IB as an average of N successive
+latent sharp frames IG
+i :
+N −1
+
+IB =
+
+1 X G
+I , i = 0, 1, · · · , N − 1 .
+N i=0 i
+
+In contrast, RS cameras expose image pixels row by row
+(including reset and readout), leading to an invariant time
+delay between consecutive scanlines (Figure 1b). Therefore,
+RS distortion effects, also known as jello effects, will appear
+if the camera is moving during the image acquisition, which
+G
+is formulated in [23] as [IR ]i = [IG
+i ]i . [Ii ]i is an operator
+that extracts the ith row from the ith latent GS frame IG
+i and
+N is also the height of RS image.
+Although image deblurring itself is highly involved, it is
+believed that restoring clear images from single degraded
+captures of GS cameras is much more tractable than that
+of RS cameras as mentioned in [23]. Intuitively, motionblur removal process aims to disentangle target GS frame
+from redundant input without sophisticated displacement
+estimation or speculation of unknown context. On the contrary, RS correction needs to shift pixels of each scanline
+to one virtual GS canvas by building pixel-level correspondences. Moreover, the rectified output usually suffers from
+missing boundaries not directly captured during RS exposure. Methodologically, the coarse-to-fine network design
+has gained remarkable performance for single image deblurring [25, 30, 33, 45, 10, 46]. On the contrary, due to the
+ill-posed nature, single image RS correction relies heavily
+on strong prior assumptions, explicitly [35, 17, 32, 31] or
+implicitly [34, 58], which limits their applicability to real
+scenarios. So, recent research has moved onto multi-image
+RS correction to bypass the ill-posedness. But both classical [57, 1] and learning-based methods [23, 9] still cannot
+work well under complex dynamic scenes or drastic camera
+motions because of nontrivial pixel alignment.
+It is largely overlooked in computer vision that there exists an in-between shutter mode, called global reset release
+(GRR) shutter, which can be easily enabled in some image
+sensors that originally work in GS mode (e.g., EV76C560
+in EO-1312C Camera) or in RS mode (e.g., IMX178 in
+BFS-U3-63S4C camera). As shown in Figure 1c, GRR
+
+12269
+
+

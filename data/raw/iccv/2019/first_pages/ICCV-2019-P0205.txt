@@ -1,0 +1,153 @@
+TensorMask: A Foundation for Dense Object Segmentation
+Xinlei Chen
+
+Ross Girshick
+
+Kaiming He
+
+Piotr Dollár
+
+Facebook AI Research (FAIR)
+
+Abstract
+person
+person
+
+Sliding-window object detectors that generate boundingbox object predictions over a dense, regular grid have advanced rapidly and proven popular. In contrast, modern
+instance segmentation approaches are dominated by methods that first detect object bounding boxes, and then crop
+and segment these regions, as popularized by Mask R-CNN.
+In this work, we investigate the paradigm of dense slidingwindow instance segmentation, which is surprisingly underexplored. Our core observation is that this task is fundamentally different than other dense prediction tasks such
+as semantic segmentation or bounding-box object detection,
+as the output at every spatial location is itself a geometric
+structure with its own spatial dimensions. To formalize this,
+we treat dense instance segmentation as a prediction task
+over 4D tensors and present a general framework called
+TensorMask that explicitly captures this geometry and enables novel operators on 4D tensors. We demonstrate that
+the tensor view leads to large gains over baselines that ignore this structure, and leads to results comparable to Mask
+R-CNN. These promising results suggest that TensorMask
+can serve as a foundation for novel advances in dense mask
+prediction and a more complete understanding of the task.
+Code will be made available.
+
+1. Introduction
+The sliding-window paradigm—finding objects by looking in each window placed over a dense set of image locations—is one of the earliest and most successful concepts in
+computer vision [36, 38, 9, 10] and is naturally connected to
+convolutional networks [20]. However, while today’s topperforming object detectors rely on sliding window prediction to generate initial candidate regions, a refinement stage
+is applied to these candidate regions to obtain more accurate predictions, as pioneered by Faster R-CNN [34] and
+Mask R-CNN [17] for bounding-box object detection and
+instance segmentation, respectively. This class of methods
+has dominated the COCO detection challenges [24].
+Recently, bounding-box object detectors which eschew
+the refinement step and focus on direct sliding-window pre-
+
+person
+
+person
+
+person
+
+person
+
+vase
+bowl
+
+person
+
+person
+
+person
+
+person
+
+cup
+person
+
+person
+
+person
+
+cup
+
+person
+
+person
+
+cup
+person
+fork
+
+cup
+
+person
+cup
+
+wine glass
+
+cup
+cup
+
+bowl
+
+person
+
+person
+
+person
+person
+
+dining table
+
+person
+
+wine glass
+pizza
+
+cake
+
+cup
+knife
+
+cup
+wine glass
+
+cup
+
+wine glass
+bowl
+
+bowl
+
+person
+
+cup
+
+Figure 1. Selected output of TensorMask, our proposed framework
+for performing dense sliding-window instance segmentation. We
+treat dense instance segmentation as a prediction task over structured 4D tensors. In addition to obtaining competitive quantitative
+results, TensorMask achieves results that are qualitatively reasonable. Observe that both small and large objects are well delineated
+and more critically overlapping objects are properly handled.
+
+diction, as exemplified by SSD [27] and RetinaNet [23],
+have witnessed a resurgence and shown promising results.
+In contrast, the field has not witnessed equivalent progress
+in dense sliding-window instance segmentation; there are
+no direct, dense approaches analogous to SSD / RetinaNet
+for mask prediction. Why is the dense approach thriving
+for box detection, yet entirely missing for instance segmentation? This is a question of fundamental scientific interest.
+The goal of this work is to bridge this gap and provide a
+foundation for exploring dense instance segmentation.
+Our main insight is that the core concepts for defining
+dense mask representations, as well as effective realizations
+of these concepts in neural networks, are both lacking. Unlike bounding boxes, which have a fixed, low-dimensional
+representation regardless of scale, segmentation masks can
+benefit from richer, more structured representations. For
+example, each mask is itself a 2D spatial map, and masks
+for larger objects can benefit from the use of larger spatial
+maps. Developing effective representations for dense masks
+is a key step toward enabling dense instance segmentation.
+To address this, we define a set of core concepts for representing masks with high-dimensional tensors that allows
+for the exploration of novel network architectures for dense
+mask prediction. We present and experiment with several
+such networks in order to demonstrate the merits of the pro12061
+
+

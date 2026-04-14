@@ -1,0 +1,74 @@
+Scaling up instance annotation via label propagation
+Dim P. Papadopoulos∗
+MIT CSAIL
+
+Ethan Weber∗
+MIT CSAIL
+
+Antonio Torralba
+MIT CSAIL
+
+dimpapa@mit.edu
+
+ejweber@mit.edu
+
+torralba@mit.edu
+
+Abstract
+Manually annotating object segmentation masks is very
+time-consuming. While interactive segmentation methods
+offer a more efficient alternative, they become unaffordable at a large scale because the cost grows linearly with
+the number of annotated masks. In this paper, we propose a highly efficient annotation scheme for building large
+datasets with object segmentation masks. At a large scale,
+images contain many object instances with similar appearance. We exploit these similarities by using hierarchical clustering on mask predictions made by a segmentation model. We propose a scheme that efficiently searches
+through the hierarchy of clusters and selects which clusters
+to annotate. Humans manually verify only a few masks per
+cluster, and the labels are propagated to the whole cluster. Through a large-scale experiment to populate 1M unlabeled images with object segmentation masks for 80 object
+classes, we show that (1) we obtain 1M object segmentation masks with an total annotation time of only 290 hours;
+(2) we reduce annotation time by 76× compared to manual annotation; (3) the segmentation quality of our masks is
+on par with those from manually annotated datasets. Code,
+data, and models are available online1 .
+
+1. Introduction
+The incredible rise in computer vision over the past
+decade has been propelled by the creation of datasets with
+multi-million annotated images such as ImageNet [45],
+Places [67] and Kinetics [21]. For deep learning models
+to continue improving with higher capacity, there is a continual need for more training data. It has been shown that
+the training data must grow exponentially to see linear improvements in the models [50, 52, 69].
+Manual annotation for instance segmentation is expensive as it requires humans to draw a detailed outline around
+every object in an image [8, 13, 33, 46, 68]. For example, annotating COCO [33] required 80 seconds per mask,
+1 http://scaling-anno.csail.mit.edu
+∗ Denotes equal contribution
+
+Manual annotation: 1 car
+
+Proposed method: 76 cars
+
+Figure 1. Scaling up instance annotation. We obtain 76 segmentation masks for the cost of manually drawing one.
+
+an image in Cityscapes [8] took 1.5 hours, and annotating
+ADE20K [68] by a single annotator took several years. At
+this pace, constructing a dataset with 10M masks would require more than 200k hours and cost over $2M [33].
+An alternative is interactive segmentation [1, 4, 7, 30, 34,
+39, 43], where the human interaction is much faster (e.g.,
+boxes, scribbles, clicks). Given this interaction, these methods infer the final object mask. They offer substantial gains
+in annotation time and can lead to larger datasets [4]. However, because annotators intervene on every object, the cost
+grows linearly with the number of annotations and therefore, at a larger scale, they become unaffordable.
+In this paper, we propose a method for crowd-sourcing
+object segmentation masks that reduces the annotation time
+by almost two orders of magnitude (Fig. 1). At large scale,
+images contain many object instances with similar appearance. We exploit this by clustering mask predictions made
+by an instance segmentation model. Human annotators verify a few masks per cluster and we propagate the verification labels to the whole cluster. Since annotators interact
+with few masks per cluster, our cost scales with the number
+of clusters rather than masks.
+Given a small initial image set with manually segmented
+objects and an annotation budget, our goal is to maximize
+the number of high-quality obtained annotations in an unlabeled set. We first train an instance segmentation model
+and obtain mask predictions on the unlabeled set and then
+hierarchically cluster class-specific masks. Starting from
+the root of the tree, we search for candidate clusters likely
+
+15364
+
+

@@ -1,0 +1,187 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Learning to Ground Instructional Articles in Videos through Narrations
+Effrosyni Mavroudi,* Triantafyllos Afouras,* Lorenzo Torresani
+Meta AI
+{emavroudi, afourast, torresani}@meta.com
+
+Abstract
+
+Steps-to-Narrations-to-Video Alignment (Indirect)
+NV
+
+In this paper we present an approach for localizing steps
+of procedural activities in narrated how-to videos. To deal
+with the scarcity of labeled data at scale, we source the
+step descriptions from a language knowledge base (wikiHow) containing instructional articles for a large variety of
+procedural tasks. Without any form of manual supervision,
+our model learns to temporally ground the steps of procedural articles in how-to videos by matching three modalities: frames, narrations, and step descriptions. Specifically,
+our method aligns steps to video by fusing information from
+two distinct pathways: i) direct alignment of step descriptions to frames, ii) indirect alignment obtained by composing steps-to-narrations with narrations-to-video correspondences. Notably, our approach performs global temporal
+grounding of all steps in an article at once by exploiting
+order information, and is trained with step pseudo-labels
+which are iteratively refined and aggressively filtered. In
+order to validate our model we introduce a new benchmark – HT-Step – obtained by manually annotating a 124hour subset of HowTo100M1 with steps sourced from wikiHow articles. Experiments on this benchmark as well as
+zero-shot evaluations on CrossTask demonstrate that our
+multi-modality alignment yields dramatic gains over several baselines and prior works. Finally, we show that our
+inner module for matching narration-to-video outperforms
+by a large margin the state of the art on the HTM-Align
+narration-video alignment benchmark.
+
+1. Introduction
+Instructional videos have emerged as a popular means
+for people to learn new skills and improve their abilities in
+executing complex procedural activities, such as cooking
+a recipe, performing home improvements, or fixing things.
+In addition to being useful teaching materials for humans,
+how-to videos are a promising medium for learning by ma* Equal contribution
+1 A test server is
+
+accessible at https://eval.ai/web/
+challenges/challenge-page/2082.
+
+Video Frames
+
+SN
+Steps
+
+Narrations
+SV
+
+Steps-to-Video Alignment (Direct)
+VINA
+
+1. Wash the pumpkins
+
+“First thing you’ll need to do
+is cut off the stem.”
+
+Video Frames
+
+2. Cut the pumpkins
+
+“This requires a sharp knife
+and some muscle”
+
+3. Scoop out the seeds
+
+“Thanks for watching”
+
+10. Puree pumpkin flesh
+
+Narrations (ASR)
+
+Narrated
+Instructional Videos
+
+Instruction Steps
+Instructional Articles
+Make Pastel De
+
+Make Chicken
+
+Training
+Resources
+(No manual
+annotations)
+~370k
+
+1. Using a meat pounder or sharp knife, pound
+or cut the chicken into 1/4" thick cutlets.
+Chicken piccata should be thin …
+2. Coat the chicken with salt and pepper. Use as
+much as you desire, making sure the entire pieces
+have at least ..
+3. Dredge the chicken in flour, coating
+completely. Dredging means coating it, and it
+should be a nice …
+4. In a thick-bottomed pan on medium, heat up
+2 tablespoons butter and 2 tablespoons olive oil.
+You could use all of one or the other, but this
+mixture actually has a purpose — the two work
+together to keep
+
+Make Zuppa
+1. Place the Italian sausage and crushed red
+pepper into a large saucepan. Start cooking the
+sausage over low heat.
+2. Sauté the bacon, onions and garlic. Use the
+same pan you used for the sausage, without
+washing it.Cook these over low-medium heat.
+3. Add the water and chicken bouillon. You
+will need to heat this until it boils.Increase the
+heat to medium.Cook the soup until it gets to a
+full,
+4. Add the sliced potatoes. These will need to
+cook until they are soft and tender.At medium
+heat, cook the soup with the added potatoes.
+
+Make Hungarian
+Goulash
+1. Heat 2 tbsp. of vegetable oil in a pan over
+medium heat. Give the oil a minute to heat up.
+2. Add 1 chopped onion to the oil. Sauté the
+onion until it's golden. Then, remove the pan from
+the heat.
+3. Add 1 tbsp. of paprika to the onion. Stir to
+incorporate the ingredients.
+4. Add 1 lb. of cubed beef, a pinch of salt, and 3
+tbsp. of water to the pan. Stir the ingredients
+again to incorporate them.
+5. Heat the pan over medium heat again. Stir the
+ingredients again.
+
+1. Make mashed potatoes. Chop the potatoes into
+chunks, boil until mashable, and then mash away.
+Add a quarter or a half a stick of butter
+2. Chop and sauté a large onion with cumin
+until soft and sweet.
+3. Hard boil the eggs. Peel and chop into small
+pieces.
+4. Pan fry two or two and a half pounds of
+ground beef. Drain when almost cooked. Add
+onion, paprika, salt and pepper to taste.
+5. Grease a nine-by-nine-inch (23cm x 23cm)
+oven dish. Good trick: If you have the paper from
+a stick of butter, don't throw it out. Rub the buttery
+side along the dish to…
+
+Make Chiles
+1. Make the filling. You will make two fillings:
+one comprised of meat, and the other of
+cheese.Meat filling
+2. Roast the chile peppers. Sometimes, you
+can buy the peppers already roasted, especially
+in areas where …
+3. Prepare the batter. This can be done while
+the chiles are roasting. Place a ..
+4. Cut an opening in the side of the chile.
+Make it large enough that stuffing can be put in,
+but not so large ..
+5. Stuff the chiles. Be careful because the soft,
+roasted chiles are easily torn. Begin with the
+meat stuffing…
+
+~14k
+
+Figure 1: Our proposed Video, Instructions, and Narrations
+Aligner (VINA) learns to simultaneously ground narrations
+and instruction steps in how-to videos from an uncurated
+set of narrated videos and a separate knowledge base of instructional articles, without any manual annotations. This is
+contrary to prior work that learns how to align a video with
+a single sequence of sentences by leveraging ground-truth
+pairs of video-text sequences, e.g., a video and its narrations [22], or a video and an annotated, ordered list of steps
+demonstrated in it [16].
+chines, as they provide revealing visual demonstrations of
+complex activities and show elaborate human-object interactions in a variety of domains. Motivated by this observation, in this work we look at the task of temporally localizing the steps of procedural activities in instructional videos.
+This problem is foundational to the broader goal of humanprocedure understanding and advances on this task promise
+to enable breakthrough applications, such as AI-powered
+skill coaching and human-to-robot imitation learning.
+Prior work has tackled procedural step localization by
+leveraging either (a) fully-annotated datasets where the task
+
+15201
+
+

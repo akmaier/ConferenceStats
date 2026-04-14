@@ -1,0 +1,112 @@
+Progressive Differentiable Architecture Search:
+Bridging the Depth Gap between Search and Evaluation
+Xin Chen1∗
+Lingxi Xie2
+Jun Wu1†
+Qi Tian2 †
+1
+2
+Tongji University
+Huawei Noah’s Ark Lab
+1410452@tongji.edu.cn
+
+198808xc@gmail.com
+
+Abstract
+Recently, differentiable search methods have made major progress in reducing the computational costs of neural architecture search. However, these approaches often report lower accuracy in evaluating the searched architecture or transferring it to another dataset. This is
+arguably due to the large gap between the architecture
+depths in search and evaluation scenarios. In this paper, we present an efficient algorithm which allows the
+depth of searched architectures to grow gradually during
+the training procedure. This brings two issues, namely,
+heavier computational overheads and weaker search stability, which we solve using search space approximation and
+regularization, respectively. With a significantly reduced
+search time (∼7 hours on a single GPU), our approach
+achieves state-of-the-art performance on both the proxy
+dataset (CIFAR10 or CIFAR100) and the target dataset (ImageNet). Code is available at https://github.com/
+chenxin061/pdarts
+
+1. Introduction
+Image recognition is a fundamental task in the computer
+vision community. In the deep learning era, state-of-theart classification performance is mostly achieved by handcrafted deep neural networks [14, 30, 9, 35, 10]. Recently,
+the development of neural architecture search (NAS) has
+changed the convention of model design from manual to automatic, achieving remarkable success in various perceptual
+tasks [16, 3, 37] including image recognition [38].
+Early works on NAS focused on the optimal configuration of layer type, filter size and number, activation function, etc., to construct a complete network [1, 29]. Inspired
+by successful handcrafted architectures such as ResNet [9]
+and DenseNet [11], follow-up works started to explore the
+∗ This work was done when the first author was an intern at Huawei
+Noah’s Ark Lab.
+† Corresponding authors: Jun Wu and Qi Tian.
+
+wujun@tongji.edu.cn
+
+tian.qi1@huawei.com
+
+CIFAR10 Test Error : 2.83%
+
+CIFAR10 Test Error : 2.50%
+
+8
+Cells
+
+Cell
+Arch.
+
+Search Net.
+
+20
+Cells
+
+Eval. Net.
+
+(a) DARTS
+
+5
+
+11
+
+17
+
+Cells
+
+Cells
+
+Cells
+
+Cell
+Arch.
+
+Search Net.
+
+20
+Cells
+
+Eval. Net.
+
+(b) P-DARTS
+
+Figure 1: Difference between DARTS and P-DARTS (our
+approach), with the former searching architectures in a shallow setting and evaluating them in a deep one, and the latter
+progressively increasing the searching depth to bridge the
+depth gap between search and evaluation. Green and blue
+indicate search and evaluation, respectively.
+
+possibility of searching for network building blocks, or socalled cells with reinforcement learning (RL) [36, 38] and
+evolutionary algorithm (EA) [33, 23]. The discovered cells
+are then stacked orderly to construct the network for specific tasks. However, those RL-based and EA-based approaches share a common pipeline to sample and evaluate
+(from scratch) numerous architectures in the search space,
+which results in a barely affordable computational overhead, e.g., hundreds or even thousands of GPU-days.
+Recently, Liu et al. proposed a differentiable scheme
+called DARTS [19] to get rid of the time-consuming process of architecture sampling and evaluating. It achieved
+comparable performance to RL-based and EA-based methods while only requiring a search cost of a few GPU-days.
+In DARTS, a cell is composed of multiple nodes, connected
+with several kinds of operations, e.g., convolution, pooling.
+Those operations are weighted by a few architecture parameters, which are learned in the search scenario. Limited by
+the size of GPU memory, DARTS has to search the architecture in a shallow network while evaluating in a deeper one.
+This brings an issue named the depth gap (see Figure 1(a)),
+which means that the search stage finds some operations
+that work well in a shallow architecture, but the evaluation
+
+1294
+
+

@@ -1,0 +1,76 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+SAFE: Machine Unlearning With Shard Graphs
+Yonatan Dukler1⇤ , Benjamin Bowman1,2†⇤ , Alessandro Achille1⇤ , Aditya Golatkar1,2† ,
+Ashwin Swaminathan1 , Stefano Soatto1
+AWS AI Labs1 , UCLA2
+{dukler,bowmaben,aachille,agolatka,swashwin,soattos}@amazon.com
+Abstract
+We present Synergy Aware Forgetting Ensemble (SAFE), a
+method to adapt large models on a diverse collection of data
+while minimizing the expected cost to remove the influence
+of training samples from the trained model. This process,
+also known as selective forgetting or unlearning, is often
+conducted by partitioning a dataset into shards, training
+fully independent models on each, then ensembling the resulting models. Increasing the number of shards reduces
+the expected cost to forget but at the same time it increases
+inference cost and reduces the final accuracy of the model
+since synergistic information between samples is lost during the independent model training. Rather than treating
+each shard as independent, SAFE introduces the notion of
+a shard graph, which allows incorporating limited information from other shards during training, trading off a modest increase in expected forgetting cost with a significant
+increase in accuracy, all while still attaining complete removal of residual influence after forgetting. SAFE uses a
+lightweight system of adapters which can be trained while
+reusing most of the computations. This allows SAFE to be
+trained on shards an order-of-magnitude smaller than current state-of-the-art methods (thus reducing the forgetting
+costs) while also maintaining high accuracy, as we demonstrate empirically on fine-grained computer vision datasets.
+
+1. Introduction
+Large-scale neural networks are typically trained on large
+monolithic datasets. However, real world data often comes
+from many different sources which may require different
+treatment depending on their terms of use. In some cases,
+the terms can change, triggering the need to not just erase
+a portion of the data, but also remove its influence on the
+trained model. If the model is trained with the entire dataset
+in an undifferentiated fashion, even a request to remove a
+* Equal contributions
+† Work done during an internship at AWS AI Labs.
+
+small fraction of the data may result in re-training the entire
+model on the complement. Considering the scale of large
+neural networks currently in use, re-training the model after
+each data erasure is costly. Thus, it is beneficial to develop
+methods to trace the influence of various segments of data
+onto the trained model, and to remove their effect if needed,
+especially as the scale of production models and the amount
+of training data continues to grow.
+One simple and robust approach to forgetting is compartmentalizing the information of different subsets of data into
+distinct model parameters. In this scenario, the training
+data is split into disjoint shards, and different parameters
+or “adapters” are trained separately on each shard, and then
+ensembled to obtain a final model. The advantage of this
+approach is that, if the influence of a sample needs to be
+removed, only the parameters corresponding to its shard
+have to be retrained. Moreover if an entire source of data
+needs to be dropped, one can simply drop all the adapters
+corresponding to the shards containing its samples. There
+are, however, two main disadvantages to this approach.
+On the implementation side, there is an increase in storage/inference scaling with the multitude of adapters to ensemble. On a more fundamental level, since each adapter
+is trained independently on a fraction of the available data,
+it forfeits synergistic information that may be present in
+data stored in different shards. As the number of shards
+grows, adapters are trained on increasingly impoverished
+samples, leading to degraded performance relative to monolithic training (see Fig. 2).
+Thus, practitioners have to choose a trade-off between increasing the accuracy of the model and minimizing the expected cost of forgetting a sample. In this work, we show
+that naive sharding, that is uniform partitioning of the training set, is suboptimal in many realistic use cases. Instead,
+shards should be constructed to maximize synergistic information available at training time. To that end, we introduce
+SAFE (Synergy Aware Forgetting Ensemble), an algorithm
+that leverages synergistic information between data shards
+to maximize accuracy for a given forgetting cost. We show
+that SAFE allows training on highly sharded data (with as
+
+17108
+
+

@@ -1,0 +1,84 @@
+Motion-Augmented Self-Training for Video Recognition at Smaller Scale
+Kirill Gavrilyuk1
+
+Mihir Jain2
+
+Ilia Karmanov2
+
+Cees G. M. Snoek1
+
+University of Amsterdam 2 Qualcomm AI Research∗
+{kgavrilyuk,cgmsnoek}@uva.nl
+{mijain,ikarmano}@qti.qualcomm.com
+1
+
+Abstract
+The goal of this paper is to self-train a 3D convolutional
+neural network on an unlabeled video collection for deployment on small-scale video collections. As smaller video
+datasets benefit more from motion than appearance, we
+strive to train our network using optical flow, but avoid its
+computation during inference. We propose the first motionaugmented self-training regime, we call MotionFit. We start
+with supervised training of a motion model on a small, and
+labeled, video collection. With the motion model we generate
+pseudo-labels for a large unlabeled video collection, which
+enables us to transfer knowledge by learning to predict these
+pseudo-labels with an appearance model. Moreover, we
+introduce a multi-clip loss as a simple yet efficient way to
+improve the quality of the pseudo-labeling, even without
+additional auxiliary tasks. We also take into consideration
+the temporal granularity of videos during self-training of
+the appearance model, which was missed in previous works.
+As a result we obtain a strong motion-augmented representation model suited for video downstream tasks like action
+recognition and clip retrieval. On small-scale video datasets,
+MotionFit outperforms alternatives for knowledge transfer
+by 5%-8%, video-only self-supervision by 1%-7% and semisupervised learning by 9%-18% using the same amount of
+class labels.
+
+1. Introduction
+The goal of this paper is to self-train a 3D convolutional neural network on an unlabeled video collection, such
+that it can be effectively fine-tuned on small scale datasets.
+This is of interest for applications in small-sized companies, a household, or search and rescue robotics where large
+amounts of labeled video are often unavailable and the deployment in compute-efficient scenarios is preferred. The
+common self-training approach is to transfer knowledge
+from pre-trained appearance models by pseudo-label predic∗ Qualcomm AI Research is an initiative of Qualcomm Technologies,
+
+Inc.
+
+MMPLG
+Small labeled
+motion dataset
+pseudolabels
+
+MRGB
+Large unlabeled
+appearance dataset
+
+Downstream
+tasks
+
+self-training
+
+Figure 1: Motion-augmented self-training utilizes pseudolabels obtained by a motion model trained on a small labeled
+video dataset. We transfer knowledge from the motion model
+to the appearance model which is suitable for downstream
+video tasks without the need for optical flow computation.
+
+tion, e.g. [41, 46, 60]. Yan et al. [60], for example, cluster
+a pre-learned appearance space before training a new network from scratch using cluster membership as pseudo-label.
+They transfer knowledge from 19 million weakly-labeled
+videos and use Kinetics [9] as their target with around 250k
+videos to fine-tune their model. Unlike them, we aim to selftrain a model that can be effectively fine-tuned on small-scale
+datasets with around 10k videos. Such small video datasets
+benefit more from motion information than appearance [48],
+but the added flow computation affects the efficiency. Other
+semi-supervised [27, 46] and self-supervised [21, 22] alternatives suitable for small-scale datasets either do not use
+motion [27, 46] or use it at inference time also [21, 22]. So,
+we strive to train a convolutional neural network using optical flow, but avoid its computation during inference. We
+propose to transfer knowledge from the motion representation through self-training, to enable effective fine-tuning
+even on small-scale video collections.
+We are inspired by generalized distillation [35]. During
+training it combines knowledge distillation [23] with privileged information [53]. For example, to transfer knowledge
+
+10429
+
+

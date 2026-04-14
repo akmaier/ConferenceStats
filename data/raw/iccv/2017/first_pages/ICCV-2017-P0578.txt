@@ -1,0 +1,90 @@
+A discriminative view of MRF pre-processing algorithms
+Chen Wang1,2
+Charles Herrmann2
+Ramin Zabih1,2
+1
+2
+Google Research
+Cornell University
+{chenwang, cih, rdz}@cs.cornell.edu
+
+Abstract
+While Markov Random Fields (MRFs) are widely used
+in computer vision, they present a quite challenging inference problem. MRF inference can be accelerated by preprocessing techniques like Dead End Elimination (DEE) [8]
+or QPBO-based approaches [18, 24, 25] which compute the
+optimal labeling of a subset of variables. These techniques
+are guaranteed to never wrongly label a variable but they
+often leave a large number of variables unlabeled. We address this shortcoming by interpreting pre-processing as a
+classification problem, which allows us to trade off false
+positives (i.e., giving a variable an incorrect label) versus
+false negatives (i.e., failing to label a variable). We describe
+an efficient discriminative rule that finds optimal solutions
+for a subset of variables. Our technique provides both perinstance and worst-case guarantees concerning the quality
+of the solution. Empirical studies were conducted over several benchmark datasets. We obtain a speedup factor of 2 to
+12 over expansion moves [4] without preprocessing, and on
+difficult non-submodular energy functions produce slightly
+lower energy.
+
+1. Pre-processing for MRF inference
+We address the inference problem for pairwise Markov
+Random Fields (MRFs) defined over n variables x =
+(x1 , . . . , xn ), where each xi is labeled from a discrete label set L. The MRF can be viewed as a graph G = (V, E)
+with a neighborhood system N : V 7→ 2V . To compute the
+MAP estimate we minimize the energy
+E(x) =
+
+X
+
+i∈V
+
+θi (xi ) +
+
+X
+
+θij (xi , xj )
+
+(1)
+
+(i,j)∈E
+
+where θi and θij are unary terms and pairwise terms. MRFs
+are widely used in applications such as image segmentation,
+stereo, etc [14, 40]. Unfortunately the MRF inference problem is NP-hard even when |L| = 2 (i.e. binary labels) [22].
+Many algorithms involve some kind of pre-processing
+phase that seeks to determine the value of a subset of vari-
+
+ables, thus reducing the complexity of the remaining combinatorial search problem. Pre-processing methods are commonly used in conjunction with graph cuts, a technique that
+achieves strong performance on both binary and multilabel
+MRF inference [40]. Graph cuts handle binary MRFs by reduction to min-cut, which is then solved via max-flow (see
+[3, 9] for reviews). The most widely used graph cut methods
+for multi-label MRFs are move-making techniques, which
+generate a new proposal at each iteration and reduce the
+multi-label problem into a series of binary subproblems
+(should each variable stick with the old label or switch to the
+proposed label) and then solved by max-flow/min-cut. Popular algorithms in this family include expansion moves [4]
+and their generalization to fusion moves [27].
+The best known pre-processing methods are Dead End
+Elimination (DEE) [8] and QPBO [3, 21], but there are a
+number of others [18, 24, 25, 35, 36, 39, 42]. (Similar approaches are used for other NP-hard problems, a prominent
+example is Davis-Putnam’s pure literal rule for SAT [7].)
+The key weakness of such methods is that they are inherently conservative, since they only label variables whose
+value can be determined in every global minimum. Yet the
+MRFs that occur in computer vision are so large that in
+practice we almost never compute the actual global minimum.1 As a result, a pre-processing step that is carefully
+designed to never prune the global minimum is followed by
+a search step that almost never finds the global minimum.
+Our fundamental observation is that the pre-processing step
+can be viewed as a classification problem, and that existing pre-processing methods are designed to avoid false positives (i.e., to never label a variable incorrectly), at the cost
+of many false negatives (i.e., variables that are left unlabeled). By revisiting this tradeoff we can design techniques
+where the combination of the pre-processing step and the
+search step leads to better overall performance, especially
+on the most difficult problems.
+As an example, consider a tiny 8-connected binary MRF
+with 9 variables (pixels), and suppose we wish to determine
+by pre-processing that the center pixel should be labeled
+with 0. In order to soundly compute this by DEE or QPBO,
+1 See [12, 29] for rare counterexamples.
+
+5504
+
+

@@ -1,0 +1,141 @@
+DecentLaM: Decentralized Momentum SGD for Large-batch Deep Training
+Kun Yuan1 ,* Yiming Chen1* , Xinmeng Huang2* , Yingya Zhang1 , Pan Pan1 , Yinghui Xu1 , Wotao Yin1
+1
+DAMO Academy, Alibaba Group 2 University of Pennsylvania
+
+Abstract
+The scale of deep learning nowadays calls for efficient
+distributed training algorithms. Decentralized momentum
+SGD (DmSGD), in which each node averages only with
+its neighbors, is more communication efficient than vanilla
+Parallel momentum SGD that incurs global average across
+all computing nodes. On the other hand, the large-batch
+training has been demonstrated critical to achieve runtime
+speedup. This motivates us to investigate how DmSGD performs in the large-batch scenario.
+In this work, we find the momentum term can amplify the
+inconsistency bias in DmSGD. Such bias becomes more evident as batch-size grows large and hence results in severe
+performance degradation. We next propose DecentLaM, a
+novel decentralized large-batch momentum SGD to remove
+the momentum-incurred bias. The convergence rate for both
+strongly convex and non-convex scenarios is established.
+Our theoretical results justify the superiority of DecentLaM
+to DmSGD especially in the large-batch scenario. Experimental results on a a variety of computer vision tasks and
+models show that DecentLaM promises both efficient and
+high-quality training.
+
+1. Introduction
+Efficient distributed training across multiple computing
+nodes is critical for large-scale deep learning tasks nowadays. As a principal training algorithm, Parallel SGD computes a globally averaged gradient either using the Parameter Server (PS) [24] or the All-Reduce communication primitive [38]. Such global synchronization across all nodes either incurs significant bandwidth cost or high latency, which
+hampers the training scalability.
+Decentralized SGD [36, 7, 25, 26, 4, 10] based on partial averaging has become one of the major approaches
+in the past decade to reduce communication overhead in
+distributed optimization. Partial averaging, as opposed to
+global averaging used in Parallel SGD, requires every node
+compute the average of the nodes in its neighborhood, see
+* Equal contribution. Correspondence can be addressed to Kun Yuan
+<kun.yuan@alibaba-inc.com>
+
+5#
+12
+1#
+4
+
+1
+
+2
+
+W=
+
+3
+
+0
+1#
+3
+0
+0
+
+1#
+4
+1#
+4
+1#
+4
+0
+1#
+4
+0
+
+0
+1#
+4
+5#
+12
+0
+0
+1#
+3
+
+1#
+3
+0
+0
+5#
+12
+1#
+4
+0
+
+0
+1#
+4
+0
+1#
+4
+1#
+4
+1#
+4
+
+0
+0
+1#
+3
+0
+1#
+4
+5#
+12
+
+Figure 1. Illustration of decentralized methods. Nodes receive
+information from neighbors; they do not relay information. For
+example, nodes 4 and 6 collect information from their neighbors
+{1, 5} and {3, 5}, respectively. Other nodes do the same but not
+depicted. Topology connectivity can be represented in a matrix, as
+shown in the right figure, see more details in Sec. 3.
+
+Fig. 1. If a sparse topology such as one-peer exponential
+graph [4] is utilized to connect all nodes, each node only
+communicates with one neighbor each iteration and hence
+saves remarkable communications. Decentralized SGD can
+typically achieve 1.3 ∼ 2× training time speedup without
+performance degradation [25, 4, 23].
+Existing Decentralized SGD methods [25, 26, 47, 27, 4]
+and their momentum accelerated variants [56, 44, 15, 5]
+primarily utilize small-batch in their algorithm design.
+However, recent hardware advances make it feasible to
+store large batches in memory and compute their gradients timely. Furthermore, the total batch size naturally
+grows when more computing nodes participate into training. These two primary reasons lead to the recent exploration of large-batch deep training algorithms.
+In fact, large-batch training has been extensively studied
+in Parallel SGD. Pioneering works [17, 52, 54] find largebatch can significantly speed up Parallel SGD. First, the
+computation of a large-batch gradient can fully utilize the
+computational resources (e.g., the CUDA cores and GPU
+memories). Second, large-batch gradient will result in a reduced variance and hence enables a much larger learning
+rate. With newly-proposed layer-wise adaptive rate scaling
+(LARS) [52] and its variant [54], large-batch Parallel momentum SGD (PmSGD) can cut down the training time of
+BERT and Resnet-50 from days to hours [55].
+This naturally motivates us to study how Decentralized
+momentum SGD (DmSGD) performs with large batch-size.
+
+3029
+
+

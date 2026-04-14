@@ -1,0 +1,72 @@
+PQTable: Fast Exact Asymmetric Distance Neighbor Search
+for Product Quantization using Hash Tables
+Yusuke Matsui Toshihiko Yamasaki Kiyoharu Aizawa
+The University of Tokyo, Japan
+{matsui, yamasaki, aizawa}@hal.t.u-tokyo.ac.jp
+
+Abstract
+We propose the product quantization table (PQTable), a
+product quantization-based hash table that is fast and requires neither parameter tuning nor training steps. The
+PQTable produces exactly the same results as a linear PQ
+search, and is 102 to 105 times faster when tested on the
+SIFT1B data. In addition, although state-of-the-art performance can be achieved by previous inverted-indexing-based
+approaches, such methods do require manually designed
+parameter setting and much training, whereas our method
+is free from them. Therefore, PQTable offers a practical and
+useful solution for real-world problems.
+
+1. Introduction
+With the explosive growth of multimedia data, compressing high-dimensional vectors and performing approximate nearest neighbor (ANN) searches in the compressed
+domain is becoming a fundamental problem in handling
+large databases. Product quantization (PQ) [13], and its
+extensions [17, 7, 2, 24, 21, 11, 5, 25], are popular and successful methods for quantizing a vector into a short code.
+PQ has three attractive properties: (1) PQ can compress
+an input vector into an extremely short code (e.g., 32 bit)
+that enables it to handle typically one billion data points
+in memory at once; (2) the approximate distance between
+a raw vector and a compressed PQ code can be computed
+efficiently (the so-called asymmetric distance computation
+(ADC) [13]), which is a good estimate of the original Euclidean distance; and (3) the data structure and coding algorithms are surprisingly simple. By quantizing database vectors into short codes in advance, vectors similar to a given
+query can be found from the database codes by a linear comparison of the query with each code using ADC (see the
+linear ADC scan in Fig. 1a).
+Although a linear ADC scan is simple and easy to use,
+ANN search by linear ADC scanning is efficient only for
+small datasets because the search is exhaustive, i.e., the
+computational cost is at least O(N ) for N PQ codes. To
+
+handle large (e.g., N = 109 ) databases, short-code-based
+inverted indexing systems [1, 23, 7, 15, 3, 4] have been proposed, which are currently state-of-the-art ANN methods
+(see Fig. 1b). Such systems operate in two stages: (1) coarse
+quantization and (2) reranking via short codes. A database
+vector is first assigned to a bucket using a coarse quantizer
+(e.g., k-means [13], multiple k-means [23], or Cartesian
+products [1, 12]), then compressed to a short code using
+PQ [13] or its extensions [17, 7] and finally stored as a posting list 1 . In the retrieval phase, a query vector is assigned
+to the nearest buckets by the coarse quantizer, then associated items in corresponding posting lists are traversed, with
+the nearest one being reranked via ADC 2 . These systems
+have been reported as being fast, accurate, and memory efficient, by being capable of holding one billion data points
+in memory and conducting a retrieval in milliseconds.
+However, such inverted indexing systems are built by
+a process of carefully designed manual parameter tuning.
+The processing time and recall rates strongly depend on
+the number of space partitions in the coarse quantizer, and
+its optimal size needs to be decided manually, as shown
+in Fig. 2. For example, this simple example shows that
+k = 1024 is the fastest setting for N = 107 , but the slowest
+for N = 108 . These relationships do not become clear until several parameter combinations for the coarse quantizers
+are examined. However, training and testing coarse quantizers is computationally expensive. For example, we found
+that, to plot a single dot of Fig. 2 for N = 109 , the training
+took around a day and building the inverted index structure
+took around three days, using 16-core machines. This is
+particularly critical for a recent per-cell training ANN system [3, 15], which requires even more computation to build
+the system. It should be pointed out that achieving stateof-the-art performances by ANN systems depends largely
+on special tuning for the testbed dataset, e.g., SIFT1B [14].
+There is no guarantee that we can always achieve the best
+performance by such systems. In real-world applications,
+1 In practice, the residual difference between the query vector and the
+codeword is encoded.
+2 There are smarter versions of this computation [3].
+
+11940
+
+

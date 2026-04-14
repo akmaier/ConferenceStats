@@ -1,0 +1,133 @@
+An Empirical Study of Training Self-Supervised Vision Transformers
+Xinlei Chen∗
+Saining Xie∗
+Kaiming He
+Facebook AI Research (FAIR)
+Code: https://github.com/facebookresearch/moco-v3
+
+Abstract
+This paper does not describe a novel method. Instead,
+it studies a straightforward, incremental, yet must-know
+baseline given the recent progress in computer vision: selfsupervised learning for Vision Transformers (ViT). While
+the training recipes for standard convolutional networks
+have been highly mature and robust, the recipes for ViT are
+yet to be built, especially in the self-supervised scenarios
+where training becomes more challenging. In this work, we
+go back to basics and investigate the effects of several fundamental components for training self-supervised ViT. We
+observe that instability is a major issue that degrades accuracy, and it can be hidden by apparently good results. We
+reveal that these results are indeed partial failure, and they
+can be improved when training is made more stable. We
+benchmark ViT results in MoCo v3 and several other selfsupervised frameworks, with ablations in various aspects.
+We discuss the currently positive evidence as well as challenges and open questions. We hope that this work will provide useful data points and experience for future research.
+
+1. Introduction
+Unsupervised pre-training has revolutionized natural
+language processing (NLP) [36, 15, 37, 4]. In computer vision, the un-/self-supervised pre-training paradigms differ
+from their NLP counterparts in at least two aspects: (i) the
+learners in NLP are masked auto-encoders, while in vision
+the recently popular choices are Siamese networks (e.g.,
+[20, 10, 18, 7]); (ii) the backbone architectures in NLP are
+self-attentional Transformers [42], while in vision the common choice is convolutional [27]—yet non-attentional—
+deep residual networks (ResNets) [21]. To complete the big
+picture of self-supervised learning in vision, and towards
+closing the gap of pre-training methodology between vision
+and language, it is of scientific merit to investigate these
+differences.
+This work focuses on training Transformers with the
+leading self-supervised frameworks in vision. This investigation is a straightforward extension given the recent
+progress on Vision Transformers (ViT) [16]. In contrast to
+prior works [9, 16] that train self-supervised Transformers
+with masked auto-encoding, we study the frameworks that
+are based on Siamese networks, including MoCo [20] and
+
+framework
+linear probing:
+iGPT [9]
+iGPT [9]
+MoCo v3
+MoCo v3
+MoCo v3
+MoCo v3
+MoCo v3
+end-to-end fine-tuning:
+masked patch pred. [16]
+MoCo v3
+MoCo v3
+
+model
+
+params
+
+acc. (%)
+
+iGPT-L
+iGPT-XL
+ViT-B
+ViT-L
+ViT-H
+ViT-BN-H
+ViT-BN-L/7
+
+1362M
+6801M
+86M
+304M
+632M
+632M
+304M
+
+69.0
+72.0
+76.7
+77.6
+78.1
+79.1
+81.0
+
+ViT-B
+ViT-B
+ViT-L
+
+86M
+86M
+304M
+
+79.9†
+83.2
+84.1
+
+Table 1.
+State-of-the-art Self-supervised Transformers in
+ImageNet classification, evaluated by linear probing (top panel)
+or end-to-end fine-tuning (bottom panel). Both iGPT [9] and
+masked patch prediction [16] belong to the masked auto-encoding
+paradigm. MoCo v3 is a contrastive learning method that compares two (224×224) crops. ViT-B, -L, -H are the Vision Transformers proposed in [16]. ViT-BN is modified with BatchNorm,
+and “/7” denotes a patch size of 7×7. † : pre-trained in JFT-300M.
+
+others [10, 18, 7].
+Unlike standard convolutional networks whose training
+practice has been extensively studied thanks to continuous
+community effort, ViT models are new and their recipes
+are yet to be established. In this work, we go back to basics and investigate the fundamental components of training deep neural networks: the batch size, learning rate, and
+optimizer. We find that under various cases, instability is a
+major issue that impacts self-supervised ViT training.
+Interestingly, we observe that unstable ViT training may
+not result in catastrophic failure (e.g., divergence); instead,
+it can cause mild degradation in accuracy (e.g., 1∼3%).
+Such a degree of degradation may not be noticeable, unless
+a more stable counterpart is available for comparison. To
+the best of our knowledge, this phenomena is rare in the literature of training convolutional networks1 , and we believe
+this problem and its hidden degradation are worth noticing.
+To demonstrate the possible harm of instability, we
+investigate a simple trick that can improve stability in
+practice. Based on an empirical observation on gradient
+changes, we freeze the patch projection layer in ViT, i.e.,
+we use fixed random patch projection. We empirically show
+that this trick alleviates the instability issue in several scenarios and consistently increases accuracy.
+1 See also postscript on a related discussion.
+
+*: equal contribution.
+
+9640
+
+

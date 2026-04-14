@@ -1,0 +1,149 @@
+Neural Articulated Radiance Field
+Atsuhiro Noguchi1 Xiao Sun2 Stephen Lin2 Tatsuya Harada1,3
+1
+
+The University of Tokyo 2 Microsoft Research Asia 3 RIKEN
+
+Abstract
+
+Global
+location
+
+li = {Ri , ti }
+<latexit sha1_base64="riJvOJYC0w3aanrFc82/VhDb2qA=">AAACg3ichVFBSxtBGH2uxmpsNeqlUJDFYBEq4dsgKIIg9uJRE6OC0bC7TuyQze6yOwnokpsn/4CHniqIWI/6D7z4Bzz4E8SjghcP/bJZECut3zAzb95875s3M5bvyFAR3XZp3T2p3g99/emBj58GhzLDI2uh1whsUbI9xws2LDMUjnRFSUnliA0/EGbdcsS6Vfve3l9viiCUnruq9nyxVTd3XVmVtqmYqmTGnG2pz+vlKCpbVb3Q2pZTegwVw3KrkslSjuLQ3wIjAVkksexlTlHGDjzYaKAOAReKsQMTIbdNGCD4zG0hYi5gJON9gRbSrG1wluAMk9kaj7u82kxYl9ftmmGstvkUh3vASh0TdENn9EDXdE539PzPWlFco+1lj2eroxV+Zejwc/HpXVWdZ4UfL6r/elaoYjb2Ktm7HzPtW9gdfXP/6KE4V5iIvtIx3bP/X3RLV3wDt/lon6yIwk+k+QOMv5/7LVjL5wzKGSvT2YXF5Cv68AXjmOT3nsEClrCMEp97gN+4wKWW0r5peW26k6p1JZpRvApt/g8qi5RM</latexit>
+
+We present Neural Articulated Radiance Field (NARF),
+a novel deformable 3D representation for articulated objects learned from images. While recent advances in 3D implicit representation have made it possible to learn models
+of complex objects, learning pose-controllable representations of articulated objects remains a challenge, as current
+methods require 3D shape supervision and are unable to
+render appearance. In formulating an implicit representation of 3D articulated objects, our method considers only
+the rigid transformation of the most relevant object part
+in solving for the radiance ﬁeld at each 3D location. In
+this way, the proposed method represents pose-dependent
+changes without signiﬁcantly increasing the computational
+complexity. NARF is fully differentiable and can be trained
+from images with pose annotations. Moreover, through the
+use of an autoencoder, it can learn appearance variations
+over multiple instances of an object class. Experiments
+show that the proposed method is efﬁcient and can generalize well to novel poses. The code is available for research
+purposes at https://github.com/nogu-atsu/NARF.
+
+1. Introduction
+In this work, we aim to learn a representation for rendering novel views and poses of 3D articulated objects, such
+as human bodies, from images. Our approach follows the
+inverse graphics paradigm [27, 26, 37, 28] of analyzing an
+image by attempting to synthesize it with compact graphics
+codes. These codes are typically disentangled to allow for
+rendering of scenes/objects with ﬁne-grained control over
+individual appearance properties such as object location,
+pose, lighting, texture, and shape. For the case of humans,
+synthesis of novel views and poses can be useful for applications such as movie making, photo editing, virtual clothing [64, 29] and motion transfer [33, 4].
+Various inverse graphics based approaches have been
+speciﬁcally designed for static scenes [60, 21, 54], rigid objects [9, 68, 62, 56, 3], blend shapes for keypoints [61, 4]
+and dense meshes [64, 33]. However, efﬁcient deformation
+
+: Positional encoding
+x
+⌘
+Global ⇣
+1
+P
+coordinate
+(xl ), ..., (xl )
+Selector
+<latexit sha1_base64="oBc5g5yw4JP+1v//RJ2lj45o5AI=">AAACanichVHLSsNAFD2N7/qqulG6KdaKq3IjguKq6MZltbYVWpEkTjU0TUKSFmvxB9y5EuxKQUT8DDf+gIt+guhOwY0Lb9OAaFHvMDNnztxz58yMahu66xG1QlJPb1//wOBQeHhkdGw8MjGZc62qo4msZhmWs6MqrjB0U2Q93TPEju0IpaIaIq+W19v7+ZpwXN0yt726LXYryoGpl3RN8ZjKN4pqKXZ0sheJU5L8iHUDOQBxBJG2IjcoYh8WNFRRgYAJj7EBBS63AmQQbOZ20WDOYaT7+wInCLO2ylmCMxRmyzwe8KoQsCav2zVdX63xKQZ3h5UxJOiRbumVHuiOnujj11oNv0bbS51ntaMV9t746XTm/V9VhWcPh1+qPz17KGHF96qzd9tn2rfQOvra8flrZnUr0ZinK3pm/5fUonu+gVl70643xVYTYf4A+edzd4PcYlKmpLy5FE+tBV8xiChmscDvvYwUNpBG1nd3hgs0Qy/SpDQjRTupUijQTOFbSHOfVySMcA==</latexit>
+
+<latexit sha1_base64="oBc5g5yw4JP+1v//RJ2lj45o5AI=">AAACanichVHLSsNAFD2N7/qqulG6KdaKq3IjguKq6MZltbYVWpEkTjU0TUKSFmvxB9y5EuxKQUT8DDf+gIt+guhOwY0Lb9OAaFHvMDNnztxz58yMahu66xG1QlJPb1//wOBQeHhkdGw8MjGZc62qo4msZhmWs6MqrjB0U2Q93TPEju0IpaIaIq+W19v7+ZpwXN0yt726LXYryoGpl3RN8ZjKN4pqKXZ0sheJU5L8iHUDOQBxBJG2IjcoYh8WNFRRgYAJj7EBBS63AmQQbOZ20WDOYaT7+wInCLO2ylmCMxRmyzwe8KoQsCav2zVdX63xKQZ3h5UxJOiRbumVHuiOnujj11oNv0bbS51ntaMV9t746XTm/V9VhWcPh1+qPz17KGHF96qzd9tn2rfQOvra8flrZnUr0ZinK3pm/5fUonu+gVl70643xVYTYf4A+edzd4PcYlKmpLy5FE+tBV8xiChmscDvvYwUNpBG1nd3hgs0Qy/SpDQjRTupUijQTOFbSHOfVySMcA==</latexit>
+
+x
+
+<latexit sha1_base64="5Og4M7donyxShTXhLnNTI0EcRVs=">AAACaXichVG7SgNBFD1Z3/EVtQnaiEGxCndFUKxEG0ujJgaSILvrGNfsi91JQIM/YGUnaqUgIn6GjT9gkU+QlAo2Ft5sFkRFvcPMnDlzz50zM7pnmYEkasSUjs6u7p7evnj/wODQcGJkNBe4Vd8QWcO1XD+va4GwTEdkpSktkfd8odm6Jbb1ymprf7sm/MB0nS156ImSrZUdc880NMlUrljWbFvbSaQoTWFM/gRqBFKIYt1N3KKIXbgwUIUNAQeSsQUNAbcCVBA85kqoM+czMsN9gWPEWVvlLMEZGrMVHsu8KkSsw+tWzSBUG3yKxd1n5SSm6Ynu6IUe6Z6e6f3XWvWwRsvLIc96Wyu8neGT5ObbvyqbZ4n9T9WfniX2sBh6Ndm7FzKtWxhtfe3o7GVzaWO6PkPX1GT/V9SgB76BU3s1bjJi4xJx/gD1+3P/BLm5tEppNTOfWl6JvqIXE5jCLL/3ApaxhnVk+dwDnOIcF7GmMqIklfF2qhKLNGP4EkrqA4VdjBE=</latexit>
+
+<latexit sha1_base64="bYjTBuZUldKxODu9Frx9yINjERo=">AAACo3ichVFNaxNRFD2dVq3xo6luhG4GQySBMtwRwdKFFN0IbtK0aQudNMyML+mjbz6YeQlth/wB/4ALV4pSSn9GN6VbddGfIC4ruHHhzWRANKh3mPfOO/ee+857z4uVTDXRxZQxPXPl6rXZ66UbN2/dnivP39lIo37ii5YfqSjZ8txUKBmKlpZaia04EW7gKbHp7T0b5TcHIkllFK7rg1i0A7cXyq70Xc1Up/zEUaKra07PDQK3ljle19wf7mRqxx7WF03LshbNyVxjWHcS2dvV9U65QhblYU4CuwAVFNGIykdw8BIRfPQRQCCEZqzgIuVvGzYIMXNtZMwljGSeFxiixNo+VwmucJnd47HHq+2CDXk96pnmap93UfwnrDRRpc90TJd0Rif0hX78tVeW9xh5OeDZG2tF3Jl7dW/t+39VAc8au79U//Ss0cVS7lWy9zhnRqfwx/rB4evLteVmNXtA7+gr+39LF3TKJwgH3/wPq6L5BiV+APvP654EGw8tmyx79VFl5WnxFLNYwH3U+L4fYwXP0UCL932Pc3zEJ6NqvDCaxvq41JgqNHfxWxjtn+2foJE=</latexit>
+
+Weighted
+concat
+
+li
+
+x =R
+
+i 1
+
+(x
+
+i
+
+t)
+
+probability that x
+belongs to each part
+<latexit sha1_base64="LX8+UPAOXEJpyI63WPQA3DUAGkQ=">AAACdHichVHLSsNAFD2N7/po1Y2gi2CoKEi4EUFxJbpxWa1VwUdJ4lhD0yQkaaEWf8AfcOFKUUT8DDf+gIt+grhUdOPC2zQgKuoNkzlz5p47Z+Yanm0FIVEjIbW1d3R2dfcke/v6B1LpwaGNwK34psibru36W4YeCNtyRD60Qltseb7Qy4YtNo3ScnN/syr8wHKd9bDmid2yXnSsA8vUQ6YK6dSkt6dNy6qqTsveXnaqkFZIpSjkn0CLgYI4sm76GjvYhwsTFZQh4CBkbENHwN82NBA85nZRZ85nZEX7AsdIsrbCWYIzdGZL/C/yajtmHV43awaR2uRTbB4+K2Vk6IFu6Jnu6ZYe6f3XWvWoRtNLjWejpRVeIXUyknv7V1XmOcThp+pPzyEOMB95tdi7FzHNW5gtffXo9Dm3sJapT9AFPbH/c2rQHd/Aqb6YV6ti7QxJboD2/bl/go0ZVSNVW51VFpfiVnRjFOOY5PeewyJWkEU+6skZLnGVeJXGJEXKtFKlRKwZxpeQ1A/SO43N</latexit>
+
+MLP
+
+<latexit sha1_base64="N7XU2R/nAMDoxdJW2atIPKDkw/s=">AAACm3ichVFBSxtBFP5cbZvGtqZ6KYiwGCx6MLwtpYoghHopxUMSGxXUhN11YodsdpfdSTBd9g/0D/TQXioUEf+FXgS9evAniEcLvfTQl81CaUV9w8x873vve/NmxvIdGSqiiwFtcOjBw0eZx9nhJ0+fjeSej66GXjuwRdX2HC9Yt8xQONIVVSWVI9b9QJgtyxFrVnOpF1/riCCUnvtBdX2x1TJ3XNmQtqmYqufeRJtWQ9+Na5FTk7G+qEcJUYnZq0WzRqxPpxn6rJ4gxaGZei5PBUpMvwmMFOSRWsnL7WMT2/Bgo40WBFwoxg5MhDw2YIDgM7eFiLmAkUziAjGyrG1zluAMk9kmrzvsbaSsy36vZpiobT7F4RmwUscUndMBXdMJHdIl/b61VpTU6PXS5d3qa4VfH/n8YuXXvaoW7wof/6ru7FmhgfmkV8m9+wnTu4Xd13c+fbleWahMRS9pj664/+90Qcd8A7fz0/5RFpWvyPIHGP8/902w+qpgUMEov84X36ZfkcE4JjHN7z2HIt6hhCqf+w1HOMWZNqEtae+15X6qNpBqxvCPadU/v0SdiA==</latexit>
+
+Local
+
+(p1 , ..., pP )
+
+Global
+<latexit sha1_base64="bs8QlLljyYde7WbNFuyzJJm+ZMk=">AAACVXichVG7SgNBFD1ZX3F9JMFGsAmGiFW4a6NYCTaWeZgHxBB2N6Mu2ewuu5tADP5AWgsLKwUR8TNs/AGL9DZiGcHGwrubgKiod5iZM2fm3DlzR3NMw/OJBhFpYnJqeiY6K8/NywuLsfh8ybPbri6Kum3abkVTPWEalij6hm+KiuMKtaWZoqw1d4P9cke4nmFb+37XEbWWemQZh4au+kxl6/EUZSiM5E+gjEEK47DjNzhAAzZ0tNGCgAWfsQkVHrcqFBAc5mroMecyMsJ9gVPIrG3zKcEnVGabPB7xqjpmLV4HOb1QrfMtJneXlUmk6ZFuaUgPdEfP9P5rrl6YI/DS5VkbaYVTj/WXC2//qlo8+zj+VP3p2cchtkKvBnt3QiZ4hT7Sd07Oh4XtfLq3Rlf0wv4vaUD3/AKr86pf50T+AjLXX/le7Z+gtJFRKKPkCFGsYBXrXOZN7GAPWRT5ugb6OIs8SbKUGP2TFBl/WAJfQlr6AAYJh7c=</latexit>
+sha1_base64="w+vyjzLRaqfCbnnmjgYsym4DkgQ=">AAACbHichVG7SgNBFD1ZXzE+Eh+FEIRgUCwk3LVRrII2lpoYH6jI7jrGwX2xuwlo8AdsLSzUQkFE/Awbf8AinyCCjYKNhTebBVFR7zAzZ87cc+fMjO6a0g+I6jGlpbWtvSPemejq7ulNpvr6l32n4hmiZDim463qmi9MaYtSIANTrLqe0CzdFCv63lxjf6UqPF869lKw74pNSyvbckcaWsDU2oYvy5Y2kTG2UlnKURiZn0CNQBZRLDipa2xgGw4MVGBBwEbA2IQGn9s6VBBc5jZRY85jJMN9gUMkWFvhLMEZGrN7PJZ5tR6xNq8bNf1QbfApJnePlRmM0gPd0Avd0y090vuvtWphjYaXfZ71pla4W8mjoeLbvyqL5wC7n6o/PQfYwXToVbJ3N2QatzCa+urByUtxpjBaG6NLemL/F1SnO76BXX01rhZF4RQJ/gD1+3P/BMuTOZVy6iJl87PRV8SRxgjG+b2nkMc8FlDicy0c4wznsWdlUEkrw81UJRZpBvAllLEPdnqM6A==</latexit>
+sha1_base64="xLICqgnLdOyx9328uwWP5bEz21Q=">AAACbHichVG7SgNBFD1Z3/GR+CgEEYLBYCHhrgiKVdDGMj7iAxXZXcc4ZF/sbgIa/AFbCwu1UBARP8PGH7DwE0SwUbCx8GazIBrUO8zMmTP33Dkzo7um9AOix5jS1NzS2tbeEe/s6u5JJHv7Vnyn7BmiYDim463pmi9MaYtCIANTrLme0CzdFKt6aa62v1oRni8deznYd8WWpRVtuSsNLWBqfdOXRUsbTxnbyTRlKYxUI1AjkEYUeSd5jU3swIGBMiwI2AgYm9Dgc9uACoLL3BaqzHmMZLgvcIg4a8ucJThDY7bEY5FXGxFr87pW0w/VBp9icvdYmcIoPdANvdI93dITffxaqxrWqHnZ51mva4W7nTgaXHr/V2XxHGDvS/Wn5wC7mA69SvbuhkztFkZdXzk4eV2aWRytZuiSntn/BT3SHd/ArrwZVwti8RRx/gD153M3gpWJrEpZdWEynZuNvqIdQxjBGL/3FHKYRx4FPtfCMc5wHntRBpQhZbieqsQiTT++hZL5BHe6jOw=</latexit>
+sha1_base64="WU4CaESs2YErP0m7UdzaP4NDS4Q=">AAACYXichVG7SgNBFD1Z3zFqFAtBhKBELCTctVGsBBtLX9FIImF3HOPgvtjdBDT4A7YWFmqhICJ+ho0/YOEniGATwcbCm01ANKh3mJkzZ+bcOTPX9CwVhERPMa2tvaOzq7sn3pvo6x9IDiY2ArfsC5kVruX6OdMIpKUcmQ1VaMmc50vDNi25ae4v1vc3K9IPlOushwee3LaNkqN2lTBCprYKgSrZxnRKFJMTlKEoUq1Ab4IJNGPZTd6ggB24ECjDhoSDkLEFAwG3PHQQPOa2UWXOZ6SifYkjxFlb5lOSTxjM7vNY4lW+yTq8rucMIrXgWyzuPitTSNMj3VKNHuiOnunj11zVKEfdywHPZkMrveLA8cja+78qm+cQe1+qPz2H2MVc5FWxdy9i6q8QDX3l8LS2Nr+ark7SFb2w/0t6ont+gVN5E9crcvUMcS6A/vO7W8HGTEanjL5C6MYoxjHF3zyLBSxhGVm+zsYJznERe9WGtdFGqbRYs2ZD+Bba2CdjEowU</latexit>
+
+,c
+
+Segmentation
+Depth
+
+3D pose
+li = {Ri , ti }
+
+Ground Truth
+mask, color
+
+<latexit sha1_base64="riJvOJYC0w3aanrFc82/VhDb2qA=">AAACg3ichVFBSxtBGH2uxmpsNeqlUJDFYBEq4dsgKIIg9uJRE6OC0bC7TuyQze6yOwnokpsn/4CHniqIWI/6D7z4Bzz4E8SjghcP/bJZECut3zAzb95875s3M5bvyFAR3XZp3T2p3g99/emBj58GhzLDI2uh1whsUbI9xws2LDMUjnRFSUnliA0/EGbdcsS6Vfve3l9viiCUnruq9nyxVTd3XVmVtqmYqmTGnG2pz+vlKCpbVb3Q2pZTegwVw3KrkslSjuLQ3wIjAVkksexlTlHGDjzYaKAOAReKsQMTIbdNGCD4zG0hYi5gJON9gRbSrG1wluAMk9kaj7u82kxYl9ftmmGstvkUh3vASh0TdENn9EDXdE539PzPWlFco+1lj2eroxV+Zejwc/HpXVWdZ4UfL6r/elaoYjb2Ktm7HzPtW9gdfXP/6KE4V5iIvtIx3bP/X3RLV3wDt/lon6yIwk+k+QOMv5/7LVjL5wzKGSvT2YXF5Cv68AXjmOT3nsEClrCMEp97gN+4wKWW0r5peW26k6p1JZpRvApt/g8qi5RM</latexit>
+
+<latexit sha1_base64="oBc5g5yw4JP+1v//RJ2lj45o5AI=">AAACanichVHLSsNAFD2N7/qqulG6KdaKq3IjguKq6MZltbYVWpEkTjU0TUKSFmvxB9y5EuxKQUT8DDf+gIt+guhOwY0Lb9OAaFHvMDNnztxz58yMahu66xG1QlJPb1//wOBQeHhkdGw8MjGZc62qo4msZhmWs6MqrjB0U2Q93TPEju0IpaIaIq+W19v7+ZpwXN0yt726LXYryoGpl3RN8ZjKN4pqKXZ0sheJU5L8iHUDOQBxBJG2IjcoYh8WNFRRgYAJj7EBBS63AmQQbOZ20WDOYaT7+wInCLO2ylmCMxRmyzwe8KoQsCav2zVdX63xKQZ3h5UxJOiRbumVHuiOnujj11oNv0bbS51ntaMV9t746XTm/V9VhWcPh1+qPz17KGHF96qzd9tn2rfQOvra8flrZnUr0ZinK3pm/5fUonu+gVl70643xVYTYf4A+edzd4PcYlKmpLy5FE+tBV8xiChmscDvvYwUNpBG1nd3hgs0Qy/SpDQjRTupUijQTOFbSHOfVySMcA==</latexit>
+
+x
+
+NARF Volume
+
+rendering
+
+Mask
+
+Color
+L2
+loss
+
+,c
+
+Density, color
+<latexit sha1_base64="bs8QlLljyYde7WbNFuyzJJm+ZMk=">AAACVXichVG7SgNBFD1ZX3F9JMFGsAmGiFW4a6NYCTaWeZgHxBB2N6Mu2ewuu5tADP5AWgsLKwUR8TNs/AGL9DZiGcHGwrubgKiod5iZM2fm3DlzR3NMw/OJBhFpYnJqeiY6K8/NywuLsfh8ybPbri6Kum3abkVTPWEalij6hm+KiuMKtaWZoqw1d4P9cke4nmFb+37XEbWWemQZh4au+kxl6/EUZSiM5E+gjEEK47DjNzhAAzZ0tNGCgAWfsQkVHrcqFBAc5mroMecyMsJ9gVPIrG3zKcEnVGabPB7xqjpmLV4HOb1QrfMtJneXlUmk6ZFuaUgPdEfP9P5rrl6YI/DS5VkbaYVTj/WXC2//qlo8+zj+VP3p2cchtkKvBnt3QiZ4hT7Sd07Oh4XtfLq3Rlf0wv4vaUD3/AKr86pf50T+AjLXX/le7Z+gtJFRKKPkCFGsYBXrXOZN7GAPWRT5ugb6OIs8SbKUGP2TFBl/WAJfQlr6AAYJh7c=</latexit>
+sha1_base64="w+vyjzLRaqfCbnnmjgYsym4DkgQ=">AAACbHichVG7SgNBFD1ZXzE+Eh+FEIRgUCwk3LVRrII2lpoYH6jI7jrGwX2xuwlo8AdsLSzUQkFE/Awbf8AinyCCjYKNhTebBVFR7zAzZ87cc+fMjO6a0g+I6jGlpbWtvSPemejq7ulNpvr6l32n4hmiZDim463qmi9MaYtSIANTrLqe0CzdFCv63lxjf6UqPF869lKw74pNSyvbckcaWsDU2oYvy5Y2kTG2UlnKURiZn0CNQBZRLDipa2xgGw4MVGBBwEbA2IQGn9s6VBBc5jZRY85jJMN9gUMkWFvhLMEZGrN7PJZ5tR6xNq8bNf1QbfApJnePlRmM0gPd0Avd0y090vuvtWphjYaXfZ71pla4W8mjoeLbvyqL5wC7n6o/PQfYwXToVbJ3N2QatzCa+urByUtxpjBaG6NLemL/F1SnO76BXX01rhZF4RQJ/gD1+3P/BMuTOZVy6iJl87PRV8SRxgjG+b2nkMc8FlDicy0c4wznsWdlUEkrw81UJRZpBvAllLEPdnqM6A==</latexit>
+sha1_base64="xLICqgnLdOyx9328uwWP5bEz21Q=">AAACbHichVG7SgNBFD1Z3/GR+CgEEYLBYCHhrgiKVdDGMj7iAxXZXcc4ZF/sbgIa/AFbCwu1UBARP8PGH7DwE0SwUbCx8GazIBrUO8zMmTP33Dkzo7um9AOix5jS1NzS2tbeEe/s6u5JJHv7Vnyn7BmiYDim463pmi9MaYtCIANTrLme0CzdFKt6aa62v1oRni8deznYd8WWpRVtuSsNLWBqfdOXRUsbTxnbyTRlKYxUI1AjkEYUeSd5jU3swIGBMiwI2AgYm9Dgc9uACoLL3BaqzHmMZLgvcIg4a8ucJThDY7bEY5FXGxFr87pW0w/VBp9icvdYmcIoPdANvdI93dITffxaqxrWqHnZ51mva4W7nTgaXHr/V2XxHGDvS/Wn5wC7mA69SvbuhkztFkZdXzk4eV2aWRytZuiSntn/BT3SHd/ArrwZVwti8RRx/gD153M3gpWJrEpZdWEynZuNvqIdQxjBGL/3FHKYRx4FPtfCMc5wHntRBpQhZbieqsQiTT++hZL5BHe6jOw=</latexit>
+sha1_base64="WU4CaESs2YErP0m7UdzaP4NDS4Q=">AAACYXichVG7SgNBFD1Z3zFqFAtBhKBELCTctVGsBBtLX9FIImF3HOPgvtjdBDT4A7YWFmqhICJ+ho0/YOEniGATwcbCm01ANKh3mJkzZ+bcOTPX9CwVhERPMa2tvaOzq7sn3pvo6x9IDiY2ArfsC5kVruX6OdMIpKUcmQ1VaMmc50vDNi25ae4v1vc3K9IPlOushwee3LaNkqN2lTBCprYKgSrZxnRKFJMTlKEoUq1Ab4IJNGPZTd6ggB24ECjDhoSDkLEFAwG3PHQQPOa2UWXOZ6SifYkjxFlb5lOSTxjM7vNY4lW+yTq8rucMIrXgWyzuPitTSNMj3VKNHuiOnunj11zVKEfdywHPZkMrveLA8cja+78qm+cQe1+qPz2H2MVc5FWxdy9i6q8QDX3l8LS2Nr+ark7SFb2w/0t6ont+gVN5E9crcvUMcS6A/vO7W8HGTEanjL5C6MYoxjHF3zyLBSxhGVm+zsYJznERe9WGtdFGqbRYs2ZD+Bba2CdjEowU</latexit>
+
+Figure 1. Training pipeline of Disentangled NARF (NARFD ).
+NARF is an efﬁcient pose-aware 3D representation trained from
+only pose-annotated images. The learned representation is partbased and able to render novel poses of articulated 3D objects by
+changing the input object pose conﬁgurations.
+
+modeling of articulated 3D objects using neural networks
+remains a challenging task due to the large variance of joint
+locations (especially for endpoints such as hands), severe
+self-occlusions, and high non-linearity in forward kinematic
+transformations [69]. Though work has been done to enable explicit control over the underlying human pose [33]
+and key point locations [4], their neural rendering methods are either limited to 2D [4], which prevents modeling
+of view-dependent appearance [7], or based on mesh representations [33], where rendering quality can be affected by
+the resolution of the discrete template mesh.
+Recent progress on the implicit representation of 3D objects and scenes, such as signed distance functions [20, 43]
+and occupancy ﬁelds [12, 38], has greatly promoted the development of the inverse graphics paradigm. Such representations are lightweight in model size, continuous, and
+differentiable, making them highly practical in comparison with the previously-dominant volumetric representations [11, 16, 24, 39, 46, 55, 57, 67]. Particularly, Milden15762
+
+

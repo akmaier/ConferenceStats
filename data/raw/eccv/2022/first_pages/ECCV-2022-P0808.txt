@@ -1,0 +1,50 @@
+Few-Shot Video Object Detection
+Qi Fan1 , Chi-Keung Tang1 , and Yu-Wing Tai1,2
+1
+
+The Hong Kong University of Science and Technology, 2 Kuaishou Technology
+fanqics@gmail.com, cktang@cs.ust.hk, yuwing@gmail.com
+
+1
+
+More Implementation Details
+
+1.1
+
+Matching Network Architecture
+
+We adopt the multi-relation head from FSOD [3] as our matching network (MN),
+which consists of three relation heads for learning to match support and query
+features {fs , fq } ∈ R1×C×7×7 in multiple levels.
+Global-relation head. Designed to learn a global matching embedding,
+this head first concatenates fs and fq along the channel dimension to feature
+′
+fc ∈ R1×2C×7×7 , which is then average pooled to fc ∈ R1×2C×1×1 . Finally, a
+MLP M containing three fully connected layers with ReLU (except the last one)
+is applied to fc to predict the matching score sg = M(fc ).
+Patch-relation head. Designed to learn a non-linear metric to capture the
+complex relation between patches, this head is derived from the RelationNet [5]
+′
+where the concatenated feature fc is fed to a small convolution network, which
+consists of two 3 × 3 average pooling operators at the first and last layers separately, two 1 × 1 convolutional layers for reducing and then restoring dimensions, and one 3 × 3 convolutional layer (all convolutional layers are equipped
+with ReLU). Note that all these operations and layers use one stride and zero
+padding to generate the final feature vector fq ∈ R1×C×1×1 . Finally, a fully connected layer is employed to generate the matching score sp , and a sibling fc layer
+to generate the box prediction for better supervision from multi-task learning.
+Local-relation head. Designed to capture the pixel-level relation between
+support and query features, fs and fq are first processed using a weight-shared
+convolution layer with ReLU. Then their pixel-wise relation is calculated by
+depth-wise correlation [4] with the resulting feature vector fd ∈ R1×C×1×1 fed
+to a fully connected layer to generate the matching score sl .
+These three relation heads cooperate together to capture the relation between support and query features in different levels. The final matching score is
+obtained by summing all the aforementioned matching scores: s = sg + sp + sl .
+1.2
+
+Deformable RoIAlign
+
+Deformable RoIAlign dynamically changes its sample locations according to the
+input features. In our implementation, two frame features are concatenated and
+sent to the deformable RoIAlign so that it is aware of the object positions in
+both frames and therefore dynamically adapt the sample locations to enlarge
+the search region to capture objects in both frames.
+
+

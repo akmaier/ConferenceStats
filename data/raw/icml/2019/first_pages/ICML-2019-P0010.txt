@@ -1,0 +1,73 @@
+Static Automatic Batching in TensorFlow
+
+Ashish Agarwal 1
+
+Abstract
+Dynamic neural networks are becoming increasingly common, and yet it is hard to implement
+them efficiently. On-the-fly operation batching for
+such models is sub-optimal and suffers from run
+time overheads, while writing manually batched
+versions can be hard and error-prone. To address this, we extend TensorFlow with pfor, a
+parallel-for loop optimized using static loop vectorization. With pfor, users can express computation using nested loops and conditional constructs,
+but get performance resembling that of a manually batched version. Benchmarks demonstrate
+speedups of one to two orders of magnitude on
+a range of tasks, from Jacobian computation, to
+auto-batching Graph Neural Networks.
+
+1. Introduction
+Deep learning models are getting increasingly complicated
+in structure. New applications, like study of molecular structure, genetic data, relational databases, program synthesis,
+(Chen et al., 2018; Liang et al., 2018; Schlichtkrull et al.,
+2018) require dealing with inputs that have rich and dynamic structure. Handling such domains requires dynamic
+computation graphs, where the model structure is dependent
+on each input. This doesn’t work well with frameworks that
+require creating a static graph structure a priori (Abadi et al.,
+2016; Jia et al., 2014). As a result, define-by-run paradigm
+has gained popularity (Tokui et al., 2015; Neubig et al.,
+2017a; Paszke et al., 2017), where the programming model
+is closer to the host programming language, and constructs
+like loops and conditionals can be used freely.
+Another interesting trend is that systems for running deep
+learning are getting very powerful, with custom accelerator
+pods capable of running at petaflops. Leveraging so much
+compute can easily make host CPU a bottleneck. Running
+dynamic computation in the host language, especially in1
+Google Inc.. Correspondence to: Ashish Agarwal <agarwal@google.com>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+terpreted languages like python can make this bottleneck
+worse.
+Given the above two trends, frameworks are increasing turning to trace compilation (Agrawal et al., 2019; Moldovan
+et al., 2018), where the computation gets expressed dynamically, but a combination of static and just-in-time analysis
+is used to extract static computation graphs which can be
+dispatched to these accelerators. This approach promises
+good usability via programming abstractions that are close
+to the host programming language, as well as the performance advantages of static optimization together with quick
+dispatch of large chunks of computation to the accelerators.
+However there is a caveat. While trace compilation can
+convert loops and conditionals in the host languages to the
+corresponding constructs compatible with the accelerators,
+the body of these loops are unlikely to get good compute
+utilization. This forces the programmers to write manually
+batched implementations, which ends up undoing some of
+the advantages of define-by-run, and forces them to deal
+with complicated padding and masking logic.
+Frameworks like DyNet avoid this manual batching by having the runtime perform operator batching on the fly (Neubig et al., 2017b). However this creates runtime overheads,
+undoing some of the advantages of trace compilation.
+Given this need to leverage fast accelerators in the context of dynamic computation and trace compilation, we
+propose using static analysis on trace compiled graphs to
+perform automatic batching. This approach gets rid of runtime overheads of dynamic batching. Users express their
+computation with nested host control flow constructs. Trace
+compilation then converts these to nested loop structure in
+some intermediate representation, and then static techniques
+auto-vectorize these loops.
+We use this insight to implement static automatic batching in TensorFlow. Firstly, we add an SPMD (Single Program, Multiple Data) programming abstraction to TensorFlow Python frontend. With SPMD, multiple instances of
+a single program operate on different data. We expose it
+as parallel-for loop, which we call pfor (see §3.1). Here
+the different iterations of the loop can be viewed as different instances of the program. Secondly we implement an
+algorithm that takes SPMD loop definitions and rewrites
+
+

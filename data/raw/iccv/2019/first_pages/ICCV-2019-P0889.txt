@@ -1,0 +1,66 @@
+Image Inpainting with Learnable Bidirectional Attention Maps
+Chaohao Xie1† , Shaohui Liu1,3 , Chao Li2 , Ming-Ming Cheng4 , Wangmeng Zuo1,3∗ , Xiao Liu2 , Shilei Wen2 , Errui Ding2
+1
+
+Harbin Institute of Technology, 2 Department of Computer Vision Technology (VIS), Baidu Inc.
+3
+
+Peng Cheng Laboratory, Shenzhen, 4 Nankai University
+
+viousxie@outlook.com, {shliu, wmzuo}@hit.edu.cn,
+
+cmm@nankai.edu.cn
+
+{lichao40, liuxiao12, wenshilei, dingerrui}@baidu.com
+
+Abstract
+Most convolutional network (CNN)-based inpainting
+methods adopt standard convolution to indistinguishably
+treat valid pixels and holes, making them limited in handling irregular holes and more likely to generate inpainting results with color discrepancy and blurriness. Partial
+convolution has been suggested to address this issue, but it
+adopts handcrafted feature re-normalization, and only considers forward mask-updating. In this paper, we present
+a learnable attention map module for learning feature renormalization and mask-updating in an end-to-end manner,
+which is effective in adapting to irregular holes and propagation of convolution layers. Furthermore, learnable reverse attention maps are introduced to allow the decoder
+of U-Net to concentrate on filling in irregular holes instead of reconstructing both holes and known regions, resulting in our learnable bidirectional attention maps. Qualitative and quantitative experiments show that our method
+performs favorably against state-of-the-arts in generating
+sharper, more coherent and visually plausible inpainting
+results. The source code and pre-trained models will be
+available at: https://github.com/Vious/LBAM_
+inpainting/.
+
+1. Introduction
+Image inpainting [3], aiming at filling in holes of an image, is a representative low level vision task with many realworld applications such as distracting object removal, occluded region completion, etc. However, there may exist
+multiple potential solutions for the given holes in an image,
+i.e., the holes can be filled with any plausible hypotheses coherent with the surrounding known regions. And the holes
+can be of complex and irregular patterns, further increasing the difficulty of image inpainting. Traditional exemplarbased methods [2, 18, 32], e.g., PatchMatch [2], gradually
+fill in holes by searching and copying similar patches from
+† This work was done when Chaohao Xie was a research intern at Baidu
+∗ Corresponding author
+
+known regions. Albeit exemplar-based methods are effective in hallucinating detailed textures, they are still limited
+in capturing high-level semantics, and may fail to generate
+complex and non-repetitive structures (see Fig. 1(c)).
+Recently, considerable progress has been made in applying deep convolutional networks (CNNs) to image inpainting [10, 20]. Benefited from the powerful representation
+ability and large scale training, CNN-based methods are effective in hallucinating semantically plausible result. And
+adversarial loss [8] has also been deployed to improve the
+perceptual quality and naturalness of the result. Nonetheless, most existing CNN-based methods usually adopt standard convolution which indistinguishably treats valid pixels and holes. Thus, they are limited in handling irregular holes and more likely to generate inpainting results with
+color discrepancy and blurriness. As a remedy, several postprocessing techniques [10, 34] have been introduced but are
+still inadequate in resolving the artifacts (see Fig. 1(d)).
+CNN-based methods have also been combined with
+exemplar-based one to explicitly incorporate the mask of
+holes for better structure recovery and detail enhancement [26, 33, 36]. In these methods, the mask is utilized to
+guide the propagation of the encoder features from known
+regions to the holes. However, the copying and enhancing operation heavily increases the computational cost and
+is only deployed at one encoding and decoding layers. As
+a result, they are better at filling in rectangular holes, and
+perform poorly on handling irregular holes (see Fig. 1(e)).
+For better handling irregular holes and suppressing color discrepancy and blurriness, partial convolution
+(PConv) [17] has been suggested. In each PConv layer,
+mask convolution is used to make the output conditioned
+only on the unmasked input, and feature re-normalization
+is introduced for scaling the convolution output. A maskupdating rule is further presented to update a mask for the
+next layer, making PConv very effective in handling irregular holes. Nonetheless, PConv adopts hard 0-1 mask and
+handcrafted feature re-normalization by absolutely trusting
+all filling-in intermediate features. Moreover, PConv con18858
+
+

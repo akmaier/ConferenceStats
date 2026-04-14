@@ -1,0 +1,110 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Linear-Covariance Loss for End-to-End Learning of 6D Pose Estimation
+Fulin Liu
+Beihang University
+
+Yinlin Hu
+MagicLeap
+
+Mathieu Salzmann
+EPFL, ClearSpace
+
+liufulin@buaa.edu.cn
+
+yhu@magicleap.com
+
+mathieu.salzmann@epfl.ch
+
+Abstract
+Most modern image-based 6D object pose estimation
+methods learn to predict 2D-3D correspondences, from
+which the pose can be obtained using a PnP solver. Because
+of the non-differentiable nature of common PnP solvers,
+these methods are supervised via the individual correspondences. To address this, several methods have designed
+differentiable PnP strategies, thus imposing supervision on
+the pose obtained after the PnP step. Here, we argue that
+this conflicts with the averaging nature of the PnP problem,
+leading to gradients that may encourage the network to degrade the accuracy of individual correspondences. To address this, we derive a loss function that exploits the ground
+truth pose before solving the PnP problem. Specifically, we
+linearize the PnP solver around the ground-truth pose and
+compute the covariance of the resulting pose distribution.
+We then define our loss based on the diagonal covariance
+elements, which entails considering the final pose estimate
+yet not suffering from the PnP averaging issue. Our experiments show that our loss consistently improves the pose
+estimation accuracy for both dense and sparse correspondence based methods, achieving state-of-the-art results on
+both Linemod-Occluded and YCB-Video.
+
+1. Introduction
+Estimating the 6D pose of 3D objects from monocular
+images is a core computer vision task, with many real world
+applications, such as robotics manipulation [53, 54], autonomous driving [9, 48] and augmented reality [10, 32].
+Although this task can be facilitated by the use of RGBD
+input, depth sensors are not ubiquitous, and thus 6D object pose estimation from RGB images remains an active
+research area.
+With the development of deep neural networks (DNNs),
+early methods [1, 14, 26, 49] formulated pose estimation as a regression problem, directly mapping the input image to the 6D object pose. More recently, most
+works [5, 21, 23, 33, 35, 38, 39, 41, 42, 43, 44] draw inspiration from geometry and seek to predict 2D-3D correspon-
+
+p
+
+est. g.t.
+
+loss
+
+pose
+Image
+
+DNN
+
+Noisy 2D-3D matching
+
+Ground truth
+pose (g.t.)
+
+PnP
+
+Posterior
+distribution
+p
+
+g.t.
+
+loss
+
+pose
+Residual variances of
+correspondences
+
+Linearized Solution
+PnP distribution
+
+Figure 1. Difference between other differentiable PnP losses
+and our proposed loss. Other methods (first row) first solve for
+the object pose from noisy correspondences, and then compute the
+loss based on the resulting pose and the ground truth. By contrast, we (second row) utilize the ground-truth pose to estimate
+the residual variance of the correspondences and compute the covariance of the pose distribution. We define our loss based on the
+diagonal elements of this covariance.
+
+dences, from which the 6D pose can be obtained by solving
+the Perspective-n-Points (PnP) problem. While effective,
+these methods supervise the training process with the individual correspondences, and not with the ground-truth pose
+itself, as standard PnP solvers are not differentiable.
+To enable end-to-end training, several attempts have
+been made to incorporate the PnP solver as a differentiable
+network layer [3, 4, 6]. While these methods make it possible to employ pose-driven loss functions to train the DNN,
+they only leverage the optimal pose as supervision, thus not
+imposing constraints on other pose candidates. In [7], this
+was addressed by deriving a loss function based on the posterior pose distribution, encouraging a larger posterior for
+the ground truth and smaller posteriors for the other poses.
+Nevertheless, to the best of our knowledge, all of these
+differentiable PnP layers have a common property: They
+first solve the PnP problem to obtain either the pose [3, 4, 6]
+or the posterior pose distribution [7], and then compute the
+error to be backpropagated based on a dedicated loss func-
+
+14107
+
+

@@ -83,6 +83,26 @@ To fetch CVPR proceedings metadata plus PDF first pages for one year:
 make cvpr-first-pages YEAR=2018
 ```
 
+To probe the first `10` papers per year for the new families:
+
+```bash
+make icml-first-pages-range-sample
+make neurips-first-pages-range-sample
+make aaai-first-pages-range-sample
+```
+
+The `AAAI` sample run resolves sub-track pages first and limits the probe to the first `2` discovered main-conference tracks per year before extracting the first `10` papers overall.
+
+To fetch all first pages for `2015` through `2025` with `6` workers:
+
+```bash
+make icml-first-pages-range ICML_START_YEAR=2015 ICML_END_YEAR=2025 FIRST_PAGE_START=0 FIRST_PAGE_LIMIT=0 FIRST_PAGE_WORKERS=6
+make neurips-first-pages-range NEURIPS_START_YEAR=2015 NEURIPS_END_YEAR=2025 FIRST_PAGE_START=0 FIRST_PAGE_LIMIT=0 FIRST_PAGE_WORKERS=6
+make aaai-first-pages-range AAAI_START_YEAR=2015 AAAI_END_YEAR=2025 FIRST_PAGE_START=0 FIRST_PAGE_LIMIT=0 FIRST_PAGE_WORKERS=6 AAAI_TRACK_LIMIT=0
+```
+
+For `AAAI`, `AAAI_TRACK_LIMIT=0` means no track limit, so all discovered main-conference track pages are used.
+
 To fetch them for the full `2018` through `2025` range:
 
 ```bash
@@ -113,6 +133,19 @@ Then run the local-LLM country fill manually:
 
 ```bash
 make llm-country CONFERENCE_SLUG=cvpr YEAR=2018
+```
+
+The same deterministic prep and local-LLM flow is also available for the newer families:
+
+```bash
+make icml-prepare-llm YEAR=2025
+make icml-llm-country YEAR=2025
+
+make neurips-prepare-llm YEAR=2025
+make neurips-llm-country YEAR=2025
+
+make aaai-prepare-llm YEAR=2025
+make aaai-llm-country YEAR=2025
 ```
 
 For the `ICCV/ECCV` family, the year resolves automatically to the right source venue:
@@ -150,6 +183,9 @@ scripts/
   compute_country_stats.py
   build_overview_table.py
   collect_cvf_openaccess.py
+  collect_pmlr_proceedings.py
+  collect_neurips_proceedings.py
+  collect_aaai_proceedings.py
   extract_affiliation_candidates.py
   extract_pdf_first_pages.py
   enrich_from_first_pages.py

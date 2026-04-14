@@ -1,0 +1,69 @@
+Distilling Optimal Neural Networks: Rapid Search in Diverse Spaces
+Bert Moons, Parham Noorzad, Andrii Skliar, Giovanni Mariani,
+Dushyant Mehta, Chris Lott and Tijmen Blankevoort
+Qualcomm AI Research∗
+{bmoons,parham,askliar,gmariani,dushmeht,clott,tijmen}@qti.qualcomm.com
+
+Abstract
+Current state-of-the-art Neural Architecture Search
+(NAS) methods neither efficiently scale to multiple hardware
+platforms, nor handle diverse architectural search-spaces.
+To remedy this, we present DONNA (Distilling Optimal
+Neural Network Architectures), a novel pipeline for rapid,
+scalable and diverse NAS, that scales to many user scenarios. DONNA consists of three phases. First, an accuracy
+predictor is built using blockwise knowledge distillation
+from a reference model. This predictor enables searching
+across diverse networks with varying macro-architectural
+parameters such as layer types and attention mechanisms,
+as well as across micro-architectural parameters such as
+block repeats and expansion rates. Second, a rapid evolutionary search finds a set of pareto-optimal architectures for
+any scenario using the accuracy predictor and on-device
+measurements. Third, optimal models are quickly finetuned to training-from-scratch accuracy. DONNA is up to
+100× faster than MNasNet in finding state-of-the-art architectures on-device. Classifying ImageNet, DONNA architectures are 20% faster than EfficientNet-B0 and MobileNetV2 on a Nvidia V100 GPU and 10% faster with
+0.5% higher accuracy than MobileNetV2-1.4x on a Samsung S20 smartphone. In addition to NAS, DONNA is
+used for search-space extension and exploration, as well as
+hardware-aware model compression.
+
+1. Introduction
+Although convolutional neural networks (CNN) have
+achieved state-of-the-art performance for a wide range of
+vision tasks, they do not always execute efficiently on hardware platforms like desktop GPUs or mobile DSPs and
+NPUs. To alleviate this issue, CNNs are specifically optimized to minimize latency and energy consumption for
+on-device performance. However, the optimal CNN architecture can vary significantly between different platforms.
+∗ Qualcomm AI Research is an initiative of Qualcomm Technologies,
+
+Inc.
+
+Even on a single platform, their efficiency can change with
+different operating conditions or driver versions. To solve
+this problem, low-cost methods for automated hardwareaware neural architecture search (NAS) are required.
+Current NAS algorithms, however, suffer from several
+limitations. First, many optimization algorithms [32, 12, 31,
+20] target only a single deployment scenario: a hardwareagnostic complexity metric, a hardware platform, or different latency, energy, or accuracy requirements. This
+means the search has to be repeated whenever any part
+of that scenario changes. Second, many methods cannot
+search in truly diverse search spaces, with different types
+of convolutional kernels, activation functions and attention mechanisms. Current methods either search through
+large and diverse spaces at a prohibitively expensive search
+cost [32, 12], or limit their applicability by trading search
+time for a more constrained and less diverse search [3, 31,
+33, 41, 23, 22]. Most of such speedups in NAS come
+from a reliance on weight sharing mechanisms, which require all architectures in the search space to be structurally
+similar. Thus, these works typically only search among
+micro-architectural choices such as kernel sizes, expansion
+rates, and block repeats and not among macro-architectural
+choices of layer types, attention mechanisms and activation
+functions. As such, they rely on prior expensive methods
+such as [32, 12] for an optimal choice of macro-architecture.
+We present DONNA (Distilling Optimal Neural Network Architectures), a method that addresses both issues: it
+scales to multiple deployment scenarios with low additional
+cost, and performs rapid NAS in diverse search spaces. The
+method starts with a trained reference model. The first issue is resolved by splitting NAS into a scenario-agnostic
+training phase, and a scenario-aware search phase that requires only limited training, as depicted in Figure 1. After an accuracy predictor is built in the training phase, the
+search is executed quickly for each new deployment scenario, typically in the time-frame of hours, and only requiring minimal fine-tuning to finalize optimal models. Second,
+DONNA considers diverse macro-architectural choices in
+addition to micro-architectural choices, by creating this ac-
+
+12229
+
+

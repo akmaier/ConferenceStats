@@ -1,0 +1,223 @@
+Interpretable Visual Reasoning via Induced Symbolic Space
+Zhonghao Wang1 , Kai Wang3 , Mo Yu2 ,*
+Jinjun Xiong2 , Wen-mei Hwu1 , Mark Hasegawa-Johnson1 , Humphrey Shi3,1,4 *
+1
+
+UIUC, 2 MIT-IBM Watson AI Lab & IBM Research, 3 U of Oregon, 4 Picsart AI Research (PAIR)
+
+Abstract
+We study the problem of concept induction in visual reasoning, i.e., identifying concepts and their hierarchical relationships from question-answer pairs associated with images; and achieve an interpretable model via working on
+the induced symbolic concept space. To this end, we first design a new framework named object-centric compositional
+attention model (OCCAM) to perform the visual reasoning
+task with object-level visual features. Then, we come up
+with a method to induce concepts of objects and relations
+using clues from the attention patterns between objects’ visual features and question words. Finally, we achieve a
+higher level of interpretability by imposing OCCAM on the
+objects represented in the induced symbolic concept space.
+Experiments on the CLEVR and GQA datasets demonstrate:
+1) our OCCAM achieves a new state of the art without
+human-annotated functional programs; 2) our induced concepts are both accurate and sufficient as OCCAM achieves
+an on-par performance on objects represented either in visual features or in the induced symbolic concept space.
+
+1. Introduction
+Recent advances in Visual Question Answering
+(VQA) [1, 37, 19, 3, 17, 24, 16, 47, 33] usually rely on
+carefully designed neural attention models over images,
+and rely on pre-defined lists of concepts to enhance the
+compositional reasoning ability of the attention modules.
+Human prior knowledge plays an essential role in the
+success of the model design.
+We focus on a less-studied problem in this field – given
+only question-answer pairs and images, induce the visual
+concepts that are sufficient for completing the visual reasoning tasks. By sufficiency, we hope to maintain the predictive
+accuracy for VQA when using the induced concepts in place
+of the original visual features. We consider concepts that
+are important for visual reasoning, including properties of
+objects (e.g., red, cube) and relations between objects (e.g.,
+* Correspondence to H. Shi and M. Yu.
+
+There is a big sphere behind the brown
+cylinder; does it have the same color as
+the small rubber sphere on the left side
+of the small red rubber ball?
+
+train
+
+big
+
+concept regression
+concept induction
+
+cylinder
+
+sphere
+ball
+
+sphere
+
+big
+cylinder
+
+ball
+
+super concept
+visual
+features
+
+What is the big thing that is in front of
+the block that is behind the block that is
+in front of the large shiny block made of?
+
+concept obj_0 obj_1 obj_2
+gray
+0
+1
+0
+red
+0
+0
+0
+blue
+1
+0
+1
+green
+0
+0
+0
+brown
+0
+0
+0
+purple
+0
+0
+0
+cyan
+0
+0
+0
+yellow
+0
+0
+0
+sphere
+0
+1
+0
+cube
+1
+0
+1
+cylinder
+0
+0
+0
+large
+1
+0
+1
+small
+0
+1
+0
+metal
+1
+0
+0
+matte
+0
+1
+1
+
+concepts
+
+behind obj_0 obj_1 obj_2
+obj_0
+obj_1
+obj_2
+
+0
+
+1
+
+1
+
+0
+0
+0
+front obj_0 obj_1 obj_2
+1
+0
+0
+obj_0
+0
+0
+0
+obj_1
+obj_2
+
+1
+0
+1
+right obj_0 obj_1 obj_2
+1
+0
+0
+obj_0
+0
+1
+1
+obj_1
+obj_2
+
+compositional
+reasoning
+
+0
+0
+1
+left obj_0 obj_1 obj_2
+0
+0
+0
+obj_0
+0
+0
+0
+obj_1
+
+1
+
+0
+
+0
+
+obj_2
+
+1
+
+1
+
+0
+
+matte
+
+Figure 1: Illustration of our framework. Our model induces the
+concepts and super concepts with the attention correlation between
+the objects and question words in image-question pairs as the paths
+shown in blue arrows. Then, it answers a question about an image
+via compositional reasoning on the induced symbolic representations of objects and object relations, shown as the orange paths.
+
+left, front). The aforementioned scope and sufficiency criterion require accurately associating the induced symbols of
+concepts to both visual features and words, so that each new
+instance of question-image pair can be transformed into the
+induced concept space for further computations. Additionally, it is necessary to identify super concepts, i.e., hypernyms of concept subsets (e.g., shape). The concepts inside
+a super concept are exclusive, so that the system knows each
+object can only possess one value in each subset. This introduces structural information to the concept space (multiple
+one-hot vectors for each visual object) and further guarantees the accuracy of the aforementioned transformation.
+The value of the study has two folds. First, our proposed problem aims to identify visual concepts, their argument patterns (properties or relations) and their hierarchy (super concepts) without using any concept-level su-
+
+1878
+
+

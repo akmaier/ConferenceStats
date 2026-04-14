@@ -1,0 +1,166 @@
+Selective Feature Compression for Efficient Activity Recognition Inference
+Chunhui Liu*†, Xinyu Li,* Hao Chen, Davide Modolo, Joseph Tighe
+Amazon Web Services
+{chunhliu, xxnl, hxen, dmodolo, tighej}@amazon.com
+
+Abstract
+Most action recognition solutions rely on dense sampling
+to precisely cover the informative temporal clip. Extensively searching temporal region is expensive for a realworld application. In this work, we focus on improving the
+inference efficiency of current action recognition backbones
+on trimmed videos, and illustrate that an action model can
+accurately classify an action with a single pass over the
+video unlike the multi-clip sampling common with SOTA by
+learning to drop non-informative features. We present Selective Feature Compression (SFC), an action recognition
+inference strategy that greatly increases model inference
+efficiency without compromising accuracy. Different from
+previous works that compress kernel size and decrease the
+channel dimension, we propose to compress features along
+the spatio-temporal dimensions without the need to change
+backbone parameters. Our experiments on Kinetics-400,
+UCF101 and ActivityNet show that SFC is able to reduce inference speed by 6-7x and memory usage by 5-6x compared
+with the commonly used 30 crop dense sampling procedure,
+while also slightly improving Top1 Accuracy. We perform
+thorough quantitative and qualitative evaluation and show
+how our SFC learns to attend to important video regions for
+the task of action recognition.
+
+1. Introduction
+Action recognition with 3D CNNs has seen significant
+advances in recent years [2, 4, 5, 18, 20, 22–24, 28–30],
+thanks to their ability to implicitly model motion information along with the semantic signals. However, these popular 3D models require a substantial amount of GPU memory
+and therefore cannot operate on long video sequences. Instead, they sample short video clips of 0.2-4 seconds and
+independently classify action labels for each clip. Finally,
+they pool the results from all clips together to generate a final video-level prediction. How to sample these clips plays
+a critical role in these models and several techniques have
+* Equal contribution
+† Work done at Amazon, Currently at Kuaishou Technology
+
+(1)
+
+(2)
+
+(3)
+
+(4)
+
+Running
+
+Score
+
+(5)
+
+(7)
+
+✓
+
+✓
+✕
+✕
+
+Class
+run catch Jum
+nin ing pi
+g
+fris ng in
+bee to w
+at
+SFC:
+
+Entire Clip
+
+(1)
+(2)
+(3)
+(4)
+(5)
+(6)
+(7)
+(8)
+
+(8)
+
+Jumping into water
+
+Dense Sampling:
+Score (1 2 3 4) + (3 4 5 6) +(5 6 7 8)
+
+Uniform Sampling:
+(1 2 3 4) + (5 6 7 8)
+
+✕
+
+(6)
+
+Catching Frisbee
+
+✕
+
+Class
+run catch Jum
+nin ing pi
+g
+fris ng in
+bee to w
+at
+
+er
+
+er
+
+Score
+3D Model
+
+Select
+Key Feature
+
+(3)
+(4)
+(5)
+(6)
+
+✓
+
+3D Model
+✕
+
+runn
+
+c
+ing atching
+
+✕
+
+Jum
+frisb ping i
+nto
+ee
+
+Class
+wat
+er
+
+Figure 1: With fast motion, uniform sampling (row 1, left) is not
+guaranteed to precisely locate the key region. Consequently, an
+action model that uses it can be distracted by noise and can fail
+to recognize the correct action. Instead, dense sampling (row 1,
+right) looks at all the possible regions and can precisely locate
+the action and ignore noisy regions via voting. While accurate,
+dense sampling is however very inefficient. We propose SFC (row
+2) to avoid sampling and instead it looks at the whole video and
+compresses its features into a representation that is smaller and
+adequate for action recognition.
+
+been proposed (fig. 1, table 1). Among these, dense sampling is considered the best solution and employed in almost
+all action recognition models. Dense sampling works in a
+temporal sliding window manner and it over-samples overlapping segments exhaustively, ensuring that no information
+is missed and that the action is precisely localized within a
+window. While this achieves the best performance, it is also
+highly inefficient, as a lot of the sampled clips are highly
+related to each other (redundant) or not informative for the
+classification prediction of the video (irrelevant). Recently,
+SCSampler [12] and MARL [29] proposed to learn to select
+a small subset of relevant clips to reduce this dense prediction problem. While they reach very promising results, their
+
+13628
+
+

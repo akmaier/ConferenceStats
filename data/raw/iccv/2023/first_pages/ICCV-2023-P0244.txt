@@ -1,0 +1,139 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+AutoReP: Automatic ReLU Replacement for Fast Private Network Inference
++
+
+Hongwu Peng1
+Zigeng Wang1 *
+
++
+
++
+Shaoyi Huang1
+Tong Zhou2
+Yukui Luo2
+Jiahui Zhao1
+Xi Xie1
+Ang Li5
+Tony Geng6
+3
+2
+Wujie Wen Xiaolin Xu Caiwen Ding1
++
+
+Chenghong Wang4
+Kaleel Mahmood1
+
+These authors contributed equally.
+
+1
+
+University of Connecticut 2 Northeastern University 3 North Carolina State University
+4
+Duke University 5 Pacific Northwest National Laboratory 6 University of Rochester
+
+{hongwu.peng, shaoyi.huang, zigeng.wang, jiahui.zhao, xi.xie, kaleel.mahmood}@uconn.edu
+{zhou.tong1, luo.yuk, x.xu}@northeastern.edu, cw374@duke.edu, ang.li@pnnl.gov
+tgeng@ur.rochester.edu, wwen2@ncsu.edu, caiwen.ding@uconn.edu
+
+The growth of the Machine-Learning-As-A-Service
+(MLaaS) market has highlighted clients’ data privacy and
+security issues. Private inference (PI) techniques using
+cryptographic primitives offer a solution but often have
+high computation and communication costs, particularly
+with non-linear operators like ReLU. Many attempts to reduce ReLU operations exist, but they may need heuristic
+threshold selection or cause substantial accuracy loss. This
+work introduces AutoReP, a gradient-based approach to
+lessen non-linear operators and alleviate these issues. It
+automates the selection of ReLU and polynomial functions
+to speed up PI applications and introduces distributionaware polynomial approximation (DaPa) to maintain model
+expressivity while accurately approximating ReLUs. Our
+experimental results demonstrate significant accuracy improvements of 6.12% (94.31%, 12.9K ReLU budget, CIFAR10), 8.39% (74.92%, 12.9K ReLU budget, CIFAR-100), and
+9.45% (63.69%, 55K ReLU budget, Tiny-ImageNet) over
+current state-of-the-art methods, e.g., SNL. Morever, AutoReP is applied to EfficientNet-B2 on ImageNet dataset,
+and achieved 75.55% accuracy with 176.1 × ReLU budget
+reduction. The codes are shared on Github1 .
+
+1. Introduction
+The MLaaS market has seen significant growth in recent
+years, with many MLaaS platform providers eatablished,
+e.g, AWS Sagmaker [22], Google AI Platform [3], Azure
+ML [42]. However, most MLaaS solutions require clients
+to share their private input, compromising data privacy and
+* Z. Wang is now affiliated with Walmart Global Tech, Sunnyvale, CA.
+1 https://github.com/HarveyP123/AutoReP
+
+1×1 ConvBN1, 16
+
+All ReLU baseline
+All second order polynomial
+
+0.3 𝑚𝑠
+
+ReLU1, 16
+
+17.0 𝒎𝒔
+
+3×3 ConvBN2, 16
+
+1.6 𝑚𝑠
+
+ReLU2, 128
+
+136.1 𝒎𝒔
+
+1×1 Conv3, 128
+1×1 Conv4, 128
+
+12.2 𝑚𝑠
+1.2 𝑚𝑠
+
+Add
+
+0.2 𝑚𝑠
+
+ReLU3, 256
+
+136.1 𝒎𝒔
+
+(a)
+
+10-1
+Latency (s)
+
+Abstract
+
+15.6x
+
+10
+
+15.6x
+
+-2
+
+15.5x
+
+10-3
+
+ReLU1
+
+ReLU2 ReLU3
+
+(b)
+
+Figure 1: Network bandwidth: 1 GB/s. (a) Latency breakdown of Wide-ResNet 22-8 operators under 2PC PI setup.
+(b) Latency reduction with polynomial replacement.
+
+security. Private inference (PI) techniques, have emerged to
+preserve data and model confidentiality, providing strong
+security guarantees. The existing highly-secure PI solutions usually use cryptographic primitives include multiparty computation (MPC) [16, 4, 15] and homomorphic encryption (HE) [23, 5, 11, 26]. Recently, MPC-based PI becomes popular as it supports large-scale networks by partitioning the inference between clients and MLaaS providers.
+The main challenge of applying cryptographic primitives
+in PI comes from the non-linear operators (e.g., ReLU),
+which introduces ultra-high computation and communication overhead. Fig. 1 (a) shows that ReLU dominates the PI
+latency, i.e., up to 18.6 × than the combination of convolutional (Conv) and batch normalization (BN) operations. Reducing these ReLU operators could bring latency reduction,
+as highlighted in Fig. 1 (b). Centered by this observation,
+several approaches have been discussed, including replacing ReLUs with linear functions (e.g., SNL [8], DeepRe15178
+
+

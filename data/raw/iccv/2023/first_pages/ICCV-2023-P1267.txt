@@ -1,0 +1,66 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Hidden Biases of End-to-End Driving Models
+Bernhard Jaeger Kashyap Chitta Andreas Geiger
+University of Tübingen Tübingen AI Center
+{bernhard.jaeger, kashyap.chitta, a.geiger}@uni-tuebingen.de
+
+Abstract
+End-to-end driving systems have recently made rapid
+progress, in particular on CARLA. Independent of their major contribution, they introduce changes to minor system
+components. Consequently, the source of improvements is
+unclear. We identify two biases that recur in nearly all
+state-of-the-art methods and are critical for the observed
+progress on CARLA: (1) lateral recovery via a strong inductive bias towards target point following, and (2) longitudinal averaging of multimodal waypoint predictions for
+slowing down. We investigate the drawbacks of these biases and identify principled alternatives. By incorporating
+our insights, we develop TF++, a simple end-to-end method
+that ranks first on the Longest6 and LAV benchmarks, gaining 11 driving score over the best prior work on Longest6.
+
+1. Introduction
+End-to-end driving approaches have rapidly improved in
+performance on the CARLA leaderboard [1], the de-facto
+standard for fair online evaluation. Driving scores have increased from under 20 [9, 22] to over 70 [26, 31] in just two
+years. However, why recent systems work so well is not
+fully understood, as both methods and training sets differ
+largely between submissions. Rigorous ablations are expensive due to the large design space of driving systems and the
+need to simulate large amounts of driving for evaluation.
+In particular, recent methods trained with Imitation
+Learning (IL) have shown strong performance [6, 8, 11, 26,
+31]. They are trained using offline datasets, yet they can surprisingly recover from the classic compounding error problem of IL [21, 24], as indicated by their high route completions [8, 11, 26, 31]. While they do not utilize HD maps as
+input, they are provided with map-based GNSS locations
+in the center of the lane (spaced 30 m apart on average)
+called target points (TPs) that describe the route the car
+should follow. TPs were introduced as an alternative form
+of conditioning signals to convey driver intent [9, 22]. Prior
+work [13, 14] used discrete navigation commands or NCs
+(i.e. follow lane, turn right, ...) instead.
+In this paper, we show that TP conditioned models re-
+
+(a) Target point shortcut
+
+(b) Waypoint ambiguity
+
+Figure 1: Hidden biases. (a) When outside their training distribution, current methods extrapolate waypoint predictions to the nearest target point, helping them recover.
+(b) The future velocity is multi-modal, but current methods
+commit to a single plan, which leads to interpolation.
+cover from the compounding error problem because they
+use geometric information contained in the TP to reset steering errors periodically (at every TP). This makes them implicitly rely on accurate map information, even though they
+are otherwise HD map free. Steering directly towards a
+TP is a shortcut [16] that these IL methods learn to exploit. When methods accumulate enough steering error to
+be out of distribution during deployment, we observe that
+they steer towards the nearest TP. When the TP is close, this
+has the effect of driving back to the lane center, where it is in
+distribution again. This is illustrated in Fig. 1a. However,
+when the TP is far away, this shortcut can lead to catastrophic steering errors (e.g. cutting a turn). We show examples of this behavior for various SotA architectures in
+Section 3.1. We demonstrate that the shortcut problem is
+intrinsically related to the decoder architecture and that a
+transformer decoder [29] can mitigate it.
+Another common aspect of the current SotA is that they
+use waypoints (future positions of an expert driver) as output representations [8, 11, 31]. We point out that this is an
+ambiguous representation as the future velocity is multi-
+
+8240
+
+

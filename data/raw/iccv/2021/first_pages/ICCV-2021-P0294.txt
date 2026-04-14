@@ -1,0 +1,73 @@
+Voxel Transformer for 3D Object Detection
+Jiageng Mao 1∗
+
+Yujing Xue 2∗
+Xiaodan Liang 5
+
+Minzhe Niu 3
+Hang Xu 3†
+
+Haoyue Bai 4
+Chunjing Xu 3
+
+Jiashi Feng 2
+
+Abstract
+We present Voxel Transformer (VoTr), a novel and effective voxel-based Transformer backbone for 3D object detection from point clouds. Conventional 3D convolutional
+backbones in voxel-based 3D detectors cannot efficiently
+capture large context information, which is crucial for object recognition and localization, owing to the limited receptive fields. In this paper, we resolve the problem by introducing a Transformer-based architecture that enables longrange relationships between voxels by self-attention. Given
+the fact that non-empty voxels are naturally sparse but numerous, directly applying standard Transformer on voxels is
+non-trivial. To this end, we propose the sparse voxel module
+and the submanifold voxel module, which can operate on
+the empty and non-empty voxel positions effectively. To further enlarge the attention range while maintaining comparable computational overhead to the convolutional counterparts, we propose two attention mechanisms for multi-head
+attention in those two modules: Local Attention and Dilated
+Attention, and we further propose Fast Voxel Query to accelerate the querying process in multi-head attention. VoTr
+contains a series of sparse and submanifold voxel modules,
+and can be applied in most voxel-based detectors. Our proposed VoTr shows consistent improvement over the convolutional baselines while maintaining computational efficiency
+on the KITTI dataset and the Waymo Open dataset.
+
+1. Introduction
+3D object detection has received increasing attention in
+autonomous driving and robotics. Detecting 3D objects
+from point clouds remains challenging to the research community, mainly because point clouds are naturally sparse
+and unstructured. Voxel-based detectors transform irregular point clouds into regular voxel-grids and show superior
+performance in this task. In this paper, we propose Voxel
+Transformer (VoTr), an effective Transformer-based backbone that can be applied in most voxel-based detectors to
+∗ Equal contribution. 1 The Chinese University of Hong Kong 2 National University of Singapore 3 Huawei Noah’s Ark Lab 4 HKUST 5 Sun
+Yat-Sen University † Corresponding author: xu.hang@huawei.com
+
+(a) 3D convolutional network
+
+(b) Voxel Transformer
+
+Figure 1. Illustration of the receptive field obtained by the 3D convolutional network and our proposed VoTr. In (a), the orange cube
+denotes a single 3D convolutional kernel, and the yellow voxels
+are covered by the maximum receptive field centered at the red
+voxel. In (b), the red voxel denotes a querying voxel, and the blue
+voxels are the respective attending voxels for this query in voxel
+attention. Our observation is that a single self-attention layer in
+VoTr can cover a larger region than the whole convolutional backbone, and it can also maintain enough fine-grained 3D structures.
+
+further enhance detection performance.
+Previous approaches can be divided into two branches.
+Point-based approaches [26, 19, 34, 35] directly operate
+and generate 3D bounding boxes on point clouds. Those
+approaches generally apply point operators [23, 16] to extract features directly from point clouds, but suffer from
+the sparse and non-uniform point distribution and the timeconsuming process of sampling and searching for neighboring points. Alternatively, voxel-based approaches [43, 33,
+37, 5, 36] first rasterize point clouds into voxels and apply
+3D convolutional networks to extract voxel features, and
+then voxels are transformed into a Bird-Eye-View (BEV)
+feature map and 3D boxes are generated on the BEV map.
+Compared with the point-based methods which heavily
+rely on time-consuming point operators, voxel-based approaches are more efficient with sparse convolutions, and
+can achieve state-of-the-art detection performance.
+The 3D sparse convolutional network is a crucial component in most voxel-based detection models. Despite its
+advantageous efficiency, the 3D convolutional backbones
+cannot capture rich context information with limited receptive fields, which hampers the detection of 3D objects that have only a few voxels. For instance, with a
+commonly-used 3D convolutional backbone [33] and the
+voxel size as (0.05m, 0.05m, 0.1m) on the KITTI dataset,
+the maximum receptive field in the last layer is only
+
+3164
+
+

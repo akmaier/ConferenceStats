@@ -1,0 +1,90 @@
+Digging Into Self-Supervised Monocular Depth Estimation
+Clément Godard1
+
+Oisin Mac Aodha2
+Michael Firman3
+Gabriel Brostow3,1
+1
+2
+3
+UCL
+Caltech
+Niantic
+www.github.com/nianticlabs/monodepth2
+
+Abstract
+Per-pixel ground-truth depth data is challenging to acquire at scale. To overcome this limitation, self-supervised
+learning has emerged as a promising alternative for training models to perform monocular depth estimation. In this
+paper, we propose a set of improvements, which together result in both quantitatively and qualitatively improved depth
+maps compared to competing self-supervised methods.
+Research on self-supervised monocular training usually
+explores increasingly complex architectures, loss functions,
+and image formation models, all of which have recently
+helped to close the gap with fully-supervised methods. We
+show that a surprisingly simple model, and associated design choices, lead to superior predictions. In particular, we
+propose (i) a minimum reprojection loss, designed to robustly handle occlusions, (ii) a full-resolution multi-scale
+sampling method that reduces visual artifacts, and (iii) an
+auto-masking loss to ignore training pixels that violate camera motion assumptions. We demonstrate the effectiveness
+of each component in isolation, and show high quality,
+state-of-the-art results on the KITTI benchmark.
+
+1. Introduction
+We seek to automatically infer a dense depth image from
+a single color input image. Estimating absolute, or even
+relative depth, seems ill-posed without a second input image
+to enable triangulation. Yet, humans learn from navigating
+and interacting in the real-world, enabling us to hypothesize
+plausible depth estimates for novel scenes [18].
+Generating high quality depth-from-color is attractive
+because it could inexpensively complement LIDAR sensors
+used in self-driving cars, and enable new single-photo applications such as image-editing and AR-compositing. Solving for depth is also a powerful way to use large unlabeled
+image datasets for the pretraining of deep networks for
+downstream discriminative tasks [23]. However, collecting
+large and varied training datasets with accurate ground truth
+depth for supervised learning [55, 9] is itself a formidable
+challenge. As an alternative, several recent self-supervised
+
+Input
+
+Monodepth2 (M)
+
+Monodepth2 (S)
+
+Monodepth2 (MS)
+
+Zhou et al. [76] (M)
+
+Monodepth [15] (S)
+
+Zhan et al. [73] (MS)
+
+DDVO [62] (M)
+
+Ranjan et al. [51] (M)
+
+EPC++ [38] (MS)
+
+Figure 1. Depth from a single image. Our self-supervised model,
+Monodepth2, produces sharp, high quality depth maps, whether
+trained with monocular (M), stereo (S), or joint (MS) supervision.
+
+approaches have shown that it is instead possible to train
+monocular depth estimation models using only synchronized stereo pairs [12, 15] or monocular video [76].
+Among the two self-supervised approaches, monocular
+video is an attractive alternative to stereo-based supervision,
+but it introduces its own set of challenges. In addition to
+estimating depth, the model also needs to estimate the egomotion between temporal image pairs during training. This
+typically involves training a pose estimation network that
+takes a finite sequence of frames as input, and outputs the
+corresponding camera transformations. Conversely, using
+stereo data for training makes the camera-pose estimation a
+one-time offline calibration, but can cause issues related to
+occlusion and texture-copy artifacts [15].
+We propose three architectural and loss innovations that
+combined, lead to large improvements in monocular depth
+estimation when training with monocular video, stereo
+pairs, or both: (1) A novel appearance matching loss to address the problem of occluded pixels that occur when using monocular supervision. (2) A novel and simple automasking approach to ignore pixels where no relative camera
+
+3828
+
+

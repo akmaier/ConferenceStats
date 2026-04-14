@@ -1,0 +1,88 @@
+The Thirty-Fourth AAAI Conference on Artiﬁcial Intelligence (AAAI-20)
+
+Table2Analysis: Modeling and Recommendation of
+Common Analysis Patterns for Multi-Dimensional Data
+Mengyu Zhou,1 Tao Wang,2∗ Pengxin Ji,2∗ Shi Han,1 Dongmei Zhang1
+1
+Microsoft Research
+Beijing University of Posts and Telecommunications
+Beijing, China
+{mezho, shihan, dongmeiz}@microsoft.com, {wangt, jpx}@bupt.edu.cn
+2
+
+For this purpose in §2 we design an analysis language that
+encodes analysis process into a sequence of action tokens.
+Each token is either a predeﬁned analysis operation or a
+reference to a data-ﬁeld from the given multi-dimensional
+dataset. (E.g., “sum of sales by quarter” could be represented
+as the sequence [ANA] [Sales] [SEP] [Quarter] [Sum].)
+The analysis language enables a structured representation of
+various analyses against which learning will be conducted.
+Based on such an analysis language, each table is a set of
+data-ﬁeld tokens and each analysis is a sequence of operation/reference tokens. We propose Table2Analysis (§3) as a
+set-to-sequence framework. At learning stage, it learns from
+large amount of (table, analysis) pairs. At recommendation
+stage, it generates top-k sequences of analyses for a given
+table. The key is language modeling (§2.2) that can be transformed into an action value (Q-value) function that models
+the next-action score based on the current state of a given
+input set and already generated preﬁx. However, following
+facts challenge the learning of such a Q-value function:
+• It is an open-vocabulary problem while the tokens are not
+discrete nor enumerable. A reference token can refer to
+any data ﬁeld of any given table, consisting of a combination of header text and data values. It challenges conventional techniques in typical NLP scenarios.
+• The exposure bias (see §3.4) cannot be mitigated by directly applying conventional techniques due to different
+success metric. At inference stage, when a preﬁx deviates
+from ground truth distribution, it implies the analysis is
+already broken. Instead of optimizing next- (and all subsequent) action generation to remedy some BLEU scorelike target, the model training should optimize the chance
+of switching to a more promising search branch.
+Therefore, in §3.2 we design an input layer of neural network
+models to embed semantics of unlimited data-ﬁelds from tables. In §3.4 we run multiple agents using the customized
+beam searching with the model itself to collect samples to
+bridge the gap between training and inference.
+We verify the effectiveness of Table2Analysis on PivotTable recommendation. As shown in Figure 1b, PivotTable
+(see §4.1) is a widely used type of analysis. We collect over
+121,000 tables from 74,000 real world Excel ﬁles. For recommendation, we achieve over 65% recall at top 1 and 78%
+
+Abstract
+Given a table of multi-dimensional data, what analyses would
+human create to extract information from it? From scientiﬁc
+exploration to business intelligence (BI), this is a key problem to solve towards automation of knowledge discovery and
+decision making. In this paper, we propose Table2Analysis
+to learn commonly conducted analysis patterns from large
+amount of (table, analysis) pairs, and recommend analyses for
+any given table even not seen before. Multi-dimensional data
+as input challenges existing model architectures and training techniques to fulﬁll the task. Based on deep Q-learning
+with heuristic search, Table2Analysis does table to sequence
+generation, with each sequence encoding an analysis. Table2Analysis has 0.78 recall at top-5 and 0.65 recall at top-1
+in our evaluation against a large scale spreadsheet corpus on
+the PivotTable recommendation task.
+
+1
+
+Introduction
+
+For data analysis and information sharing, people create PivotTables, charts (Figure 1), and other various types of visuals
+using analytics tools such as spreadsheets and other BI software. Non-trivial interactions and skills are often required to
+operate them, which could be difﬁcult and time consuming.
+Opportunities exist for enabling automatic recommendation of data analyses (Milo and Somech 2018; Ding et al.
+2019) to mitigate this productivity issue. There are large
+amount of data analysis artifacts providing both source
+dataset and result visuals, e.g. Excel spreadsheets or Power
+BI reports. Such artifacts embed commonly conducted analysis patterns across users, denoted as Common Analysis,
+including patterns of typical combinations of data semantics (e.g., “sum of sales by quarter” or “average price per
+month by region”) and patterns about data characteristics
+(e.g., without bucketing, a data-ﬁeld with continuous ﬂoat
+numbers in [0, 1] is rarely used as breakdown dimension).
+These opportunities motivate us to devise a technology for
+learning and recommending Common Analysis patterns.
+First, an abstraction is needed to encode the essential analysis components that are invariant to interested visual types.
+∗
+The contributions by Tao and Pengxin have been conducted
+and completed during their internships at Microsoft Research Asia.
+c 2020, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+320
+
+

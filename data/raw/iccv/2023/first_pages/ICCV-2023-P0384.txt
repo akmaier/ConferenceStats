@@ -1,0 +1,107 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+DETR Does Not Need Multi-Scale or Locality Design
+Yutong Lin1†
+
+Yuhui Yuan2†
+
+Zheng Zhang2†
+
+Chen Li1
+
+Nanning Zheng1
+
+Han Hu2†
+
+1
+
+National Key Laboratory of Human-Machine Hybrid Augmented Intelligence,
+National Engineering Research Center for Visual Information and Applications,
+and Institute of Artificial Intelligence and Robotics, Xi’an Jiaotong University
+2
+Microsoft Research Asia
+
+Abstract
+This paper presents an improved DETR detector that
+maintains a “plain” nature: using a single-scale feature
+map and global cross-attention calculations without specific locality constraints, in contrast to previous leading
+DETR-based detectors that reintroduce architectural inductive biases of multi-scale and locality into the decoder. We
+show that two simple technologies are surprisingly effective
+within a plain design to compensate for the lack of multiscale feature maps and locality constraints. The first is
+a box-to-pixel relative position bias (BoxRPB) term added
+to the cross-attention formulation, which well guides each
+query to attend to the corresponding object region while
+also providing encoding flexibility. The second is masked
+image modeling (MIM)-based backbone pre-training which
+helps learn representation with fine-grained localization
+ability and proves crucial for remedying dependencies on
+the multi-scale feature maps. By incorporating these technologies and recent advancements in training and problem
+formation, the improved “plain” DETR showed exceptional
+improvements over the original DETR detector. By leveraging the Object365 dataset for pre-training, it achieved 63.9
+mAP accuracy using a Swin-L backbone, which is highly
+competitive with state-of-the-art detectors which all heavily
+rely on multi-scale feature maps and region-based feature
+extraction. Code will be available at https:// github.com/
+impiga/ Plain-DETR.
+
+1. Introduction
+The recent revolutionary advancements in natural language processing highlight the importance of keeping
+task-specific heads or decoders as general, simple, and
+lightweight as possible, and shifting main efforts towards
+building more powerful large-scale foundation models [37,
+11, 2]. However, the computer vision community often
+† Equal contribution.
+
+{yuhui.yuan, hanhu}@microsoft.com
+
+60
+
+Deformable DETR (local + m.s.)
+
+55
+50
+45
+40
+
+Plain DETR (global + s.s.)
+Improved Plain DETR (global + s.s.)
+
+55.7
+
+54.2
+50.9
+
+50.3
++13.7
+
++13.0
+42.7
+
+37.2
+
+35
+Swin Small
+
+Swin Large
+
+Figure 1: We improve the plain DETR detectors, which
+rely on global cross-attention calculation and single-scale
+(s.s.) feature maps, by huge margins, using both Swin-S
+and Swin-L backbones. It makes plain DETRs as competitive as the present leading DETR detectors based on local
+cross-attention and multi-scale (m.s.) feature maps.
+continues to focus heavily on the tuning and complexity
+of task-specific heads, resulting in designs that are increasingly heavy and complex.
+The development of DETR-based object detection methods follows this trajectory. The original DETR approach [4]
+is impressive in that it discarded complex and domainspecific designs such as multi-scale feature maps and
+region-based feature extraction that require a dedicated understanding of the specific object detection problem. Yet,
+subsequent developments [55, 54] in the field have reintroduced these designs, which do improve training speed and
+accuracy but also contravene the principle of “fewer inductive biases” [13].
+In this work, we aim to improve upon the original DETR
+detector, while preserving its “plain” nature: no multi-scale
+feature maps, no locality design for cross-attention calculation. This is challenging as object detectors need to handle objects of varying scales and locations. Despite the latest improvements in training and problem formulation, as
+shown in Table 1, the plain DETR method still lags greatly
+16545
+
+

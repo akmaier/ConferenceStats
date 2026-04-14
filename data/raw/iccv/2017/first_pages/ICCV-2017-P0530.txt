@@ -1,0 +1,86 @@
+Rotation equivariant vector field networks
+Diego Marcos ∗1 , Michele Volpi1 , Nikos Komodakis2 , and Devis Tuia1
+1
+
+University of Zurich, 2 Ecole des Ponts, Paris Tech
+
+Abstract
+In many computer vision tasks, we expect a particular
+behavior of the output with respect to rotations of the input
+image. If this relationship is explicitly encoded, instead of
+treated as any other variation, the complexity of the problem is decreased, leading to a reduction in the size of the
+required model.
+In this paper, we propose the Rotation Equivariant Vector
+Field Networks (RotEqNet), a Convolutional Neural Network (CNN) architecture encoding rotation equivariance,
+invariance and covariance. Each convolutional filter is applied at multiple orientations and returns a vector field representing magnitude and angle of the highest scoring orientation at every spatial location. We develop a modified
+convolution operator relying on this representation to obtain deep architectures. We test RotEqNet on several problems requiring different responses with respect to the inputs’ rotation: image classification, biomedical image segmentation, orientation estimation and patch matching. In
+all cases, we show that RotEqNet offers extremely compact
+models in terms of number of parameters and provides results in line to those of networks orders of magnitude larger.
+
+1. Introduction
+In many real life problems, such as overhead (aerial or
+satellite) or biomedical image analysis, there are no dominant up-down or left-right relationships. For example, when
+detecting cars in aerial images, the object’s absolute orientation is not a discriminant feature. If the absolute orientation
+of the image is changed, e.g. by following a different flightpath, we would expect the car detector to score the exact
+same values over the same cars, just in their new position on
+the rotated image, independently from their new orientation
+along the image axes. In this case, we say that the problem
+is rotation equivariant: rotating the input is expected to result in the same rotation in the output. On the other hand,
+if we were confronted with a classification setting in which
+we are only interested in the presence or absence of cars in
+∗ Corresponding author: diego.marcos@geo.uzh.ch
+
+Equivariant
+g45
+f
+
+f
+g45
+
+Covariant
+g45
+
+Invariant
+g45
+f
+"3" =
+
+f
+"3"
+
+f
+
+f
+
+45° +45 90°
+
+Figure 1. Desirable behaviors with respect to rotation of the inputs:
+(left) equivariance in segmentation; (center) invariance in classification; (right) covariance in absolute orientation estimation. g45 is
+an operator that rotates the input image by 45◦ .
+
+the whole scene, the classification score should remain the
+same, no matter the absolute orientation of the input scene.
+In this case the problem is rotation invariant. The more general case would be rotation covariance, in which the output
+changes as a function of the rotation of the input, with some
+predefined behavior. Taking again the cars example, a rotation covariant problem would be to retrieve the absolute
+orientation of cars with respect to longitude and latitude: in
+this case, a rotation of the image should produce a change
+of the predicted angle.
+Throughout this article we will make use of the terms
+equivariance, invariance and covariance of a function f (·)
+with respect to a transformation g(·) in the following sense:
+- equivariance: f (g(·)) = g(f (·)),
+- invariance: f (g(·)) = f (·),
+- covariance: f (g(·)) = g ′ (f (·)),
+where g ′ (·) is a second transformation, which is itself a
+function of g(·). With the above definitions, equivariance
+and invariance are special cases of covariance. We illustrate
+these properties in Fig. 1.
+In this paper, we propose a CNN architecture that naturally encodes these three properties: RotEqNet. In the following, we will recall how CNNs achieve translation invariance, before discussing our own proposition.
+
+1.1. Dealing with translations in CNNs
+The success of CNNs is partly due to the translation
+equivariant nature of the convolution operation. The convolution of an image x ∈ RM ×N ×d with a filter w ∈
+15048
+
+

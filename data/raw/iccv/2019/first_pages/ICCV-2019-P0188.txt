@@ -1,0 +1,87 @@
+Improved Techniques for Training Adaptive Deep Networks
+Hao Li1∗
+
+Hong Zhang2∗
+1
+
+Xiaojuan Qi3
+
+Tsinghua University
+
+2
+
+Baidu Inc.
+
+Ruigang Yang2
+3
+
+Gao Huang1†
+
+University of Oxford
+
+{lihaothu,fykalviny,qxj0125}@gmail.com
+yangruigang@baidu.com
+
+Abstract
+Adaptive inference is a promising technique to improve
+the computational efficiency of deep models at test time. In
+contrast to static models which use the same computation
+graph for all instances, adaptive networks can dynamically
+adjust their structure conditioned on each input. While
+existing research on adaptive inference mainly focuses on
+designing more advanced architectures, this paper investigates how to train such networks more effectively. Specifically, we consider a typical adaptive deep network with
+multiple intermediate classifiers. We present three techniques to improve its training efficacy from two aspects:
+1) a Gradient Equilibrium algorithm to resolve the conflict of learning of different classifiers; 2) an Inline Subnetwork Collaboration approach and a One-for-all Knowledge
+Distillation algorithm to enhance the collaboration among
+classifiers. On multiple datasets (CIFAR-10, CIFAR-100
+and ImageNet), we show that the proposed approach consistently leads to further improved efficiency on top of stateof-the-art adaptive deep networks.
+
+1. Introduction
+Convolutional neural networks (CNNs) have gained remarkable success on a variety of visual recognition tasks
+[21, 10, 27, 9]. Modern CNNs such as GoogleNet [32],
+ResNet [10] and DenseNet [16] are endowed with unprecedented network depth to achieve state-of-the-art accuracy.
+However, very deep models usually come along with high
+computational cost, which prevents them from performing
+real-time inference on resource-constrained platforms like
+smart phones, wearable devices and drones.
+Extensive efforts have been made to improve the inference efficiency of deep CNNs in recent years. Popular approaches include efficient architecture design [30,
+28, 15, 40], network pruning [8, 23, 26], weight quantiza∗ First two authors contributed equally
+† Corresponding author
+
+gaohuang@tsinghua.edu.cn
+
+tion [4, 8, 17] and adaptive inference [7, 14, 2, 35, 6, 34].
+Among them, adaptive inference is gaining increasing attention recently, due to its remarkable advantages. First, it is
+compatible with almost all the other approaches, i.e., adaptive inference can be performed on highly optimized architectures like MobileNets [30] and ShuffleNets [28], and can
+also benefit from model pruning and weight quantization.
+Second, by conditioning the computation of a deep model
+on its inputs, adaptive inference can save a considerable
+amount of computational cost on “easy” samples and/or
+less important regions, drastically reducing the average inference time. Third, adaptive inference algorithms usually
+have a set of tunable parameters that dynamically control
+the accuracy-speed tradeoff. This is a valuable property
+in many scenarios, where the computational budget may
+change over time or vary across different devices. In contrast to static models which have a fixed computational cost,
+adaptive models are able to trade accuracy for speed or vise
+verse on-the-fly, to meet the dynamically changing demand.
+Existing works on adaptive inference in the context of
+deep learning mainly focus on designing more specialized
+network architectures [14, 33, 34] or better inference algorithms [2]. In comparison, less effort has been made to
+improve the training process. But in fact, adaptive CNNs
+usually have quite different architectures as conventional
+deep models, and training strategies optimized for the later
+may not be optimal for adaptive models. In this paper, we
+consider a representative type of adaptive models that have
+multiple intermediate classifiers at different depths of the
+network. With this architecture, adaptive computation can
+be performed by early exiting “easy” samples to speed up
+the inference. The multi-scale dense network (MSDNet)
+proposed in [14] represents the state-of-the-art of this type
+of models. We aim to improve the training efficacy of such
+multi-exits networks from the following two perspectives.
+First, we need to resolve the conflict while jointly optimizing all the classifiers. It has been observed in [14]
+that the individual classifiers in the network tend to negatively affect the learning of one other, and [31] discussed
+that the backbone network may not converge well due to
+11891
+
+

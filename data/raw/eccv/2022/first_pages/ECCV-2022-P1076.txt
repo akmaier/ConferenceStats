@@ -1,0 +1,37 @@
+Fast-MoCo: Boost Momentum-based Contrastive
+Learning with Combinatorial Patches
+**Supplementary Material**
+
+A
+
+Algorithm
+
+Algorithm 1 Pytorch-style Pseudocode for Fast-MoCo
+# f_o: online branch networks [encoder, projector, predictor]
+# f_t: target branch networks [encoder, projector]
+# a: exponential moving average momentum \alpha, t: temperature \tau
+# combine: generate all possible 2-combinations between patch embeddings
+for x in loader: # load a minibatch
+x1, x2 = aug(x), aug(x) # augemtation, NxCxHxW
+x1_d, x2_d = divide(x1), divide(x2) # Divide step, 4NxCx(H/2)x(W/2)
+v1, v2 = f_o[0](x1_d), f_o[0](x2_d) # online branch encode
+c1, c2 = combine(v1), combine(v2) # Combine step
+z1_c, z2_c = f_o[1:](c1), f_o[1:](c2) # project & predict
+z1, z2 = f_t(x1), f_t(x2) # target branch encode & project
+loss = ctr(z1_c, z2) + ctr(z2_c, z1)
+loss.backward()
+# weight update
+update(f_o.params)
+f_t.params = a * f_t.params + (1-a) * f_o[:2].params
+def ctr(z_c, z)
+z_c, z = normalize(z_c, dim=1), normalize(z, dim=1) # l2-normalize
+z_c = z_c.split(z.size(0))
+# calculate loss for each of the 6 combined samples
+loss = 0
+for _z in z_c:
+logits = mm(_z, z.t())
+loss += CorssEntropyLoss(logits/t, labels)
+# positive pairs are sourced from the same instance
+return loss /= len(z_c)
+
+

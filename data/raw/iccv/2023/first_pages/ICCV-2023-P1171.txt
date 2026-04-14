@@ -1,0 +1,113 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+A Unified Continual Learning Framework with General
+Parameter-Efficient Tuning
+Qiankun Gao1 Chen Zhao†2 Yifan Sun3 Teng Xi3 Gang Zhang3 Bernard Ghanem2 Jian Zhang†1
+1
+
+Peking University Shenzhen Graduate School
+gqk@stu.pku.edu.cn
+
+2
+
+King Abdullah University of Science and Technology (KAUST)
+
+chen.zhao@kaust.edu.sa
+
+Abstract
+The “pre-training → downstream adaptation” presents
+both new opportunities and challenges for Continual Learning (CL). Although the recent state-of-the-art in CL is
+achieved through Parameter-Efficient-Tuning (PET) adaptation paradigm, only prompt has been explored, limiting its
+application to Transformers only. In this paper, we position
+prompting as one instantiation of PET, and propose a unified CL framework with general PET, dubbed as LearningAccumulation-Ensemble (LAE). PET, e.g., using Adapter,
+LoRA, or Prefix, can adapt a pre-trained model to downstream tasks with fewer parameters and resources. Given
+a PET method, our LAE framework incorporates it for CL
+with three novel designs. 1) Learning: the pre-trained
+model adapts to the new task by tuning an online PET module, along with our adaptation speed calibration to align
+different PET modules, 2) Accumulation: the task-specific
+knowledge learned by the online PET module is accumulated into an offline PET module through momentum update, 3) Ensemble: During inference, we respectively construct two experts with online/offline PET modules (which
+are favored by the novel/historical tasks) for prediction ensemble. We show that LAE is compatible with a battery of
+PET methods and gains strong CL capability. For example, LAE with Adaptor PET surpasses the prior state-ofthe-art by 1.3% and 3.6% in last-incremental accuracy on
+CIFAR100 and ImageNet-R datasets, respectively. Code is
+available at https://github.com/gqk/LAE.
+
+1. Introduction
+Continual Learning (CL) of new knowledge is an essential ability for AI models in the constantly changing world.
+However, neural networks often suffer from catastrophic
+forgetting [9, 39], in which previously learned knowledge is
+† Corresponding authors.
+
+This work was supported by Shenzhen General Research Project under Grant JCYJ20220531093215035, KAUST Office of Sponsored Research (OSR) under Award No. OSR-CRG2021-4648, and the SDAIAKAUST Center of Excellence in Data Science and Artificial Intelligence.
+
+3
+
+Baidu Inc.
+
+zhangjian.sz@pku.edu.cn
+
+Query
+
+Task N
+
+4
+
+1
+2
+
+5
+
+Selection
+K
+
+Prediction
+
+3
+
+Approaches based on Prompt Pool: Prompt Learning + Prompt Selection
+
+1. Learning
+Task N
+
+Online PET Module
+(Prompt/Adapter/LoRA)
+
+3. Ensemble
+
+Prediction
+
+2. Accumuation
+
+Offline PET Module
+Learnable
+
+(historical knowledge)
+
+Our LAE: A unified framework
+that explores general PET methods
+
+Figure 1: The pipeline of our LAE framework vs.
+prompt-pool approaches. Above: Prompt-pool approaches, which query prompts from a pool of learnable prompts. Below: Proposed LAE, where an online
+Parameter-Efficient Tuning (PET) module attached to the
+pre-trained model to adapt a new task quickly, and an offline
+PET module accumulates the learned knowledge slowly.
+During inference, we use the ensemble of the predictions of
+the online and offline PET modules as the final prediction.
+forgotten when the model incorporates novel information.
+Although many works have been devoted to reducing forgetting, such as dynamic networks [41, 50, 26, 18], regularization [28, 20, 52, 1], and memory replay [38, 15, 6, 30, 2],
+their performance still falls short of practical requirements.
+Recently, pre-training and downstream adaptation techniques have opened up new opportunities and challenges for
+CL. Basically, these techniques [4, 36, 12, 11, 48] pre-train
+a deep model on large-scale data and then adapt the pretrained model to novel tasks. We observe that downstream
+adaptation and CL are important for each other. On the one
+hand, in realistic AI systems, pre-trained models sometimes
+needs to be adapted to multiple downstream tasks sequentially, yielding the need of CL. On the other hand, recent efforts [47, 46, 45] show that the “pre-training → downstream
+adaptation” techniques can boost CL performance.
+Specifically, L2P [47], DualPrompt [46], and ESN [45]
+all use a popular adaptation technique named ParameterEfficient-Tuning (PET). Generally, PET adapts pre-trained
+models to downstream tasks with much fewer learnable parameters, as well as fewer resources. Though these approaches have advanced the state-of-the-art in CL, they still
+have some limitations. 1) They are all constrained to a spe1
+11483
+
+

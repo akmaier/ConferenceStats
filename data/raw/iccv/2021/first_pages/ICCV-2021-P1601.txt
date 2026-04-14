@@ -1,0 +1,89 @@
+Anticipative Video Transformer
+Rohit Girdhar†
+†
+Facebook AI Research
+
+Kristen Grauman†‡
+‡
+University of Texas, Austin
+
+http://facebookresearch.github.io/AVT
+
+Abstract
+We propose Anticipative Video Transformer (AVT), an
+end-to-end attention-based video modeling architecture
+that attends to the previously observed video in order to
+anticipate future actions. We train the model jointly to predict the next action in a video sequence, while also learning frame feature encoders that are predictive of successive future frames’ features. Compared to existing temporal aggregation strategies, AVT has the advantage of both
+maintaining the sequential progression of observed actions
+while still capturing long-range dependencies—both critical for the anticipation task. Through extensive experiments, we show that AVT obtains the best reported performance on four popular action anticipation benchmarks:
+EpicKitchens-55, EpicKitchens-100, EGTEA Gaze+, and
+50-Salads; and it wins first place in the EpicKitchens-100
+CVPR’21 challenge.
+
+1. Introduction
+Predicting future human actions is an important task for
+AI systems. Consider an autonomous vehicle at a stop sign
+that needs to predict whether a pedestrian will cross the
+street or not. Making this determination requires modeling
+complex visual signals—the past actions of the pedestrian,
+such as speed and direction of walking, or usage of devices
+that may hinder his awareness of the surroundings—and using those to predict what he may do next. Similarly, imagine an augmented reality (AR) device that observes a user’s
+activity from a wearable camera, e.g. as they cook a new
+dish or assemble a piece of furniture, and needs to anticipate his next steps to provide timely assistance. In many
+such applications, it is insufficient to recognize what is happening in the video. Rather, the vision system must also
+anticipate the likely actions that are to follow. Hence, there
+is a growing interest in formalizing the activity anticipation
+task [24, 45, 49, 64, 73, 82] along with development of multiple challenge benchmarks to support it [13, 14, 49, 55, 82].
+Compared to traditional action recognition, anticipation
+tends to be significantly more challenging. First of all, it re-
+
+Temporal Attention
+(/ line width)
+Spatial Attention
+
+Input Frames
+
+Head
+
+wash
+tomato
+
+…
+…
+
+Head
+
+turn-off
+tap
+
+Backbone
+
+time
+
+Figure 1: Anticipating future actions using AVT involves encoding video frames with a spatial-attention backbone, followed
+by a temporal-attention head that attends only to frames before the
+current one to predict future actions. In this example, it spontaneously learns to attend to hands and objects without being supervised to do so. Moreover, it attends to frames most relevant
+to predict the next action. For example, to predict ‘wash tomato’
+it attends equally to all previous frames as they determine if any
+more tomatoes need to be washed, whereas for ‘turn-off tap’ it focuses most on the current frame for cues whether the person might
+be done. Please see § 5.3 for details and additional results.
+
+quires going beyond classifying current spatiotemporal visual patterns into a single action category—a task nicely
+suited to today’s well-honed discriminative models—to instead predict the multi-modal distribution of future activities. Moreover, while action recognition can often side-step
+temporal reasoning by leveraging instantaneous contextual
+cues [31], anticipation inherently requires modeling the progression of past actions to predict the future. For instance,
+the presence of a plate of food with a fork may be sufficient
+to indicate the action of eating, whereas anticipating that
+same action would require recognizing and reasoning over
+the sequence of actions that precede it, such as chopping,
+cooking, serving, etc. Indeed, recent work [23, 77] finds
+that modeling long temporal context is often critical for
+anticipation, unlike action recognition where frame-level
+modeling is often enough [43, 50, 81]. These challenges are
+also borne out in practice. For example, accuracy for one of
+today’s top performing video models [77] drops from 42%
+to 17% when treating recognition versus anticipation on the
+
+13505
+
+

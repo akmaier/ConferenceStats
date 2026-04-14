@@ -1,0 +1,144 @@
+Making History Matter: History-Advantage Sequence Training for Visual Dialog
+Tianhao Yang1
+1
+
+Zheng-Jun Zha1∗
+
+Hanwang Zhang2
+
+University of Science and Technology of China, 2 Nanyang Technological University
+jshmyth@mail.ustc.edu.cn, zhazj@ustc.edu.cn, hanwangzhang@ntu.edu.sg
+
+Abstract
+We study the multi-round response generation in visual
+dialog, where a response is generated according to a visually grounded conversational history. Given a triplet: an
+image, Q&A history, and current question, all the prevailing
+methods follow a codec (i.e., encoder-decoder) fashion in a
+supervised learning paradigm: a multimodal encoder encodes the triplet into a feature vector, which is then fed into
+the decoder for the current answer generation, supervised
+by the ground-truth. However, this conventional supervised
+learning does NOT take into account the impact of imperfect history, violating the conversational nature of visual dialog and thus making the codec more inclined to learn history bias but not contextual reasoning. To this end, inspired
+by the actor-critic policy gradient in reinforcement learning, we propose a novel training paradigm called HistoryAdvantage Sequence Training (HAST). Specifically, we intentionally impose wrong answers in the history, obtaining an adverse critic, and see how the historic error impacts the codec’s future behavior by History Advantage —
+a quantity obtained by subtracting the adverse critic from
+the gold reward of ground-truth history. Moreover, to make
+the codec more sensitive to the history, we propose a novel
+attention network called History-Aware Co-Attention Network (HACAN) which can be effectively trained by using
+HAST. Experimental results on three benchmarks: VisDial
+v0.9&v1.0 and GuessWhat?!, show that the proposed HAST
+strategy consistently outperforms the state-of-the-art supervised counterparts.
+
+1. Introduction
+Visual dialog is one of the most comprehensive task for
+benchmarking the AI’s comprehension of natural language
+grounded by a visual scene [6]. A good visual dialog agent
+should accomplish a complex series of reasoning sub-tasks:
+contextual visual perception [36, 23, 5, 30, 19, 37, 31], lan∗ Corresponding author.
+
+History
+澵澤濍澳濔澳濶瀂瀈瀃濿濸澳瀆濻濴瀅濼瀁濺澳濴澳濾瀁濼濹濸澳瀇瀂澳濶瀈瀇澳濴澳濿濴瀅濺濸澳濶濴濾濸濁
+濅澥濍澳濜瀆澳瀇濻濸澳濶瀂瀈瀃濿濸澳瀀濴濿濸澳濴瀁濷澳濹濸瀀濴濿濸濒
+澵澥濍澳濬濸瀆濁
+澦
+濅 濍澳濪濻濴瀇澳濶瀂濿瀂瀅澳濼瀆澳瀇濻濸澳濶濴濾濸濒
+澵澦濍澳濪濻濼瀇濸澳瀊濼瀇濻澳濵濿瀈濸澳濿濸瀇瀇濸瀅濼瀁濺澿澳濵瀈瀇澳濻濴瀅濷澳瀇瀂澳瀆濸濸澳濼瀇濁
+濄濁澳濬瀂瀈澳濶濴瀁瀁瀂瀇澳瀆濸濸澳濼瀇濁
+濅濩濙濧濨濝濣濢
+濅澧濍澳濔瀁瀌瀇濻濼瀁濺澳瀊瀅濼瀇瀇濸瀁澳 澵澧濍澳 濅濁澳濣瀂瀆瀆濼濵濿瀌
+濆濁澳濡瀂
+瀂瀁澳瀇濻濸澳濶濴濾濸濒
+濷
+
+ࡵ
+
+ࡽ࢚
+
+澜濕澝
+
+ࡵ
+
+ࡵ
+
+ࡴ࢚
+
+ࡽ࢚
+
+‫ܣ‬௧௚௧
+‫ܣ‬௧
+
+ᇲ
+澻濣濠濘澔澼濝濧濨濣濦濭澔ࡴ࢚ࢍ
+௧
+‫ ܪ‬௧ 澿澳澻ܳ ௧ 澿‫ܣ‬௚௧
+澼澿
+ᇲ
+௧ ᇲ ିଵ
+௧ାଵ
+澼澳
+澼澿澳瀖澿澳澻ܳ ௧ ିଵ 澿澳‫ܣ‬௚௧
+澻ܳ ௧ାଵ 澿澳‫ܣ‬௚௧
+
+ࡽ࢚ᇱ
+ࡵ
+
+ᇲ
+
+澺濕濟濙澔澼濝濧濨濣濦濭澔ࡴ࢚ࢇ
+௧
+
+‫ ܪ‬௧ 澿澳澻ܳ ௧ 澿澳‫ ܣ‬澼澿
+ᇲ
+௧ ᇲ ିଵ
+௧ାଵ
+澼澳
+澼澿澳瀖澿澳澻ܳ௧ ିଵ 澿澳‫ܣ‬௚௧
+澻ܳ௧ାଵ 澿澳‫ܣ‬௚௧
+ࡽ࢚ᇱ
+
+௧ᇱ
+‫ܣ‬௚௧
+
+ࡴ࢚
+澜濖澝
+௧ᇱ
+‫ܣ‬௚௧
+
+‫ܣ‬௧ᇱ
+
+௧ᇱ
+‫ܣ‬௚௧
+
+‫ܣ‬௧ᇱ
+
+激濣濧濧
+
+‫ܣ‬௧ᇱ
+
+澻濣濠濘
+濆濙濫濕濦濘
+澼濝濧濨濣濦濭
+澵濘濪濕濢濨濕濛濙
+澵濘濪濙濦濧濙
+澷濦濝濨濝濗
+
+澜濗澝
+
+Figure 1. (a) A typical visual dialog task. Particularly, the initial answer A0 denotes the given image captioning. (b) The conventional training process at round t: given an image I, a history H t , and question Qt , the loss is supervised by the groundtruth answer Atgt . (c) The proposed History-Advantage Sequence
+Training (HAST) paradigm: the reward (i.e. − loss) is a HistoryAdvantage, which is more focused on the impact caused by a
+wrong answer Āt to the future round t′ , by comparing the dif′
+ference between the Gold Reward from gold history Hgt and the
+′
+Adverse Critic from fake history Hat .
+
+guage modeling [14, 4], and co-reference resolution in dialog history [30, 19] (e.g., identify what is “that”). Thanks to
+the end-to-end deep neural networks in their respective subtasks, state-of-the-art visual dialog systems can be built by
+assembling them into a codec framework [36, 6, 23]. The
+encoder encodes a triplet input — history question-answer
+sentences, an image, and a current question sentence — into
+a vector representation; then, the decoder fuses those vectors and decodes them into answer sentences (e.g., by generative language models [6, 23, 36] or discriminative candidate ranking [15, 19]).
+So far, one may identify that the key difference between
+Visual Dialog (VisDial) and the well-known Visual Question&Answering (VQA) [3] is the exploitation of the history. As shown in Figure 1(a) and Figure 1(b), VisDial
+can be cast into a multi-round VQA given additional lan-
+
+2561
+
+

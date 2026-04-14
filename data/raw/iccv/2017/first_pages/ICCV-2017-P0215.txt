@@ -1,0 +1,71 @@
+Multi-task Self-Supervised Visual Learning
+Carl Doersch†
+†
+
+DeepMind
+
+∗
+
+Andrew Zisserman†,∗
+
+VGG, Department of Engineering Science, University of Oxford
+
+Abstract
+We investigate methods for combining multiple selfsupervised tasks—i.e., supervised tasks where data can be
+collected without manual labeling—in order to train a single visual representation. First, we provide an apples-toapples comparison of four different self-supervised tasks
+using the very deep ResNet-101 architecture. We then combine tasks to jointly train a network. We also explore lasso
+regularization to encourage the network to factorize the
+information in its representation, and methods for “harmonizing” network inputs in order to learn a more unified representation. We evaluate all methods on ImageNet
+classification, PASCAL VOC detection, and NYU depth
+prediction. Our results show that deeper networks work
+better, and that combining tasks—even via a naı̈ve multihead architecture—always improves performance. Our best
+joint network nearly matches the PASCAL performance of a
+model pre-trained on ImageNet classification, and matches
+the ImageNet network on NYU depth prediction.
+
+1. Introduction
+Vision is one of the most promising domains for unsupervised learning. Unlabeled images and video are available in practically unlimited quantities, and the most prominent present image models—neural networks—are data
+starved, easily memorizing even random labels for large image collections [45]. Yet unsupervised algorithms are still
+not very effective for training neural networks: they fail
+to adequately capture the visual semantics needed to solve
+real-world tasks like object detection or geometry estimation the way strongly-supervised methods do. For most vision problems, the current state-of-the-art approach begins
+by training a neural network on ImageNet [35] or a similarly
+large dataset which has been hand-annotated.
+How might we better train neural networks without manual labeling? Neural networks are generally trained via
+backpropagation on some objective function. Without labels, however, what objective function can measure how
+good the network is? Self-supervised learning answers this
+question by proposing various tasks for networks to solve,
+where performance is easy to measure, i.e., performance
+
+can be captured with an objective function like those seen
+in supervised learning. Ideally, these tasks will be difficult to solve without understanding some form of image
+semantics, yet any labels necessary to formulate the objective function can be obtained automatically. In the last few
+years, a considerable number of such tasks have been proposed [1, 2, 6, 7, 8, 17, 20, 21, 23, 25, 26, 27, 28, 29, 31,
+39, 40, 42, 43, 46, 47], such as asking a neural network to
+colorize grayscale images, fill in image holes, solve jigsaw
+puzzles made from image patches, or predict movement in
+videos. Neural networks pre-trained with these tasks can
+be re-trained to perform well on standard vision tasks (e.g.
+image classification, object detection, geometry estimation)
+with less manually-labeled data than networks which are
+initialized randomly. However, they still perform worse in
+this setting than networks pre-trained on ImageNet.
+This paper advances self-supervision first by implementing four self-supervision tasks and comparing their performance using three evaluation measures. The self-supervised
+tasks are: relative position [7], colorization [46], the “exemplar” task [8], and motion segmentation [27] (described
+in section 2). The evaluation measures (section 5) assess a
+diverse set of applications that are standard for this area, including ImageNet image classification, object category detection on PASCAL VOC 2007, and depth prediction on
+NYU v2.
+Second, we evaluate if performance can be boosted by
+combining these tasks to simultaneously train a single trunk
+network. Combining the tasks fairly in a multi-task learning objective is challenging since the tasks learn at different
+rates, and we discuss how we handle this problem in section 4. We find that multiple tasks work better than one, and
+explore which combinations give the largest boost.
+Third, we identify two reasons why a naı̈ve combination
+of self-supervision tasks might conflict, impeding performance: input channels can conflict, and learning tasks can
+conflict. The first sort of conflict might occur when jointly
+training colorization and exemplar learning: colorization receives grayscale images as input, while exemplar learning
+receives all color channels. This puts an unnecessary burden
+on low-level feature detectors that must operate across domains. The second sort of conflict might happen when one
+12051
+
+

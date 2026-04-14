@@ -1,0 +1,72 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Efficient Unified Demosaicing for Bayer and Non-Bayer Patterned Image Sensors
+Haechang Lee1,4,∗ , Dongwon Park2,3,∗ , Wongi Jeong1,∗ ,
+Kijeong Kim4 , Hyunwoo Je4 , Dongil Ryu4 and Se Young Chun1,2,3,†
+1
+Dept. of ECE, 2 INMC, 3 IPAI, Seoul National University, Republic of Korea,
+4
+SK hynix, Republic of Korea
+{harrylee,dong1park,wg7139,sychun}@snu.ac.kr {kijeong1.kim,hyunwoo.je,dongil.ryu}@sk.com
+
+Abstract
+As the physical size of recent CMOS image sensors (CIS)
+gets smaller, the latest mobile cameras adopt unique nonBayer color filter array (CFA) patterns (e.g., Quad, Nona,
+Q×Q), which consist of homogeneous color units with adjacent pixels. These non-Bayer CFAs are superior to conventional Bayer CFA thanks to their changeable pixel-bin
+sizes for different light conditions, but may introduce visual
+artifacts during demosaicing due to their inherent pixel pattern structures and sensor hardware characteristics. Previous demosaicing methods have primarily focused on Bayer
+CFA, necessitating distinct reconstruction methods for nonBayer CIS with various CFA modes under different lighting
+conditions. In this work, we propose an efficient unified demosaicing method that can be applied to both conventional
+Bayer RAW and various non-Bayer CFAs’ RAW data in different operation modes. Our Knowledge Learning-based
+demosaicing model for Adaptive Patterns, namely KLAP,
+utilizes CFA-adaptive filters for only 1% key filters in the
+network for each CFA, but still manages to effectively demosaic all the CFAs, yielding comparable performance to
+the large-scale models. Furthermore, by employing metalearning during inference (KLAP-M), our model is able
+to eliminate unknown sensor-generic artifacts in real RAW
+data, effectively bridging the gap between synthetic images
+and real sensor RAW. Our KLAP and KLAP-M methods
+achieved state-of-the-art demosaicing performance in both
+synthetic and real RAW data of Bayer and non-Bayer CFAs.
+
+1. Introduction
+Demosaicing (DM) is the process of interpolating singlechannel input images into RGB output images within an
+embedded Image Signal Processor (ISP). With the growing demand for high-quality mobile camera images, CMOS
+image sensor (CIS) resolution has increased dramatically,
+even reaching 200 million pixels in the latest smartphones.
+∗ Equal contribution, † Corresponding author.
+
+However, as image sensors cannot infinitely increase in size,
+pixel size has been reduced to enhance resolution. Smaller
+CISs are more vulnerable to noise and degradation in image restoration capabilities because they are more sensitive to variations in light reception, especially in low-light
+condition [13, 23, 38, 39]. As a result, modern high-end
+smartphones have started using image sensors that group
+adjacent homogeneous pixels, resulting in non-Bayer Quad,
+Nona, and Quad-by-Quad (Q×Q) sensors [19, 38, 41],
+while still retaining some of the properties of the standard
+Bayer CFA [5] pattern. Quad, Nona, and Q×Q sensors
+combine the same color pixel arrays of 2×2, 3×3, and 4×4
+respectively, resulting in homogeneous pixel units (i.e., Gr,
+R, B, and Gb) for each sensor, as shown in Fig. 1(a).
+Demosaicing for modern non-Bayer CFAs is more complex and computationally demanding than for standard
+Bayer CFAs. This is because as the number of pixel arrays within each unit increases, the distance between the
+units becomes greater, requiring interpolation with inaccurate pixel values from distant locations. Therefore, there
+is growing interest in using deep learning for demosaicing
+methods, leading to active research on both Bayer pattern
+demosaicing [64, 42, 12, 7, 56, 1, 34, 62, 45, 18, 26, 17]
+and non-Bayer pattern demosaicing [28, 27, 20, 3, 46, 10].
+However, the aforementioned methods focus on a single CFA DM task and do not cover DM tasks for multiple
+CFA patterns. Modern mobile phones with non-Bayer patterned CIS adapt their CFA modes dynamically based on
+lighting conditions, controlled by the CIS’s ISP. Using independent models (IMs) for each pattern, tailored to different
+CFA modes, would demand loading and operating multiple models within the limited circuit space of the CIS. This
+would result in excessive memory and power consumption
+if the models were kept standby on the mobile application
+processor (AP) and switched accordingly. Moreover, the
+task of tuning models for each CFA would be laborious.
+Currently, no existing method can handle dynamically
+changing CFA modes in a non-Bayer patterned CIS as a unified model (UM). Several recent studies have explored the
+
+12750
+
+

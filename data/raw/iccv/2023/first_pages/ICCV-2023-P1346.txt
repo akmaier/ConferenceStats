@@ -1,0 +1,110 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+TAPIR: Tracking Any Point with per-frame Initialization and temporal
+Refinement
+Carl Doersch∗
+
+Yi Yang∗
+Yusuf Aytar∗
+
+Mel Vecerik∗†
+Joao Carreira∗
+
+Dilara Gokay∗
+Ankush Gupta∗
+∗‡
+Andrew Zisserman
+
+∗
+
+†
+Google DeepMind
+University College London
+‡
+VGG, Department of Engineering Science, University of Oxford
+
+Abstract
+Davis
+
+We present a novel model for Tracking Any Point (TAP)
+that effectively tracks any queried point on any physical surface throughout a video sequence. Our approach employs
+two stages: (1) a matching stage, which independently locates a suitable candidate point match for the query point
+on every other frame, and (2) a refinement stage, which updates both the trajectory and query features based on local correlations. The resulting model surpasses all baseline
+methods by a significant margin on the TAP-Vid benchmark,
+as demonstrated by an approximate 20% absolute average
+Jaccard (AJ) improvement on DAVIS. Our model facilitates
+fast inference on long and high-resolution video sequences.
+On a modern GPU, our implementation has the capacity to
+track points faster than real-time. Given the high-quality
+trajectories extracted from a large dataset, we demonstrate
+a proof-of-concept diffusion model which generates trajectories from static images, enabling plausible animations.
+Visualizations, source code, and pretrained models can be
+found at https://deepmind-tapir.github.io.
+
+1. Introduction
+The problem of point level correspondence —i.e., determining whether two pixels in two different images are projections of the same point on the same physical surface—
+has long been a fundamental challenge in computer vision,
+with enormous potential for providing insights about physical properties and 3D shape. We consider its formulation as
+“Tracking Any Point” (TAP) [12]: given a video and (potentially dense) query points on solid surfaces, an algorithm
+should reliably output the locations those points correspond
+to in every other frame where they are visible, and indicate
+frames where they are not – see Fig. 4 for illustration.
+Our main contribution is a new model: TAP with
+per-frame Initialization and temporal Refinement (TAPIR),
+
+Average Jaccard
+
+60
+
+TAPIR
+
+Kinetics
+
+50
+
+PIPs
+COTR
+
+40
+
+TAPNet
+
+30
+
+Kubric-VFS
+
+RAFT
+20
+2020
+
+2021
+
+2022
+
+2023
+
+Figure 1. Retrospective evolution of point tracking performance
+over time on the recent TAP-Vid-Kinetics and TAP-Vid-DAVIS
+benchmarks, as measured by Average Jaccard (higher is better).
+In this paper we introduce TAPIR, which significantly improves
+performance over the state-of-the-art. This unlocks new capabilities, which we demonstrate on motion-based future prediction.
+
+which greatly improves over the state-of-the-art on the
+recently-proposed TAP-Vid benchmark [12]. There are
+many challenges to TAP: we must robustly estimate occlusions and recover when points reappear (unlike optical
+flow and structure-from-motion keypoints), meaning that
+search must be incorporated; yet when points remain visible for many consecutive frames, it is important to integrate
+information about appearance and motion across many of
+those frames in order to optimally predict positions. Furthermore, little real-world ground truth is available to learn
+from, so supervised-learning algorithms need to learn from
+synthetic data without overfitting to the data distribution
+(i.e., sim2real).
+There are three core design decisions that define TAPIR.
+The first is to use a coarse-to-fine approach. This approach
+has been used across many high-precision estimation prob-
+
+10061
+
+

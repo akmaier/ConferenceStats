@@ -1,0 +1,146 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Automated Knowledge Distillation via Monte Carlo Tree Search
+Lujun Li1† * Peijie Dong2† Zimian Wei2 Ya Yang3
+1
+The Hong Kong University of Science and Technology, 2 National University of Defense Technology
+3
+City University of Hong Kong
+1
+
+lilujunai@gmail.com1 {dongpeijie, weizimian16}@nudt.edu.cn, 3 yya9@outlook.com
+
+Abstract
+In this paper, we present Auto-KD, the first automated
+search framework for optimal knowledge distillation design.
+Traditional distillation techniques typically require handcrafted designs by experts and extensive tuning costs for
+different teacher-student pairs. To address these issues, we
+empirically study different distillers, finding that they can
+be decomposed, combined, and simplified. Based on these
+observations, we build our uniform search space with advanced operations in transformations, distance functions,
+and hyperparameters components. For instance, the transformation parts are optional for global, intra-spatial, and
+inter-spatial operations, such as attention, mask, and multiscale. Then, we introduce an effective search strategy based
+on the Monte Carlo tree search, modeling the search space
+as a Monte Carlo Tree (MCT) to capture the dependency
+among options. The MCT is updated using test loss and
+representation gap of student trained by candidate distillers
+as the reward for better exploration-exploitation balance. To
+accelerate the search process, we exploit offline processing
+without teacher inference, sparse training for student, and
+proxy settings based on distillation properties. In this way,
+our Auto-KD only needs small costs to search for optimal
+distillers before the distillation phase. Moreover, we expand
+Auto-KD for multi-layer and multi-teacher scenarios with
+training-free weighted factors. Our method is promising
+yet practical, and extensive experiments demonstrate that it
+generalizes well to different CNNs and Vision Transformer
+models and attains state-of-the-art performance across a
+range of vision tasks, including image classification, object
+detection, and semantic segmentation. Code is provided at
+https://github.com/lilujunai/Auto-KD.
+
+1. Introduction
+Various visual tasks [18, 34, 53] have been successfully
+tackled by Deep Neural Networks (DNNs). Despite the ap* Corresponding author, † equal contribution.
+
+Transforms Search
+sample
+
+fs, ft
+
+H,W
+
+B
+
+H,W
+
+B
+
+Weight Search
+
+H,W
+
+multi-scale
+C
+
+C
+
+G-L2
+
+Distance Search
+
+local
+
+channel
+C
+
+C
+
+H,W
+
+B
+
+KL
+
+C
+
+H,W
+
+B
+
+B
+
+H/2,W/2
+
+L2
+
+3000
+
+2.5
+
+1
+
+0.1
+
+0.1
+5
+
+SP
+
+ICKD
+
+CWD
+
+LKD
+
+LR
+
+Figure 1. Illustration on distiller search space on intermediate features. Recent sadvancements in distillation methods (e.g., SP [69],
+ICKD [49], CWD [64], LKD [42] and LR [55]) can be searched
+with various options of transforms, distances and weights search.
+
+pealing performance, the prevailing DNNs usually have large
+numbers of parameters, leading to heavy costs of memory
+and computation. Conventional techniques such as pruning
+weights from networks [19, 36] and quantizing networks
+to use low-bit parameters [10, 57, 85] have proven to be
+effective for mitigating this computational burden. Recently,
+Knowledge Distillation (KD) [70, 24], another promising
+solution family to train compact yet accurate models, has
+attracted increasing attention. The objective of knowledge
+distillation (KD) is to transfer the acquired knowledge from a
+high-capacity DNN model (i.e., teacher) to a lower-capacity
+target DNN model (i.e., student), effectively balancing accuracy and efficiency during runtime.
+Problem Statement: While numerous KD methods [54,
+66, 82] have been proposed, one major challenge is the sensitivity of their performance to hyperparameters and teacherstudent architecture pairs. Different hyperparameters, such
+as the weighted factor used in the loss function, can have a
+significant impact on the final performance of the distilled
+student model (see Figure 2 (Left)). Similarly, the same
+distiller performs quite differently under various teachers
+(see Figure 2 (Right)). Therefore, the practical usage of KD
+
+17413
+
+

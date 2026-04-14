@@ -1,0 +1,157 @@
+LeViT: a Vision Transformer in ConvNet’s Clothing for Faster Inference
+Ben Graham
+
+Alaaeldin El-Nouby
+Hugo Touvron
+Pierre Stock
+Hervé Jégou
+Matthijs Douze
+
+Abstract
+B4
+
+We design a family of image classification architectures
+that optimize the trade-off between accuracy and efficiency
+in a high-speed regime. Our work exploits recent findings
+in attention-based architectures, which are competitive on
+highly parallel processing hardware. We revisit principles
+from the extensive literature on convolutional neural networks to apply them to transformers, in particular activation maps with decreasing resolutions. We also introduce
+the attention bias, a new way to integrate positional information in vision transformers.
+As a result, we propose LeViT: a hybrid neural network
+for fast inference image classification. We consider different measures of efficiency on different hardware platforms,
+so as to best reflect a wide range of application scenarios. Our extensive experiments empirically validate our
+technical choices and show they are suitable to most architectures. Overall, LeViT significantly outperforms existing convnets and vision transformers with respect to the
+speed/accuracy tradeoff. For example, at 80% ImageNet
+top-1 accuracy, LeViT is 5 times faster than EfficientNet on
+CPU. We release the code at https://github.com/
+facebookresearch/LeViT.
+
+1. Introduction
+Transformer neural networks were initially introduced
+for Natural Language Processing applications [1]. They
+now dominate in most applications of this field. They manipulate variable-size sequences of token embeddings that
+are fed to a residual architecture. The model comprises two
+sorts for residual blocks: Multi-Layer Perceptron (MLP)
+and an original type of layer: the self-attention, which allows all pairs of tokens in the input to be combined via a
+bilinear function. This is in contrast to 1D convolutional
+approaches that are limited to a fixed-size neighborhood.
+Recently, the vision transformer (ViT) architecture [2]
+obtained state-of-the-art results for image classification in
+the speed-accuracy tradeoff with pre-training on large scale
+dataset. The Data-efficient Image Transformer [3] obtains
+competitive performance when training the ViT models
+only on ImageNet [4]. It also introduces smaller models
+
+Imagenet top-1 accuracy (%)
+
+83
+
+Armand Joulin
+
+1 CPU thread
+
+82
+
+1 GPU
+B4
+
+LeViT-384
+
+DeiTSmall
+B3
+
+LeViT-256
+
+LeViT-384
+
+DeiTSmall
+
+LeViT-256
+
+B3
+
+81
+B2
+
+80
+
+B2
+
+LeViT-192
+B1
+
+79
+
+LeViT-192
+
+B1
+LeViT-128
+
+LeViT-128
+
+78
+
+EfficientNet
+DeiT
+LeViT
+
+77
+1
+
+2
+
+5
+
+10
+
+B0
+
+20
+
+B0
+
+LeViTDeiT-Tiny 128S
+50
+
+100 200
+images/s
+
+LeViT-128S
+500
+
+1k
+
+2k
+
+5k
+
+10k
+
+20k
+
+Figure 1. Speed-accuracy operating points for convolutional and
+visual transformers. Left plots: on 1 CPU core, Right: on 1 GPU.
+LeViT is a stack of transformer blocks, with pooling steps to reduce the resolution of the activation maps as in classical convolutional architectures.
+
+adapted for high-throughput inference.
+In this paper, we explore the design space to offer even
+better trade-offs than ViT/DeiT models in the regime of
+small and medium-sized architectures. We are especially
+interested in optimizing the performance–accuracy tradeoff, such as the throughput (images/second) performance
+depicted in Figure 1 for Imagenet-1k-val [5].
+While many works [6, 7, 8, 9, 10] aim at reducing the
+memory footprint of classifiers and feature extractors, inference speed is equally important, with high throughput
+corresponding to better energy efficiency. In this work, our
+goal is to develop a Vision Transformer-based family of
+models with better inference speed on both highly-parallel
+architectures like GPU, regular Intel CPUs, and ARM hardware commonly found in mobile devices. Our solution
+re-introduces convolutional components in place of transformer components that learn convolutional-like features.
+In particular, we replace the uniform structure of a Transformer by a pyramid with pooling, similar to the LeNet [11]
+architecture. Hence we call it LeViT.
+There are compelling reasons why transformers are
+faster than convolutional architectures for a given computational complexity. Most hardware accelerators (GPUs,
+TPUs) are optimized to perform large matrix multiplica-
+
+12259
+
+

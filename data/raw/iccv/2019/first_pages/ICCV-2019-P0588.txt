@@ -1,0 +1,78 @@
+Learning Two-View Correspondences and Geometry
+Using Order-Aware Network
+Jiahui Zhang13∗†
+
+Dawei Sun2∗†
+Zixin Luo3‡
+Anbang Yao 2§
+Lei Zhou3‡
+Tianwei Shen4
+2
+3
+1§
+Yurong Chen
+Long Quan
+Hongen Liao
+1
+2
+3
+Tsinghua University
+Intel Labs China
+Hong Kong University of Science and Technology
+4
+Everest Innovation Technology (Altizure)
+{jiahui-z15@mails.,liao@}tsinghua.edu.cn
+{dawei.sun,anbang.yao,yurong.chen}@intel.com
+{zluoag,lzhouai,quan}@cse.ust.hk
+tianwei@altizure.com
+Abstract
+
+Establishing correspondences between two images requires both local and global spatial context. Given putative correspondences of feature points in two views, in this
+paper, we propose Order-Aware Network, which infers the
+probabilities of correspondences being inliers and regresses
+the relative pose encoded by the essential matrix. Specifically, this proposed network is built hierarchically and comprises three novel operations. First, to capture the local
+context of sparse correspondences, the network clusters unordered input correspondences by learning a soft assignment matrix. These clusters are in a canonical order and
+invariant to input permutations. Next, the clusters are spatially correlated to form the global context of correspondences. After that, the context-encoded clusters are recovered back to the original size through a proposed upsampling operator. We intensively experiment on both outdoor
+and indoor datasets. The accuracy of the two-view geometry and correspondences are significantly improved over the
+state-of-the-arts.
+
+1. Introduction
+Two-view geometry estimation is a fundamental problem in computer vision, which plays an important role in
+Structure from Motion (SfM) [37, 33] and visual Simultaneous Localization and Mapping (SLAM) [21]. Current state-of-the-art SfM [37, 33] and SLAM [21] pipelines
+commonly start from local feature extraction and matching.
+Outlier rejection algorithm is then applied which is necessary for accurate relative pose estimation. After that, the
+∗ indicates equal contributions.
+† interns at Intel Labs China.
+‡ interns at Shenzhen Zhuke Innovation Technology (Altizure).
+§ indicates corresponding authors.
+
+relative pose can be recovered from inliers.
+Until recently, great efforts have been spent on applying
+deep learning techniques to geometric matching pipeline,
+and most of them focus on learning local feature detectors and descriptors [40, 4]. More interestingly, learningbased outlier rejection has also been revisited [20, 29] and
+achieves appealing results. Our work also applies learningbased outlier rejection as the core component for two-view
+geometry estimation. We exploit a neural network to infer the probability of each correspondence as an inlier, then
+recover the relative pose by regressing the essential matrix
+through a closed-form and differentiable computation. The
+overview of the workflow is illustrated in Fig. 1.
+Previous works [20, 29] exploited PointNet-like architecture [26] and Context Normalization [20, 35] to classify
+putative correspondences, which we refer to as PointCN.
+It has following drawbacks: (1) PointNet-like architecture
+applies Multi Layer Perceptrons (MLPs) on each point individually. Hence it cannot capture the local context [27],
+e.g., similar motion shared by neighboring pixels [1], which
+has been shown to be beneficial for outlier rejection [1, 44].
+(2) PointCN relies on Context Normalization to encode the
+global context. Such a simple operation normalizes the feature maps by their mean and variance, which overlooks the
+underlying complex relations among different points and
+may hinder the overall performance.
+One of the challenges in mitigating the above limitations is exploiting neighbors to encoding local context. Unlike 3D point clouds, sparse matches have no well-defined
+neighbors, where this issue is previously tackled in bilateral
+domain [14] (2D spatial domain and 2D motion domain) or
+by a graphical model [44]. Besides, another challenge is
+modeling the relation between correspondences since they
+are unordered and have no stable relations to be captured.
+To address the above two problems, we draw inspiration from hierarchical representations of Graph Neural Net-
+
+5845
+
+

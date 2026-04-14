@@ -1,0 +1,117 @@
+Learning Multi-Scene Absolute Pose Regression with Transformers
+Yoli Shavit
+Ron Ferens
+Yosi Keller
+Faculty of Engineering, Bar Ilan University, Ramat-Gan, Israel
+{yolisha, ronferens, yosi.keller}@gmail.com
+
+Abstract
+Absolute camera pose regressors estimate the position
+and orientation of a camera from the captured image alone.
+Typically, a convolutional backbone with a multi-layer perceptron head is trained using images and pose labels to
+embed a single reference scene at a time. Recently, this
+scheme was extended for learning multiple scenes by replacing the MLP head with a set of fully connected layers. In this work, we propose to learn multi-scene absolute
+camera pose regression with Transformers, where encoders
+are used to aggregate activation maps with self-attention
+and decoders transform latent features and scenes encoding into candidate pose predictions. This mechanism allows
+our model to focus on general features that are informative
+for localization while embedding multiple scenes in parallel. We evaluate our method on commonly benchmarked
+indoor and outdoor datasets and show that it surpasses
+both multi-scene and state-of-the-art single-scene absolute
+pose regressors. We make our code publicly available from
+https://github.com/yolish/multi-scene-pose-transformer.
+
+1. Introduction
+Localizing a camera using a query image is a key task
+in many computer vision applications, such as indoor navigation, augmented reality and autonomous driving, to name
+a few. Contemporary approaches for estimating the position and orientation of a camera offer different trade-offs
+between accuracy, runtime, and memory. For example, hierarchical localization pipelines [26, 30, 25] achieve stateof-the-art (SOTA) pose accuracy, but are relatively slow (response time of hundreds of milliseconds) and require a large
+memory footprint and client-server connectivity. These approaches employ image retrieval (IR) to fetch images that
+are similar to the query image, followed by local features
+extraction and matching. The extracted 2D-2D matches
+are mapped to 2D-3D correspondences via depth or a 3D
+point cloud, and are then used to estimate the camera pose
+with Perspective-n-Point (PnP) and RANSAC [13]. Absolute pose regressors (APRs), on the other hand, estimate
+
+Position
+Transformer
+0
+
+CNN
+
+1
+
+2
+
+0
+
+1
+
+2
+
+3
+
+2
+
+MLP
+
+𝑥
+
+2
+
+MLP
+
+𝑞
+
+3
+
+Selected Scene Index
+
++
+
+Query Image
+From Scene 2
+Orientation
+Transformer
+0
+
+1
+
+2
+
+0
+
+1
+
+2
+
+3
+
+3
+
+Figure 1: Multi-scene absolute pose regression with Transformers. Two Transformers separately attend to positionand orientation- informative features from a convolutional
+backbone. Scene-specific queries (0−3) are further encoded
+with aggregated activation maps into latent representations,
+from which a single output is selected. The strongest response, shown as an overlaid color-coded heatmap of attention weights, is obtained with the output associated with
+the input image’s scene. The selected outputs are used to
+regress the position x and the orientation q.
+
+the camera pose with a single forward pass, using only the
+query image. They are an order of magnitude faster and can
+be deployed as a standalone application on a thin client due
+to their small memory footprint. Unfortunately, APRs are
+also an order of magnitude less accurate compared to hierarchical localization pipelines and to other methods utilizing
+3D data at inference time [27]. Moreover, most APRs are
+designed to embed a single scene at a time, implying that for
+a dataset with N scenes (for example, a hospital with many
+wards and rooms), N models are required to be trained,
+deployed and chosen from during inference. In this work,
+we focus on improving the accuracy of APRs while extending the current single-scene paradigm for learning multiple
+scenes in parallel.
+The formulation of absolute camera pose regression was
+first suggested by Kendall et al. [17]. Following the success
+of convolutional neural networks (CNNs) in learning different computer vision tasks, the authors suggested to adapt
+
+2733
+
+

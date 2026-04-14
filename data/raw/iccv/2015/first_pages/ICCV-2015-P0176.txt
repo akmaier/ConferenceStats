@@ -1,0 +1,77 @@
+Joint Object and Part Segmentation using Deep Learned Potentials
+Peng Wang1 Xiaohui Shen2 Zhe Lin2 Scott Cohen2 Brian Price2 Alan Yuille1
+1
+University of California, Los Angeles 2 Adobe Research
+
+Abstract
+Segmenting semantic objects from images and parsing
+them into their respective semantic parts are fundamental
+steps towards detailed object understanding in computer vision. In this paper, we propose a joint solution that tackles semantic object and part segmentation simultaneously,
+in which higher object-level context is provided to guide
+part segmentation, and more detailed part-level localization is utilized to refine object segmentation. Specifically,
+we first introduce the concept of semantic compositional
+parts (SCP) in which similar semantic parts are grouped
+and shared among different objects. A two-stream fully convolutional network (FCN) is then trained to provide the SCP
+and object potentials at each pixel. At the same time, a
+compact set of segments can also be obtained from the SCP
+predictions of the network. Given the potentials and the
+generated segments, in order to explore long-range context,
+we finally construct an efficient fully connected conditional
+random field (FCRF) to jointly predict the final object and
+part labels. Extensive evaluation on three different datasets
+shows that our approach can mutually enhance the performance of object and part segmentation, and outperforms the
+current state-of-the-art on both tasks.
+
+1. Introduction
+Decomposing an object into semantic parts enables a
+more detailed understanding of the object, which can provide additional information to benefit many computer vision
+tasks such as pose estimation [42, 11], detection [3, 8], segmentation [13], and fine-grained recognition [44]. Thus, it
+has become an attractive research topic to leverage semantic part representation through part detection [5, 16, 8], and
+human joint estimation [36].
+In the literature of semantic segmentation, while objectlevel segmentation over multiple object categories has
+been extensively studied along with the growing popularity of standard evaluation benchmarks such as PASCAL
+VOC [15], object parsing (i.e., segmenting objects into semantic parts) is addressed mostly for a few specific categories provided with accurate localization such as human [45, 13, 11] and cars [13].
+With the increasing availability of semantic part anno-
+
+tail
+
+dog
+
+head
+body
+leg
+
+(a)
+
+(b)
+
+(c)
+
+Figure 1. We handle the prediction of semantic object and part
+segmentation in a wild scene scenario. (a) Original image. (b)&(c)
+are the object and part segmentation respectively, generated from
+our algorithm.
+
+tations [8], more recent works have attempted to handle
+more difficult classes like animals with homogeneous appearance [39], and to perform both object and part segmentation [21], as illustrated in Fig. 1. However, in [21], object and part segmentation are performed sequentially, in
+which the object mask is first segmented, and then the part
+labels are assigned to the pixels within the mask. As a result, the errors from the predicted semantic object masks
+may be propagated to the parts.
+In fact, object and part segmentation are complementary and mutually beneficial to each other. Semantic object segmentation requires a larger receptive field in order
+to correctly recognize the object, while part segmentation
+focuses on local details to obtain more accurate segmentation boundaries and accommodate large pose and viewpoint
+variations. If these two tasks are tackled simultaneously, by
+integrating the object-level guidance with part-level detailed
+segmentation, we can address two of the most challenging
+problems at the same time, i.e., discovering the subtle appearance differences between different parts within a single
+object, and avoiding the ambiguity across similar object categories. Motivated by this observation, we propose a joint
+solution to object and part segmentation, in which the consistency of the object and parts are enforced through joint
+training and inference.
+Fig. 2 shows the overall framework of our approach.
+When performing part segmentation over multiple object
+classes, the appearance of some parts may be very similar, e.g., horse legs and cow legs. Therefore in order to reduce the ambiguity and complexity during training, instead
+of treating each semantic part type independently [21], we
+allow some part labels to be shared by related object classes,
+and group the labelled parts of different classes into a se11573
+
+

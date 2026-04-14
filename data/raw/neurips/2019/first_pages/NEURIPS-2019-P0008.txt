@@ -1,0 +1,53 @@
+Exact Gaussian Processes on a Million Data Points
+Ke Alexander Wang1∗ Geoff Pleiss1∗ Jacob R. Gardner2
+Stephen Tyree3 Kilian Q. Weinberger1 Andrew Gordon Wilson1,4
+1
+Cornell University, 2 Uber AI Labs, 3 NVIDIA, 4 New York University
+
+Abstract
+Gaussian processes (GPs) are flexible non-parametric models, with a capacity that
+grows with the available data. However, computational constraints with standard
+inference procedures have limited exact GPs to problems with fewer than about
+ten thousand training points, necessitating approximations for larger datasets. In
+this paper, we develop a scalable approach for exact GPs that leverages multiGPU parallelization and methods like linear conjugate gradients, accessing the
+kernel matrix only through matrix multiplication. By partitioning and distributing
+kernel matrix multiplies, we demonstrate that an exact GP can be trained on
+over a million points, a task previously thought to be impossible with current
+computing hardware, in less than 2 hours. Moreover, our approach is generally
+applicable, without constraints to grid data or specific kernel classes. Enabled by
+this scalability, we perform the first-ever comparison of exact GPs against scalable
+GP approximations on datasets with 104 − 106 data points, showing dramatic
+performance improvements.
+
+1
+
+Introduction
+
+Gaussian processes (GPs) have seen great success in many machine learning settings, such as blackbox optimization [38], reinforcement learning [6, 8], and time-series forecasting [33]. These models
+offer several advantages – principled uncertainty representations, model priors that require little
+expert intervention, and the ability to adapt to any dataset size [31, 32]. GPs are not only ideal for
+problems with few observations; they also have great promise to exploit the available information in
+increasingly large datasets, especially when combined with expressive kernels [41] or hierarchical
+structure [5, 35, 43, 45].
+In practice, however, exact GP inference can be intractable for large datasets, as it naïvely requires
+O(n3 ) computations and O(n2 ) storage for n training points [32]. Many approximate methods
+have been introduced to improve scalability, relying on mixture-of-experts models [7], inducing
+points [12, 37, 39, 42], random feature expansions [20, 30, 47], or stochastic variational optimization
+[2, 16, 17, 36, 46]. However, due to the historical intractability of training exact GPs on large datasets,
+it has been an open question how approximate methods compare to an exact approach when much
+more data is available.
+In this paper, we develop a methodology to scale exact GP inference well beyond what has previously
+been achieved: we train a Gaussian process on over a million data points, performing predictions
+without approximations. Such a result would be intractable with standard implementations which
+rely on the Cholesky decomposition. The scalability we demonstrate is made feasible by the
+recent Blackbox Matrix-Matrix multiplication (BBMM) inference procedure of Gardner et al. [11],
+which uses conjugate gradients and related methods to reduce GP inference to iterations of matrix
+multiplication. Gardner et al. [11] show that this procedure (1) achieves exponential convergence
+using a pivoted Cholesky preconditioner under certain conditions, (2) requires relatively few number
+∗
+
+Equal contribution
+
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

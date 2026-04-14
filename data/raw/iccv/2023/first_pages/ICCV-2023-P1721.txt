@@ -1,0 +1,72 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Generalized Differentiable RANSAC
+Tong Wei1 , Yash Patel1 , Alexander Shekhovtsov1 , Jiřı́ Matas1 , and Daniel Barath2
+1
+Visual Recognition Group, FEE, Czech Technical University in Prague
+2
+Computer Vision and Geometry Group, ETH Zurich
+{weitong, patelyas, shekhole, matas}@fel.cvut.cz, danielbela.barath@inf.ethz.ch
+
+Abstract
+We propose ∇-RANSAC, a generalized differentiable
+RANSAC that allows learning the entire randomized robust estimation pipeline. The proposed approach enables
+the use of relaxation techniques for estimating the gradients in the sampling distribution, which are then propagated through a differentiable solver. The trainable quality
+function marginalizes over the scores from all the models
+estimated within ∇-RANSAC to guide the network learning accurate and useful inlier probabilities or to train feature detection and matching networks. Our method directly
+maximizes the probability of drawing a good hypothesis, allowing us to learn better sampling distributions. We test
+∇-RANSAC on various real-world scenarios on fundamental and essential matrix estimation, and 3D point cloud
+registration, outdoors and indoors, with handcrafted and
+learning-based features. It is superior to the state-of-the-art
+in terms of accuracy while running at a similar speed to its
+less accurate alternatives. The code and trained models are
+available at https://github.com/weitong8591/
+differentiable_ransac.
+
+1. Introduction
+Robust estimation is a fundamental component in vision pipelines, including relative pose estimation [18], wide
+baseline matching [54, 47, 48], multi-model fitting [34, 53],
+image-based localization [9], motion segmentation [70],
+and pose graph initialization of Structure-from-Motion
+(SfM) algorithms [61, 63]. While several robust estimators have been proposed throughout the years [30, 32, 41,
+75], randomized hypothesize-and-verify approaches, like
+RANSAC [24] and its recent variants [4, 6, 5, 35], have
+become the most widely used methods due to their robustness, simplicity, and efficiency. RANSAC repeatedly selects random minimal subsets of the input data sufficient to
+fit a model hypothesis, e.g., a 3D plane to three points or
+a fundamental matrix to seven point correspondences. The
+model score is then computed as the cardinality of the inlier
+
+set, formed by the points consistent with the model hypothesis, i.e., having residuals smaller than a threshold. The sofar-the-best model is updated if a new model is found with
+higher quality. RANSAC terminates when the probability
+of finding a better hypothesis falls below a threshold. Finally, the model with the highest quality, polished, e.g., by
+least-squares fitting on all inliers, is returned.
+Numerous improvements have been made to the original
+RANSAC algorithm, including refinement of hypotheses
+through local optimization [17, 4], better scoring [71, 6, 5],
+detection of degenerate cases [19], and speed-ups through
+techniques such as weighted random sampling of hypotheses [15] or preemptive hypothesis verification strategies [14,
+16]. See [72] for a recent survey and benchmark. To
+[72], the most accurate method for relative pose estimation is MAGSAC++ [5] with PROSAC sampling [15] and
+DEGENSAC-based degeneracy [19] testing.
+In recent years, neural networks (NNs) have been employed to estimate tentative matches, including their coordinates and confidences [76, 67, 78, 79, 21, 66]. These predicted confidences could be used for pre-filtering matches
+or weighted random sampling in RANSAC. However,
+learning these NNs endowed with RANSAC, particularly
+for optimizing the desired evaluation metric, such as pose
+error, remains a challenging problem. One of the main challenges is that minimal solvers are often complex and not
+readily differentiable. Additionally, learning the sampling
+distribution for optimal RANSAC performance is challenging, both in terms of formalizing the problem and estimating
+gradients for the sampling probabilities. Prior work in this
+direction [9, 10] will be discussed in detail (Section 2).
+In this paper, we make contributions to the learnable
+robust estimation family and propose a new differentiable
+RANSAC, ∇-RANSAC, with all the components differentiable. The main contributions are as follows:
+• We investigate all the components of the RANSAC
+pipeline and propose a new differentiable alternative
+that allows learning inlier probabilities while directly
+optimizing test-time evaluation metrics, e.g., pose error, as a new learning objective.
+
+17649
+
+

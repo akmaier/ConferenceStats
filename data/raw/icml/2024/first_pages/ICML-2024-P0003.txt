@@ -1,0 +1,68 @@
+I NFER C EPT: Efficient Intercept Support for
+Augmented Large Language Model Inference
+
+Reyna Abhyankar * 1 Zijian He * 1 Vikranth Srivatsa 1 Hao Zhang 1 Yiying Zhang 1
+
+Abstract
+Large language models are increasingly integrated with external environments, tools, and
+agents like ChatGPT plugins to extend their capability beyond language-centric tasks. However, today’s LLM inference systems are designed for standalone LLMs. They treat each
+external interaction as the end of LLM generation and form a new request when the interaction
+finishes, causing unnecessary recomputation of
+already computed contexts, which accounts for
+37-40% of total model forwarding time. This
+paper presents I NFER C EPT, the first LLM inference framework targeting augmented LLMs
+and supporting the efficient interception of LLM
+generation. I NFER C EPT minimizes the GPU resource waste caused by LLM interceptions and
+dedicates saved memory for serving more requests. I NFER C EPT improves the overall serving
+throughput by 1.6×-2× and completes 2× more
+requests per second compared to the state-of-theart LLM inference systems.
+
+1
+
+Introduction
+
+Large language models (LLMs) (Achiam et al., 2023; Touvron et al., 2023) have shown immense potential in various applications, such as natural language understanding
+and content generation. Nonetheless, LLMs alone can only
+generate text. To extend LLMs’ capabilities to handle more
+diverse and open-ended tasks, a recent trend is to augment
+LLMs with external tools (Mialon et al., 2023; Wang et al.,
+2023; Qin et al., 2023) such as arithmetic calculation (Hao
+et al., 2023) and ChatGPT plugins (OpenAI, 2023), nonLLM models like image generation (Betker et al., 2024),
+*
+Equal contribution 1 University of California, San Diego,
+La Jolla, United States. Correspondence to: Reyna Abhyankar
+<vabhyank@ucsd.edu>, Zijian He <zih015@ucsd.edu>, Yiying Zhang <yiying@ucsd.edu>.
+
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024
+by the author(s).
+
+and interaction with humans and other environments in
+real-time, such as virtual environments (Shridhar et al.,
+2021). Notably, Ng poses that “AI agent workflows will
+drive massive AI progress in 2024” (Ng, 2024). More generally, we can view the use of tools and the interaction
+with humans or other environments all as LLMs being augmented and intercepted by external entities.
+Augmentations have unique properties that bring new problems to LLM inference systems. First, they intercept regular LLM decoding, i.e., when an external tool is called or
+when waiting for human/environment responses, the normal decoding phase is paused and can only resume when
+the interception finishes. Second, an interception’s time
+varies drastically across augmentation types and requests.
+For example, a calculator API finishes in less than 1 ms,
+yet it may take humans more than 1 minute to digest and
+type a subsequent chat prompt. This complicates request
+scheduling. Third, unlike regular requests, the context (i.e.,
+KV caches) cannot be used for a paused request during interceptions but will be needed upon the end of interceptions. It is unclear how to handle temporarily unused context. Adding to the complexity is the high variation in context length and interception time across requests.
+Unfortunately, existing LLM inference systems (Kwon
+et al., 2023; Yu et al., 2022; Li et al., 2023; Aminabadi
+et al., 2022; NVIDIA, 2023; Agrawal et al., 2023) fall short
+in serving augmented LLMs with interceptions. They typically interpret an interception as a termination signal –
+they conclude the ongoing request when the interception
+happens, discard its context, relegate the task to the augmenting entity, and subsequently re-initiate a new request
+upon receiving the response from the entity. Consequently,
+when a request frequently triggers interceptions, for each
+interception, the initial prompt and all tokens generated before the interception are formed as a new request submitted
+to the inference system, causing substantial recomputation
+of keys and values (known as the KV cache) for all previously processed tokens. This recomputation wastes GPU
+resources, which could instead serve new requests.
+In contrast to the aforementioned interception handling approach (which we refer to as Discard), an alternative approach is to preserve a request’s context during the inter-
+
+

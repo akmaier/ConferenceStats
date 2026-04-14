@@ -1,0 +1,152 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+BiViT: Extremely Compressed Binary Vision Transformers
+Yefei He1
+
+Zhenyu Lou1 Luoming Zhang1 Jing Liu2
+Hong Zhou1† Bohan Zhuang2†
+
+Weijia Wu1
+
+1
+
+2
+
+Zhejiang University, China
+ZIP Lab, Monash University, Australia
+
+Abstract
+Model binarization can significantly compress model
+size, reduce energy consumption, and accelerate inference
+through efficient bit-wise operations. Although binarizing
+convolutional neural networks have been extensively studied, there is little work on exploring binarization of vision
+Transformers which underpin most recent breakthroughs in
+visual recognition. To this end, we propose to solve two fundamental challenges to push the horizon of Binary Vision
+Transformers (BiViT). First, the traditional binary method
+does not take the long-tailed distribution of softmax attention into consideration, bringing large binarization errors
+in the attention module. To solve this, we propose Softmaxaware Binarization, which dynamically adapts to the data
+distribution and reduces the error caused by binarization.
+Second, to better preserve the information of the pretrained
+model and restore accuracy, we propose a Cross-layer Binarization scheme that decouples the binarization of selfattention and multi-layer perceptrons (MLPs), and Parameterized Weight Scales which introduce learnable scaling
+factors for weight binarization. Overall, our method performs favorably against state-of-the-arts by 19.8% on the
+TinyImageNet dataset. On ImageNet, our BiViT achieves a
+competitive 75.6% Top-1 accuracy over Swin-S model. Additionally, on COCO object detection, our method achieves
+an mAP of 40.8 with a Swin-T backbone over Cascade Mask
+R-CNN framework.
+
+1. Introduction
+Vision Transformer (ViT) [21] and its variants have
+achieved great success in a variety of computer vision tasks,
+such as image classification [21, 49, 24], object detection [38, 22, 11], semantic segmentation [82, 64, 12], etc.
+However, massive parameters and calculations of the Transformer models hinder their applications on portable devices
+such as mobile phones. To tackle the efficiency bottlenecks,
+† H. Zhou and B. Zhuang are corresponding authors.
+
+Pre-softmax Attention
+7.18
+
+5.43
+
+4.43
+
+3.17
+
+1.10
+
+…
+
+-2.49
+
+…
+
+0
+
+-5.01 -4.38
+
+-3.84
+
+Softmax-agnostic Bi-Attention
+1
+
+1
+
+1
+
+1
+
+1
+
+0
+
+0
+
+0
+
+(a) Previous softmax-agnostic binarization scheme
+Softmax Attention
+0.79
+
+0.14
+
+0.05
+
+0.014 0.0018
+
+…
+
+…
+
+…
+
+…
+
+…
+
+…
+
+0
+
+0
+
+0
+
+0
+
+Softmax-aware Bi-Attention
+1
+
+0
+
+0
+
+0
+
+0
+
+(b) Proposed Softmax-aware Binarization scheme
+
+Figure 1. An illustration of attention binarization. Data is collected from pretrained Nest-T model and “Bi-Attention” denotes
+for binarized attentions. (a) Pre-softmax attention binarized by
+BiBERT [60]. (b) Softmax attention binarized by our method.
+
+various model compression algorithms have been widely
+studied, such as distillation [65, 67, 33], pruning [58, 84, 75]
+and quantization [43, 45, 42]. Among them, binary neural
+networks (BNN) [15, 62, 8] aggressively compress weights
+and activations to a single bit, which delivers 32× savings
+on memory consumption, and enables efficient XNORpopcount bit-wise operations to greatly accelerate model
+inference and reduce energy consumption.
+However, the performance degradation restricts the wide
+application of BNNs, which is mainly caused by the limited representational ability and difficulty in optimization.
+To improve the performance of BNNs, binarized convolutional neural networks (CNNs) literature has been extensively studied to design accurate binarization functions
+[62, 83, 8], enhance the representation ability [54, 52, 86]
+and relieve the gradient approximation error in optimization [61, 30, 4]. Also, many attempts have been made in
+previous studies to binarize BERT [19] for natural language
+processing (NLP) tasks, such as calibrating the attention
+value range mismatch [60], customizing knowledge distillation and techniques in binary CNNs to Transformers [50].
+
+5651
+
+

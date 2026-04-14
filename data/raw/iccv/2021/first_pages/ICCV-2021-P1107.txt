@@ -1,0 +1,171 @@
+Hierarchical Memory Matching Network for Video Object Segmentation
+Hongje Seong1
+Seoung Wug Oh2
+Seongwon Lee1
+Suhyeon Lee1
+1
+
+2
+
+Yonsei University
+
+Abstract
+We present Hierarchical Memory Matching Network
+(HMMN) for semi-supervised video object segmentation.
+Based on a recent memory-based method [33], we propose two advanced memory read modules that enable us
+to perform memory reading in multiple scales while exploiting temporal smoothness. We first propose a kernel
+guided memory matching module that replaces the nonlocal dense memory read, commonly adopted in previous
+memory-based methods. The module imposes the temporal smoothness constraint in the memory read, leading to
+accurate memory retrieval. More importantly, we introduce a hierarchical memory matching scheme and propose
+a top-k guided memory matching module in which memory read on a fine-scale is guided by that on a coarsescale. With the module, we perform memory read in multiple scales efficiently and leverage both high-level semantic and low-level fine-grained memory features to predict
+detailed object masks. Our network achieves state-of-theart performance on the validation sets of DAVIS 2016/2017
+(90.8% and 84.7%) and YouTube-VOS 2018/2019 (82.6%
+and 82.5%), and test-dev set of DAVIS 2017 (78.6%). The
+source code and model are available online: https:
+//github.com/Hongje/HMMN .
+
+1. Introduction
+Semi-supervised video object segmentation (VOS) aims
+to predict the foreground object mask in every frame of a
+video given an object mask at the first frame. Recently,
+memory-based VOS methods [33, 39, 27, 21, 22, 23] have
+achieved great success. A key idea of the memory-based
+methods is matching densely between query (i.e., current
+frame) and memory (i.e., past frames with given or predicted masks) to retrieve the memory at a pixel-level. Since
+the camera’s field of view or objects in a video may move,
+spatio-temporal non-local and dense matching was performed to compute similarity for all matching possibilities.
+There are two limitations of the existing memory-based
+* Corresponding author.
+
+Joon-Young Lee2
+Euntai Kim1, *
+
+Adobe Research
+
+(a)
+
+Memory
+
+Query
+
+Memory
+
+(b)
+
+Query
+
+1/2
+
+conv1
+
+conv1
+
+1/2
+
+conv1
+
+1/4
+
+res2
+
+res2
+
+1/4
+
+res2
+
+dense matching
+
+1/8
+
+res3
+
+res3
+
+1/8
+
+res3
+
+dense matching
+
+res3
+
+1/16
+
+res4
+
+res4
+
+1/16
+
+res4
+
+dense matching
+
+res4
+
+dense matching
+
+Memory
+
+(c)
+
+conv1
+res2
+
+Query
+
+1/2
+
+conv1
+
+1/4
+
+res2
+
+1/8
+
+res3
+
+top-𝑘𝑘 guided sparse matching
+
+res3
+
+1/16
+
+res4
+
+kernel guided dense matching
+
+res4
+
+conv1
+top-𝑘𝑘 guided sparse matching
+
+res2
+
+Figure 1. Previous memory-based methods densely match image
+features only at a coarse resolution, as shown in (a). To conduct the
+memory reading at multiple scales, one can naively apply dense
+matching at each scale (b), but it needs prohibitive computational
+cost and is not robust due to noisy low-level features. In our hierarchical memory matching architecture, shown in (c), fine-scale
+matching is guided by coarse-scale matching, resulting in efficient
+and robust memory matching in multiple scales.
+
+methods: temporal smoothness and fine-grained memory
+information. Temporal smoothness is one of the strong constraints that we can assume for the VOS task. Previous
+VOS methods without memory often applied a local matching [43, 50] or local refinement [34, 16, 32, 49, 13, 53]
+between two adjacent frames for temporal smoothness.
+However, in the memory-based method [33], the non-local
+matching completely ignores the constraint and it raises the
+risk of false matches (e.g., when multiple similar instances
+exist, see Fig. 3). Another weakness is the lack of finegrained memory information. In the memory-based methods, a query encoder only takes the current frame without
+any target information. Thus the memory matching is the
+only source to get information of the target object mask.
+The previous memory-based methods conduct the memory
+matching only at the coarsest resolution, (e.g., 1/16 of the
+input resolution [33]), as shown in Fig. 1 (a). At the low resolution, while accurate matching is possible with high-level
+
+12889
+
+

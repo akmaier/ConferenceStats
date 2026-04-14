@@ -1,0 +1,105 @@
+Delta Distillation for Efficient Video Processing
+Supplementary material
+Amirhossein Habibian1 , Haitam Ben Yahia1 , Davide Abati1 ,
+Efstratios Gavves2 , and Fatih Porikli1
+1
+
+2
+Qualcomm AI Research⋆⋆
+University of Amsterdam
+{ahabibia,hyahia,dabati,fporikli}@qti.qualcomm.com
+egavves@uva.nl
+
+Algorithm 1: Delta distillation (training Ldd )
+// η is learning rate, globally given
+1 function train dd(fθ , gϕ , x list)
+// compute groundtruth deltas
+2
+z list ← fθ (x list);
+3
+z cur ← z list[1:];
+4
+z past ← z list[:-1];
+5
+∆zt = (z cur - z past).detach();
+// estimate deltas with student
+6
+x cur ← x list[1:];
+7
+x past ← x list[:-1];
+8
+∆z̃t = gϕ (x cur, x past);
+// optimize distillation loss
+9
+Ldd = ∥∆zt − ∆z̃t ∥2 ;
+dd
+10
+ϕ ← ϕ − η ∇L
+;
+∇ϕ
+
+Algorithm 2: Delta distillation (inference)
+// T is globally given
+function inference(fθ , gϕ , x list)
+2
+z list ← [];
+3
+xt−1 , zt−1 ← none, none;
+4
+for i ← 0 to len(x list) do
+5
+xt ← x list[i];
+6
+if i % T == 0 then
+// predict with teacher
+7
+zt ← fθ (xt );
+
+1
+
+9
+
+z list.append(zt );
+xt−1 , zt−1 ← xt , zt ;
+
+10
+11
+12
+
+A
+
+else
+// update with student
+zt ← zt−1 + gϕ (xt , xt−1 );
+
+8
+
+return z list
+
+Training and inference algorithms
+
+For clarity, we report the main pseudo-code algorithms characterizing delta distillation. More specifically, Alg. 1 illustrates the optimization of delta distillation
+objective Ldd . Furthermore, Alg. 2 describes the inference schedule alternating
+between teacher (providing representations) and student (updating them). We
+however recall that the full optimization of a delta distillation model, described
+in Sec. 3.3, also entails the optimization of the task objective Lt and of the
+sparsity objective Ls , that we omit to avoid cluttering Alg. 1.
+
+B
+
+Further segmentation experiments
+
+B.1
+
+Latency measurements
+
+While the amount of GFLOPs is agnostic to hardware, software implementation,
+and measurement noise, it might not reflect latency gains exactly. In particular,
+it does not capture the memory usage overhead, which can become a limiting
+factor, especially for low-power devices. To this end, we hereby report the latency
+of several image models for semantic segmentation, as well as the one from the
+⋆⋆
+
+Qualcomm AI Research is an initiative of Qualcomm Technologies, Inc.
+
+

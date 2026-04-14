@@ -1,0 +1,91 @@
+SPM-BP: Sped-up PatchMatch Belief Propagation for Continuous MRFs∗
+Yu Li1,2 Dongbo Min3 Michael S. Brown2 Minh N. Do4 Jiangbo Lu1
+1
+
+Advanced Digital Sciences Center, Singapore 2 National University of Singapore, Singapore
+3
+Chungnam National University, Korea 4 University of Illinois at Urbana-Champaign, US
+
+Abstract
+Markov random fields are widely used to model many
+computer vision problems that can be cast in an energy minimization framework composed of unary and pairwise potentials. While computationally tractable discrete optimizers such as Graph Cuts and belief propagation (BP) exist
+for multi-label discrete problems, they still face prohibitively high computational challenges when the labels reside in a
+huge or very densely sampled space. Integrating key ideas
+from PatchMatch of effective particle propagation and resampling, PatchMatch belief propagation (PMBP) has been
+demonstrated to have good performance in addressing continuous labeling problems and runs orders of magnitude
+faster than Particle BP (PBP). However, the quality of the
+PMBP solution is tightly coupled with the local window
+size, over which the raw data cost is aggregated to mitigate
+ambiguity in the data constraint. This dependency heavily
+influences the overall complexity, increasing linearly with
+the window size. This paper proposes a novel algorithm
+called sped-up PMBP (SPM-BP) to tackle this critical computational bottleneck and speeds up PMBP by 50-100 times.
+The crux of SPM-BP is on unifying efficient filter-based cost
+aggregation and message passing with PatchMatch-based
+particle generation in a highly effective way. Though simple
+in its formulation, SPM-BP achieves superior performance
+for sub-pixel accurate stereo and optical-flow on benchmark datasets when compared with more complex and taskspecific approaches.
+
+1. Introduction
+Numerous computer vision tasks can be formulated as a
+global pixel-labeling problem. The goal is to assign each
+pixel p = (xp , yp ) in an image a label lp from the label set
+L. The labels correspond to quantities that we want to es∗ This study is supported by the HCCS research grant at the ADSC from
+
+Singapore’s Agency for Science, Technology and Research (A*STAR).
+This work was mainly done when Yu and Dongbo were interning and
+working at ADSC. Corresponding author: dbmin@cnu.ac.kr
+
+Left
+
+Right
+
+Ground truth
+
+PMF [25]
+
+PMBP [7]
+
+SPM-BP
+
+Figure 1. Stereo results on the Bowling2 dataset. PMF [25], as a
+local method, is fast (20s), but fails at the large textureless region
+on the ball. PMBP [7], a global minimization method, considers neighborhood smoothness and can overcome this ambiguity to
+obtain smooth disparities. PMBP, however, has high computation
+cost (3100s). Our SPM-BP produces visually similar results, but
+runs significantly faster than PMBP (30s).
+
+timate, for instance, disparities in stereo matching or flow
+vectors in optical flow estimation. These problems are usually defined with the Markov Random Field (MRF) model:
+
+E=
+
+X
+p
+
+Ep (lp ; W ) +
+
+X X
+
+Epq (lp , lq ) ,
+
+(1)
+
+p q∈Np
+
+where Np is the pairwise neighborhood set. The pairwise
+term Epq (lp , lq ) usually encourages the labels to be piecewise smooth except at object boundaries. The unary term
+Ep (lp ), also referred to as the data term, computes the local
+cost for assigning a pixel p the label lp . This is often computed by performing cost aggregation over a local window
+W centered at the pixel p. When |W | = 1, (1) becomes a
+special case where no cost aggregation is performed.
+Solving for the exact solution that minimizes (1) is
+well-known to be NP hard. Several discrete optimizers
+such as Graph Cuts [9] and belief propagation [39, 13]
+have been proposed for multi-label discrete problems, but
+they still face prohibitively high computational challenges
+when the label set L is huge or densely sampled. This is
+
+4006
+
+

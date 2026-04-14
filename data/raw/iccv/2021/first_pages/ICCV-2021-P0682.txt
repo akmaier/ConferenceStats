@@ -1,0 +1,66 @@
+Mip-NeRF: A Multiscale Representation for Anti-Aliasing Neural Radiance Fields
+Jonathan T. Barron1 Ben Mildenhall1 Matthew Tancik2
+Peter Hedman1 Ricardo Martin-Brualla1 Pratul P. Srinivasan1
+1
+Google 2 UC Berkeley
+
+Abstract
+The rendering procedure used by neural radiance fields
+(NeRF) samples a scene with a single ray per pixel and may
+therefore produce renderings that are excessively blurred or
+aliased when training or testing images observe scene content at different resolutions. The straightforward solution of
+supersampling by rendering with multiple rays per pixel is
+impractical for NeRF, because rendering each ray requires
+querying a multilayer perceptron hundreds of times. Our
+solution, which we call “mip-NeRF” (à la “mipmap”), extends NeRF to represent the scene at a continuously-valued
+scale. By efficiently rendering anti-aliased conical frustums
+instead of rays, mip-NeRF reduces objectionable aliasing
+artifacts and significantly improves NeRF’s ability to represent fine details, while also being 7% faster than NeRF and
+half the size. Compared to NeRF, mip-NeRF reduces average error rates by 17% on the dataset presented with NeRF
+and by 60% on a challenging multiscale variant of that
+dataset that we present. Mip-NeRF is also able to match
+the accuracy of a brute-force supersampled NeRF on our
+multiscale dataset while being 22× faster.
+
+1. Introduction
+Neural volumetric representations such as neural radiance fields (NeRF) [30] have emerged as a compelling strategy for learning to represent 3D objects and scenes from images for the purpose of rendering photorealistic novel views.
+Although NeRF and its variants have demonstrated impressive results across a range of view synthesis tasks, NeRF’s
+rendering model is flawed in a manner that can cause excessive blurring and aliasing. NeRF replaces traditional discrete sampled geometry with a continuous volumetric function, parameterized as a multilayer perceptron (MLP) that
+maps from an input 5D coordinate (3D position and 2D
+viewing direction) to properties of the scene (volume density and view-dependent emitted radiance) at that location.
+To render a pixel’s color, NeRF casts a single ray through
+that pixel and out into its volumetric representation, queries
+
+a) NeRF
+
+b) Mip-NeRF
+
+Figure 1: NeRF (a) samples points x along rays that are
+traced from the camera center of projection through each
+pixel, then encodes those points with a positional encoding
+(PE) γ to produce a feature γ(x). Mip-NeRF (b) instead
+reasons about the 3D conical frustum defined by a camera
+pixel. These conical frustums are then featurized with our
+integrated positional encoding (IPE), which works by approximating the frustum with a multivariate Gaussian and
+then computing the (closed form) integral E[γ(x)] over the
+positional encodings of the coordinates within the Gaussian.
+
+the MLP for scene properties at samples along that ray, and
+composites these values into a single color.
+While this approach works well when all training and
+testing images observe scene content from a roughly constant distance (as done in NeRF and most follow-ups),
+NeRF renderings exhibit significant artifacts in less contrived scenarios. When the training images observe scene
+content at multiple resolutions, renderings from the recovered NeRF appear excessively blurred in close-up views and
+contain aliasing artifacts in distant views. A straightforward solution is to adopt the strategy used in offline raytracing: supersampling each pixel by marching multiple rays
+through its footprint. But this is prohibitively expensive for
+neural volumetric representations such as NeRF, which require hundreds of MLP evaluations to render a single ray
+and several hours to reconstruct a single scene.
+In this paper, we take inspiration from the mipmapping
+approach used to prevent aliasing in computer graphics rendering pipelines. A mipmap represents a signal (typically
+an image or a texture map) at a set of different discrete
+downsampling scales and selects the appropriate scale to
+use for a ray based on the projection of the pixel footprint
+
+5855
+
+

@@ -1,0 +1,82 @@
+Unsupervised Depth Completion with Calibrated Backprojection Layers
+Alex Wong
+UCLA Vision Lab
+
+Stefano Soatto
+UCLA Vision Lab
+
+alexw@cs.ucla.edu
+
+soatto@cs.ucla.edu
+
+Abstract
+We propose a deep neural network architecture to infer
+dense depth from an image and a sparse point cloud. It
+is trained using a video stream and corresponding synchronized sparse point cloud, as obtained from a LIDAR or other
+range sensor, along with the intrinsic calibration parameters of the camera. At inference time, the calibration of the
+camera, which can be different than the one used for training, is fed as an input to the network along with the sparse
+point cloud and a single image. A Calibrated Backprojection Layer backprojects each pixel in the image to threedimensional space using the calibration matrix and a depth
+feature descriptor. The resulting 3D positional encoding is
+concatenated with the image descriptor and the previous
+layer output to yield the input to the next layer of the encoder. A decoder, exploiting skip-connections, produces a
+dense depth map. The resulting Calibrated Backprojection
+Network, or KBNet, is trained without supervision by minimizing the photometric reprojection error. KBNet imputes
+missing depth value based on the training set, rather than
+on generic regularization. We test KBNet on public depth
+completion benchmarks, where it outperforms the state of
+the art by 30% indoor and 8% outdoor when the same camera is used for training and testing. When the test camera is
+different, the improvement reaches 62%.
+
+1. Introduction
+Sensor platforms designed to enable interaction with
+physical space often include optical as well as range sensors. From cars to phones, cameras are paired with active
+sensors such as LIDARs, Sonars or Radars. We address the
+case of a single camera and a single sensor that returns the
+three-dimensional (3D) coordinates of a number of points
+far fewer than the number of pixels in the RGB image. The
+range sensor alone provides a sparse estimate of the Euclidean geometry of the surrounding environment, but often
+insufficient for planning in applications such as autonomous
+navigation or manipulation. We wish to leverage the complementarity of the optical and range modalities to provide
+
+a dense depth map, whereby a range value1 is associated to
+every pixel in the image (in the millions) as opposed to just
+the LIDAR or radar returns (in the thousands).
+Depth completion consists of mapping a single RGB image and a sparse 3D point cloud onto a dense depth map,
+which requires inferring a depth value where missing. This
+can be done by means of regularization, or inductively using
+previously observed data for scenes other than the present.
+We assume we have available a training set consisting of
+monocular videos, corresponding sparse 3D point cloud,
+and intrinsic calibration matrix of the camera used for capture,2 but without any manual annotation or ground-truth
+dense depth i.e. unsupervised.
+Our goal is to use the training set to learn a function that,
+for a scene and camera not used for training, can map a
+sparse point cloud registered to an image, along with the
+matrix of intrinsic calibration parameters of the camera, and
+produce a dense depth map associated with the test image.
+We propose a novel deep neural network architecture that
+leverages a sparse-to-dense (S2D) module and calibrated
+backprojection (KB) layers. S2D is comprised of various
+pooling and convolutional layers to yield a dense representation of the sparse points. A KB layer then maps camera
+intrinsics, input image, and current depth estimate onto the
+3D scene. This can be thought of as a form of spatial (Euclidean) positional encoding of the image. Unlike previous
+architectures, camera intrinsics are an input to our model,
+as opposed to a fixed set of parameters in the training loss.
+This allows us more flexibility to transfer the trained model
+to sensor platforms other than that used for training.
+Our network is trained unsupervised with the standard
+Photometric Euclidean Reprojection Loss (PERL) i.e. the
+absolute difference between a reconstructed image and the
+actual image measured at a time instant. We also penalize
+the reconstruction error of the input sparse points and Total
+1 The depth associated with the pixel is the Euclidean distance of the
+closest point in the scene along the projection ray through that pixel and the
+optical center. We assume the sensors to be calibrated and synchronized,
+and in particular the intrinsic calibration matrix of the camera is known so
+that pixel coordinates can be converted to Euclidean 3D coordinates.
+2 Typically, range and optical sensors are calibrated mechanically and
+pre-registered, so extrinsic calibration is not needed.
+
+12747
+
+

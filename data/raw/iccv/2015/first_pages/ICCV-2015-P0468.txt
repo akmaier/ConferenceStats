@@ -1,0 +1,73 @@
+An NMF perspective on Binary Hashing
+Lopamudra Mukherjee§ , Sathya N. Ravi† , Vamsi K. Ithapu† , Tyler Holmes§ , Vikas Singh†
+†
+University of Wisconsin-Madison, § University of Wisconsin-Whitewater
+
+Abstract
+The pervasiveness of massive data repositories has led
+to much interest in efficient methods for indexing, search,
+and retrieval. For image data, a rapidly developing body of
+work for these applications shows impressive performance
+with methods that broadly fall under the umbrella term of
+Binary Hashing. Given a distance matrix, a binary hashing
+algorithm solves for a binary code for the given set of examples, whose Hamming distance nicely approximates the
+original distances. The formulation is non-convex — so existing solutions adopt spectral relaxations or perform coordinate descent (or quantization) on a surrogate objective
+that is numerically more tractable. In this paper, we first
+derive an Augmented Lagrangian approach to optimize the
+standard binary Hashing objective (i.e., maintain fidelity
+with a given distance matrix). With appropriate step sizes,
+we find that this scheme already yields results that match or
+substantially outperform state of the art methods on most
+benchmarks used in the literature. Then, to allow the model
+to scale to large datasets, we obtain an interesting reformulation of the binary hashing objective as a non-negative matrix factorization. Later, this leads to a simple multiplicative updates algorithm — whose parallelization properties
+are exploited to obtain a fast GPU based implementation.
+We give a probabilistic analysis of our initialization scheme
+and present a range of experiments to show that the method
+is simple to implement and competes favorably with available methods (both for optimization and generalization).
+
+1. Introduction
+The pervasiveness of massive image data repositories
+with billions (and even trillions) of examples has led to
+a renewed interest in efficient algorithms for search and
+indexing. These datasets correspond to surveillance data,
+text, video sequences, measurements from scientific experiments, gene expression profiles and photo collections — in
+each case, the data is very high dimensional and efficient
+storage and retrieval allows important downstream applications to operate seamlessly. Driven by these requirements,
+research in the last decade has focused on both compact rep-
+
+resentations of the data to mitigate dependence on its native dimensionality as well as approximate forms of nearest
+neighbor schemes since a linear scan is impractical in most,
+if not all, practical deployments.
+A simple solution which is (partly) cognizant of both the
+space and time considerations in the above setting is dimensionality reduction. Clearly, by mapping (or embedding) the
+distribution from the native space D to lower dimensions,
+d ≪ D, significantly reduces the storage requirements.
+Further, even if a linear (or nearest neighbor) search were
+employed, its running time may only be weakly dependent
+on D. While this strategy is sometimes sufficient, the literature suggests that retrieval times can be substantially improved if the embedding were binary. The Hamming distance between a query point and an item in the database
+can now be computed via logical operations (such as XOR).
+This allows a naı̈ve search, even on a massive dataset, to run
+within a few seconds. Also, allocating 32 or 64 bits per item
+(e.g., an image), one can fit a billion-sized dataset in the
+main memory of a moderately priced workstation. These
+observations have led to a nice set of results which adapt
+the rich theory of Locality Sensitive Hashing (LSH) [13] to
+this application. LSH obtains dimensionality reduction using Random projections [5]. By the Johnson-Lindenstrauss
+lemma, original distances between the examples are preserved (up to some distortion) with high probability. Now,
+as the number of bits grows, LSH offers increasingly better
+fidelity with the original raw distances. Recent work has
+also derived kernelized versions of LSH [17], which makes
+the ideas applicable in an even broader setting.
+Despite the various advantages of LSH, empirical results
+suggest that with a restricted number of bits (usually less
+than a hundred), LSH does not perform very well. In other
+words, to be practically useful, the number of bits may have
+to be large which seriously limits its applicability in problems in computer vision [12]. An elegant solution to this
+problem is to use learning within hashing, that is, instead
+of treating the hashing function as a black-box, several approaches learn the item-wise code from the data either in a
+supervised or unsupervised setting [12]. The core goal in
+most of these proposals is to derive a specific hashing code
+whose Hamming distances reflect the relationships given by
+14184
+
+

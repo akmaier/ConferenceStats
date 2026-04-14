@@ -1,0 +1,40 @@
+Supplementary Materials for
+DreamView: Injecting View-specific Text
+Guidance into Text-to-3D Generation
+In this supplementary material, we provide the details of the dataset we
+rendered and our implementations (Section 1). Additionally, we present more
+qualitative text-to-3D generation results in Section 2, including more comparisons, more results with general prompts, and combining DreamView-2D with
+another 2D-lifting technique. And we also discuss directly applying our injection
+module to other text-to-image models for 3D generation and some other ways to
+exploit the view-specific guidance. Besides, we discuss two potential ways to reduce the users’ burden to write view-specific prompts in Section 3. The dataset,
+model, and code will be released at here.
+
+1
+
+More Implementation Details
+
+Rendering Details. Our dataset is rendered from the Objaverse [3] dataset,
+which contains more than 800k 3D assets. We follow the following pipeline to
+construct our dataset.
+1. Rendering: For each 3D asset, we first normalize the object at the center
+covered by a bounding box between [−0.5, 0.5]. Then, we random sample a
+camera elevation between [0, 30] and adjust the camera distance to ensure
+the entire 3D object is visible at any azimuth. Last, we uniformly render 32
+images for the 3D object, starting from azimuth=0, and the camera position
+is saved at the same time. The illuminant comes from a three-point light
+source. The rendered size is set to be 512 × 512, and the background of the
+rendered image is a gray background. In total, we render ∼435k 3D assets,
+resulting in ∼14M rendered images.
+2. Captioning: We apply the BLIP-2 [5] captioning model to caption the rendered images. For each image, we generate 5 captions. Then, we use CLIP [11]
+to select one caption with the highest CLIP score with the rendered image,
+forming the view-specific text.
+3. Merging: We use GPT-4 [9] to merge the 32 view-specific text, forming the
+overall text. The input of GPT-4 is a sentence templated as “Given a set
+of descriptions about the same 3D object, distill these descriptions into one
+concise caption. The descriptions are as follows: ‘text’. Avoid describing the
+background. The caption should be:”, where the ‘text’ is the used 32 texts.
+We show some samples from our dataset in Figure 1. As we can see, the viewspecific text does describe the content visible from its corresponding viewpoint.
+For example, only the cape (robe) can be seen in the sample’s first and fourth
+image views in the top-right corner, so their texts only describe the cape (robe,
+
+

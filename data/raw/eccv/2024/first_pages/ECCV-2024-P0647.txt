@@ -1,0 +1,49 @@
+Supplementary Material for Texture-GS
+Tian-Xing Xu1 , Wenbo Hu2† , Yu-Kun Lai3 , Ying Shan2 , and Song-Hai Zhang1†
+Tsinghua University, China
+xutx21@mails.tsinghua.edu.cn,shz@tsinghua.edu.cn
+2
+Tencent AI Lab, China
+wbhu@tencent.com,yingsshan@tencent.com
+3
+Cardiff University, United Kingdom
+LaiY4@cardiff.ac.uk
+1
+
+1
+
+Implementation Details
+
+Training Details. We introduce a multi-stage training pipeline for reconstructing the geometry, UV mapping MLP, and a high-quality texture from multi-view
+images captured from real-world scenes. Initially, we train vanilla 3D Gaussians
+using a combination of the losses proposed in Sec. 4.3 to obtain an initial geometry, written as:
+  \mathcal {L}_\text {GS} = \mathcal {L}_1 + \mathcal {L}_\text {mask} + \lambda _\text {ssim} \mathcal {L}_\text {ssim} + \lambda _\text {01} \mathcal {L}_{01} + \lambda _\text {n} (\mathcal {L}_\text {norm} + \mathcal {L}_\text {sm}). \label {eq:total} 
+
+(1)
+
+Here, λssim = 0.2, λ01 = 0.001 and λn = 0.1 are used to balance the loss components. Following 3D-GS [3], we initialize the parameters of 3D Gaussians with
+the point clouds produced by Structure-from-Motion (SfM) [5] techniques and
+optimize them for 30K iterations. To ensure the stability of the optimization
+process, we only apply the additional constraints L01 , Lnorm and Lsm after 2K
+iterations. We prune any semi-transparent 3D Gaussians with opacity values less
+than 0.5 every 6K iterations. Furthermore, we flatten each 3D Gaussian along its
+shortest axis by resetting the scaling value of the shortest axis as e−20 every 1K
+iterations. Subsequently, we freeze the parameters of 3D Gaussians and render
+depth maps for training the UV mapping MLP, utilizing the loss function LUV
+introduced in Sec. 4.2. Finally, we reconstruct a high-quality texture from multiview images and finetune the parameters of 3D Gaussians using differentiable
+texture mapping-based splatting. Owing to the highly under-constrained nature
+of the parameter space for jointly optimizing the position of 3D Gaussians, the
+UV mapping MLP, and the texture, we freeze the UV mapping MLP and optimize the remaining parts. We supervise them with the loss function defined in
+Sec. 4.3, written as:
+  \mathcal {L} = \mathcal {L}_\text {GS} + \lambda (\mathcal {L}_\text {1}^\text {noSH} + \lambda _\text {ssim} \mathcal {L}_\text {ssim}^\text {noSH}), 
+
+(2)
+
+where the hyperparameter λ = 2 is used to encourage most (especially viewindependent) appearance information to be stored in the texture. We start by
+optimizing only the texture image for 10K iterations, followed by jointly learning
+the parameters of 3D Gaussians and the texture for another 30K iterations.
+†
+
+Corresponding authors.
+
+

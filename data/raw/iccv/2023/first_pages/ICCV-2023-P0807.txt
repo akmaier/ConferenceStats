@@ -1,0 +1,216 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Equivariant Similarity for Vision-Language Foundation Models
+Tan Wang1 , Kevin Lin2 , Linjie Li2 , Chung-Ching Lin2 , Zhengyuan Yang2 ,
+Hanwang Zhang1 , Zicheng Liu2 , Lijuan Wang2
+1
+
+2
+
+Nanyang Technological University
+
+Microsoft
+
+{TAN317,hanwangzhang}@ntu.edu.sg, {keli,lindsey.li,chungching.lin,zhengyang,zliu,lijuanw}@microsoft.com
+
+Abstract
+
+…
+
+(a)
+T2I (Oracle)
+
+This study explores the concept of equivariance in
+vision-language foundation models (VLMs), focusing
+specifically on the multimodal similarity function that is not
+only the major training objective but also the core delivery
+to support downstream tasks. Unlike the existing image-text
+similarity objective which only categorizes matched pairs
+as similar and unmatched pairs as dissimilar, equivariance
+also requires similarity to vary faithfully according to the
+semantic changes. This allows VLMs to generalize better
+to nuanced and unseen multimodal compositions. However,
+modeling equivariance is challenging as the ground truth of
+semantic change is difficult to collect. For example, given
+an image-text pair about a dog, it is unclear to what extent
+the similarity changes when the pixel is changed from dog
+to cat? To this end, we propose E Q S IM, a regularization
+loss that can be efficiently calculated from any two matched
+training pairs and easily pluggable into existing image-text
+retrieval fine-tuning. Meanwhile, to further diagnose the
+equivariance of VLMs, we present a new challenging benchmark E Q B EN. Compared to the existing evaluation sets,
+E Q B EN is the first to focus on “visual-minimal change”.
+Extensive experiments show the lack of equivariance in current VLMs1 and validate the effectiveness of E Q S IM2 .
+
+1. Introduction
+Vision-language (VL) training is all about learning
+“good” features for each modality, such that the features should faithfully represent the underlying semantics.
+Thanks to the large-scale image-text pairs on the Web, we
+have abundant multimodal supervision for the two features
+with the same semantic meaning [60, 35, 48, 27]—each
+matched image-text pair should have “similar” visual and
+textual features, and each unmatched pair should have “dissimilar” ones. Thus, the image-text similarity plays a crucial role to define the feature quality in training VL founda1 We also include results of Multimodal LLM in Appendix A.4.
+2 Code is available at https://github.com/Wangt-CN/EqBen
+
+Rank
+
+#2
+
+#3
+
+2
+3
+Equivariant Similarity (
+
+T2I (FIBER)
+
+19
+
+Rank
+
+20
+
+2 vintage metal
+
+𝑻𝑻𝟏𝟏 alarm clocks are
+in the scene.
+
+3 vintage metal
+alarm clocks are
+in the scene.
+
+)
+
+…
+
+10
+
+(b)
+𝑰𝑰𝟏𝟏
+
+…
+
+𝑰𝑰𝟐𝟐
+𝑻𝑻𝟐𝟐
+
+#13
+
+#14
+
+#15
+
+13
+
+14
+
+15
+
+15
+
+16
+
+12
+
+…
+
+9
+
+11
+
+“right” -> “left”
+The house on
+the left side
+of the road.
+
+#1
+1
+
+The house on
+the right side
+of the road.
+
+…
+
+25
+
+…
+
+…
+
+17
+16
+17
+Non-Equivariant Similarity (
+
+𝑰𝑰𝟐𝟐
+
+𝑻𝑻𝟏𝟏 3.79
+
+2.35
+
+𝑻𝑻𝟐𝟐 3.83
+
+4.16
+
++0.04
+
+…
+
+12
+
+15
+
+𝑰𝑰𝟏𝟏
+
+#25
+
+-1.81
+
+FIBER Similarity
+
+𝑰𝑰𝟏𝟏
+
+𝑻𝑻𝟏𝟏 2.51
+
+2.28
+
+𝑻𝑻𝟐𝟐 2.29
+
+2.45
+
+-0.22
+
+)
+
+𝑰𝑰𝟐𝟐
+
+-0.17
+
+Ours Similarity
+
+Figure 1: (a) Comparison between oracle and the latest SoTA
+VLM FIBER [13] similarity measure by ranking the candidate images with the given query texts. Check Appendix for full ranking
+results. (b) Measuring the similarity score change (number in ■)
+of FIBER [13] and our proposed E Q S IM by applying a slight text
+change (“2”↔“3”). Darker color indicates larger similarity.
+
+tion models (VLMs) [68, 74, 35, 48, 27, 14, 13, 34].
+Has the prevailing “matched vs. unmatched” similarity
+fulfilled its duty? Yes and no. On the one hand, recent
+VLMs [51, 68, 13, 48, 74, 49] have demonstrated impressive results in various downstream VL tasks such as imagetext retrieval. However, on the other hand, it is acknowledged by the community that the VLMs still fall short in nuanced and complex semantic compositions [49, 9, 44, 62].
+In this regard, we present a text-to-image retrieval example on LAION400M [54] with the most recent SOTA VLM
+FIBER [13]. As shown in Figure 1(a), given the query text
+“the house on the right side of the road”, we first invite 5
+graduate students to rank 25 candidate images from most
+similar to least similar. The continuously decreasing ranking from human judges ( ) is served as the oracle semantic
+similarity measure. We then compared this ranking with the
+ones from FIBER [13] ( ). Although FIBER correctly retrieved the top-1 image (image#1, ranks 1), some semantically incorrect images (e.g., image#25, ranks 17) are falsely
+ranked higher than the correct ones (e.g., image#2, ranks
+20). Furthermore, when modifying the query text with a
+slight semantic change (“right” → “left”), the rankings re-
+
+11998
+
+

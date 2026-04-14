@@ -1,0 +1,78 @@
+Small Steps and Giant Leaps: Minimal Newton Solvers for Deep Learning
+João F. Henriques
+
+Sebastien Ehrhardt
+Samuel Albanie
+Visual Geometry Group, University of Oxford
+
+Andrea Vedaldi
+
+{joao,hyenal,albanie,vedaldi}@robots.ox.ac.uk
+
+Abstract
+We propose a fast second-order method that can be used
+as a drop-in replacement for current deep learning solvers.
+Compared to stochastic gradient descent (SGD), it only requires two additional forward-mode automatic differentiation operations per iteration, which has a computational
+cost comparable to two standard forward passes and is easy
+to implement. Our method addresses long-standing issues
+with current second-order solvers, which invert an approximate Hessian matrix every iteration exactly or by conjugategradient methods, procedures that are much slower than a
+SGD step. Instead, we propose to keep a single estimate of
+the gradient projected by the inverse Hessian matrix, and
+update it once per iteration with just two passes over the
+network. This estimate has the same size and is similar
+to the momentum variable that is commonly used in SGD.
+No estimate of the Hessian is maintained. We first validate
+our method, called C URVE BALL, on small problems with
+known solutions (noisy Rosenbrock function and degenerate 2-layer linear networks), where current deep learning
+solvers struggle. We then train several large models on CIFAR and ImageNet, including ResNet and VGG-f networks,
+where we demonstrate faster convergence with no hyperparameter tuning. We also show our optimiser’s generality by
+testing on a large set of randomly-generated architectures.
+
+1. Introduction
+Stochastic Gradient Descent (SGD) and backpropagation (17) are the algorithmic backbone of
+current deep network training. The success of deep learning
+demonstrates the power of this combination, which has been
+successfully applied on various tasks with large datasets and
+very deep networks (12).
+Yet, while SGD has many advantages, speed of convergence (in terms of number of iterations) is not necessarily
+one of them. While individual SGD iterations are very quick
+to compute and lead to rapid progress at the beginning of the
+optimisation, it soon reaches a slower phase where further
+
+improvements are achieved slowly. This can be attributed to
+entering regions of the parameter space where the objective
+function is poorly scaled. In such cases, rapid progress would
+require vastly different step sizes for different directions in
+parameter space, which SGD cannot deliver.
+Second-order methods, such as Newton’s method and
+its variants, eliminate this issue by rescaling the gradient
+according to the local curvature of the objective function.
+For a scalar loss in R, this rescaling takes the form H −1 J
+where H is the Hessian matrix (second-order derivatives)
+or an approximation of the local curvature in the objective
+space, and J is the gradient of the objective. They can in
+fact achieve local scale-invariance (37, p. 27), and make
+provably better progress in the regions where gradient descent stalls. While they are unmatched in other domains,
+there are several obstacles to their application to deep models. First, it is impractical to invert or even store the Hessian,
+since it grows quadratically with the number of parameters,
+and there are typically millions of them. Second, any Hessian estimate is necessarily noisy and ill-conditioned due
+to stochastic sampling, to which classic inversion methods
+such as conjugate-gradient are not robust.
+In this paper, we propose a new algorithm that can overcome these difficulties and make second order optimisation
+practical for deep learning. We show in particular how to
+avoid the storage of any estimate of the Hessian matrix or
+its inverse. Instead, we treat the computation of the Newton
+update, H −1 J, as solving a linear system that itself can be
+solved via gradient descent. The cost of solving this system
+is amortized over time by interleaving its steps with the parameter update steps. Our proposed method adds little overhead, since a Hessian-vector product can be implemented for
+modern networks with just two steps of automatic differentiation. Interestingly, we show that our method is equivalent
+to momentum SGD (also known as the heavy-ball method)
+with a single additional term, accounting for curvature. For
+this reason we named our method C URVE BALL. Unlike
+other proposals, the total memory footprint is as small as
+that of momentum SGD.
+This paper is structured as follows. We introduce relevant
+technical background in sec. 2, and present our method in
+14763
+
+

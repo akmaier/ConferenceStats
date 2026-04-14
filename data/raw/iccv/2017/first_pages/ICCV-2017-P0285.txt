@@ -1,0 +1,119 @@
+Deep Dual Learning for Semantic Image Segmentation
+Ping Luo2∗
+1
+
+Guangrun Wang1,2∗
+
+Sun Yat-Sen University
+
+2
+
+Liang Lin1,3
+
+Xiaogang Wang2
+3
+
+The Chinese University of Hong Kong
+
+SenseTime Group (Limited)
+
+pluo@ie.cuhk.edu.hk wanggrun@mail2.sysu.edu.cn linliang@ieee.org xgwang@ee.cuhk.edu.hk
+
+Abstract
+Deep neural networks have advanced many computer
+vision tasks, because of their compelling capacities to learn
+from large amount of labeled data. However, their performances are not fully exploited in semantic image segmentation as the scale of training set is limited, where perpixel labelmaps are expensive to obtain. To reduce labeling
+efforts, a natural solution is to collect additional images
+from Internet that are associated with image-level tags.
+Unlike existing works that treated labelmaps and tags as
+independent supervisions, we present a novel learning setting, namely dual image segmentation (DIS), which consists
+of two complementary learning problems that are jointly
+solved. One predicts labelmaps and tags from images,
+and the other reconstructs the images using the predicted
+labelmaps. DIS has three appealing properties. 1) Given an image with tags only, its labelmap can be inferred
+by leveraging the images and tags as constraints. The
+estimated labelmaps that capture accurate object classes
+and boundaries are used as ground truths in training to
+boost performance. 2) DIS is able to clean tags that have
+noises. 3) DIS significantly reduces the number of perpixel annotations in training, while still achieves state-ofthe-art performance. Extensive experiments demonstrate
+the effectiveness of DIS, which outperforms an existing bestperforming baseline by 12.6% on Pascal VOC 2012 test set,
+without any post-processing such as CRF/MRF smoothing.
+
+1. Introduction
+Deep convolutional networks (CNNs) have improved
+performances of many computer vision tasks, because they
+have compelling modeling complexity to learn from large
+number of supervised data. However, their capabilities are
+not fully explored in the task of semantic image segmentation, which is to assign a semantic label such as ‘person’,
+‘table’, and ‘cat’ to each pixel in an image. This is due to
+the training set of semantic image segmentation is limited,
+∗ The first two authors share first-authorship.
+
+I
+
+L
+
+T
+
+(a) multitask + missing
+labels
+: CNN segmentation
+
+I
+
+L
+
+T
+
+(b) multitask + pseudo
+labels
+
+I
+
+L
+
+T̂
+
+T
+
+I
+
+(c) dual image segmentation
+
+: CNN reconstruction
+
+: forward propagation
+
+Figure 1: Comparisons of recent semi-supervised learning settings. I, L, and T denote an image, a per-pixel labelmap, and a
+vector of image-level tags respectively, where the labelmap L can
+be missing in training. (a) treats L as missing label in multitask
+learning, where its gradient is not computed in back-propagation
+(BP). (b) regards L as latent variable that can be inferred by tags
+and used as ground truth in BP. We propose (c), which infers the
+missing label L not only by recovering clean tags T̂ , but also
+by reconstructing the image to capture accurate object shape and
+boundary.
+
+where the per-pixel labelmaps are difficult and expensive to
+obtain.
+To reduce efforts of data annotations, a usual way is to
+automatically collect images from Internet, which are associated with image-level tags. As a result, the entire dataset
+contains two parts, including a small number of fully annotated images with per-pixel labelmaps and a large number of
+weakly annotated images with image-level tags. Learning
+from this dataset follows a semi-supervised scenario. To
+disclose the differences among existing works, we introduce
+necessary notations that will be used throughout this paper.
+Let I be an image and L, T represent its labelmap and
+tags. Two superscripts w and f are utilized to distinguish
+the weakly and fully annotated images respectively. For
+example, I w represents a weakly labeled image that only
+has tags T w , but its labelmap Lw is missing. I f indicates
+an image that is fully annotated with both labelmap Lf and
+tags T f .
+Let θ be a set of parameters of a CNN. The objective
+function of semi-supervised segmentation is often formulated as maximizing a log-likelihood with respect to θ.
+We have θ∗ = arg maxθ log p(Lf , Lw , T f , T w |I f , I w ; θ),
+where the probability measures the similarity between the
+ground truths and the predicted labelmaps and tags pro12718
+
+

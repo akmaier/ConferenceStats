@@ -1,0 +1,156 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+PVT++: A Simple End-to-End Latency-Aware Visual Tracking Framework
+Bowen Li1∗ , Ziyuan Huang2 ,* Junjie Ye3 , Yiming Li4 , Sebastian Scherer1 , Hang Zhao5 , Changhong Fu3†
+1
+Carnegie Mellon University, 2 National University of Singapore, 3 Tongji University
+4
+New York University, 5 Tsinghua University
+{bowenli2, basti}@andrew.cmu.edu, ziyuan.huang@u.nus.edu
+
+{ye.jun.jie, changhongfu}@tongji.edu.cn, yimingli@nyu.edu, hangzhao@tsinghua.edu.cn
+
+Abstract
+Visual object tracking is essential to intelligent robots.
+Most existing approaches have ignored the online latency
+that can cause severe performance degradation during realworld processing. Especially for unmanned aerial vehicles
+(UAVs), where robust tracking is more challenging and onboard computation is limited, the latency issue can be fatal.
+In this work, we present a simple framework for end-to-end
+latency-aware tracking, i.e., end-to-end predictive visual
+tracking (PVT++). Unlike existing solutions that naively
+append Kalman Filters after trackers, PVT++ can be jointly
+optimized, so that it takes not only motion information but
+can also leverage the rich visual knowledge in most pretrained tracker models for robust prediction. Besides, to
+bridge the training-evaluation domain gap, we propose a
+relative motion factor, empowering PVT++ to generalize to
+the challenging and complex UAV tracking scenes. These
+careful designs have made the small-capacity lightweight
+PVT++ a widely effective solution. Additionally, this work
+presents an extended latency-aware evaluation benchmark
+for assessing an any-speed tracker in the online setting.
+Empirical results on a robotic platform from the aerial perspective show that PVT++ can achieve significant performance gain on various trackers and exhibit higher accuracy than prior solutions, largely mitigating the degradation brought by latency. Our code is public at https:
+//github.com/Jaraxxus-Me/PVT_pp.git.
+
+1. Introduction
+Visual object tracking1 is fundamental for many robotic
+applications like navigation [49], cinematography [5], and
+multi-agent cooperation [9]. Most existing trackers are developed and evaluated under an offline setting [38, 29, 34,
+* These authors contributed equally to this work.
+† Corresponding author
+
+1 We focus on single object tracking in this work.
+
+Offline vs Online-based Tracking Evaluation
+0.61
+
+0.78
+
+0.56
+
+0.73
+
+0.51
+
+0.68
+0.63
+
+0.46
+
+0.58
+
+0.41
+
+0.53
+0.48
+
+0.36
+0
+
+10
+
+Real-time
+
+20
+
+30
+
+0.31
+
+40
+
+Distance Precision | Speed (FPS)
+PVT++
+
+PVT++
+
+PVT++
+
+SiamMask
+
+SiamRPN++
+
+Mask
+
+M
+
+SiamRPN++
+
+M
+
+Real-time
+
+0
+
+10
+
+20
+
+30
+
+40
+
+Success Rate | Speed (FPS)
+
+R
+R
+
+DiMP18
+
+SiamGAT
+
+PrDiMP18
+
+SiamRPN
+
+DaSiamRPN
+
+SiamAPN++
+
+Figure 1. Distance precision and success rate of the trackers on
+UAVDT dataset [16]. Compared with offline evaluation, the trackers suffer a lot from their onboard latency in the online setting
+(30 frames/s (FPS)). Coupled with PVT++, the predictive trackers
+achieve significant performance gain with very little extra latency,
+obtaining on par or better results than the offline setting.
+
+33, 6, 8], where the trackers are assumed to have zero processing time. However, in real-world deployment, the online latency caused by the trackers’ processing time cannot be ignored, since the world would have already changed
+when the trackers finish processing the captured frame. In
+particular, with limited onboard computation, this issue is
+more critical in the challenging unmanned aerial vehicle
+(UAV) tracking scenes [21, 38, 20]. As shown in Fig. 1,
+compared with offline setting (gray markers), the latency
+can cause severe performance degradation during online
+processing (colored markers). If not handled well, this can
+easily lead to the failure of robotic applications such as UAV
+obstacle avoidance [1] and self-localization [61].
+To be more specific, the latency hurts online tracking due
+to: (1) The tracker outputs are always outdated, so there
+will be mismatch between the tracker result and world state.
+(2) The trackers can only process the latest frame, so that
+the non-real-time ones may skip some frames, which makes
+object motion much larger (see Fig. 2(a) right).
+
+10006
+
+

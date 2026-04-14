@@ -1,0 +1,123 @@
+Meta-Sim: Learning to Generate Synthetic Datasets
+http://nv-tlabs.github.io/meta-sim
+
+Amlan Kar1,2,3
+Aayush Prakash1
+Ming-Yu Liu1
+Eric Cameracci1
+Justin Yuan1
+Matt Rusiniak1
+David Acuna1,2,3
+Antonio Torralba4
+Sanja Fidler1,2,3∗
+1
+
+NVIDIA
+
+2
+
+3
+
+University of Toronto
+
+Vector Institute
+
+Abstract
+Training models to high-end performance requires availability of large labeled datasets, which are expensive to get.
+The goal of our work is to automatically synthesize labeled
+datasets that are relevant for a downstream task. We propose Meta-Sim, which learns a generative model of synthetic scenes, and obtain images as well as its corresponding ground-truth via a graphics engine. We parametrize
+our dataset generator with a neural network, which learns
+to modify attributes of scene graphs obtained from probabilistic scene grammars, so as to minimize the distribution
+gap between its rendered outputs and target data. If the
+real dataset comes with a small labeled validation set, we
+additionally aim to optimize a meta-objective, i.e. downstream task performance. Experiments show that the proposed method can greatly improve content generation quality over a human-engineered probabilistic scene grammar,
+both qualitatively and quantitatively as measured by performance on a downstream task.
+
+1. Introduction
+Data collection and labeling is a laborious, costly and
+time consuming venture, and represents a major bottleneck
+in most current machine learning pipelines. To this end,
+synthetic content generation [6, 36, 11, 34] has emerged as
+a promising solution since all ground-truth comes for free
+– via the graphics engine. It further enables us to train and
+test our models in virtual environments [38, 8, 48, 22, 41]
+before deploying to the real world, which is crucial for both
+scalability and safety. Unfortunately, an important performance issue arises due to the domain gap existing between
+the synthetic and real-world domains.
+Addressing the domain gap issue has led to a plethora
+of work on synthetic-to-real domain adaptation [17, 27, 54,
+10, 43, 34, 45]. These techniques aim to learn domaininvariant features and thus more transferrable models. One
+of the mainstream approaches is to learn to stylize syn∗ Correspondence to amlan@cs.toronto.edu, sfidler@nvidia.com
+
+Meta-Sim
+Probabilistic
+road
+grammar
+
+MIT
+
+Use my trained network on real data!
+
+Need a labeled
+dataset to train
+my network!
+
+Distribution
+Transformer
+
+lane
+
+lane
+
+4
+
+Real dataset
+sidewalk
+
+tree
+
+car
+
+person location
+height
+pose
+
+car
+
+∼ distribution ???
+
+Generated synthetic dataset
+
+Scientist
+
+Figure 1. Meta-Sim is a method to generate synthetic datasets that
+bridge the distribution gap between real and synthetic data and are
+optimized for downstream task performance
+
+thetic images to look more like those captured in the realworld [17, 27, 51, 30, 18]. As such, these models address
+the appearance gap between the synthetic and real-world
+domains. They share the assumption that the domain gap is
+due to the differences that are fairly low level.
+Here, we argue that domain gap is also due to a content
+gap, arising from the fact that the synthetic content (e.g.
+layout and types of objects) mimics a limited set of scenes,
+not necessarily reflecting the diversity and distribution of
+objects of those captured in the real world. For example,
+the Virtual KITTI [11] dataset was created by a group of
+engineers and artists, to match object locations and poses
+in KITTI [13] which was recorded in Karlsruhe, Germany.
+But what if the target city changes to Tokyo, Japan, which
+has much heavier traffic and many more high-rise buildings? Moreover, what if the downstream task that we want
+to solve changes from object detection to lane estimation or
+rain drop removal? Creating synthetic worlds that ensure
+realism and diversity for any desired task requires significant effort by highly-qualified experts and does not scale to
+the fast demand of various commercial applications.
+In this paper, we aim to learn a generative model of synthetic scenes that, by exploiting a graphics engine, produces
+labeled datasets with a content distribution matching that of
+imagery captured in the desired real-world datasets. Our
+Meta-Sim builds on top of probabilistic scene grammars
+which are commonly used in gaming and graphics to create diverse and valid virtual environments. In particular, we
+assume that the structure of the scenes sampled from the
+14551
+
+

@@ -1,0 +1,54 @@
+Journey Towards Tiny Perceptual Super-Resolution:
+Supplementary Material
+Royson Lee1∗[0000−0002−6716−7994] , Łukasz Dudziak1[0000−0003−4929−265X] ,
+Mohamed Abdelfattah1[0000−0002−4568−8932] , Stylianos I.
+1[0000−0001−5181−6251]
+Venieris
+, Hyeji Kim1[0000−0002−2256−5729] , Hongkai
+1,2[0000−0003−1159−090X]
+Wen
+, and Nicholas D. Lane1,3[0000−0002−2728−8273]
+1
+
+1
+
+Samsung AI Center, Cambridge, UK
+2
+University of Warwick
+3
+University of Cambridge
+∗
+royson.lee@samsung.com
+
+Experiment Details
+
+Neural Architecture Search: Similar to previous approaches, we use a single LSTM
+layer with 100 hidden units as the trainable policy, πθ . It takes an empty embedding
+as input and generates a sequence of l outputs, where l is the number of decisions to
+make in order to decide about a generator’s structure. Each element of the sequence
+at position i is then passed through the following composition of functions, including
+a tanh constant of 2.5 and a sampling logit temperature of 5.0, in order to reduce its
+dimensionality and produce a probability distribution:
+softmax ◦ 2.5 · tanh ◦ 0.2 · linear ◦ li
+
+(1)
+
+Each search is ran on five servers, totalling to 40 NVIDIA GeForce GTX 1080 Ti,
+and each GPU can fit up to three models which are trained in parallel depending on the
+sampled model’s memory usage at each step. Our generator search took 2 days and our
+discriminator search took 10 days due to the memory requirement needed for the pretrained generator, sampled discriminator, and two VGG networks to compute Lvgg and
+LPIPS respectively in each training pipeline. Due to the huge resource needed to run
+discriminator search, we limit the number of mult-add operations and run a constrained
+search for a generator, as mentioned in the paper. The performance of our generator for
+the discriminator search is listed in Table 1.
+Each training pipeline is run by a separate process/worker and each worker asynchronously samples the probability distribution (Eq (1)), trains the resulting model, and
+returns the result (PSNR for generator search and LPIPS for discriminator search) from
+the validation set, V̂ , of the proxy task. The result would then be normalized using a
+minmax normalization, N , to scale it from 0 to 1 with a exponential moving average
+baseline, EM A, (decay of 0.95) to obtain the reward. We then add the sampled entropy,
+H, (ζ = 0.0001) to the reward and use it to update πθ via REINFORCE using an Adam
+optimizer (β1 = 0.9, β2 = 0.999,  = 10−8 ) with learning rate of 3.5e − 4. The training
+process is detailed in Eq. 2 where M̃ is the metric of choice (PSNR, LPIPS, etc), and L̃
+is the training loss (LG and LD for generator and discriminator search respectively).
+
+

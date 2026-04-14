@@ -1,0 +1,86 @@
+Training Deep Networks to be Spatially Sensitive
+Nicholas Kolkin
+
+Gregory Shakhnarovich
+
+Eli Shechtman
+
+nick.kolkin@ttic.edu
+
+gregory@ttic.edu
+
+elishe@adobe.com
+
+Toyota Technological Institute at Chicago
+Chicago, IL, USA
+
+Adobe Research
+Seattle, WA, USA
+
+Abstract
+In many computer vision tasks, for example saliency prediction or semantic segmentation, the desired output is a
+foreground map that predicts pixels where some criteria
+is satisfied. Despite the inherently spatial nature of this
+task commonly used learning objectives do not incorporate
+the spatial relationships between misclassified pixels and
+the underlying ground truth. The Weighted F-measure, a
+recently proposed evaluation metric, does reweight errors
+spatially, and has been shown to closely correlate with human evaluation of quality, and stably rank predictions with
+respect to noisy ground truths (such as a sloppy human annotator might generate). However it suffers from computational complexity which makes it intractable as an optimization objective for gradient descent, which must be
+evaluated thousands or millions of times while learning a
+model’s parameters. We propose a differentiable and efficient approximation of this metric. By incorporating spatial information into the objective we can use a simpler
+model than competing methods without sacrificing accuracy, resulting in faster inference speeds and alleviating the
+need for pre/post-processing. We match (or improve) performance on several tasks compared to prior state of the
+art by traditional metrics, and in many cases significantly
+improve performance by the weighted F-measure.
+
+1. Introduction
+When optimizing a predictive model it is important that
+the objective function not only encode the ideal solution
+(zero mistakes), but also quantify the relative severity of
+mistakes. A common dimension of preference is the desired
+tradeoff between precision and recall. One can capture this
+tradeoff with a Fβ metric, where β reflects the relative importance of recall compared to precision. While this metric
+can quantify the relative importance of false positives and
+false negatives, it cannot capture differing severity between
+two false positives, or two false negatives. One domain
+where differentiating between such errors becomes impor-
+
+[17]
+
+SZNCE
+(ours)
+
+SZNF1w
+(ours)
+
+GT
+
+Input
+
+Figure 1: A comparison of the previous saliency prediction
+state of the art with our SZN model predictions with the
+traditional log-loss (SZNCE ) and our proposed AFβw loss
+(SZNF1w ). The top row demonstrates that our loss heavily penalizes for large spatially co-occurring false negatives.
+The bottom row demonstrates that the proposed loss heavily
+penalizes false positives far from the true object boundary.
+
+tant is the prediction of foreground maps, where the output has many desired properties not captured by notions of
+precision or recall, such as smoothness, accuracy of boundaries, contiguity of the predicted mask, etc. As a result, two
+predictions with the same number of mistakes, or with the
+same score on a measure which treats false positives and
+false negatives equally (e.g. intersection over union, IoU),
+may differ substantially in their perceived spatial quality.
+Loss functions derived from per-pixel classification-based
+surrogates, such as log-loss are almost universally used in
+existing work, but fail to capture both the precision-recall
+tradeoff and the spatial sensibilities of this kind.
+Margolin et al. [23] proposed a method to quantify these
+distinctions when predicting foreground maps. Their Fβw
+measure formalizes two notions. First, false detections are
+less severe when close to the object’s true boundary; Second, missing an entire section of an object is worse than
+missing the same number of pixels scattered across the entire object. These alterations closely match human intuition
+
+5668
+
+

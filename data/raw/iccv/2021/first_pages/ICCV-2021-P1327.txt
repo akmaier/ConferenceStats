@@ -1,0 +1,74 @@
+PCAM: Product of Cross-Attention Matrices
+for Rigid Registration of Point Clouds
+Anh-Quan Cao2,∗
+
+Gilles Puy1
+
+Alexandre Boulch1
+
+Renaud Marlet1, 3
+
+2
+Valeo.ai, Paris, France
+Inria, Paris, France†
+LIGM, Ecole des Ponts, Univ Gustave Eiffel, CNRS, Marne-la-Vallée, France
+1
+
+3
+
+Abstract
+Rigid registration of point clouds with partial overlaps
+is a longstanding problem usually solved in two steps: (a)
+finding correspondences between the point clouds; (b) filtering these correspondences to keep only the most reliable
+ones to estimate the transformation. Recently, several deep
+nets have been proposed to solve these steps jointly. We
+built upon these works and propose PCAM: a neural network whose key element is a pointwise product of crossattention matrices that permits to mix both low-level geometric and high-level contextual information to find point
+correspondences. These cross-attention matrices also permits the exchange of context information between the point
+clouds, at each layer, allowing the network construct better matching features within the overlapping regions. The
+experiments show that PCAM achieves state-of-the-art results among methods which, like us, solve steps (a) and (b)
+jointly via deepnets.
+
+1. Introduction
+Point cloud registration is the problem of estimating the
+rigid transformation that aligns two point clouds. It has
+many applications in various domains such as autonomous
+driving, motion and pose estimation, 3D reconstruction, simultaneous localisation and mapping (SLAM), and augmented reality. The most famous method to solve this task
+is ICP [3], for which several improvements have been proposed, modifying the original optimisation process [40, 45]
+or using geometric feature descriptors [32] to match points.
+Recently, end-to-end learning-based methods combining
+point feature extraction, point matching, and point-pairs filtering, have been developed to solve this task. Deep Closest
+Point (DCP) [38], improved by PRNet [37], finds point correspondences via an attention matrix and estimate the trans∗ Most of the work was done during an internship at valeo.ai in 2020.
+† Inria, Mines ParisTech, PSL Research University.
+
+formation by solving a least-squares problem. Deep Global
+Registration (DGR) [7] tackles partial-to-partial point cloud
+registration by finding corresponding points via deep features, computing confidence scores for these pairs, and solving a weighted least-squares problem to estimate the transformation. IDAM [23] considers all possible pairs of points
+in a similarity matrix computed using deep or hand-crafted
+features, and proposes a learned two-step filter to select
+only relevant pairs for transformation estimation. Finally,
+[9, 12, 41] use deep networks and the Sinkhorn algorithm
+to find and filter corresponding points.
+Our observation is that, when matching points between
+point clouds, one would like to find correspondences using
+both local fine geometric information, to precisely select the
+best corresponding point, and high-level contextual information, to differentiate between points with similar local
+geometry but from different parts of the scene. The fine geometric information is naturally extracted at the first layers
+of a deep convnet, while the context information is found
+in the deepest layers. The existing deep registration methods estimate the correspondences between point clouds using features extracted at the deepest layers. Therefore, there
+is no explicit control on the amount of fine geometric and
+high-level context information encoded in these features.
+Instead, we propose to compute point correspondences
+at every layer of our deep network via cross-attention matrices, and to combine these matrices via a point-wise multiplication. This simple yet very effective solution naturally ensures that both low-level geometric and high-level
+context information are exploited when matching points. It
+also permits to remove spurious matches found only at one
+scale. Furthermore, we also exploit these cross-attention
+matrices to exchange information between the point clouds
+at each layer, allowing the network to exploit context information from both point clouds to find the best matching
+point within the overlapping regions.
+The design of our method is inspired by DGR [7], DCP
+[38] and PRNet [37]. We exploit cross-attention matrices to
+exchange context information between point clouds, like in
+
+13229
+
+

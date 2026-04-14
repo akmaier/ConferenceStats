@@ -1,0 +1,99 @@
+Self-Supervised Representation Learning from Flow Equivariance
+Yuwen Xiong
+
+Mengye Ren
+Wenyuan Zeng
+*
+Waabi, University of Toronto
+
+Raquel Urtasun
+
+{yuwen, mren, wenyuan, urtasun}@cs.toronto.edu
+
+Abstract
+
+BYOL
+Online
+
+Self-supervised representation learning is able to learn
+semantically meaningful features; however, much of its recent success relies on multiple crops of an image with very
+few objects. Instead of learning view-invariant representation from simple images, humans learn representations in
+a complex world with changing scenes by observing object movement, deformation, pose variation and ego motion.
+Motivated by this ability, we present a new self-supervised
+learning representation framework that can be directly deployed on a video stream of complex scenes with many moving objects. Our framework features a simple flow equivariance objective that encourages the network to predict the
+features of another frame by applying a flow transformation
+to the features of the current frame. Our representations,
+learned from high-resolution raw video, can be readily used
+for downstream tasks on static images. Readout experiments on challenging semantic segmentation, instance segmentation, and object detection benchmarks show that we
+are able to outperform representations obtained from previous state-of-the-art methods including SimCLR [6] and
+BYOL [18].
+
+1. Introduction
+Rich and informative visual representations epitomize
+the revolution of deep learning in computer vision in the
+past decade. Deep neural nets deliver surprisingly competitive performance on tasks such as object detection
+[15, 34, 9] and semantic segmentation [4, 50]. Until very
+recently, visual representations have been learned by large
+scale supervised learning. However, for more challenging
+tasks such as semantic or instance segmentation, it is much
+more expensive to obtain labels compared to object classification. On the other hand, the human brain learns generic
+visual representations from raw video of the complex world
+without much explicit supervision. This is the direction that
+we would like to get one step closer towards in this paper.
+* This work was done by all authors while at Uber ATG
+
+I1
+<latexit sha1_base64="H0yqbkQCBQlzPJQMqd+8rdiUdpg=">AAAB6nicbVBNS8NAEJ34WetX1aOXxSJ4KkkV9Fj0oreK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvSATXxnW/nZXVtfWNzcJWcXtnd2+/dHDY1HGqGDZYLGLVDqhGwSU2DDcC24lCGgUCW8HoZuq3nlBpHstHM07Qj+hA8pAzaqz0cNfzeqWyW3FnIMvEy0kZctR7pa9uP2ZphNIwQbXueG5i/Iwqw5nASbGbakwoG9EBdiyVNELtZ7NTJ+TUKn0SxsqWNGSm/p7IaKT1OApsZ0TNUC96U/E/r5Oa8MrPuExSg5LNF4WpICYm079JnytkRowtoUxxeythQ6ooMzadog3BW3x5mTSrFe+8Ur2/KNeu8zgKcAwncAYeXEINbqEODWAwgGd4hTdHOC/Ou/Mxb11x8pkj+APn8wfFVY11</latexit>
+
+Target
+
+I2
+<latexit sha1_base64="VZiN5cNygKoytHlQ4WQtj4PLSls=">AAAB6nicbVBNS8NAEJ34WetX1aOXxSJ4KkkV9Fj0oreK9gPaUDbbTbt0swm7E6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvSKQw6Lrfzsrq2vrGZmGruL2zu7dfOjhsmjjVjDdYLGPdDqjhUijeQIGStxPNaRRI3gpGN1O/9cS1EbF6xHHC/YgOlAgFo2ilh7tetVcquxV3BrJMvJyUIUe9V/rq9mOWRlwhk9SYjucm6GdUo2CST4rd1PCEshEd8I6likbc+Nns1Ak5tUqfhLG2pZDM1N8TGY2MGUeB7YwoDs2iNxX/8zophld+JlSSIldsvihMJcGYTP8mfaE5Qzm2hDIt7K2EDammDG06RRuCt/jyMmlWK955pXp/Ua5d53EU4BhO4Aw8uIQa3EIdGsBgAM/wCm+OdF6cd+dj3rri5DNH8AfO5w/G2Y12</latexit>
+
+FlowE (Ours)
+Online
+
+I1
+<latexit sha1_base64="H0yqbkQCBQlzPJQMqd+8rdiUdpg=">AAAB6nicbVBNS8NAEJ34WetX1aOXxSJ4KkkV9Fj0oreK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvSATXxnW/nZXVtfWNzcJWcXtnd2+/dHDY1HGqGDZYLGLVDqhGwSU2DDcC24lCGgUCW8HoZuq3nlBpHstHM07Qj+hA8pAzaqz0cNfzeqWyW3FnIMvEy0kZctR7pa9uP2ZphNIwQbXueG5i/Iwqw5nASbGbakwoG9EBdiyVNELtZ7NTJ+TUKn0SxsqWNGSm/p7IaKT1OApsZ0TNUC96U/E/r5Oa8MrPuExSg5LNF4WpICYm079JnytkRowtoUxxeythQ6ooMzadog3BW3x5mTSrFe+8Ur2/KNeu8zgKcAwncAYeXEINbqEODWAwgGd4hTdHOC/Ou/Mxb11x8pkj+APn8wfFVY11</latexit>
+
+T
+
+1
+
+<latexit sha1_base64="92i8tzG/QZjvznOnIIZJ/QicAHk=">AAAB+XicbVBNS8NAFHypX7V+RT16WSyCF0tSC3osePFYoa2FNpbNdtMu3WzC7qZQQv6JFw+KePWfePPfuGlz0NaBhWHmPd7s+DFnSjvOt1Xa2Nza3invVvb2Dw6P7OOTrooSSWiHRDySPR8rypmgHc00p71YUhz6nD7607vcf5xRqVgk2noeUy/EY8ECRrA20tC2ByHWE4J52s6e0is3G9pVp+YsgNaJW5AqFGgN7a/BKCJJSIUmHCvVd51YeymWmhFOs8ogUTTGZIrHtG+owCFVXrpInqELo4xQEEnzhEYL9fdGikOl5qFvJvOcatXLxf+8fqKDWy9lIk40FWR5KEg40hHKa0AjJinRfG4IJpKZrIhMsMREm7IqpgR39cvrpFuvude1+kOj2mwUdZThDM7hEly4gSbcQws6QGAGz/AKb1ZqvVjv1sdytGQVO6fwB9bnD2oPk3c=</latexit>
+
+Flow T
+
+Target
+
+<latexit sha1_base64="C9GlttJGukZ6KFAql98D/7tz7I8=">AAAB8nicbVDLSgMxFL1TX7W+qi7dBIvgqsxUQZdFNy4r9AXToWTSTBuaSYYkI5Shn+HGhSJu/Rp3/o2ZdhbaeiBwOOdecu4JE860cd1vp7SxubW9U96t7O0fHB5Vj0+6WqaK0A6RXKp+iDXlTNCOYYbTfqIojkNOe+H0Pvd7T1RpJkXbzBIaxHgsWMQINlbyBzE2E4J51p4PqzW37i6A1olXkBoUaA2rX4ORJGlMhSEca+17bmKCDCvDCKfzyiDVNMFkisfUt1TgmOogW0SeowurjFAklX3CoIX6eyPDsdazOLSTeUS96uXif56fmug2yJhIUkMFWX4UpRwZifL70YgpSgyfWYKJYjYrIhOsMDG2pYotwVs9eZ10G3Xvqt54vK4174o6ynAG53AJHtxAEx6gBR0gIOEZXuHNMc6L8+58LEdLTrFzCn/gfP4AjnuRbg==</latexit>
+
+I2
+
+Feature space
+
+<latexit sha1_base64="VZiN5cNygKoytHlQ4WQtj4PLSls=">AAAB6nicbVBNS8NAEJ34WetX1aOXxSJ4KkkV9Fj0oreK9gPaUDbbTbt0swm7E6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvSKQw6Lrfzsrq2vrGZmGruL2zu7dfOjhsmjjVjDdYLGPdDqjhUijeQIGStxPNaRRI3gpGN1O/9cS1EbF6xHHC/YgOlAgFo2ilh7tetVcquxV3BrJMvJyUIUe9V/rq9mOWRlwhk9SYjucm6GdUo2CST4rd1PCEshEd8I6likbc+Nns1Ak5tUqfhLG2pZDM1N8TGY2MGUeB7YwoDs2iNxX/8zophld+JlSSIldsvihMJcGYTP8mfaE5Qzm2hDIt7K2EDammDG06RRuCt/jyMmlWK955pXp/Ua5d53EU4BhO4Aw8uIQa3EIdGsBgAM/wCm+OdF6cd+dj3rri5DNH8AfO5w/G2Y12</latexit>
+
+Figure 1: Our proposed self-supervised representation
+learning from Flow Equivariance (FlowE). Our method
+is based on BYOL [18], a state of the art method for static
+image representation learning. We encourage the features to
+obey the same flow transformation as the input image pairs.
+Recent advances in self-supervised or unsupervised representation learning, such as SimCLR [6] and BYOL [18],
+seem to point us to a bright path forward: by simply minimizing the feature distance between two different views
+of a single image, and performing linear readout at test
+time on top, state-of-the-art approaches are now able to
+match the classification performance of networks trained
+with full supervision end-to-end [23, 36, 21]. While not using any class labels, these methods still rely on the dataset
+curation process of carefully selecting clean and objectcentered images with a balanced class distribution. In contrast, videos in the wild feature crowded scenes and severe data imbalance. As a result, different crops of the
+same frame can often lead to either uninteresting regions
+or erroneous alignment of different instances in crowded
+areas. Moreover, none of these methods leverage temporal information, which contains a rich set of object movement, deformation, and pose variations. While there has
+been a large body of literature on learning representation
+from video [43, 24, 44, 35, 12, 13, 41, 42], they typically
+focus on the predicting correspondence across frames and
+have not shown better performance on generic downstream
+
+10191
+
+

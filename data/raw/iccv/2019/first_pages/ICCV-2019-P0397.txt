@@ -1,0 +1,80 @@
+DMM-Net: Differentiable Mask-Matching Network
+for Video Object Segmentation
+Xiaohui Zeng1, 2∗
+
+Renjie Liao1, 2, 3*
+Li Gu1
+Yuwen Xiong1, 2, 3
+1, 2, 4
+1, 2, 3, 5
+Sanja Fidler
+Raquel Urtasun
+1
+University of Toronto
+Vector Institute2 Uber ATG Toronto3
+4
+NVIDIA
+Canadian Institute for Advanced Research5
+
+{xiaohui, rjliao, yuwen, fidler}@cs.toronto.edu
+
+li.gu@mail.utoronto.ca
+
+urtasun@uber.com
+
+Abstract
+In this paper, we propose the differentiable maskmatching network (DMM-Net) for solving the video object
+segmentation problem where the initial object masks are
+provided. Relying on the Mask R-CNN backbone, we extract mask proposals per frame and formulate the matching
+between object templates and proposals at one time step
+as a linear assignment problem where the cost matrix is
+predicted by a CNN. We propose a differentiable matching layer by unrolling a projected gradient descent algorithm in which the projection exploits the Dykstra’s algorithm. We prove that under mild conditions, the matching
+is guaranteed to converge to the optimum. In practice, it
+performs similarly to the Hungarian algorithm during inference. Meanwhile, we can back-propagate through it to
+learn the cost matrix. After matching, a refinement head
+is leveraged to improve the quality of the matched mask.
+Our DMM-Net achieves competitive results on the largest
+video object segmentation dataset YouTube-VOS. On DAVIS
+2017, DMM-Net achieves the best performance without online learning on the first frames. Without any fine-tuning,
+DMM-Net performs comparably to state-of-the-art methods
+on SegTrack v2 dataset. At last, our matching layer is very
+simple to implement; we attach the PyTorch code (< 50
+lines) in the supplementary material. Our code is released
+at https://github.com/ZENGXH/DMM_Net.
+
+1. Introduction
+Video object and instance segmentation problems have
+received significant attention [1, 35, 25] attributed to the
+recent availability of high-quality datasets, e.g., YouTubeVOS [45], DAVIS [29, 30]. Given an input video, the aim is
+to separate the objects or instances from the background at
+the pixel-level. This is a fundamental computer vision task
+∗ Equal contribution.
+
+(a) RGMP [43]
+
+(b) CINM [2]
+
+(c) PReMVOS [24]
+
+(d) Ours
+
+Figure 1. Visual comparison with some competitive methods on
+the last frame of the soapbox sequence of DAVIS 2017 dataset.
+Even though video segmentation quality generally degrades as
+time goes on, our model still provides better details.
+
+due to its wide range of applications including autonomous
+driving, video surveillance, and video editing.
+Two main setups of this problem are unsupervised and
+semi-supervised which differ from each other in whether the
+ground-truth annotated masks of the object instances in the
+first frame of the video are provided [29, 30] during inference. In this paper, we focus on the semi-supervised setting,
+i.e., the instance masks are provided for the first frames of
+the test videos. However, even with some annotated information at test time, this task is still very challenging. For
+example, the algorithm needs to deal with not only the dramatic appearance changes, occlusion and deformation but
+also potentially with large camera and object motion. Furthermore, the expectation from a good video instance segmentation model is to produce temporally cohesive and stable predictions, which presents an additional challenge.
+Existing algorithms typically leverage pretrained deep
+neural networks to predict object instance masks. Some
+of them, e.g., [25], directly predict the masks in a frameindependent way and achieve surprisingly good perfor13929
+
+

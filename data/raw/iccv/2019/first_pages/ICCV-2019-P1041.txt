@@ -1,0 +1,136 @@
+Learning to Caption Images Through a Lifetime by Asking Questions
+Tingke Shen1,2
+1
+Vector Institute
+
+Amlan Kar1,2
+2
+University of Toronto
+
+Sanja Fidler1,2,3
+3
+NVIDIA
+
+{shenkev, amlan, fidler}@cs.toronto.edu
+
+In order to bring artificial agents into our lives, we will
+need to go beyond supervised learning on closed datasets
+to having the ability to continuously expand knowledge. Inspired by a student learning in a classroom, we present an
+agent that can continuously learn by posing natural language questions to humans. Our agent is composed of three
+interacting modules, one that performs captioning, another
+that generates questions and a decision maker that learns
+when to ask questions by implicitly reasoning about the uncertainty of the agent and expertise of the teacher. As compared to current active learning methods which query images for full captions, our agent is able to ask pointed questions to improve the generated captions. The agent trains on
+the improved captions, expanding its knowledge. We show
+that our approach achieves better performance using less
+human supervision than the baselines on the challenging
+MSCOCO [14] dataset.
+
+1. Introduction
+Imagine a child that sees a crocodile for the first time.
+She may likely ask what the animal is called, or where it can
+be encountered outside the zoo, but probably does not need
+to be told that it is green or has four legs, and that its sharp
+teeth can pose danger. Children (and even adults) learn from
+teachers in an active way: asking questions about concepts
+that they are unfamiliar or uncertain about. In doing so, they
+make learning more efficient – the child who acquires exactly the information they are missing – and the teacher who
+answers the question instead of needing to explain many aspects of a concept in full detail. As A.I. becomes more and
+more integrated in our everyday lives, be it in the form of
+personal assistants or household robots [28, 17, 23], they
+too should actively seek out missing information from humans – by asking questions in the form of natural language
+which non-experts can understand and answer.
+Most existing work on scene understanding tasks such as
+VQA [5, 25, 29, 6] and captioning [14, 21, 3] have focused
+on a closed world setting, i.e. consuming the knowledge
+provided by a labeled dataset. On the other hand, the goal
+of active learning is to be able to continuously update the
+model by seeking for the relevant data to be additionally la-
+
+Decision Maker
+0
+
+0.1
+
+0
+
+Question Generator
+0.2
+
+0
+
+0
+
+0.6
+
+0.1
+
+CNN
+
+Abstract
+
+Where
+
+is
+
+the
+
+dog
+
+sitting?
+
+RNN + Softmax across time
+
+Captioner
+A
+
+Dog
+
+is
+
+sitting
+
+in
+CNN
+
+a
+
+window
+
+<eos>
+
+Question Answerer (Teacher)
+
+car
+
+car
+Figure 1. Learning to describe images by asking questions. Our model
+learns in a lifetime learning setting, by actively seeking for missing information. We jointly learn when and what to ask, and learn from the teacher’s
+answers. Our model poses questions in natural language.
+
+beled by a human [22]. Most active learning approaches,
+however, ask the human to provide a full labeling of an example, and the main challenge is in identifying the examples to be labeled, to ensure annotation efficiency. In our
+work, we go beyond this, by endowing the model with the
+ability to ask for a particular aspect of a label, and do so
+in natural language in order to unambiguously identify the
+missing information.
+We focus on the task of image captioning as a proxy task
+for scene understanding. In order to describe an image, a
+model needs to generate words describing the objects, their
+attributes, actions, and possibly relationships and interactions between objects. This is inherently a multi-task problem. In this paper, our goal is to allow a captioning agent
+to actively ask questions about the aspects of the image it
+is uncertain about, in a lifetime learning setting in which
+examples arrive sequentially and continually. Thus, instead
+of having humans provide captions for each new image, our
+agent aims to ask a minimal set of questions for the human
+to answer, and learn to caption from these answers.
+Our model consists of three modules: a captioning module, a decision making module that learns whether to ask
+and what to ask about, and a question generation module.
+At training time when the captioner produces each word,
+the decision module decides for which concept, if any, to
+ask about. If the agent decides to ask, the question module
+produces a question, which the teacher answers. All three
+modules are implemented as neural networks. They are updated continuously with the data arriving in batches: the
+captioning module is updated using the captions improved
+110393
+
+

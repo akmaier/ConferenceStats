@@ -1,0 +1,73 @@
+18
+
+Garcia and Nakashima
+
+A
+
+Spatio-Temporal Character Filter
+
+To remove mispredictions and duplicate detections in the character recognition
+module, we apply a spatio-temporal ﬁlter by ﬁnding all the faces belonging to the
+same person and re-assigning character names based on temporal coherence. For
+each scene, we ﬁrst detect frames belonging to the same shot (i.e., captured with
+the same camera) by computing the cosine similarity between their ResNet50
+representations, fres ∈ R2048 . Then, for all the frames in a shot, we compute the
+Euclidean distance between all possible pairs of faces using their bounding box
+centroids. When a pair of faces is close (i.e., the distance is below a threshold9 ),
+faces are considered to be the same. For all the faces assigned to the same
+person, we ﬁnd the most frequent name predicted by the kNN classiﬁer. If the
+name appears in at least 70% of the frames in the shot, the character is assigned
+to that name. Otherwise, the character is assigned as unknown.
+
+B
+
+Fusion Methods Details
+
+Given the output scores for each branch, αr c , αo c , and αll c , the ﬁnal score for
+each candidate answer ω c is computed according to each fusion method as:
+• Average: ω c = 13 (αr c + αo c + αll c )
+• Maximum: ω c = max(αr c , αo c , αll c )
+• Self-att: According to the Transformers embeddings yr c , yo c , and yll c , with
+yll c = yll cjmax and jmax = arg maxj (αll cj ), the self-attention weights are computed as:
+
+
+yr c
+ψ c = Wself  yo c  + bself
+yll c
+
+with ψ c = [ψr c , ψo c , ψll c ]. The information from the three branches is fussed
+c
+= ψr c yr c + ψo c yo c + ψll c yll c ,
+according to the self-attention weights as yself
+and the ﬁnal score for each candidate answer is ω c = wc � · yself c + bc .
+• QA-att: According to the output of the pre-trained BERT network when
+using the question and a candidate answer, yQA c , the attention weight for
+the read branch is computed as:
+� c �
+yr
+c
+�
++ batt
+ψr = watt ·
+c
+yQA
+
+9
+
+with ψo c and ψll c computed equivalently. The information from the three
+c
+= ψr c y r c +
+branches is fused according to the attention weights as yatt
+c
+c
+c
+c
+ψo yo + ψll yll , and the ﬁnal score for each candidate answer is computed
+as ω c = wc � · yatt c + bc .
+• Linear w/o MW : A linear layer trained without MW mechanism fuses the
+three branches information, ω c = wc � · [αr c , αo c , αll c ]� + bc and βω = 1.
+• Linear w/ MW A linear layer trained with our MW mechanism fuses the
+three branches information, ω c = wc � · [αr c , αo c , αll c ]� + bc and βω < 1.
+Experimentally set to 50.
+
+

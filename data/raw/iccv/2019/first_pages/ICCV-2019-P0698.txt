@@ -1,0 +1,139 @@
+Dynamic Kernel Distillation for Efficient Pose Estimation in Videos
+Xuecheng Nie1,∗
+1
+
+Yuncheng Li2
+
+Linjie Luo3
+
+Ning Zhang4
+
+Jiashi Feng1
+
+Department of Electrical and Computer Engineering, National University of Singapore, Singapore
+2
+
+Snap Inc.
+
+3
+
+ByteDance AI Lab
+
+4
+
+DawnLight Technologies Inc.
+
+niexuecheng@u.nus.edu raingomm@gmail.com
+ning@dawnlight.com
+
+Abstract
+Existing video-based human pose estimation methods extensively apply large networks onto every frame in the video
+to localize body joints, which suffer high computational cost
+and hardly meet the low-latency requirement in realistic
+applications. To address this issue, we propose a novel Dynamic Kernel Distillation (DKD) model to facilitate small
+networks for estimating human poses in videos, thus significantly lifting the efficiency. In particular, DKD introduces a
+light-weight distillator to online distill pose kernels via leveraging temporal cues from the previous frame in a one-shot
+feed-forward manner. Then, DKD simplifies body joint localization into a matching procedure between the pose kernels
+and the current frame, which can be efficiently computed via
+simple convolution. In this way, DKD fast transfers pose
+knowledge from one frame to provide compact guidance for
+body joint localization in the following frame, which enables
+utilization of small networks in video-based pose estimation.
+To facilitate the training process, DKD exploits a temporally
+adversarial training strategy that introduces a temporal discriminator to help generate temporally coherent pose kernels
+and pose estimation results within a long range. Experiments
+on Penn Action and Sub-JHMDB benchmarks demonstrate
+outperforming efficiency of DKD, specifically, 10× flops reduction and 2× speedup over previous best model, and its
+state-of-the-art accuracy.
+
+1. Introduction
+Human pose estimation in videos aims to generate framewise joint localization of the human body. It is important for
+many applications including surveillance [8], computer animation [18], and AR/VR [19]. Compared to its still-image
+based counterpart, this task is more challenging due to its
+low-latency requirement and various distracting factors, e.g.,
+motion blur, pose variation and viewpoint change.
+∗ This work was partly done while Xuecheng was an intern as Snap Inc.
+
+linjie.luo@bytedance.com
+
+elefjia@nus.edu.sg
+
+Frame t-1
+Small
+CNN
+
+Frame t
+Pose Kernel
+Distillator
+
+Matching
+
+Small
+CNN
+
+Frame t+1
+Pose Kernel
+Distillator
+
+Matching
+
+Small
+CNN
+
+Matching
+
+(a) Our DKD Model
+
+Frame t-1
+Large
+CNN
+
+Classiﬁcation
+
+Frame t
+RNN or
+Optical Flow
+
+Large
+CNN
+
+Frame t+1
+RNN or
+Optical Flow
+
+Classiﬁcation
+
+Large
+CNN
+
+Classiﬁcation
+
+(b) The Traditional Model
+
+Figure 1. Comparison between (a) our DKD model and (b) the
+traditional model for video-based human pose estimation. DKD
+online distills coherent pose knowledge and simplifies body joint
+localization into a matching procedure, facilitating small networks
+to efficiently estimate human pose in videos while achieving outperforming accuracy. See text for details.
+
+Prior CNN based methods to solve this task [10, 22, 25,
+20] usually use a large network to extract representative features for every frame and localize body joints based on them
+via pixel-wise classification. Some recent works also incorporate temporal cues from optical flow [9] or RNN units [30]
+to improve the performance, as shown in Fig. 1 (b). Despite
+their notable accuracy, these methods suffer expensive computation cost from the large model size, and hardly meet
+the low-latency requirement for realistic applications. The
+efficiency of video-based pose estimation still needs to be
+largely enhanced.
+In this paper, we propose to enhance efficiency of human
+pose estimation in videos by fully leveraging temporal cues
+to enable small networks to localize body joints accurately.
+Such an idea is motivated by observing the computational
+bottleneck for prior models. Considering the temporal consistency across adjacent frames, it is not necessary to pass
+every frame through a large network for feature extraction.
+Instead, the model only needs to learn how to effectively
+transfer knowledge of pose localization in previous frames
+to the subsequent frames. Such transfer can help alleviate
+
+6942
+
+

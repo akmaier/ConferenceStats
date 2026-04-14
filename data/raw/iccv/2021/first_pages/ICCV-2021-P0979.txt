@@ -1,0 +1,83 @@
+The Center of Attention: Center-Keypoint Grouping via Attention for
+Multi-Person Pose Estimation
+Guillem Brasó
+
+Nikita Kister
+Laura Leal-Taixé
+Technical University of Munich
+
+{guillem.braso,
+
+n.kister,
+
+lealtaixe}@tum.de
+
+Abstract
+We introduce CenterGroup, an attention-based framework to estimate human poses from a set of identity-agnostic
+keypoints and person center predictions in an image. Our
+approach uses a transformer to obtain context-aware
+embeddings for all detected keypoints and centers and then
+applies multi-head attention to directly group joints into
+their corresponding person centers. While most bottom-up
+methods rely on non-learnable clustering at inference,
+CenterGroup uses a fully differentiable attention mechanism that we train end-to-end together with our keypoint
+detector. As a result, our method obtains state-of-the-art
+performance with up to 2.5x faster inference time than
+competing bottom-up approaches. Our code is available at
+https://github.com/dvl-tum/center-group
+
+1. Introduction
+Localizing the anatomical 2D keypoints of all humans
+in an image is a fundamental task in computer vision, with
+the ability to enable progress in applications such as virtual
+reality, human computer interaction, and human behavior
+analysis. It is also a common key component of algorithms
+for tasks such as action recognition [60, 13], multi-object
+tracking [21, 29], and generative models [8, 48].
+Current methods typically follow one of two paradigms:
+bottom-up and top-down. Top-down approaches [10, 17, 18,
+25, 31, 41, 59, 51, 52] divide the problem into two subtasks:
+(i) bounding box detection for all persons in the image, and
+(ii) joint localization for each person individually. Despite
+their success in some benchmarks [2, 1, 32], these two-step
+approaches lack efficiency due to their need to use a separate object detector, and their performance tends to degrade
+severely under heavy occlusions [31]. Bottom-up methods
+[6, 44, 26, 37, 40, 12, 28] follow a different approach, as
+they first detect identity-agnostic keypoints, and then group
+them into separate poses. Their lack of reliance on external object detectors and their ability to operate jointly over
+the entire set of keypoints in the image has allowed them
+
+Center
+Group
+
+Person Centers
+
+Center-Keypoint Attention
+
+Set of Keypoints
+
+Figure 1: Given a set of predicted identity-agnostic keypoints and person centers, CenterGroup learns to assign
+keypoints into their corresponding centers with attention.
+to outperform top-down approaches in benchmarks where
+occlusions are common [31]. While recent work has significantly advanced the ability of bottom-up methods to accurately predict identity-free keypoints [12], current grouping algorithms still face significant drawbacks: since they
+generally rely on optimization algorithms, they cannot be
+trained end-to-end, and are often slow.
+The keypoint grouping task can be formulated as a graph
+optimization problem in which nodes represent keypoints,
+and edge weights, which can be learned, represent their
+likelihood of belonging to the same human pose. Approaches ranging from integer linear programming [44, 26,
+45], heuristics [37, 40, 6] or graph clustering [28] are then
+used to find the correct assignment. A common problem
+of bottom-up methods is that their learning objectives are
+poorly aligned with the real inference procedure: they learn
+affinities between keypoints but, at test time, grouping is
+performed by a separate algorithm which is not differentiable per se.
+One-shot methods are an efficient alternative [39, 65, 58]
+to optimization-based bottom-up methods. Their general
+formulation consists in regressing a root node location per
+person, and then predicting offsets to keypoint locations.
+Since they are able to avoid the optimization-based group-
+
+11853
+
+

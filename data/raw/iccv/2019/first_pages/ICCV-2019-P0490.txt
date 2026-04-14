@@ -1,0 +1,97 @@
+Scalable Verified Training for Provably Robust Image Classification
+Sven Gowal*
+DeepMind
+
+Krishnamurthy (Dj) Dvijotham*
+
+Robert Stanforth*
+
+dvij@google.com
+
+stanforth@google.com
+
+Rudy Bunel
+
+sgowal@google.com
+
+Chongli Qin
+
+Jonathan Uesato
+
+Relja Arandjelović
+
+Abstract
+Recent work has shown that it is possible to train deep
+neural networks that are provably robust to norm-bounded
+adversarial perturbations. Most of these methods are based
+on minimizing an upper bound on the worst-case loss over
+all possible adversarial perturbations. While these techniques show promise, they often result in difficult optimization procedures that remain hard to scale to larger networks.
+Through a comprehensive analysis, we show how a simple
+bounding technique, interval bound propagation (IBP), can
+be exploited to train large provably robust neural networks
+that beat the state-of-the-art in verified accuracy. While
+the upper bound computed by IBP can be quite weak for
+general networks, we demonstrate that an appropriate loss
+and clever hyper-parameter schedule allow the network to
+adapt such that the IBP bound is tight. This results in a
+fast and stable learning algorithm that outperforms more
+sophisticated methods and achieves state-of-the-art results
+on M NIST, C IFAR -10 and S VHN. It also allows us to train
+the largest model to be verified beyond vacuous bounds on a
+downscaled version of I MAGE N ET.
+
+1. Introduction
+Despite the successes of deep learning [1], it is wellknown that neural networks are not robust. In particular, it
+has been shown that the addition of small but carefully chosen deviations to the input, called adversarial perturbations,
+can cause the neural network to make incorrect predictions
+with high confidence [2–6]. Starting with Szegedy et al. [6],
+there has been a lot of work on understanding and generating
+adversarial perturbations [3, 7], and on building models that
+are robust to such perturbations [4, 8–10]. Unfortunately,
+many of the defense strategies proposed in the literature are
+targeted towards a specific adversary (e.g., obfuscating gradients against projected gradient attacks), and as such they
+are easily broken by stronger adversaries [11, 12]. Robust
+optimization techniques, like the one developed by Madry
+
+Timothy Mann
+
+Pushmeet Kohli
+
+Perturbation found
+using PGD
+Empirically robust but
+not provably robust model
+
+Predictions
+
+8 (PGD)
+2 (MIP)
+
+Perturbation found
+through exhaustive search
+(via MIP solver)
+
+Figure 1: Example motivating why robustness to the projected
+gradient descent (PGD) attack is not a true measure of robustness
+(even for small convolutional neural networks). Given a seemingly
+robust neural network, the worst-case perturbation of size ǫ = 0.1
+found using 200 PGD iterations and 10 random restarts (shown at
+the top) is correctly classified as an “eight”. However, a worst case
+perturbation classified as a “two” can be found through exhaustive
+search (shown at the bottom).
+
+et al. [9], overcome this problem by trying to find the worstcase adversarial examples at each training step and adding
+them to the training data. While the resulting models show
+strong empirical evidence that they are robust against many
+attacks, we cannot yet guarantee that a different adversary
+(for example, one that does brute-force enumeration to compute adversarial perturbations) cannot find inputs that cause
+the model to predict incorrectly. In fact, Figure 1 provides
+an example that motivates why projected gradient descent
+(PGD) – the technique at the core of Madry et al.’s method –
+does not always find the worst-case attack (a phenomenon
+also observed by Tjeng et al. [13]).
+This has driven the need for formal verification: a provable guarantee that neural networks are consistent with a
+specification for all possible inputs to the network. Substantial progress has been made: from complete methods
+14842
+
+

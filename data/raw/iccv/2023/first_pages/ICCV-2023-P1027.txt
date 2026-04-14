@@ -1,0 +1,107 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Prompt Switch: Efﬁcient CLIP Adaptation for Text-Video Retrieval
+Chaorui Deng1,∗ , Qi Chen1,∗ , Pengda Qin2 , Da Chen3 , Qi Wu1,†
+1
+Australia Institute of Machine Learning, University of Adelaide
+2
+Alibaba Group, 3 Department of Computer Science, University of Bath
+D^ZsddZΛϭ
+
+Abstract
+
+ϰϴ
+
+In text-video retrieval, recent works have beneﬁted from
+the powerful learning capabilities of pre-trained text-image
+foundation models (e.g., CLIP) by adapting them to the
+video domain. A critical problem for them is how to effectively capture the rich semantics inside the video using the image encoder of CLIP. To tackle this, state-ofthe-art methods adopt complex cross-modal modeling techniques to fuse the text information into video frame representations, which, however, incurs severe efﬁciency issues in large-scale retrieval systems as the video representations must be recomputed online for every text query.
+In this paper, we discard this problematic cross-modal fusion process and aim to learn semantically-enhanced representations purely from the video, so that the video representations can be computed ofﬂine and reused for different texts. Concretely, we ﬁrst introduce a spatial-temporal
+“Prompt Cube” into the CLIP image encoder and iteratively switch it within the encoder layers to efﬁciently incorporate the global video semantics into frame representations. We then propose to apply an auxiliary video captioning objective to train the frame representations, which
+facilitates the learning of detailed video semantics by providing ﬁne-grained guidance in the semantic space. With a
+naive temporal fusion strategy (i.e., mean-pooling) on the
+enhanced frame representations, we obtain state-of-the-art
+performances on three benchmark datasets, i.e., MSR-VTT,
+MSVD, and LSMDC.
+
+1. Introduction
+Text-video retrieval [1, 6, 30, 42] is a fundamental task
+in the area of video-language understanding that seeks to
+ﬁnd the most relevant video from a large set of candidates
+to match a text query. With the rapid growth of video
+data, text-video retrieval has become increasingly important for various applications, including video recommendation [36, 43], video search [20, 45], and video summa∗ Co-ﬁrst author. † Corresponds to qi.wu01@adelaide.edu.au.
+Code: https://github.com/bladewaltz1/PromptSwitch.
+
+15648
+
+ϰϳ
+
+KƵƌƐ
+
+x
+
+x
+
+ϰϲ
+
+x
+
+d^ϮͲEĞƚ
+
+yͲWŽŽů
+
+ϰϱ
+ϰϰ
+
+ϰϯ
+ϰϮ
+
+yͲ>/W
+
+ĞŶƚĞƌ>/W
+
+ŝĂŵĞƚĞƌ
+
+>/WϰůŝƉ
+
+ϭ
+
+ϭ Ϯ
+
+Ϯ
+
+ϰ
+
+ϰ
+
+ϴ
+
+ϲϰ '
+
+ϭϲ
+
+Ɛ
+
+Figure 1: The performance (i.e., R@1), retrieval time, and
+memory usage during retrieval for baseline models and ours
+on the MSRVTT dataset. The center of the bubble indicates
+the value of R@1. The diameter of the bubble or star is
+proportional to the memory usage (GB) while the horizontal
+axis indicates the inference time (s).
+rization [7, 29, 31, 33, 37, 47]. Due to the high cost of
+constructing text-video datasets, one promising approach
+for this task is to leverage pre-trained text-image foundation models and transfer their powerful representation capabilities to the video domain. Speciﬁcally, the CLIP [34]
+model, which is trained using a text-image alignment objective, is particularly suitable for text-video retrieval and
+has been frequently studied recently [27, 46, 16]. It has two
+transformer encoders [38, 9] to process images and texts, respectively. A vector representation is extracted from the input of each modality with the corresponding encoder and is
+optimized to be close to its paired representation and away
+from the unpaired ones.
+Adapting CLIP to the video domain is non-trivial and requires careful consideration of both efﬁciency and effectiveness. In CLIP4Clip [27], the authors directly mean-pool the
+frame representations extracted by the CLIP image encoder
+to get the video representation and use it to calculate the cosine similarity with the text representations during retrieval.
+However, the mean-pooling of frame representations may
+lose some essential semantic details of the video and hamper the retrieval performance. Thus, more advanced meth-
+
+

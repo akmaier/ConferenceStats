@@ -1,0 +1,84 @@
+Going deeper with Image Transformers
+Hugo Touvron
+
+Matthieu Cord
+
+Alexandre Sablayrolles
+
+Abstract
+Transformers have been recently adapted for large scale
+image classification, achieving high scores shaking up the
+long supremacy of convolutional neural networks. However
+the optimization of vision transformers has been little studied so far. In this work, we build and optimize deeper transformer networks for image classification. In particular, we
+investigate the interplay of architecture and optimization
+of such dedicated transformers. We make two architecture changes that significantly improve the accuracy of deep
+transformers. This leads us to produce models whose performance does not saturate early with more depth, for instance we obtain 86.5% top-1 accuracy on Imagenet when
+training with no external data, we thus attain the current
+sate of the art with less floating-point operations and parameters. Our best model establishes the new state of the
+art on Imagenet with Reassessed labels and Imagenet-V2 /
+match frequency, in the setting with no additional training
+data. We share our code and models1 .
+
+1. Introduction
+Residual architectures are prominent in computer vision
+since the advent of ResNet [27]. They are defined as a sequence of functions of the form
+xl+1 = gl (xl ) + Rl (xl ),
+
+(1)
+
+where the function gl and Rl define how the network updates the input xl at layer l. The function gl is typically identity, while Rl is the main building block of
+the network: many variants in the literature essentially
+differ on how this residual branch Rl is constructed or
+parametrized [51, 63, 73]. Residual architectures highlight
+the strong interplay between optimization and architecture
+design. As pointed out by He et al. [27], residual networks
+do not offer a better representational power. They achieve
+better performance because they are easier to train: shortly
+after their seminal work, He et al. discussed [28] the importance of having a clear path both forward and backward,
+and advocate setting gl to the identity function.
+1 https://github.com/facebookresearch/deit
+
+Gabriel Synnaeve
+
+Hervé Jégou
+
+The vision transformers [19] instantiate a particular form
+of residual architecture: after casting the input image into a
+set x0 of vectors, the network alternates self-attention layers
+(SA) with feed-forward networks (FFN), as
+x′l = xl + SA(η(xl ))
+xl+1 = x′l + FFN(η(x′l ))
+
+(2)
+
+where η is the LayerNorm operator [1]. This definition follows the original architecture of Vaswani et al. [67], except the LayerNorm is applied before the block (pre-norm)
+in the residual branch, as advocated by He et al. [28].
+Child et al. [13] adopt this choice with LayerNorm for training deeper transformers for various media, including for image generation where they train transformers with 48 layers.
+How to normalize, weigh, or initialize the residual
+blocks of a residual architecture has received significant attention both for convolutional neural networks [7, 8, 28, 76]
+and for transformers applied to NLP or speech tasks [2, 34,
+76]. In Section 2, we revisit this topic for transformer architectures solving image classification problems. Examples
+of approaches closely related to ours include Fixup [76], TFixup [34], ReZero [2] and SkipInit [16].
+Following our analysis of the interplay between different
+initialization, optimization and architectural design, we propose an approach that is effective to improve the training of
+deeper architecture compared to current methods for image
+transformers. Formally, we add a learnable diagonal matrix
+on the output of each residual block, initialized close to (but
+not at) 0. Adding this simple layer after each residual block
+improves the training dynamic, allowing us to train deeper
+high-capacity image transformers that benefit from depth.
+We refer to this approach as LayerScale.
+Section 3 introduces our second contribution, namely
+class-attention layers, that we present in Figure 2. It is akin
+to an encoder/decoder architecture, in which we explicitly
+separate the transformer layers involving self-attention between patches, from class-attention layers that are devoted
+to extract the content of the processed patches into a single
+vector so that it can be fed to a linear classifier. This explicit
+separation avoids the contradictory objective of guiding the
+attention process while processing the class embedding. We
+refer to this new architecture as CaiT (Class-Attention in
+Image Transformers).
+
+32
+
+

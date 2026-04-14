@@ -1,0 +1,57 @@
+1
+
+Appendix
+A
+
+Algorithm of CloudFixer
+
+We present the detailed algorithm of CloudFixer in Algorithm 1, which encompasses both the original input adaptation and the online model adaptation. It is
+worth noting that the pre-trained diffusion model ϵθ is frozen and utilized solely
+to acquire ŷ, guiding y back to the source domain.
+
+Algorithm 1 CloudFixer
+Require: Test instance x ∈ RN ×3 , Diffusion model ϵθ , Classifier fψ , Timestep schedule
+(tmin , tmax ), # of iteration S, Regularization scheduling λ(·), Learning rate scheduling
+ηinput (·), ηmodel (·), # of nearest neighbor k, # of vote K
+▷ Diffusion-Guided Input Adaptation
+∆ ← 0, R ← I, m ← 0
+while m < K do
+\triangleright  Conducted as batch processing
+n←0
+while n < S do
+y[m] ← R(x + ∆)
+t, ϵ ← U [tmin , tmax ], N (0, I)
+yt ← αt y[m] + σt ϵ
+ŷ ← (yt −
+Pσt ϵθ (yt , t))/αt
+wi ← 1/ j∈kN N (i) ∥xi − xj ∥2 , ∀i ∈ {1, . . . , N }
+P
+wi ← wi / j wj , ∀i ∈ {1, . . . , N }
+P
+Linput ← D(stopgrad(ŷ), y[m]) + λ(n) j wj ∥δj ∥22 )
+(∆, R) ← (∆, R) − ηinput (n)∇(∆,R) Linput \triangleright  AdaMax in our implementation
+n←n+1
+end while
+m←m+1
+end while
+▷ Online Model Adaptation (CloudFixer-O. Optional)
+o ← 0,
+while o < OP
+do
+Lmodel ← K
+m=1 KL(fψ (x), fψ (y[m]))
+ψ ← ψ − ηmodel (o)∇ψ Lmodel
+\triangleright  AdamW in our implementation
+o←o+1
+end while
+
+B
+
+Originality and Advantages over DDA
+
+While DDA [13] and CloudFixer both use diffusion models for input adaptation,
+their core ideas and methods are distinct. DDA uses an iterative generative
+process while preserving low-frequency information, whereas CloudFixer uses
+a parameterized 3D geometric transformation guided by the source diffusion
+
+

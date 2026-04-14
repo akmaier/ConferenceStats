@@ -1,0 +1,46 @@
+End-to-End Active Speaker Detection
+(Supplementary Material)
+Juan León Alcázar1 , Moritz Cordes1,2 ,
+Chen Zhao1 , and Bernard Ghanem1
+1
+
+King Abdullah University of Science and Technology, KAUST
+{juancarlo.alcazar,chen.zhao,bernard.ghanem}@kaust.edu.sa
+2
+Leuphana University Lüneburg moritz.cordes@stud.leuphana.de
+
+1
+
+Training details
+
+We implement the audio encoder fa with the Resnet18 convolutional encoder [4]
+pre-trained on ImageNet [2]. We adapt the raw 1D audio signal to fit the input
+of a 2D encoder by generating Mel-frequency cepstral coefficients (MFCCs) of
+the original audio clip, and then averaging the filters of the network’s first convolutional layer to adapt for a single channel input [11]. We create the MFCCs
+with a sampling rate of 16 kHz and an analysis window of 0.025 ms. Our filter
+bank consists of 26 filters and a fast Fourier transform of size 256 is applied, resulting in 13 cepstrums. The visual encoder fv is based on the R3D architecture,
+pre-trained on Kinetics-400 dataset [6]. For fair comparison with other methods,
+we also implement fv as a 2D encoder by stacking the temporal and channel
+dimensions into a single one, then we replicate the filters on the encoder’s first
+layer to accommodate for the input of dimension (B, CT, H, W ) [12,11]. We also
+rely on ImageNet pre-training [2] for this encoder.
+Φ Embedding We assemble Φ on-the-fly with parallel forward passes of fa , fv ,
+and then map Φ into nodes of the Graph Convolutional Network and continue
+with the GCN in a single forward pass. We design the GCN module using the
+pytorch-geometric library [3] and use the EdgeConvolution operator [13] with
+filters of size 128. Each layers on the spatio-temporal module contains a single
+iGNN block. EdgeConvolution allows to build a sub-network that performs the
+message passing between nodes, where every layer (spatial or temporal) in the
+iGNN is built by a sub-network of two linear layers with ReLu [9] and batch
+normalization [5]. Therefore, a single iGNN block contains 4 linear layers in
+total.
+Training EASEE. We Train EASEE for a total of 12 epochs3 using the ADAM
+optimizer [7], and supervise every node in the final layer with the Cross-Entropy
+Loss. We also apply intermediate supervision at the end of fa and fv encoders [11].
+3
+
+Similar to [1], we find that sampling every element in the tracklet leads to overfit.
+For every training epoch, we randomly sample only 4 training examples inside every
+tracklet.
+
+

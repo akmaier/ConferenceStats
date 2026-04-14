@@ -1,0 +1,92 @@
+AutoFocus: Efficient Multi-Scale Inference
+Mahyar Najibi ∗
+Bharat Singh ∗
+Larry S. Davis
+University of Maryland, College Park
+{najibi,bharat,lsd}@cs.umd.edu
+
+This paper describes AutoFocus, an efficient multi-scale
+inference algorithm for deep-learning based object detectors. Instead of processing an entire image pyramid, AutoFocus adopts a coarse to fine approach and only processes
+regions which are likely to contain small objects at finer
+scales. This is achieved by predicting category agnostic segmentation maps for small objects at coarser scales, called
+FocusPixels. FocusPixels can be predicted with high recall, and in many cases, they only cover a small fraction of
+the entire image. To make efficient use of FocusPixels, an
+algorithm is proposed which generates compact rectangular FocusChips which enclose FocusPixels. The detector is
+only applied inside FocusChips, which reduces computation
+while processing finer scales. Different types of error can
+arise when detections from FocusChips of multiple scales
+are combined, hence techniques to correct them are proposed. AutoFocus obtains an mAP of 47.9% (68.3% at 50%
+overlap) on the COCO test-dev set while processing 6.4 images per second on a Titan X (Pascal) GPU. This is 2.5×
+faster than our multi-scale baseline detector and matches
+its mAP. The number of pixels processed in the pyramid can
+be reduced by 5× with a 1% drop in mAP. AutoFocus obtains more than 10% mAP gain compared to RetinaNet but
+runs at the same speed with the same ResNet-101 backbone.
+
+1. Introduction
+Human vision is foveal and active [1, 21]. The fovea,
+which observes the world at high-resolution, only corresponds to 5 degrees of the total visual field [32]. Our
+lower resolution peripheral vision has a field of view of 110
+degrees [62]. To find objects, our eyes perform saccadic
+movements which rely on peripheral vision [31]. When
+moving between different fixation points, the region in between is simply ignored, a phenomenon known as saccadic
+masking [7, 27, 50]. Hence, finding objects is an active
+process and the search time depends on the complexity of
+∗ Equal Contribution
+
+Area Percentage/Image
+
+Abstract
+
+60
+50
+40
+30
+
+57%
+Small: (0, 322]
+Med: (322, 962]
+
+40%
+
+Large: (962, ∞)
+
+20
+10
+0
+
+0.3%
+
+Small
+
+3%
+
+Med
+
+Large
+
+BG
+
+Figure 1: Area of objects of different sizes and the background in the COCO validation set. Objects are divided
+based on their area (in pixels) into small, medium, and large.
+the scene. For example, locating a face in a portrait photograph would take much less time than finding every face in
+a crowded market.
+Adaptive processing, which is quite natural, brings several benefits. Many applications do not have real-time requirements and detectors are applied offline on billions of
+images/videos. Therefore, computational savings in a batch
+mode provide substantial monetary benefits. Examples include large-scale indexing of images and videos for visual
+search, APIs provided by cloud services, smart retail stores
+etc. While there is work on image classification which performs conditional computation [4, 39, 67], modern object
+detection algorithms perform static inference and process
+every pixel of a multi-scale image pyramid to detect objects
+of different sizes [59, 60, 54]. This is a very inefficient process as the algorithm spends equal energy at every pixel at
+different scales.
+To provide some perspective, we show the percentage of
+pixels occupied per image for different size objects in the
+COCO dataset in Fig 1. Even though 40% of the object
+instances are small, they only occupy 0.3% of the area. If
+the image pyramid includes a scale of 3, then just to detect
+such a small fraction of the dataset, we end up performing 9 times more computation at finer-scales. If we add
+some padding around small objects to provide spatial context and only upsample these regions, their area would still
+
+9745
+
+

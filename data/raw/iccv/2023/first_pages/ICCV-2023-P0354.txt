@@ -1,0 +1,157 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+MixPath: A Unified Approach for One-shot Neural Architecture Search
+Xiangxiang Chu
+
+Shun Lu
+
+Xudong Li
+
+Bo Zhang
+
+cxxgtxy@gmail.com, lushun19s@ict.ac.cn, lixudong16@mails.ucas.edu.cn, zhangboyd@qq.com
+
+Abstract
+Blending multiple convolutional kernels is proved advantageous in neural architecture design. However, current
+two-stage neural architecture search methods are mainly limited to single-path search spaces. How to efficiently search
+models of multi-path structures remains a difficult problem.
+In this paper, we are motivated to train a one-shot multi-path
+supernet to accurately evaluate the candidate architectures.
+Specifically, we discover that in the studied search spaces,
+feature vectors summed from multiple paths are nearly multiples of those from a single path. Such disparity perturbs the
+supernet training and its ranking ability. Therefore, we propose a novel mechanism called Shadow Batch Normalization
+(SBN) to regularize the disparate feature statistics. Extensive
+experiments prove that SBNs are capable of stabilizing the
+optimization and improving ranking performance. We call
+our unified multi-path one-shot approach as MixPath, which
+generates a series of models that achieve state-of-the-art
+results on ImageNet.
+
+1. Introduction
+Complete automation in neural network design is one of
+the most important research directions of automated machine
+learning [32, 22]. Among various mainstream paradigms,
+one-shot approaches [13, 8, 19] make use of a weight-sharing
+mechanism that reduces a large amount of computational
+cost, but these approaches mainly focus on searching for
+single-path networks. Observing that a multi-path structure
+is beneficial for model performance as in Inception [30]
+and ResNeXT [37], it is necessary to incorporate multi-path
+structure into the search space. Noticeably, exploring multipath search space is made possible in one-stage approaches
+like [9] and [26]. However, it poses a challenge for twostage methods to train a one-shot supernet that can accurately
+predict the performance of its multi-path submodels.
+Although FairNAS [8] largely alleviates the ranking difficulty in the single-path case with a fairness strategy, it is
+inherently difficult to apply the same method in a multi-path
+scenario. It should be emphasized that the most critical point
+of the two-stage NAS is that the supernet can rank submod-
+
+O1
+
+Input Tensor
+
+O2
+
+O1 +O2
+
+SBN 1 SBN 2
+
+3×3
+conv
+
+5×5
+conv
+
+7×7
+conv
+
+9×9
+conv
+
+1, 
+
+w/o SBN
+
+2,  22
+
+2
+1
+
+,  2
+
+Output Tensor
+
+Unchosen path
+m=2
+
+Chosen path
+
+MixPath m =2
+m=1
+3×3
+
+5×5
+
+7×7
+
+9×9
+
+3×3
+
+5×5
+
+7×7
+
+9×9
+
+O1
+
+O2
+
+O3
+
+O4
+
+O1
+
+O2
+
+O3
+
+O4
+
+1×1 conv
+SBN1
+
+SBN2
+
+1×1 conv
+SBN1 SBN2
+
+Figure 1: Top Left: Options in a demo block, where at most
+m paths can be chosen. Bottom: An example of MixPath supernet training with Shadow Batch Normalizations (SBNs).
+Note 1x1 Conv is not a must. SBNs are standard BNs, except
+that SBNs are applied w.r.t the number of activated paths.
+E.g., SBN1 is used whenever only m′ = 1 path is activated,
+SBN2 for m′ = 2 paths. Top Right: SBNs catch each
+of the statistics in two modes (red for m′ = 1, green for
+m′ = 2), however, a single BN (black) can’t capture both.
+els as accurately as possible. However, we find that a vanilla
+training of a multi-path supernet (e.g. randomly pick a multipath submodel to train at each step) is not stable to provide a
+confident ranking because of changing statistics during the
+sampling process. Therefore, we dive into its real causes
+and undertake a unified approach to tackle this issue. Our
+contributions can be summarized as follows.
+• We propose a unified approach for multi-path (say at
+most m paths are allowed) one-shot NAS, as opposed to
+the current single-path methods. From this perspective,
+current one-shot methods [13, 8] become one of our
+special cases when m = 1.
+• We disclose why a vanilla multi-path training fails, and
+we propose a novel yet lightweight mechanism, called
+shadow batch normalization (SBN, see Fig. 1), to stabi-
+
+5972
+
+

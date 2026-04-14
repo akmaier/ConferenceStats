@@ -1,0 +1,282 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Story Visualization by Online Text Augmentation with Context Memory
+Daechul Ahn1,§
+Daneul Kim2
+Gwangmo Song3
+Seung Hwan Kim3
+Honglak Lee3,4
+Dongyeop Kang5
+Jonghyun Choi1,†
+1
+
+Yonsei University 2 GIST 3 LG AI Research 4 University of Michigan 5 University of Minnesota
+{dcahn,jc}@yonsei.ac.kr flytodk98@gm.gist.ac.kr gwangmo.song@lgresearch.ai
+skcruise@gmail.com honglak@eecs.umich.edu dongyeop@umn.edu
+
+Abstract
+Story visualization (SV) is a challenging text-to-image
+generation task for the difficulty of not only rendering visual
+details from the text descriptions but also encoding a longterm context across multiple sentences. While prior efforts
+mostly focus on generating a semantically relevant image for
+each sentence, encoding a context spread across the given
+paragraph to generate contextually convincing images (e.g.,
+with a correct character or with a proper background of
+the scene) remains a challenge. To this end, we propose
+a novel memory architecture for the Bi-directional Transformer framework with an online text augmentation that
+generates multiple pseudo-descriptions as supplementary
+supervision during training for better generalization to the
+language variation at inference. In extensive experiments
+on the two popular SV benchmarks, i.e., the Pororo-SV and
+Flintstones-SV, the proposed method significantly outperforms the state of the arts in various metrics including FID,
+character F1, frame accuracy, BLEU-2/3, and R-precision
+with similar or less computational complexity.
+
+(a)
+Img.
+Gold
+ Loopy invites her
+
+Sent friends in.
+
+Loopy puts cherry
+
+on a pie. Loopy is 
+
+done with the pie.
+
+Sent
+ Friends are standing,
+
+Var.1 staring.
+Sent
+ Pororo, Eddy, Crong
+are standing a
+Var.2 Pthoby
+e door.
+Sent
+ Pororo, Eddy, Crong
+Var.3 Poby are on the road.
+
+Loopy is smilin
+in front of a table.
+
+, 
+
+t 
+
+, 
+
+g
+
+
+s1
+
+s2
+
+s3
+
+s4
+
+s5
+
+
+table and drinking juice. juice.
+They are inside the
+
+Loopy is talkin
+house talking.
+looking at the table.
+Friends gathered
+
+Loopy looks sad.
+around talking.
+Pororo’s friends are
+
+Loopy puts down the
+
+seated around the
+
+juice on the table.
+table,with Poby standing.
+g
+
+
+Loopy is smiling wit
+pie on the table.
+
+h
+
+
+Loopy is at the table.
+
+(b)
+
+Mode
+nline ugmentation
+l
+
+
+Text seq.
+
+O
+
+Loopy pushes her
+
+drink. Loopy says
+
+Loopy won't drink
+
+
+Pororo, Crong, 
+
+Poby, and Eddy are
+
+sitting around the 
+
+
+A
+
+...
+
+@
+
+Train
+
+I1
+
+MT
+MT
+Mem.
+Mem.
+Generated pseudo-text
+
+Loopy does not 
+
+drink juice, and
+
+Eddy asks why.
+Eddy is smiling in
+
+front of a table.
+Eddy is listening t
+others.
+
+o
+
+
+Eddy is sitting around
+
+the table with a juice.
+
+Image seq.
+I2
+
+I3
+
+I4 I5
+
+(c) nline ugmentation Train
+O
+
+A
+
+@
+
+GND Image Seq.
+I1
+
+I2
+
+I3
+
+I4
+
+I5
+
+I2T2I
+
+MT
+Mem.
+
+...
+
+MT
+Mem.
+
+Generated Pseudo Text
+s1
+
+s2
+
+s3
+
+s4
+
+s5
+
+
+I2T2I: Image-to-(Generated)Text-to-Image
+
+(d)
+
+Sent. #1
+
+Loopy notices something. The
+woods are covered with snow.
+
+Sent. #2
+
+Loopy explains what happend
+to Pororo’s Flower.
+
+(b) by contextual memory
+
+(e.g. background, object, name)
+
+New sent.
+The seed blooms as flower under the sky.
+(c) by online-augmentation
+
+(e.g. linguistic diversity)
+
+1. Introduction
+Story visualization (SV) [17] is a task of generating a sequence of images from a paragraph, i.e., a sequence of natural language sentences. It is challenging for the requirement
+of rendering the visual details in images with convincing
+background of a scene – seasonal elements, environmental
+objects such as table, location, and the proper character appearing, which here we refer to as context, spread across
+the given text sentences. Specifically, it needs to encode implicit context presented in the given sentences since each one
+often omit visual details (i.e., they may be spread over the
+sentences) necessary to generate a semantically correct im§ : work done while interning at LG AI Research. † : corresponding author.
+
+Code: https://github.com/yonseivnl/cmota
+
+Sent. #1
+
+Prior arts
+
+w/contextualmemory
+
+w/o online aug.
+
+w/ online aug.
+
+Figure 1. Linguistic variations in story visualization and the
+overview of the proposed method. (a) An example of a story
+data with various linguistic variations (Var.#) for each image. (b)
+Modeling temporal context spread across sentences by our context
+memory (Sec. 3.1). (c) Addressing linguistic variations by online
+text augmentation from each image for every epoch (Sec. 3.2).
+(d) Benefit of the proposed context memory (left) and online text
+augmentation (right).
+
+age. For example, we can think of Fig. 1-(d), where Sent.#1
+(i.e., sentence 1) and Sent.#2 (i.e., sentence 2) are given
+as sequences. After Sent.#1 is given, generated image by
+Sent.#2 often exhibits a background that is not semantically
+
+3125
+
+

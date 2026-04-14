@@ -1,0 +1,70 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+TripLe: Revisiting Pretrained Model Reuse and Progressive Learning for
+Efficient Vision Transformer Scaling and Searching
+Cheng Fu†,‡ , Hanxian Huang† , Zixuan Jiang‡ , Yun Ni‡ , Lifeng Nai‡ , Gang Wu‡ ,
+Liqun Cheng‡ , Yanqi Zhou‡ , Sheng Li‡ , Andrew Li‡ , Jishen Zhao‡
+UC San Diego† , Google ‡
+{cfu,hah008}@ucsd.edu,
+{zixuanjiang, yunn, lnai, wgang, liquncheng,
+yanqiz, lsheng, andrewyli, jishenzhao}@google.com
+
+Abstract
+One promising way to accelerate transformer training
+is to reuse small pretrained models to initialize the transformer, as their existing representation power facilitates
+faster model convergence. Previous works designed expansion operators to scale up pretrained models to the target
+model before training. Yet, model functionality is difficult
+to preserve when scaling a transformer in all dimensions at
+once. Moreover, maintaining the pretrained optimizer states
+for weights is critical for model scaling, whereas the new
+weights added during expansion lack these states in pretrained models. To address these issues, we propose TripLe,
+which partially scales a model before training, while growing the rest of the new parameters during training by copying both the warmed-up weights with the optimizer states
+from existing weights. As such, the new parameters introduced during training will obtain their training states. Furthermore, through serializing the scaling of model width
+and depth, the functionality of each expansion can be preserved. We evaluate TripLe in both single-trial model scaling and multi-trial neural architecture search (NAS). Due to
+the fast training convergence of TripLe, the proxy accuracy
+from TripLe better reveals the model quality compared to
+from-scratch training in multi-trial NAS. Experiments show
+that TripLe outperforms from-scratch training and knowledge distillation (KD) in both training time and task performance. TripLe can also be combined with KD to achieve
+an even higher task accuracy. For NAS, the model obtained
+from TripLe outperforms DeiT-B in task accuracy with 69%
+reduction in parameter size and FLOPs.
+
+1. Introduction
+Vision transformer (ViT) models are promising to
+achieve the state-of-the-art performance on various com-
+
+puter vision tasks [14, 20, 44, 45]. While the performance
+frontier keeps pushing forward, the training costs also scale
+with the growth of parameters. For example, Dehghani et
+al. [11] scaled a ViT to 22 billion parameters. Furthermore,
+recent research [33] shows that transformers require much
+more training steps and larger datasets to better generalize
+compared to convolutional neural networks (CNNs), imposing even more scaling costs of ViTs.
+Among various transformer training acceleration and
+cost reduction techniques [23, 7, 51, 54, 41, 17], one
+promising method is to reuse small pretrained models to
+initialize a large model before training. By scaling a small
+pretrained model with various expansion operators and using it to initialize the large model, the implicit knowledge
+facilitates faster model convergence. Previous studies such
+as bert2BERT [4] focused on preserving the functionality of
+the small pretrained transformer, when growing transformer
+width (i.e., hidden dimensions). A recent work learn-togrow [49] learns linear mappings to scale the pretrained
+model by minimizing the task loss during model expansion.
+However, we identify a set of critical limitations in
+the existing approaches through a comprehensive investigation (Sec 2.3). (L1) Maintaining the functionality during model scaling is not the only key factor to achieving a
+high speedup and final task accuracy. We identify that the
+other critical factor is retaining the optimizer states of the
+weights, because that preserves the direction of model updates when the functionality is preserved. Previous methods [49, 4] do not include these optimizer states during
+model scaling. (L2) Training discrepancies exist between
+the pretrained weights and the new weights because the new
+weights introduced during scaling do not have optimizer
+states built up before training. (L3) The functionality of a
+pretrained model is hardly preserved by simply expanding
+a small pretrained model in multiple dimensions all at once.
+To address these limitations, we propose a new method,
+
+17153
+
+

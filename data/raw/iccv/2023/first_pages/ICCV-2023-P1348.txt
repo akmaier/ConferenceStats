@@ -1,0 +1,99 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+D E D RIFT: Robust Similarity Search under Content Drift
+Dmitry Baranchuk*
+Yandex Research
+
+Matthijs Douze
+Meta AI
+
+Yash Upadhyay
+Meta AI
+
+I. Zeki Yalniz
+Meta AI
+
+dbaranchuk@yandex-team.ru
+
+matthijs@meta.com
+
+yashup@meta.com
+
+izy@meta.com
+
+Abstract
+The statistical distribution of content uploaded and
+searched on media sharing sites changes over time due to
+seasonal, sociological and technical factors. We investigate
+the impact of this “content drift” for large-scale similarity
+search tools, based on nearest neighbor search in embedding
+space. Unless a costly index reconstruction is performed
+frequently, content drift degrades the search accuracy and
+efficiency. The degradation is especially severe since, in
+general, both the query and database distributions change.
+We introduce and analyze real-world image and video
+datasets for which temporal information is available over
+a long time period. Based on the learnings, we devise
+D E D RIFT, a method that updates embedding quantizers to
+continuously adapt large-scale indexing structures on-the-fly.
+D E D RIFT almost eliminates the accuracy degradation due
+to the query and database content drift while being up to
+100× faster than a full index reconstruction.
+
+1. Introduction
+The amount of content available online is growing exponentially over the years. Various online content sharing sites
+collect billions to trillions of images, videos and posts over
+time. Efficient Nearest Neighbor Search (NNS) techniques
+enable searching these vast unstructured databases based
+on content similarity. NNS is at the core of a plethora of
+practical machine learning applications including content
+moderation [17], retrieval augmented modeling [10, 24],
+keypoint matching for 3D reconstruction [1], image-based
+geo-localisation [12], content de-duplication [44], k-NN classification [4, 11], defending against adversarial attacks [18],
+active learning [15] and many others.
+NNS techniques extract high dimensional feature vectors
+(a.k.a. “embeddings”) from each item to be indexed. These
+embeddings may be computed by hand-crafted techniques
+[35, 28] or, more commonly nowadays, with pre-trained neural networks [7, 37, 36]. Given the database of embedding
+* The work is partially done during the internship at Meta AI
+
+vectors D={x1 , . . . , xN } ⊂ Rd and a query embedding
+q ∈ Rd , NNS retrieves the closest database example to q
+from D according to some similarity measure, typically the
+L2 distance:
+argminx∈D ∥q − x∥2
+(1)
+The exact nearest neighbor and its distance can be computed
+by exhaustively comparing the query embeddings against
+the entire database. On a single core of a typical server from
+2023, this brute-force solution takes a few milliseconds for
+databases smaller than few tens of thousand examples with
+embeddings up to a few hundred dimensions.
+However, practical use cases require real time search on
+millions to trillion size databases, where brute-force NNS
+is too slow [14]. Practitioners resort to approximate NNS
+(ANNS), trading some accuracy of the results to speed up
+the search. A common approach is to perform a statistical
+analysis of D to build a specialized data structure (an “index”
+in database terms) that performs the search efficiently. Like
+any unsupervised machine learning task, the index is trained
+on representative sample vectors from the data distribution
+to the index.
+A tool commonly used in indexes is vector quantization [22]. It consists in representing each vector by the nearest vector taken in a finite set of centroids {c1 , . . . , cK } ⊂
+Rd . A basic use of quantization is compact storage: the vector can be reduced to the index of the centroid it is assigned
+to, which occupies just ⌈log2 K⌉ bits of storage. The larger
+K, the better the approximation. As typical for machine
+learning, the training set T is distinct from D (usually T is a
+small subset of D). The unsupervised training algorithm of
+choice for quantization is k-means which guarantees Lloyd’s
+optimality conditions [32].
+In an online media sharing site, the index functions as a
+database system. After the initial training, the index ingests new embeddings by batches as they are uploaded
+by users and removes content that has been deleted (Figure 1). Depending on the particular indexing structure, addition/deletion may be easy [27], or more difficult [40]. However, a more pernicious problem that appears over the time
+is content drift. In practice, over months and years, the statistical distribution of the content changes slowly, both for
+
+11026
+
+

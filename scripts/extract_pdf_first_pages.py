@@ -2,12 +2,20 @@
 
 import argparse
 import csv
+import html
+import re
 import subprocess
 import tempfile
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urljoin
+
+USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/123.0.0.0 Safari/537.36"
+)
 
 
 def load_rows(path: Path):
@@ -24,13 +32,13 @@ def write_csv(path: Path, fieldnames, rows):
 
 
 def download_bytes(url: str) -> bytes:
-    request = urllib.request.Request(url, headers={"User-Agent": "ConferenceStats/1.0"})
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=60) as response:
         return response.read()
 
 
 def fetch_text(url: str) -> str:
-    request = urllib.request.Request(url, headers={"User-Agent": "ConferenceStats/1.0"})
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=60) as response:
         return response.read().decode("utf-8", errors="replace")
 
@@ -38,6 +46,17 @@ def fetch_text(url: str) -> str:
 def derived_pdf_url_from_paper_page(paper_page_url: str) -> str:
     if not paper_page_url:
         return ""
+    if "openreview.net/forum?id=" in paper_page_url:
+        return paper_page_url.replace("/forum?id=", "/pdf?id=")
+    if "proceedings.mlr.press" in paper_page_url and paper_page_url.endswith(".html"):
+        return paper_page_url[:-5] + ".pdf"
+    if "/paper_files/paper/" in paper_page_url and "-Abstract" in paper_page_url:
+        return (
+            paper_page_url
+            .replace("/hash/", "/file/")
+            .replace("-Abstract", "-Paper")
+            .replace(".html", ".pdf")
+        )
     return (
         paper_page_url
         .replace("/html/", "/papers/")
@@ -48,16 +67,21 @@ def derived_pdf_url_from_paper_page(paper_page_url: str) -> str:
 def discover_pdf_url_from_paper_page(paper_page_url: str) -> str:
     if not paper_page_url:
         return ""
-    html = fetch_text(paper_page_url)
-    marker = "_paper.pdf"
-    href_index = html.find(marker)
-    if href_index < 0:
-        return ""
-    start_index = html.rfind('href="', 0, href_index)
-    if start_index < 0:
-        return ""
-    start_index += len('href="')
-    return urljoin(paper_page_url, html[start_index:href_index + len(marker)])
+    page_html = fetch_text(paper_page_url)
+
+    patterns = [
+        r'href="([^"]+\.pdf[^"]*)"',
+        r"href='([^']+\.pdf[^']*)'",
+        r'href="([^"]+/pdf\?id=[^"]+)"',
+        r"href='([^']+/pdf\?id=[^']+)'",
+        r'<a[^>]+class="[^"]*\bpdf\b[^"]*"[^>]+href="([^"]+)"',
+        r"<a[^>]+class='[^']*\bpdf\b[^']*'[^>]+href='([^']+)'",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, page_html, flags=re.I)
+        if match:
+            return urljoin(paper_page_url, html.unescape(match.group(1)))
+    return ""
 
 
 def initial_pdf_candidate_urls(row) -> list[str]:

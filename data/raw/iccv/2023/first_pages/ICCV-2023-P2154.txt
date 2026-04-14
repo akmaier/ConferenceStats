@@ -1,0 +1,168 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+RLIPv2: Fast Scaling of Relational Language-Image Pre-training
+Hangjie Yuan1 * Shiwei Zhang2 Xiang Wang3 * Samuel Albanie4 Yining Pan5 *
+Tao Feng2 Jianwen Jiang2 Dong Ni1† Yingya Zhang2 Deli Zhao2
+2
+Zhejiang University
+Alibaba Group
+4
+CAML Lab, University of Cambridge
+
+{hj.yuan, dni}@zju.edu.cn
+sma71@cam.ac.uk
+
+3
+
+5
+
+Huazhong University of Science and Technology
+Singapore University of Technology and Design
+
+wxiang@hust.edu.cn
+
+{pyn.sigrid, fengtao.hi, zhaodeli}@gmail.com
+
+{zhangjin.zsw, jianwen.jjw, yingya.zyy}@alibaba-inc.com
+
+Relational Language-Image Pre-training (RLIP) aims to
+align vision representations with relational texts, thereby
+advancing the capability of relational reasoning in computer vision tasks. However, hindered by the slow convergence of RLIPv11 architecture and the limited availability
+of existing scene graph data, scaling RLIPv1 is challenging.
+In this paper, we propose RLIPv2, a fast converging model
+that enables the scaling of relational pre-training to largescale pseudo-labelled scene graph data. To enable fast scaling, RLIPv2 introduces Asymmetric Language-Image Fusion (ALIF), a mechanism that facilitates earlier and deeper
+gated cross-modal fusion with sparsified language encoding
+layers. ALIF leads to comparable or better performance
+than RLIPv1 in a fraction of the time for pre-training and
+fine-tuning. To obtain scene graph data at scale, we extend
+object detection datasets with free-form relation labels by
+introducing a captioner (e.g., BLIP) and a designed Relation Tagger. The Relation Tagger assigns BLIP-generated
+relation texts to region pairs, thus enabling larger-scale relational pre-training. Through extensive experiments conducted on Human-Object Interaction Detection and Scene
+Graph Generation, RLIPv2 shows state-of-the-art performance on three benchmarks under fully-finetuning, fewshot and zero-shot settings. Notably, the largest RLIPv2
+achieves 23.29mAP on HICO-DET without any fine-tuning,
+yields 32.22mAP with just 1% data and yields 45.09mAP
+with 100% data. Code and models are publicly available at
+https://github.com/JacobYuan7/RLIPv2.
+
+1. Introduction
+The pretraining-finetuning paradigm has achieved major breakthroughs in vision and language domains [58, 13,
+* Work conducted during their research internships at DAMO Academy.
+† Corresponding author.
+1 RLIPv1 refers to the model presented in [86], and RLIPv2 refers to
+the model presented in this paper.
+
+mAP
+
+Abstract
+
+47
+44
+41
+38
+35
+32
+29
+26
+23
+
+25
+
+Swin-L
+R50 Swin-T
+
+RLIPv2
+(100% data)
+GEN-VLKT
+RLIPv1
+
+RLIPv2
+(1% data)
+
+0
+
+50
+
+OCN
+QPIC
+
+QAHOI
+
+21
+19
+
+0.2M
+0.1M
+
+(R50)
+
+15
+100
+
+1.9M
+
+RLIPv2
+(Swin-T)
+
+17 RLIPv2
+
+CDN
+
+Fine-tuning Epochs
+
+Data size
+
+RLIPv2
+
+23 (Swin-L)
+
+mAP
+
+1
+
+150
+
+13
+
+RLIPv1
+(R50)
+
+0
+
+20
+
+40
+
+Pre-training Epochs
+
+60
+
+Figure 1: Left: Fine-tuning comparison on HICO-DET. Right:
+Pre-training epoch and zero-shot (NF) comparison on HICO-DET.
+Except where stated, RLIPv2-ParSeDA architecture is adopted.
+
+23, 103, 65, 77]. In this context, a number of particularly
+notable results have been obtained through aligned VisionLanguage Pre-training (VLP) [65, 42, 41, 78, 95, 91]. These
+research efforts have typically employed a robust base
+model [14, 25, 12, 74] that is trained on language-image
+paired data to produce foundation models.
+RLIPv1 [86] presents the first attempt to specifically
+align vision representations and relational texts using VLP.
+By pre-training on open-vocabulary scene graph data like
+Visual Genome (VG) [38], RLIPv1 demonstrates its usefulness in zero-shot, few-shot and fully-finetuned HumanObject Interaction (HOI) Detection. Although RLIPv1 is
+proven effective, we find it challenging to scale for the following reasons:
+(i) Model perspective: RLIPv1 converges slowly, as
+exemplified by DETR [3]-based RLIPv1, which requires
+150/90 epochs to converge during pre-training/fine-tuning.
+Even when building on Deformable DETR (DDETR) [102]
+and DAB-DDETR [56], 50/60 epochs are still required.
+(ii) Data perspective: as observed by the authors of
+RLIPv1, data with relation triplet annotations is scarce, impeding RLIPv1’s scaling. Annotating triplets in the form of
+⟨subject, relations, object⟩ is both time- and cost-intensive.
+To resolve the aforementioned challenges, we introduce
+RLIPv2, a fast converging model that enables relational pretraining on larger-scale pseudo-labelled scene graph data.
+
+21649
+
+

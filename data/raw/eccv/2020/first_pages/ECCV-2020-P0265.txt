@@ -1,0 +1,57 @@
+18
+
+A
+
+W. Peebles et al.
+
+Implementation Details
+
+Figure 1 in the main paper presents the basic implementation for the Hessian
+Penalty. We go into more details about implementation for each experiment
+below:
+A.1
+
+ProGAN Experiments
+
+When fine-tuning ProGAN, we find that it is critical to gradually phase-in the
+Hessian Penalty by ramping-up the loss weight at iteration t (call it t ) over T
+gradient steps:
+✓
+◆
+t
+(9)
+t = min 1,
+T
+We find that settings such as T = 105 or T = 106 tend to work well across
+datasets. Without this warm-up, the generator sometimes collapses with the
+additional regularization term imposed on it. Even with the linear warm-up, we
+commonly observed a sudden decrease in image quality (as well as a sudden spike
+in Fréchet Inception Distance (FID)) at the beginning of fine-tuning, usually
+followed by a quick recovery. Perceptual Path Length (PPL) also rapidly decreases
+at the start of fine-tuning. Increasing T decreases the spikes in both FID and
+PPL. When training from scratch with the Hessian Penalty, such a warm-up was
+not needed.
+We apply the Hessian Penalty to the generator’s intermediate activations
+instead of its direct output in pixel space. Specifically, we regularize the first 10
+convolutions in the network following pixel normalization. In all experiments, we
+set the blur factor ✏ = 0.1 and sampled two Rademacher vectors to compute the
+variance term in the Hessian Penalty.
+We set = 0.1 for the Edges+Shoes, CLEVR-Simple and CLEVR-Complex
+Hessian Penalty experiments. We used = 0.025 for the CLEVR-1FOV and
+CLEVR-U experiments because we found using = 0.1 led to excessive degradation of image quality at the beginning of fine-tuning for these models.
+For the InfoGAN baseline, we add a second head to the discriminator as
+in the original paper. We optimize a mean squared error between the head’s
+output and a portion of the z vector that generated the corresponding image. We
+use a loss weighting of 1.0. To strengthen the InfoGAN baseline in the CLEVR
+experiments, we only regularize c components, where c is the true number of
+factors of variation.
+A.2
+
+BigGAN
+
+To learn the matrix of directions A, we optimize the Hessian Penalty in pixel
+space of G(z + ✏Awi ) w.r.t. wi , where wi is a one at index i and zeros elsewhere,
+i is uniformly sampled and ⌘ ⇠ U [ 5, 5], as in [40]. We also tried applying
+the Hessian Penalty to intermediate activations of G, but we did not observe a
+
+

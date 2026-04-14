@@ -1,0 +1,102 @@
+Phrase Localization and Visual Relationship Detection with Comprehensive
+Image-Language Cues
+Bryan A. Plummer
+
+Arun Mallya
+Christopher M. Cervantes
+Svetlana Lazebnik
+University of Illinois at Urbana-Champaign
+
+Julia Hockenmaier
+
+{bplumme2, amallya2, ccervan2, juliahmr, slazebni}@illinois.edu
+
+Abstract
+This paper presents a framework for localization or
+grounding of phrases in images using a large collection
+of linguistic and visual cues. We model the appearance,
+size, and position of entity bounding boxes, adjectives that
+contain attribute information, and spatial relationships between pairs of entities connected by verbs or prepositions.
+Special attention is given to relationships between people
+and clothing or body part mentions, as they are useful for
+distinguishing individuals. We automatically learn weights
+for combining these cues and at test time, perform joint inference over all phrases in a caption. The resulting system
+produces state of the art performance on phrase localization on the Flickr30k Entities dataset [33] and visual relationship detection on the Stanford VRD dataset [27].1
+
+1. Introduction
+Today’s deep features can give reliable signals about a
+broad range of content in natural images, leading to advances in image-language tasks such as automatic captioning [6, 14, 16, 17, 42] and visual question answering [1, 8, 44]. A basic building block for such tasks is localization or grounding of individual phrases [6, 16, 17, 28,
+33, 40, 42]. A number of datasets with phrase grounding
+information have been released, including Flickr30k Entities [33], ReferIt [18], Google Referring Expressions [29],
+and Visual Genome [21]. However, grounding remains
+challenging due to open-ended vocabularies, highly unbalanced training data, prevalence of hard-to-localize entities
+like clothing and body parts, as well as the subtlety and variety of linguistic cues that can be used for localization.
+The goal of this paper is to accurately localize a bounding box for each entity (noun phrase) mentioned in a caption
+for a particular test image. We propose a joint localization
+objective for this task using a learned combination of singlephrase and phrase-pair cues. Evaluation is performed on the
+1 Code: https://github.com/BryanPlummer/pl-clc
+
+Input Sentence and Image!
+A man carries a baby under a red
+and blue umbrella next to a woman
+in a red jacket!
+
+Cues!
+1)! Entities!
+2)! Candidate Box Position!
+3)! Candidate Box Size!
+Common Object !
+4)!
+Detectors!
+5)! Adjectives!
+6)! Subject - Verb!
+7)! Verb – Object!
+8)! Verbs!
+9)! Prepositions!
+10)!Clothing & Body Parts!
+
+Examples!
+man, baby, umbrella,
+woman, jacket!
+——!
+——!
+
+man →! person!
+baby →! person!
+woman →! person!
+umbrella →! red!
+umbrella →! blue!
+jacket →! red!
+(man, carries)!
+(carries, baby)!
+(man, carries, baby)!
+(baby, under, umbrella)!
+(man, next to, woman)!
+(woman, in, jacket)!
+
+Figure 1: Left: an image and caption, together with ground truth bounding
+boxes of entities (noun phrases). Right: a list of all the cues used by our
+system, with corresponding phrases from the sentence.
+
+challenging recent Flickr30K Entities dataset [33], which
+provides ground truth bounding boxes for each entity in the
+five captions of the original Flickr30K dataset [43].
+Figure 1 introduces the components of our system using
+an example image and caption. Given a noun phrase extracted from the caption, e.g., red and blue umbrella, we obtain single-phrase cue scores for each candidate box based
+on appearance (modeled with a phrase-region embedding as
+well as object detectors for common classes), size, position,
+and attributes (adjectives). If a pair of entities is connected
+by a verb (man carries a baby) or a preposition (woman
+in a red jacket), we also score the pair of corresponding
+candidate boxes using a spatial model. In addition, actions
+may modify the appearance of either the subject or the object (e.g., a man carrying a baby has a characteristic appearance, as does a baby being carried). To account for this, we
+learn subject-verb and verb-object appearance models for
+the constituent entities. We give special treatment to relationships between people, clothing, and body parts, as these
+are commonly used for describing individuals, and are also
+among the hardest entities for existing approaches to localize. To extract as complete a set of relationships as possible,
+we use natural language processing (NLP) tools to resolve
+pronoun references within a sentence: e.g., by analyzing the
+
+1928
+
+

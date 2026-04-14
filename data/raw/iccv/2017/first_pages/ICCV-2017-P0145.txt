@@ -1,0 +1,91 @@
+Channel Pruning for Accelerating Very Deep Neural Networks
+Yihui He*
+Xi’an Jiaotong University
+Xi’an, 710049, China
+
+Xiangyu Zhang
+Megvii Inc.
+Beijing, 100190, China
+
+Jian Sun
+Megvii Inc.
+Beijing, 100190, China
+
+heyihui@stu.xjtu.edu.cn
+
+zhangxiangyu@megvii.com
+
+sunjian@megvii.com
+
+Abstract
+In this paper, we introduce a new channel pruning
+method to accelerate very deep convolutional neural networks. Given a trained CNN model, we propose an iterative two-step algorithm to effectively prune each layer,
+by a LASSO regression based channel selection and least
+square reconstruction. We further generalize this algorithm
+to multi-layer and multi-branch cases. Our method reduces the accumulated error and enhance the compatibility
+with various architectures. Our pruned VGG-16 achieves
+the state-of-the-art results by 5× speed-up along with only
+0.3% increase of error. More importantly, our method is
+able to accelerate modern networks like ResNet, Xception
+and suffers only 1.4%, 1.0% accuracy loss under 2× speedup respectively, which is significant.
+
+1. Introduction
+Recent CNN acceleration works fall into three categories: optimized implementation (e.g., FFT [47]), quantization (e.g., BinaryNet [8]), and structured simplification
+that convert a CNN into compact one [22]. This work focuses on the last one.
+Structured simplification mainly involves: tensor factorization [22], sparse connection [17], and channel pruning [48]. Tensor factorization factorizes a convolutional
+layer into several efficient ones (Fig. 1(c)). However, feature map width (number of channels) could not be reduced,
+which makes it difficult to decompose 1 × 1 convolutional
+layer favored by modern networks (e.g., GoogleNet [45],
+ResNet [18], Xception [7]). This type of method also introduces extra computation overhead. Sparse connection deactivates connections between neurons or channels (Fig. 1(b)).
+Though it is able to achieves high theoretical speed-up ratio,
+the sparse convolutional layers have an ”irregular” shape
+which is not implementation friendly. In contrast, channel
+pruning directly reduces feature map width, which shrinks
+* This work was done when Yihui He was an intern at Megvii Inc.
+
+W1
+number of channels
+
+nonlinear
+
+W2
+nonlinear
+
+W3
+
+(a)
+
+(b)
+
+(c)
+
+(d)
+
+Figure 1. Structured simplification methods that accelerate CNNs:
+(a) a network with 3 conv layers. (b) sparse connection deactivates some connections between channels. (c) tensor factorization
+factorizes a convolutional layer into several pieces. (d) channel
+pruning reduces number of channels in each layer (focus of this
+paper).
+
+a network into thinner one, as shown in Fig. 1(d). It is efficient on both CPU and GPU because no special implementation is required.
+Pruning channels is simple but challenging because removing channels in one layer might dramatically change
+the input of the following layer. Recently, training-based
+channel pruning works [1, 48] have focused on imposing
+sparse constrain on weights during training, which could
+adaptively determine hyper-parameters. However, training
+from scratch is very costly and results for very deep CNNs
+on ImageNet have been rarely reported. Inference-time attempts [31, 3] have focused on analysis of the importance
+of individual weight. The reported speed-up ratio is very
+limited.
+In this paper, we propose a new inference-time approach
+for channel pruning, utilizing redundancy inter channels.
+Inspired by tensor factorization improvement by feature
+maps reconstruction [52], instead of analyzing filter weights
+[22, 31], we fully exploits redundancy within feature maps.
+Specifically, given a trained CNN model, pruning each layer
+is achieved by minimizing reconstruction error on its output
+feature maps, as showned in Fig. 2. We solve this mini-
+
+1389
+
+
