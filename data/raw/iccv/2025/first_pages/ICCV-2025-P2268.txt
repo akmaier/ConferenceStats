@@ -1,0 +1,83 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Flow4Agent: Long-form Video Understanding via Motion Prior
+from Optical Flow
+Ruyang Liu
+
+Shangkun Sun
+
+Haoran Tang
+
+Wei Gao
+
+Ge Li
+
+School of Electronic and Computer Engineering, Shenzhen Graduate School, Peking University
+{ruyang@stu., sunshk@stu., hrtang@stu., gaowei262@, geli@}pku.edu.cn
+
+Abstract
+Long-form video understanding has always been a challenging problem due to the significant redundancy in both
+temporal and spatial contents. This challenge is further exacerbated by the limited context length of Multimodal Large
+Language Models (MLLMs). To address this issue, many
+previous works have attempted to extract key video information, where the “key” is typically semantic-aware and
+heavily dependent on the CLIP model as prior. In this paper,
+we propose Flow4Agent, a novel framework that pioneeringly incorporates motion priors from optical flow to facilitate LLM-based long video understanding. Flow4Agent
+mitigates the redundancy in long videos at both temporal
+and spatial levels through two core modules: Temporal
+Granularity Optimization (TGO) adaptively refines framelevel hierarchies, which first leverages coarse flow priors
+to group similar visual contents and then applies semantic
+priors to filter out highly irrelevant scene information. Motion Token Pruning (MTP) further refines the intra-frame
+visual representations, pruning high-redundancy video tokens using fine-grained optical flow information. Extensive experiments demonstrate that our Flow4Agent outperforms existing methods across a wide range of video MLLM
+benchmarks, especially for hour-level video understanding
+tasks, achieving 64.7% on Video-MME, 71.4% on MLVU
+and 60.4% on LongVideoBench.
+
+1. Introduction
+Multimodal Large Language Models (MLLMs) have made
+significant strides recently. Thanks to the advancements in
+LLM [9, 14, 50] and multimodal [5, 16, 40] pretraining,
+current MLLMs can effectively interpret visual sequences
+in images and videos. These models typically support video
+sequences with hundreds of frames, which is sufficient to
+cover all contents in short videos, using uniform sampling
+with whether fixed frame numbers or fixed fps. However,
+for hour-long videos, this implies that at least one-minute
+
+23817
+
+video is distributed to only one frame, leading to substantial
+information loss, as shown in the first line of Fig. 1.
+To enable MLLMs to process more video content, one
+approach is to resample and compress the video tokens
+[15, 21, 27, 48]. However, dense resampling inevitably
+causes the loss of visual information, while frames that can
+be accommodated by the MLLM remain constrained by a
+clear upper limit. Another approach is to use memory structures [38, 53] or context extension [24, 54], enabling the
+LLM to process densely sampled video frames. However,
+this method overlooks the widespread information redundancy in long videos. As shown in the second line of Fig.
+1, the significant redundancy in both time (irrelevant video
+frames) and space (repetitive content within the same scene)
+can overwhelm the LLM, resulting in mistakes during long
+video understanding.
+To address the ubiquitous redundancy in videos, an intuitive solution is to extract key video information. This
+typically requires additional priors, with the most common
+being semantic information, such as using the CLIP model
+to retrieve relevant video content [12, 32, 43, 48] or feeding
+the video’s dense captions into the LLM for further reasoning and judgment [42, 43, 45]. However, this reliance on
+semantic priors has two major drawbacks. First, it heavily
+depends on the information provided in the user’s instructions; when the query offers limited details, much of the
+effectiveness is lost. Second, the method’s performance is
+constrained by the prior model, such as CLIP models or
+captioning models, meaning that errors in these models can
+significantly distort subsequent understanding.
+In this paper, we introduce a previously overlooked prior,
+the motion information from optical flow, to assist in extracting key video content, and propose a novel method,
+Flow4Agent. Flow4Agent refines the key content in two
+aspects: inter-frame and intra-frame, which are addressed
+by the Temporal Granularity Optimization (TGO) module
+and the Motion Token Pruning (MTP) module, respectively.
+Specifically, the TGO module utilizes efficient coarse optical flow to accurately cluster video scenes, and on this basis, it leverages semantic priors to obtain a sufficiently dis-
+
+

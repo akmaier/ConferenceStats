@@ -1,0 +1,135 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+LazyMAR: Accelerating Masked Autoregressive Models via Feature Caching
+Feihong Yan1 * Qingyan Wei2,5∗ Jiayi Tang5 Jiajun Li5
+Yulin Wang3 Xuming Hu4 Huiqi Li1† Linfeng Zhang5†
+1
+
+Beijing Institute of Technology 2 Central South University
+The Hong Kong University of Science and Technology (Guangzhou)
+
+3
+5
+
+Tsinghua University
+Shanghai Jiaotong University
+
+3120235162@bit.edu.cn, liangrun@csu.edu.cn, huiqili@bit.edu.cn, zhanglinfeng@sjtu.edu.cn
+
+Abstract
+Masked Autoregressive (MAR) models have emerged as
+a promising approach in image generation, expected to surpass traditional autoregressive models in computational efficiency by leveraging the capability of parallel decoding.
+However, their dependence on bidirectional self-attention inherently conflicts with conventional KV caching mechanisms,
+creating unexpected computational bottlenecks that undermine their expected efficiency. To address this problem, this
+paper studies the caching mechanism for MAR by leveraging two types of redundancy: Token Redundancy indicates
+that a large portion of tokens have very similar representations in the adjacent decoding steps, which allows us to first
+cache them in previous steps and then reuse them in the later
+steps. Condition Redundancy indicates that the difference
+between conditional and unconditional output in classifierfree guidance exhibits very similar values in adjacent steps.
+Based on these two redundancies, we propose LazyMAR,
+which introduces two caching mechanisms to handle them
+one by one. LazyMAR is training-free and plug-and-play
+for all MAR models. Experimental results demonstrate that
+our method achieves 2.83× acceleration with almost no
+drop in generation quality. Our codes will be released in
+https://github.com/feihongyan1/LazyMAR.
+
+1. Introduction
+Autoregressive models have shown exceptional capabilities
+not only in natural language processing [2, 23] but also in
+image generation [4, 29, 31, 35]. However, their token-bytoken generation paradigm imposes strict sequential dependencies between image tokens, leading to less efficiency. To
+overcome this limitation, Masked Autoregressive (MAR)
+models [3, 17, 18] were introduced to enable parallel token
+prediction to improve computation efficiency while maintaining and even achieving better quality.
+
+1 - Cosine Similarity
+
+00
+11
+22
+33
+44
+55
+66
+77
+8
+9
+10
+11
+11
+12
+12
+13
+13
+14
+14
+15
+15
+
+Tokens decoded in the last step
+
+0.07
+0.07
+0.06
+0.06
+0.05
+0.05
+0.04
+0.04
+0.03
+0.03
+0.02
+0.02
+
+1 - Cosine Similarity
+
+4
+
+0.01
+0.01
+00 11 22 33 4
+4 55 66 77 88 99 10
+10 11
+11 12
+12 13
+13 14
+1415
+15
+
+Tokens decoded in the current step
+
+Tokens decoded in previous steps
+Tokens decoded in the future steps
+
+Figure 1. Token Redundancy in MARs: In each decoding step of
+MAR, tokens can be divided into four types, including the token
+to be decoded in this step (t), the token just decoded in the last
+step (t − 1), the tokens that have decoded before last step, and
+the tokens that have not been decoded. Different tokens exhibit
+different similarities in the adjacent decoding steps.
+
+However, existing MARs still suffer from unpleasant computation efficiency despite their abilities of parallel decoding,
+which stems from their reliance on bidirectional attention
+mechanisms. The casual attention in autoregressive models allows the utilization of KV cache, which stores the K
+matrix and V matrix of tokens computed in previous steps
+and loads them during the following computation. Since
+the bidirectional attention in MARs requires simultaneous
+access to all tokens, it prevents the usage of KV cache and
+thereby reduces the efficiency of MARs. This limitation
+necessitates a novel caching mechanism tailored to MARs.
+To address this issue, we begin by analyzing the computation redundancy in MARs, including token redundancy and
+condition redundancy. Then, we introduce LazyMAR which
+accelerates MAR by reducing the two redundancies.
+
+* Equal contribution. † Corresponding authors.
+
+Token Redundancy : As shown in Figure 1, the tokens in
+MARs can be divided into four groups based on their time
+of being decoded, including the tokens that decoded in the
+current step (t) and the last step (t − 1), the tokens decoded
+
+15552
+
+

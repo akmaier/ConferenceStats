@@ -1,0 +1,137 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Beyond Text-Visual Attention: Exploiting Visual Cues for
+Effective Token Pruning in VLMs
+Qizhe Zhang1 * Aosong Cheng1 Ming Lu1† Renrui Zhang3 Zhiyong Zhuo1
+Jiajun Cao1 Shaobo Guo2 Qi She2 † Shanghang Zhang1 B
+1
+State Key Laboratory for Multimedia Information Processing,
+School of Computer Science, Peking University
+2
+ByteDance 3 CUHK MMLab
+{theia, shanghang}@pku.edu.cn
+
+Abstract
+
+What is unusual about this image?
+
+LLaVA
+
+Large Vision-Language Models (LVLMs) generally contain
+significantly more visual tokens than their textual counterparts, resulting in a considerable computational burden.
+Recent efforts have been made to tackle this issue by pruning visual tokens early within the language model. Most
+existing works use attention scores between text and visual
+tokens to assess the importance of visual tokens. However,
+in this study, we first analyze the text-visual attention in the
+language model and find that this score is not an ideal indicator for token pruning. Based on the analysis, We propose
+VisPruner, a plug-and-play method that utilizes visual cues
+for more effective token pruning in LVLMs. Specifically, we
+first use visual attention to select a limited number of significant tokens. Then, we remove duplicate tokens from the remaining ones based on their similarity. By retaining diverse
+tokens alongside the initially selected important tokens, we
+maximally preserve the visual information of the input image. Experimental results demonstrate that our VisPruner
+sustains strong performance across various VLM architectures and reduction ratios, significantly outperforming
+existing methods based on text-visual attention. Notably,
+without any training, VisPruner can reduce the FLOPs of
+LLaVA-1.5-7B by 91% and inference latency by 75%, while
+maintaining comparable performance. Our code is available at https://github.com/Theia-4869/VisPruner.
+
+1. Introduction
+With recent advances in large language models (LLMs) [4,
+27, 50], numerous efforts have been made to extend their
+powerful reasoning capabilities to multi-modal tasks [2, 17,
+36, 59], giving rise to vision language models (VLMs) [1,
+* Work done during an internship at ByteDance.
+† Project lead.
+B Corresponding author.
+
+User
+
+The unusual aspect of this image is
+that a man is ironing clothes while
+standing on the back of a moving car.
+This is not a typical scene, as ironing
+clothes is usually done indoors, in a
+more controlled environment. The
+man's ability to balance and perform
+this task while the car is in motion is
+quite remarkable and unconventional.
+The unusual aspect of this image is that
+a person is standing on the back of a
+
+Random moving car. This is not a common sight,
+
+as it is generally considered unsafe and
+illegal to ride on the back of a vehicle
+while it is in motion. The person
+standing on the car is also holding a
+suitcase,
+which
+adds
+to
+the
+unconventional nature of the scene. The
+presence of a taxi and a stop sign in
+the image further emphasizes the urban
+setting, making the situation even more
+unexpected and potentially dangerous.
+
+FastV
+
+The unusual aspect of this image is
+that a man is sitting in the back of a
+taxi cab, holding a blue shirt. It is
+not common to see passengers sitting
+in the back of a taxi cab, as they
+typically sit in the front passenger
+seat or the back seat. Additionally,
+the man holding a blue shirt adds an
+element of curiosity to the scene, as
+it is unclear whether he is about to
+put on the shirt or if it is just
+coincidental that he is holding it.
+
+The unusual aspect of this image is
+that a man is ironing clothes while
+Vis- standing on the back of a moving
+Pruner yellow taxi cab. This is not a
+typical scene, as ironing clothes is
+usually
+done
+in
+a
+stationary
+environment, such as a home or a
+laundromat. The
+an's ability to
+balance and perform this task while
+the taxi is in motion is quite
+remarkable and unconventional.
+
+Figure 1. The illustration of different pruning methods. Correct
+answer parts are shown in blue, while hallucinations due to pruning are shown in red. Text-visual attention methods like FastV
+often preserve the lower parts of input images, which can lead to
+the loss of crucial visual information during early pruning (e.g.
+the iron in the man’s hand). Random pruning removes positional
+bias but still fails to preserve important visual information, leading to even more hallucinations (e.g. suitcase and stop sign). Our
+VisPruner, which uses visual cues for pruning, effectively answers
+the question with a significant token reduction ratio and provides
+more details (e.g. the type and color of the car, shown in green).
+
+3, 5, 8, 12, 35, 48, 54]. Existing VLMs typically contain a visual encoder (e.g. CLIP [43]) to convert visual inputs into sequential representations, a language model (e.g.
+Llama 2 [51]) to process questions and generate answers,
+and a modal alignment module (e.g. MLP, Q-Former) for
+the language model to accept visual tokens as input [5, 35].
+Although these approaches have achieved remarkable performance in multi-modal tasks like visual question answering [18, 20, 25, 37, 46], the visual tokens, which comprise
+the majority of the input sequence, significantly increase
+the computational cost of VLM inference. For instance,
+LLaVA-1.5 [33] accepts 336 × 336 input images, which are
+converted into 576 visual tokens, while their textual counterparts have typically fewer than 100 tokens. Higher input
+resolutions or video streams lead to even longer visual token
+sequences (e.g. 2880 for LLaVA-NeXT [34] and 2560 for
+Video-LLaVA [32]), further escalating computational load.
+
+20857
+
+

@@ -1,0 +1,80 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+FastPoint: Accelerating 3D Point Cloud Model Inference via
+Sample Point Distance Prediction
+Donghyun Lee1
+1
+
+Dawoon Jeong1 Jae W. Lee1 Hongil Yoon1,2
+Seoul National University 2 Google
+
+{eudh1206, daun20211, jaewlee}@snu.ac.kr, hongilyoon@google.com
+
+Abstract
+Deep neural networks have revolutionized 3D point cloud
+processing, yet efficiently handling large and irregular point
+clouds remains challenging. To tackle this problem, we
+introduce FastPoint, a novel software-based acceleration
+technique that leverages the predictable distance trend between sampled points during farthest point sampling. By
+predicting the distance curve, we can efficiently identify
+subsequent sample points without exhaustively computing
+all pairwise distances. Our proposal substantially accelerates farthest point sampling and neighbor search operations
+while preserving sampling quality and model performance.
+By integrating FastPoint into state-of-the-art 3D point cloud
+models, we achieve 2.55× end-to-end speedup on NVIDIA
+RTX 3090 GPU without sacrificing accuracy.
+
+1. Introduction
+3D point clouds have become increasingly important for
+representing and understanding 3D scenes, driving advancements in fields like robotics and autonomous driving. Deep neural networks [4, 6, 7, 13, 17, 20, 23–
+26, 30, 32, 33, 37, 42, 43] have emerged as powerful tools
+for processing this type of data. While PointNet++ [24] and
+its successors have improved efficiency and performance of
+these point cloud models, the irregular nature and growing size of point cloud data continue to impose significant computational challenges, especially for real time use
+cases. Operations such as Farthest Point Sampling (FPS)
+and neighbor search remain major bottlenecks.
+While various hardware accelerators [8, 9, 12, 16, 18,
+36, 40] have been explored to accelerate the models,
+software-only solutions are less common. Given the high
+cost and complexity of developing specialized accelerators,
+software-based acceleration is a more practical approach.
+Recently, several software-based techniques [15, 39] have
+been proposed to accelerate these models through approximation. However, such approaches often come at the cost
+
+of significant accuracy loss, limiting their practical use.
+To address this challenge, we propose FastPoint, a novel
+software-based acceleration technique with sample point
+distance prediction. We observe that the inherent nature
+of FPS, which iteratively selects the point farthest from
+the current set of sampled points, leads to two predictable
+trends in the minimum distances between these points:
+1. Decreasing minimum distance: As FPS makes progress,
+the number of remaining points decreases, forcing the algorithm to select points closer to those already sampled.
+This results in a smoothly decreasing curve of minimum
+distances between sampled points.
+2. Early structure capture: The initial sample points tend
+to be the extremities of the point cloud, effectively capturing its overall shape and boundaries.
+Our proposal leverages these observations to accurately
+estimate the distance curve using only a few initial FPS iterations. By predicting the distance curve, we can efficiently
+identify subsequent sample points without computing and
+comparing pairwise distances at each FPS iteration. This
+leads to significant latency savings while maintaining sampling quality comparable to that of the original FPS. Furthermore, predicting the distance curve enables the sampling process to be decoupled from distance computation.
+This decoupling exposes new opportunities for parallelizing distance calculations in the proposed sampling, further
+enhancing efficiency. This approach not only accelerates
+FPS itself but also benefits subsequent operations such as
+neighbor search by leveraging pre-computed distances.
+Our key contributions are summarized as follows:
+• We identify two key latency bottlenecks in point cloud
+models: FPS and neighbor search. Limited parallelism
+in FPS and redundant distance computations across both
+operations are the primary sources of inefficiency.
+• We empirically analyze 3D point cloud models and identify the decreasing trend and early structure capture trend.
+• Based on the observations, we introduce a novel sampling
+approach with sample point distance prediction. With the
+estimated distance curve, this approach not only accelerates FPS itself but also benefits subsequent neighbor
+
+25114
+
+

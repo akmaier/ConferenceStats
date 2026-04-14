@@ -1,0 +1,78 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Tiling artifacts and trade-offs of feature normalization in the segmentation of
+large biological images
+Elena Buglakova1 , Anwai Archit2 , Edoardo D’Imprima1,4 , Julia Mahamid1 ,
+Constantin Pape2,3 , Anna Kreshuk1
+1
+
+2
+3
+
+European Molecular Biology Laboratory, Heidelberg
+Institute of Computer Science, University of Göttingen
+
+Cluster of Excellence ‘Multiscale Bioimaging: from Molecular Machines to Networks of Excitable Cells‘
+4
+
+(MBExC), Georg-August-University Göttingen
+IRCCS Humanitas Research Hospital, via Manzoni 56, 20089 Rozzano, Milan, Italy
+
+Abstract
+Segmentation of very large images is a common problem
+in microscopy, medical imaging or remote sensing. The
+problem is usually addressed by sliding window inference,
+which can theoretically lead to seamlessly stitched predictions. However, in practice many of the popular pipelines
+still suffer from tiling artifacts. We investigate the root cause
+of these issues and show that they stem from the normalization layers within the neural networks. We propose indicators to detect normalization issues and further explore
+the trade-offs between artifact-free and high-quality predictions, using three diverse microscopy datasets as examples.
+Finally, we propose to use BatchRenorm as the most suitable normalization strategy, which effectively removes tiling
+artifacts and enhances transfer performance, thereby improving the reusability of trained networks for new datasets.
+
+1. Introduction
+Segmentation is an essential ﬁrst step of pipelines in biological image analysis, a diverse domain of computer vision that enables automated quantiﬁcation for various types
+of microscopy images. While this domain has beneﬁted
+a lot from the developments in natural image analysis, it
+also poses unique challenges. Investigation of biological
+diversity, discovery of unexpected phenotypes and development of novel imaging protocols leads to high variability of
+datasets. This explains the popularity of human-in-the-loop
+approaches to segmentation, where a small amount of data
+is either annotated from scratch or from the output of pretrained models [1, 22, 26], then a new model is either trained
+from scratch or ﬁne-tuned. After that the next rounds of
+correction and training happen, until the desired quality is
+reached. Being able to quickly train a smaller model for an
+
+13109
+
+unseen image type is crucial in this setting.
+Another important feature of biological images, especially for volumetric imaging, is their large size. Electron
+microscopy volumes for connectomics [6] or light sheet microscopy volumes [20] can reach the scale of multiple terabytes. It is routine to work with 10-100 GB images of
+∼ 10003 pixels, which exceed GPU memory.
+As shown in Fig. 1, during training random patches are
+sampled from the annotated images and combined into a
+batch. During inference/evaluation, the image is split into
+a grid of tiles which are predicted independently and then
+stitched back to form the full prediction. Here we refer both
+to 2D and 3D image patches as tiles. In this setup the size
+of the tiles is limited from above by GPU memory and from
+below by the receptive ﬁeld of the network [21]. Typical
+tile size is around 96x96x96 - 256x256x256 pixels and the
+training batch size is 2-3 tiles per batch. During inference it
+is not necessary to store gradients, therefore either tile size
+or batch size can be larger.
+Tile-wise prediction and stitching might look like a
+purely technical step, however for microscopy patch sampling and stitching can signiﬁcantly affect prediction quality
+and create artifacts. In contrast, big natural image datasets,
+such as ImageNet [5], CityScapes [4] and SAM dataset
+[14], usually contain relatively small 2D images, making
+tiling and stitching unnecessary, as well as allowing for
+larger batch size.
+It has been shown that seamless stitching with CNNs is
+possible if edge effects are taken into account [17]. For
+CNNs only a limited area of the input image called the receptive ﬁeld affects the prediction value in a given pixel
+[16]. Pixels on the edge of the tile do not get full context for prediction, resulting in a mismatch between neighboring tiles. To deal with this issue the tiles are sampled
+with overlap and only the central part of each tile is used
+
+

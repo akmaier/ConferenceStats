@@ -1,0 +1,125 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Temporal-aware Query Routing for Real-time Video Instance Segmentation
+
+1
+
+Zesen Cheng1,3
+
+Kehan Li4
+
+Yian Zhao1,3
+
+Hang Zhang4
+
+Chang Liu5
+
+School of Electronic and Computer Engineering, Peking University, Shenzhen, China
+3
+
+4
+
+2
+
+Jie Chen1,2,3
+
+Pengcheng Laboratory, Shenzhen, China
+
+AI for Science (AI4S)-Preferred Program, Peking University Shenzhen Graduate School, China
+
+Alibaba Group, Hangzhou, China
+
+5
+
+Department of Automation and BNRist, Tsinghua University, Beijing, China
+
+cyanlaser@stu.pku.edu.cn
+
+jiechen2019@pku.edu.cn
+
+Abstract
+
+Image
+Encoder
+
+With the rise of applications such as embodied intelligence,
+developing high real-time online video instance segmentation (VIS) has become increasingly important. However,
+through time proﬁling of the components in advanced online VIS architecture (i.e., transformer-based architecture),
+we ﬁnd that the transformer decoder signiﬁcantly hampers
+the inference speed. Further analysis of the similarities between the outputs from adjacent frames at each transformer
+decoder layer reveals signiﬁcant redundant computations
+within the transformer decoder. To address this issue, we
+introduce Temporal-Aware query Routing (TAR) mechanism. We embed it before each transformer decoder layer.
+By fusing the optimal queries from the previous frame, the
+queries output by the preceding decoder layer, and their
+differential information, TAR predicts a binary classiﬁcation score and then uses an argmax operation to determine
+whether the current layer should be skipped. Experimental
+results demonstrate that integrating TAR into the baselines
+achieves signiﬁcant efﬁciency gains (24.7 → 34.6 FPS for
+MinVIS, 22.4 → 32.8 FPS for DVIS++) while also improving performance (e.g., on YoutubeVIS 2019, 47.4 → 48.4
+AP for MinVIS, 55.5 → 55.7 AP for DVIS++). Furthermore, our analysis of the TAR mechanism shows that the
+number of skipped layers increases as the differences between adjacent video frames decrease, which suggests that
+our method effectively utilizes inter-frame differences to reduce redundant computations in the transformer decoder.
+
+1. Introduction
+Video Instance Segmentation (VIS) [45] is an advanced
+computer vision technology that aims to provide precise
+segmentation masks for each object instance in a video and
+to associate the same object across frames. This technology is widely utilized in ﬁelds such as medical surgery, emCorresponding Author
+
+Transformer
+Decoder
+
+Frame ‫ ݐ‬െ ͳ
+
+Tracker
+
+Queries
+Image
+Encoder
+
+Transformer
+Decoder
+
+Results ‫ ݐ‬െ ͳ
+
+Tracker
+
+Frame ‫ݐ‬
+
+Results ‫ݐ‬
+17% + 28%
+
+Image Encoder (Backbone + FPN)
+
+52%
+Transformer Decoder
+
+3%
+Tracker
+
+Figure 1. Time proﬁling of components in the advanced online
+VIS method MinVIS shows: Image Encoder (Backbone + FPN)
+45% (17%+28%), Transformer Decoder 52%, Tracker 3%. This
+distribution identiﬁes the transformer decoder as the key computational bottleneck, whose optimization can greatly boost efﬁciency.
+
+bodied intelligence, and human-computer interaction. For
+instance, in the context of embodied intelligence, VIS can
+precisely locate various objects in real time within a scene,
+allowing agents to achieve better environmental understanding and perform corresponding actions based on the accurate positions of those objects. As these applications are
+further adopted, fast and accurate low-latency object localization becomes increasingly crucial to ensure the system’s
+safety and responsiveness while improving user experience.
+In general, VIS has three paradigms: ofﬂine, semionline/near-online, and online. Ofﬂine VIS [11, 17] methods require complete video data for segmentation, which
+clearly does not meet the demands for real-time response.
+Semi-online/near-online VIS methods [18, 31] focus on
+clip-level object segmentation and tracking. However, they
+fail to satisfy the stringent real-time requirements of streaming scenarios due to signiﬁcant delays in segment acquisition. For example, in a 10 FPS video stream, obtaining 5
+frames takes 0.5 seconds, resulting in a minimum reaction
+time of 0.5 seconds for semi-online methods operating at
+this granularity, which is unacceptable for real-time appli-
+
+22467
+
+

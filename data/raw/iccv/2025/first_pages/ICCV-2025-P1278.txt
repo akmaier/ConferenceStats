@@ -1,0 +1,152 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+PatchScaler: An Efficient Patch-Independent Diffusion Model
+for Image Super-Resolution
+Yong Liu1∗
+
+Hang Dong2∗ Jinshan Pan3 Qingji Dong1,2 Kai Chen2
+Rongxiang Zhang2 Lean Fu2 Fei Wang1†
+1
+Xi’an Jiaotong University 2 ByteDance Inc 3 Nanjing University of Science and Technology
+liuy1996v@qq.com, dhunter1230@gmail.com, sdluran@gmail.com, wfx@xjtu.edu.cn
+
+Abstract
+
+Step=8
+
+Simple patch
+
+While diffusion models significantly improve the perceptual
+quality of super-resolved images, they usually require a large
+number of sampling steps, resulting in high computational
+costs and long inference times. Recent efforts have explored
+reasonable acceleration schemes by reducing the number of
+sampling steps. However, these approaches treat all regions
+of the image equally, overlooking the fact that regions with
+varying levels of reconstruction difficulty require different
+sampling steps. To address this limitation, we propose PatchScaler, an efficient patch-independent diffusion pipeline for
+single image super-resolution. Specifically, PatchScaler introduces a Patch-adaptive Group Sampling (PGS) strategy
+that groups feature patches by quantifying their reconstruction difficulty and establishes shortcut paths with different
+sampling configurations for each group. To further optimize
+the patch-level reconstruction process of PGS, we propose
+a texture prompt that provides rich texture conditional information to the diffusion model. The texture prompt adaptively retrieves texture priors for the target patch from a
+common reference texture memory. Extensive experiments
+show that our PatchScaler achieves favorable performance
+while significantly speeding up inference. Project page:
+https://github.com/yongliuy/PatchScaler.
+
+1. Introduction
+Single image super-resolution (SISR) aims to reconstruct a
+high-resolution (HR) image from its low-resolution (LR)
+observation, a highly ill-posed problem due to the unknown degradation processes in real-world scenarios. As
+two predominant approaches, deep convolutional neural
+∗ Contributed equally.
+† Corresponding author. Author affiliation: National Key Laboratory
+
+of Human-Machine Hybrid Augmented Intelligence, National Engineering Research Center of Visual Information and Applications, Institute of
+Artificial Intelligence and Robotics, Xi’an Jiaotong University.
+
+Step=20
+
+MUSIQ:26.70
+
+MUSIQ:26.59
+unified
+
+Hard patch
+
+LR image
+
+unified
+
+adaptive
+
+Step=8
+
+Step=20
+
+MUSIQ:35.34
+
+MUSIQ:50.28
+
+(a) Unified sampling vs. adaptive sampling
+0.8
+
+100
+
+ManIQA
+
+0.5225
+0.3992
+
+0.4
+
+Runtime (s)
+
+Higher
+is better
+
+0.6
+0.4546
+
+Lower
+is better
+
+78.12
+
+75
+
+0.4744
+
+0.3821
+
+50
+35.22
+
+0.2631
+0.2
+
+25
+
+30.35
+
+25.82
+14.89
+
+0
+
+LDM StableSR ResShift DiffBIR OSEDiff Ours
+
+0
+
+3.41
+LDM StableSR ResShift DiffBIR OSEDiff Ours
+
+(b) Quantitative evaluation
+
+Figure 1. (a) Analysis of unified sampling and adaptive sampling.
+(b) Quantitative comparison on the RealSR [6] dataset.
+
+network (CNN)-based [25, 51, 66, 70] and Transformerbased [27, 29, 56, 67] SISR methods have made significant
+progress in the past decade. However, most of them are optimized primarily for the peak signal-to-noise ratio (PSNR)
+and the structural similarity index measure (SSIM), which
+are less effective in restoring realistic image details.
+Diffusion models [13, 44], with their powerful ability to
+model data distributions from noise, have offered immense
+potential for conditional generation tasks, such as image
+synthesis [10, 41, 57], image editing [5, 18, 55], and image
+super-resolution [28, 48, 60]. Although diffusion models
+have achieved significant success in the field of image superresolution (SR), their inference process remains inefficient
+due to the large number of iterative sampling steps required
+for high-quality image reconstruction.
+Recent methods have attempted to accelerate diffusionbased SR models by introducing conditional distillation
+[34, 52] or redefining the diffusion process [62, 63]. However, these approaches tend to treat all regions of an image equally and indiscriminately reduce the number of sampling steps, which inevitably compromises the quality of
+the super-resolved images. Furthermore, when dealing with
+high-resolution images, these approaches continue to incur
+substantial computational costs.
+
+11283
+
+

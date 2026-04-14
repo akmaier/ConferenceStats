@@ -1,0 +1,80 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Mobile Video Diffusion
+Haitam Ben Yahia*†
+Denis Korzhenkov*‡
+Ioannis Lelekas‡
+Amir Ghodrati†
+Amirhossein Habibian‡
+‡
+
+Qualcomm AI Research
+
+{dkorzhen, ilelekas, ahabibia}@qti.qualcomm.com
+
+Abstract
+Video diffusion models have achieved impressive realism
+and controllability but are limited by high computational
+demands, restricting their use on mobile devices. This paper introduces the first mobile-optimized image-to-video
+diffusion model. Starting from a spatio-temporal UNet
+from Stable Video Diffusion (SVD), we reduce the computational cost by reducing the frame resolution, incorporating multi-scale temporal representations, and introducing
+two novel pruning schemas to reduce the number of channels and temporal blocks. Furthermore, we employ adversarial finetuning to reduce the denoising to a single step.
+Our model, coined as MobileVD, can generate latents for
+a 14 × 512 × 256 px clip in 1.7 seconds on a Xiaomi-14
+Pro, with negligible quality loss. Our results are available at
+https://qualcomm-ai-research.github.io/
+mobile-video-diffusion
+
+1. Introduction
+Video diffusion models are making significant progress in
+terms of realism, controllability, resolution, and duration of
+the generated videos. Starting from zero-shot video models [11, 26, 30, 36], which deploy pretrained image diffusion models to generate consistent frames, e.g., through
+cross-frame attention, modern video diffusion models rely
+on spatio-temporal denoising architectures, i.e., 3D UNets [2, 3, 16] or 3D DiTs [33, 68, 74]. This involves inflating image denoising models by adding temporal transformers and convolutions to denoise multiple frames simultaneously. Despite their impressive generation qualities, spatiotemporal denoising architectures demand high memory and
+computational power, which limits their usage to clouds with
+high-end GPUs. This hinders the wide adoption of video
+* Equal contribution
+† Work done while at Qualcomm AI Research
+‡ Qualcomm AI Research is an initiative of Qualcomm Technologies, Inc.
+Snapdragon and Qualcomm branded products are products of Qualcomm
+Technologies, Inc. and/or its subsidiaries.
+
+generation technology for many applications that require
+generating content locally on mobile devices.
+Prior work on accelerating video diffusion models
+has mostly focused on reducing the number of sampling
+steps [62, 72]. By extending the consistency models [58]
+and adversarial distillation [54] to video diffusion models,
+they managed to reduce the number of denoising steps from
+25 to only 4 [62] and 1 step [72], which tremendously accelerates video generation. However, step distillation alone
+does not reduce the memory usage of the model, which is the
+key setback in deploying video diffusion models on mobile
+devices.
+This paper is the first attempt to build image-to-video
+diffusion models for mobile. Starting from model of Stable
+Video Diffusion (SVD) [2, 3], as a representative for video
+diffusion models, we conduct a series of optimizations on
+its spatio-temporal UNet to build a mobile-friendly UNet:
+driven by the lower resolution needs for user-generated content on phones, we first opt for using a smaller latent resolution for generating 512 × 256 px frames. Additionally,
+instead of preserving the number of frames throughout the
+denoising UNet, we introduce additional temporal down- and
+up-sampling operations to extend the multi-scale representation both in space and time, which reduces the memory and
+computational cost with minimal loss in quality. Moreover,
+we discuss how naive visual conditioning through crossattention leads to significant computational overhead that
+can be avoided without damaging visual quality.
+We further accelerate the mobile-friendly UNet by reducing its parameters using a novel channel compression
+schema, coined channel funneling, and a novel technique
+to prune the temporal transformers and temporal residual
+blocks from the UNet. Finally, following Zhang et al. [72],
+we reduce the number of denoising steps to a single step
+using adversarial finetuning. This results in the first mobile
+video diffusion model called MobileVD, which is able to
+generate 14 latent frames of resolution 512 × 256 in 1.7
+seconds on a Xiaomi 14-Pro smartphone at a slightly worse
+quality in terms of FVD, 149 vs. 171.
+
+19450
+
+

@@ -1,0 +1,96 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Make Your Training Flexible: Towards Deployment-Efficient Video Models
+Chenting Wang1,2 Kunchang Li2
+Tianxiang Jiang2,4 Xiangyu Zeng2,5 Yi Wang2,3 Limin Wang1,2,5♠
+1 Shanghai Jiao Tong University
+4 University of Science and Technology of China
+
+2 Shanghai AI Laboratory
+
+3 Shanghai Innovation Institute
+
+5 State Key Laboratory for Novel Software Technology, Nanjing University
+
+Abstract
+Current video training methods rely on fixed spatiotemporal
+sampling grids to extract a predetermined number of tokens,
+limiting adaptability to diverse computational budgets and
+resulting in suboptimal accuracy-computation trade-offs.
+This rigidity constrains high-performance models trained in
+resource-rich environments from being efficiently deployed
+on resource-constrained devices. We hence introduce a
+novel paradigm for lossless adaptation across scenarios,
+enabling models to maintain optimal performance under
+high-resource conditions while seamlessly transferring to
+low-resource environments. Central to this is Token Optimization (TO), an adaptive inference framework that dynamically samples and selects input token set to optimize
+input information under varied computational constraints.
+To support this, we propose Flux, an augmentation tool
+that enables flexible sampling grids and token selection.
+It integrates seamlessly into popular video training frameworks, significantly enhancing model robustness and adaptability with negligible additional cost. Applied to largescale video pretraining, our method produces FluxViT,
+which achieves state-of-the-art performance across multiple tasks under standard costs. Remarkably, with only 1/4
+of the tokens, FluxViT matches prior state-of-the-art models under TO across tasks, achieving nearly 90% computational savings. Code and models are available at https:
+//github.com/OpenGVLab/FluxViT.
+
+1. Introduction
+Video representation learning [20, 45, 71] is a fundamental task in computer vision, as it is critical in developing
+spatiotemporal perception and procedural reasoning in multimodal large language models [38, 41, 54, 77] and embodied AI systems [24, 78]. However, the deployment of video
+models is computationally intensive due to the high volume
+♠ Corresponding author.
+
+𝑅𝑎𝑤 𝑉𝑖𝑑𝑒𝑜
+𝐹𝑙𝑒𝑥𝑖𝑏𝑙𝑒
+
+𝐹𝑖𝑥𝑒𝑑
+
+Sampling & Patchify
+
+(
+
+⋯ )
+
+(
+
+⋯ )
+
+𝑠𝑝𝑎𝑟𝑠𝑒, 𝑑𝑒𝑛𝑠𝑒, …
+
+𝑟𝑎𝑛𝑑𝑜𝑚
+
+𝑇𝑜𝑘𝑒𝑛
+𝑅𝑒𝑑𝑢𝑐𝑡𝑖𝑜𝑛
+0 1 2 3 4 5 6
+
+0 2 3 4 6
+
+0 1 2 3 4 5 6 7 8 9
+0 1 2 3 4 5 6 7 8 9
+
+𝑇𝑜𝑘𝑒𝑛 𝑆𝑒𝑙𝑒𝑐𝑡𝑖𝑜𝑛
+0 2 9 2 4 6 8
+
+Figure 1. Flux (right) employs flexible sampling and token selection to achieve Token Optimization. Common methods(left) use
+rigid sampling(and use token reduction for applications directly).
+
+of video tokens compared to image tokens. Popular video
+training methods work on fixed-count patched tokens sampled from a predefined spatiotemporal grid (e.g., 8×2242 ),
+leading to considerable redundancy in training and deployment, especially for long, high-resolution videos. Moreover, this inflexible and fixed training achieves sub-optimal
+results for tasks that require dynamic resolution settings, including restricted computation or emphasizing frame counts
+rather than frame resolution. Researchers have developed
+different approaches for better trade-offs.
+First, to fit a limited computation budget in inference,
+many works [15, 31, 59] use token reduction on the same
+densely sampled tokens as in training, showing sub-optimal
+performance. For one thing, there is a trade-off between the
+complexity (cost) and performance of the token reduction
+strategy. Current strategies can not perform well with a significant reduction rate. For another, the inflexibly trained
+models can not generalize with the sparse, masked tokens.
+Second, existing methods for flexible network training,
+such as Resformer [65] and FFN [88], have demonstrated
+the efficacy of flexible networks operating at different spatial or temporal resolutions but not both simultaneously. Al-
+
+23880
+
+

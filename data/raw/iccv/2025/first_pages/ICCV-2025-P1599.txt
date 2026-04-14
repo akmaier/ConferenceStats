@@ -1,0 +1,70 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Distilling Parallel Gradients for Fast ODE Solvers of Diffusion Models
+Beier Zhu1 *
+
+Ruoyu Wang2 *
+Tong Zhao2
+Hanwang Zhang1
+1
+Nanyang Technological University, 2 Westlake University
+
+Chi Zhang2†
+
+{beier.zhu, hanwangzhang}@ntu.edu.sg, {wangruoyu71, zhaotong68, chizhang}@westlake.edu.cn
+
+Abstract
+Diffusion models (DMs) have achieved state-of-the-art generative performance but suffer from high sampling latency due
+to their sequential denoising nature. Existing solver-based
+acceleration methods often face image quality degradation
+under a low-latency budget. In this paper, we propose the Ensemble Parallel Direction solver (dubbed as EPD-Solver),
+a novel ODE solver that mitigates truncation errors by incorporating multiple parallel gradient evaluations in each
+ODE step. Importantly, since the additional gradient computations are independent, they can be fully parallelized,
+preserving low-latency sampling. Our method optimizes a
+small set of learnable parameters in a distillation fashion, ensuring minimal training overhead. In addition, our method
+can serve as a plugin to improve existing ODE samplers.
+Extensive experiments on various image synthesis benchmarks demonstrate the effectiveness of our EPD-Solver in
+achieving high-quality and low-latency sampling. For example, at the same latency level of 5 NFE, EPD achieves an
+FID of 4.47 on CIFAR-10, 7.97 on FFHQ, 8.17 on ImageNet,
+and 8.26 on LSUN Bedroom, surpassing existing learningbased solvers by a significant margin. Codes are available
+in https://github.com/BeierZhu/EPD.
+
+1. Introduction
+Diffusion models (DMs) [7, 32, 39] have become a leading
+paradigm in generative modeling, achieving state-of-the-art
+performance across a diverse range of applications, including image synthesis [16, 32, 35], video generation [2, 8],
+speech synthesis [14], and 3D shape modeling [26]. These
+models operate by gradually refining a noisy input through
+a denoising process, producing high-fidelity outputs with
+impressive diversity and realism. However, the multi-step
+sequential denoising process introduces substantial latency,
+making sampling inefficient.
+In response to the challenge, recent efforts have focused
+on accelerating the sampling process of DMs. Notably,
+* Equal contribution. † Corresponding author. This work was partially
+done during Beier Zhu’s visit at WestLake University.
+
+Figure 1. Comparison of various solvers on diffusion models. We
+compare the FID versus latency (ms) across different NFE settings
+on a NVIDIA 4090. Our proposed EPD-Solver shows superior
+image quality without increasing latency.
+
+these methods typically fall into three categories: solverbased methods, distillation-based methods, and parallelismbased methods, each with distinct advantages and limitations.
+Solver-based methods develop fast numerical solvers to reduce sampling steps [10, 12, 21, 23, 24, 40, 46, 50–52].
+However, inherent truncation errors lead to significant quality degradation when the number of function evaluations
+(NFE) is low (e.g., < 5). Distillation-based methods train
+a student DM to establish a bijective mapping between the
+data distribution and a predefined tractable noise distribution [1, 11, 22, 25, 27, 29, 36, 42, 53]. This process allows
+the distilled model to generate high-quality samples within
+a minimal number of NFEs, often as low as one. However,
+achieving this level of efficiency requires extensive training
+with carefully designed objectives, making the distillation
+process computationally expensive. Additionally, such methods struggle to leverage multi-NFE settings effectively, limiting their flexibility when a trade-off between speed and quality is desired. Parallelism-based methods accelerate diffusion models by trading computation for speed [4, 17, 19, 38].
+While promising, this direction remains underexplored.
+To combine the advantages of these approaches, we investigate solver-based methods under low-latency constraints
+
+19557
+
+

@@ -1,0 +1,435 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+LLaVA-SP: Enhancing Visual Representation with Visual Spatial Tokens for
+MLLMs
+Haoran Lou1 Chunxiao Fan1,† Ziyan Liu1 Yuexin Wu1 Xinliang Wang2
+1
+Beijing University of Posts and Telecommunications 2 Beihang University
+{faker,cxfan,liuziyan,wuyuexin}@bupt.edu.cn
+
+wangxinliang@buaa.edu.cn
+
+Abstract
+
+V
+
+M
+
+The architecture of multimodal large language models (MLLMs) commonly connects a vision encoder, often
+based on CLIP-ViT, to a large language model. While
+CLIP-ViT works well for capturing global image features,
+it struggles to model local relationships between adjacent
+patches, leading to weaker visual representation, which in
+turn affects the detailed understanding ability of MLLMs.
+To solve this, we propose LLaVA-SP, which only adds
+six spatial visual tokens to the original visual tokens to
+enhance the visual representation. Our approach offers
+three key advantages: 1) We propose a novel Projector, which uses convolutional kernels to derive visual spatial tokens from ViT patch features, simulating two visual spatial ordering approaches: “from central region to
+global” and “from abstract to specific”. Then, a crossattention mechanism is applied to fuse fine-grained visual
+information, enriching the overall visual representation.
+2) We present two model variants: LLaVA-SP-Cropping,
+which focuses on detail features through progressive cropping, and LLaVA-SP-Pooling, which captures global semantics through adaptive pooling, enabling the model to
+handle diverse visual understanding tasks. 3) Extensive
+experiments show that LLaVA-SP, fine-tuned with LoRA,
+achieves significant performance improvements across various multimodal benchmarks, outperforming the state-ofthe-art LLaVA-1.5 model in multiple tasks with nearly identical inference latency. The code and models are available
+at https://github.com/CnFaker/LLaVA-SP.
+
+M
+
+- V
+
+Q
+
+3
+
+3
+
+A
+
+v
+
+7
+
+9
+
+. 2
+
+7
+
+9
+
+. 1
+
+7
+
+8
+
+. 5
+
+e t
+
+2
+
+G
+
+6
+
+6
+
+3
+
+L
+
+L
+
+a V
+
+A
+
+- B
+
+e n
+
+2
+
+Q
+
+A
+
+. 5
+
+. 4
+
+2
+
+6
+
+2
+
+2
+
+. 4
+
+. 0
+
+. 2
+
+c h
+
+V
+5
+
+6
+
+8
+
+5
+3
+6
+
+6
+
+0
+
+. 5
+
+. 7
+
+6
+
+3
+
+5
+
+0
+
+E
+
+D
+
+- I M
+
+6
+
+G
+6
+
+7
+
+7
+
+6
+
+6
+
+. 2
+
+0
+
+. 1
+
+6
+
+4
+
+6
+
+5
+
+e n
+
+5
+
+. 8
+
+5
+
+. 9
+
+8
+
+6
+
+a V
+
+A
+
+- 1
+
+. 5
+
+- 7
+
+B
+
+8
+
+. 7
+
+S
+
+Q
+
+A
+
+- I M
+
+G
+
+. 2
+
+5
+
+. 7
+
+8
+
+. 3
+
+5
+
+4
+
+7
+
+3
+
+. 8
+
+. 4
+
+T
+
+8
+
+. 7
+
+e x
+
+t V
+
+Q
+
+A
+
+a V
+
+A
+
+c h
+1
+
+4
+
+7
+
+5
+
+. 9
+
+1
+
+5
+
+1
+
+0
+
+. 7
+
+8
+
+L
+
+9
+
+. 3
+
+1
+
+L
+
+6
+
+. 6
+
+8
+
+B
+
+. 0
+
+. 5
+
+5
+
+M
+
+9
+
+. 2
+
+6
+
+M
+
+i z
+
+. 0
+
+6
+
+E
+
+i z W
+
+. 6
+
+. 4
+6
+
+6
+
+S
+
+1
+
+. 3
+
+L
+
+M
+
+M
+
+E
+
+L
+
+a V
+
+A
+
+- S
+
+P
+
+- C
+
+r o
+
+p
+
+p
+
+6
+
+. 5
+
+P
+
+O
+
+P
+
+i n
+
+g
+
+- 7
+
+E
+
+B
+
+L
+
+L
+
+- S
+
+P
+
+- P
+
+o
+
+o
+
+l i n
+
+g
+
+- 7
+
+B
+
+Figure 1. Our models, fine-tuned with LoRA, outperform the
+fully trained LLaVA-1.5 in 10 out of 11 multimodal benchmarks. We name the model that employs the cropping operation as
+LLaVA-SP-Cropping and the one that uses the pooling operation
+as LLaVA-SP-Pooling.
+
+1. Introduction
+
+representation in MLLMs has primarily focused on the visual aspect. To reduce hallucinations in MLLMs caused by
+visual content, various strategies have been employed, such
+as increasing image resolution, using more powerful vision
+encoder, and integrating multiple visual features. For instance, LLaVA-1.5 [33] increased input image resolution
+to 336, while InternVL-1.5 [9] proposed a dynamic highresolution image strategy that supports 1024-resolution image inputs. SPHINX [32] combined multiple vision encoders to extract diverse visual features. Monkey [30] fed
+different image blocks in parallel to their respective ViT
+encoders [14] to learn unique features. Mini-Gemini [29]
+proposed simultaneously inputting low-resolution and highresolution images into the visual model. However, these approaches often lead to increased visual token counts, resulting in significantly increased training and inference costs.
+Currently, mainstream MLLMs utilize CLIP-ViT [44] as
+their vision encoder, but CLIP-ViT faces two limitations:
+1) The contrastive learning paradigm relies on noisy image-
+
+Multimodal large language models (MLLMs) [2, 9, 33, 34,
+54, 67] demonstrate exceptional capabilities in understanding visual and linguistic information, with the key to crossmodal understanding being modality alignment [16, 40, 63,
+64, 66]. Recent research on aligning visual and language
+† Corresponding author.
+
+22014
+
+

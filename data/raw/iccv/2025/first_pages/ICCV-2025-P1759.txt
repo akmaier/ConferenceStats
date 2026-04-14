@@ -1,0 +1,84 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+DC-AE 1.5: Accelerating Diffusion Model Convergence
+with Structured Latent Space
+Junyu Chen†
+
+Dongyun Zou
+
+Wenkun He
+
+Junsong Chen Enze Xie Song Han
+NVIDIA
+https://github.com/dc-ai-projects/DC-Gen
+
+Abstract
+We present DC-AE 1.5, a new family of deep compression
+autoencoders for high-resolution diffusion models. Increasing the autoencoder’s latent channel number is a highly
+effective approach for improving its reconstruction quality. However, it results in slow convergence for diffusion
+models, leading to poorer generation quality despite better reconstruction quality. This issue limits the quality upper bound of latent diffusion models and hinders the employment of autoencoders with higher spatial compression
+ratios. We introduce two key innovations to address this
+challenge: i) Structured Latent Space, a training-based
+approach to impose a desired channel-wise structure on
+the latent space with front latent channels capturing object structures and latter latent channels capturing image
+details; ii) Augmented Diffusion Training, an augmented
+diffusion training strategy with additional diffusion training
+objectives on object latent channels to accelerate convergence. With these techniques, DC-AE 1.5 delivers faster
+convergence and better diffusion scaling results than DCAE. On ImageNet 512×512, DC-AE-1.5-f64c128 delivers
+better image generation quality than DC-AE-f32c32 while
+being 4× faster.
+
+1. Introduction
+Latent Diffusion Model (LDM) [25] has established itself
+as a dominant paradigm in high-resolution image synthesis [12, 19, 21, 32]. It leverages an autoencoder to project
+images of size H × W × 3 into compressed latent represenW
+1
+tations of shape H
+f × f × c , reducing the computational
+cost of the diffusion model. The diffusion model’s outputs
+are fed to the autoencoder at inference time to reconstruct
+images from the latent representations. In LDM, the autoencoder reconstruction quality is critical, as it sets a quality
+†
+
+Han Cai†
+
+upper bound for the whole image synthesis pipeline.
+A common approach to improve the quality of autoencoder reconstruction is to increase its latent channel number
+[10, 12, 19]. For example, Figure 1 (b) shows the autoencoder’s rFID (reconstruction FID, the lower the better) results with different latent channel numbers. We can see that
+the rFID consistently improves as the latent channel number
+increases, decreasing from 1.60 to 0.26 if switching from
+c16 to c128.
+Expanding the latent channel number is especially critical for deep compression autoencoders [7], which accelerate latent diffusion models by increasing the autoencoder’s
+spatial compression ratio (Figure 1a). Under a high spatial compression ratio (e.g., f64), deep compression autoencoders must use a large latent channel number (e.g., c128)
+to maintain a satisfactory reconstruction quality.
+However, using a large latent channel number signiﬁcantly slows the diffusion model’s convergence, leading to
+worse gFID (generation FID, the lower the better) results.
+For example, Figure 1 (b) demonstrates DiT-XL’s [24] gFID
+results with different latent channel numbers. Although the
+autoencoder’s rFID keeps improving, the gFID keeps deteriorating. This issue not only limits LDM’s quality upper bound but also bounds its efﬁciency as it hinders the
+employment of autoencoders with high spatial compression
+ratios (e.g., f64).
+This work presents DC-AE 1.5, which introduces two
+key innovations to tackle the aforementioned challenge.
+First, we analyze the autoencoder’s latent space under different latent channel numbers (Section 3.1). We ﬁnd that the
+latent space has a sparsity issue when using a large number
+of latent channels (Figure 2a). It allocates most of the latent
+channels for capturing image details while the latent channels for capturing object structure become sparse among the
+whole latent space2 . This sparsity issue makes it more difﬁcult for diffusion models to learn object structure, leading
+to the slow convergence issue. As shown in Figure 2 (b),
+the image details remain good when we increase the latent
+
+Equal contribution. Correspondence to: Han Cai (hcai@nvidia.com).
+
+1 ‘f’ denotes the autoencoder’s spatial compression ratio. ‘c’ represents
+
+2 We refer to them as detail latent channels and object latent channels,
+respectively.
+
+the latent channel number of the autoencoder.
+
+19628
+
+

@@ -1,0 +1,117 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+Growing a Twig to Accelerate Large Vision-Language Models
+Zhenwei Shao1 * Mingyang Wang1∗ Zhou Yu1† Wenwen Pan1 Yan Yang1
+Tao Wei2 Hongyuan Zhang2 Ning Mao2 Wei Chen2 Jun Yu1, 3
+1
+
+Zhejiang Key Laboratory of Space Information Sensing and Transmission,
+School of Computer Science, Hangzhou Dianzi University, China
+2
+Li Auto Inc., China 3 School of Intelligence Science and Engineering, Harbin Institute of Technology (Shenzhen), China
+{shaozw,kaka wangmy,yuz,panww,yangyan}@hdu.edu.cn,
+{weitao, zhanghongyuan, maoning, chenwei10}@lixiang.com, yujun@hit.edu.cn
+Code: https://github.com/MILVLG/twigvlm
+
+Abstract
+
+(deep)
+
+Large vision-language models (VLMs) have demonstrated
+remarkable capabilities in open-world multimodal understanding, yet their high computational overheads pose great
+challenges for practical deployment. Some recent works
+have proposed methods to accelerate VLMs by pruning
+redundant visual tokens guided by the attention maps of
+VLM’s early layers. Despite the success of these token
+pruning methods, they still suffer from two major shortcomings: (i) considerable accuracy drop due to insensitive
+attention signals in early layers, and (ii) limited speedup
+when generating long responses (e.g., 30 tokens). To address the limitations above, we present TwigVLM—a simple
+and general architecture by “growing” a lightweight twig
+upon an early layer of the base VLM. Compared with most
+existing VLM acceleration methods purely based on visual
+token pruning, our TwigVLM not only achieves better accuracy retention by employing a twig-guided token pruning
+(TTP) strategy, but also yields higher generation speed by
+utilizing a self-speculative decoding (SSD) strategy. Taking LLaVA-1.5-7B as the base VLM, experimental results
+show that TwigVLM preserves 96% of the original performance after pruning 88.9% of visual tokens and achieves
+154% speedup in generating long responses, delivering significantly better performance in terms of both accuracy and
+speed over the state-of-the-art VLM acceleration methods.
+
+1. Introduction
+The revolution in large language models (LLMs) has reshaped the landscape of artificial intelligence [4, 17, 43].
+Meanwhile, there has been growing interest in building
+* Work done during an internship at Li Auto Inc.
+† Zhou Yu is the corresponding author
+
+Better accuracy retention
+
+base VLM
+
+VLM head
+
+layer L
+…
+layer K+1
+
+learnable
+twig
+
+layer K
+
+twig layer
+
+twig-guided token
+pruning (TTP)
+
+(shallow)
+twig head
+
+twig layer(s)
+
+FastV
+
+ours
+
+Higher generation speed
+layer K
+…
+layer 1
+image
+
+text
+
+(a) TwigVLM architecture.
+
+self-speculative
+decoding (SSD)
+
+shallow VLM
+
+deep VLM
+
+(b) Two key advantages of TwigVLM.
+
+Figure 1. Our TwigVLM overview. (a) Given a base deep VLM,
+the TwigVLM is obtained by freezing the base VLM while training a shallow twig block upon its early layer. (b) Compared to the
+VLM acceleration methods based on visual token pruning (e.g.,
+FastV [8]), TwigVLM not only achieves better accuracy retention but also yields higher generation speed. Both FastV and
+TwigVLM take LLaVA-1.5-7B [29] as the base VLM (red dotted lines in the bar graphs) with the same pruning ratio of 88.9%.
+
+large vision-language models (VLMs) [1, 9, 24, 28, 37, 40,
+52], which can perform visual understanding and reasoning
+and be used in various vision-language tasks such as object
+grounding [35, 38], document understanding [34, 53], GUI
+automation [46, 58], and robotic control [3, 22]. Despite the
+remarkable progress achieved by these large VLMs, they
+are usually parametric-intensive and computational-heavy.
+This poses great challenges for deploying these models in
+low-latency scenarios. Therefore, the research on VLM acceleration is of practical and emergent demands.
+As the computational cost of transformer architectures
+[45] increases quadratically with token sequence length,
+reducing the number of tokens offers an effective way to
+accelerate VLMs. Moreover, visual tokens usually con-
+
+20064
+
+

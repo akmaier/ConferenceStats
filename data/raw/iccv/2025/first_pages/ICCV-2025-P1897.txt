@@ -1,0 +1,118 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+SeqGrowGraph: Learning Lane Topology as a Chain of Graph Expansions
+Mengwei Xie1 ,
+
+Shuang Zeng1, 2 , Xinyuan Chang1 , Xinran Liu1 ,
+Zheng Pan1 , Mu Xu1 , Xing Wei2†
+1
+Amap, Alibaba Group 2 Xi’an Jiaotong University
+
+{xiemengwei.xmw, changxinyuan.cxy, tom.lxr, panzheng.pan, xumu.xm}@alibaba-inc.com,
+zengshuang@stu.xjtu.edu.cn, weixing@mail.xjtu.edu.cn
+
+Abstract
+Accurate lane topology is essential for autonomous driving, yet traditional methods struggle to model the complex, non-linear structures—such as loops and bidirectional
+lanes—prevalent in real-world road structure. We present
+SeqGrowGraph, a novel framework that learns lane topology as a chain of graph expansions, inspired by human mapdrawing processes. Representing the lane graph as a directed
+graph G = (V, E), with intersections (V ) and centerlines
+(E), SeqGrowGraph incrementally constructs this graph by
+introducing one vertex at a time. At each step, an adjacency
+matrix (A) expands from n ⇥ n to (n + 1) ⇥ (n + 1) to
+encode connectivity, while a geometric matrix (M ) captures
+centerline shapes as quadratic Bézier curves. The graph is
+serialized into sequences, enabling a transformer model to
+autoregressively predict the chain of expansions, guided by a
+depth-first search ordering. Evaluated on nuScenes and Argoverse 2 datasets, SeqGrowGraph achieves state-of-the-art
+performance.
+
+1. Introduction
+The rise of autonomous driving has heightened the need for
+precise road structure modeling to ensure safe and efficient
+navigation [8, 23, 32]. Road structures encompass explicit
+features such as centerlines, road edges, and traffic signs, as
+well as implicit topological relationships, notably the connectivity between centerlines. Constructing lane graphs is
+crucial for representing these complex structures, facilitating vehicle decision-making and path planning in dynamic
+environments.
+Traditional lane graph generation methods fall into
+detection-based and generation-based approaches, each with
+notable limitations. Detection-based methods can be categorized into three types: 1) Pixel-level approaches, such as
+HDMapNet [9], segment lane structures in bird’s-eye view
+† Corresponding author.
+
+How to describe
+the lane graph
+step by step ?
+
+2
+0 ’s pos
+0
+
+1
+
+0
+
+3
+
+1
+
+2
+2 ’s pos, 2 from 0
+
+1 ’s pos, 1 from 0
+22
+
+11
+
+00
+
+1
+
+00
+
+3
+0
+0 ’s pos,
+
+22
+
+3 ’s pos, 3 to 2
+00
+
+4
+1 ’s pos, 1 from 0 ,
+
+2 ’s pos, 2 from 0 , 3 ’s pos,
+3 to 2
+
+11
+
+33
+
+5
+
+6
+
+Figure 1. Describing the lane graph step by step. Starting from
+an initial point, it is necessary to determine the location of the next
+point and establish whether there is a “from” or “to” relationship
+with the existing points. By repetitively carrying out this process,
+a complete description of the lane graph can be obtained. The
+abbreviation “pos” in the diagram stands for “position”.
+
+(BEV) space on a per-pixel basis but struggle to infer global
+topology. 2) Piece-level methods [4, 10, 18] detect centerlines in fragmented segments based on topological points,
+often resulting in discontinuities and misalignments (Figure 2). 3) Path-level methods, such as LaneGAP [15], aim to
+mitigate discontinuities by detecting lane paths but introduce
+redundancies and alignment errors due to heavy reliance on
+post-processing.
+Within the widely applied paradigm of sequence generation [2, 6, 12, 26], generative models are regarded as offering
+a more direct method for inferring lane graphs by capturing
+hidden structural patterns.
+However, formulating lane graphs as sequences poses
+
+27166
+
+

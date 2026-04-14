@@ -1,0 +1,124 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+PVMamba: Parallelizing Vision Mamba via Dynamic State Aggregation
+Fei Xie1 Zhongdao Wang2 Weijia Zhang1 Chao Ma1, *
+1
+MoE Key Lab of Artiﬁcial Intelligence, AI Institute, Shanghai Jiao Tong University
+2
+Huawei Noah’s Ark Lab
+{jaffe031, weijia.zhang, chaoma}@sjtu.edu.cn
+
+wangzhongdao@huawei.com
+
+Position
+encoding
+
+Abstract
+
+* matrix
+multiplication
+oftMax(Qࡷࢴ )V
+
+Mamba, an architecture with RNN-like sequence modeling
+of State Space Model (SSM), has demonstrated promising
+capabilities in long-range modeling with high efﬁciency.
+However, Mamba models struggle with structured 2D visual
+data using sequential computing, thereby lagging behind
+their attention-based counterparts. In this paper, we propose a Parallel Vision Mamba (PVMamba), a novel SSM
+architecture tailored for visual data. PVMamba encompasses two key designs: 1) Based on the sparsity and adjacency of visual signals, we parallelize the sequential computing through three core steps, termed Dynamic State Aggregation (DSA), i.e., parallelization, alignment, and aggregation. DSA generates the hidden state in SSM by a
+feasible spatial aggregation, thereby overcoming the inherent sequential constraints. 2) Along with maintaining linear computational complexity, we apply a dynamic operator to learn the spatial samplings for each hidden state.
+To further boost the local modeling capability, we restrict
+the dynamic operator to the neighboring pixels in shallow
+layers. We also devise a layer multiplexing technique to
+stabilize the training and reduce the learning redundancy.
+PVMamba is a versatile backbone network with dynamic
+operators for various vision tasks, such as image classiﬁcation and dense prediction. Extensive experiments show
+that PVMamba achieves state-of-the-art performance on a
+range of benchmarks. The code is available at https:
+//github.com/VISION-SJTU/PVMamba.
+
+1. Introduction
+The architecture of Structured State Space Models
+(SSMs) [8, 9, 13, 26, 38] has become increasingly popular
+due to their remarkable computational efﬁciency in long sequence modeling. Recently, there has been a growing trend
+in applying Mamba [25, 31, 62, 71], an improved SSM variant, as the core module for various vision tasks, such as im* Corresponding author.
+
+Q
+
+K V
+
+(a) attention
+
+*
+
+recursive computation
+
+A
+
+to 1D sequence
+
+B
+
+C
+
+For ࢏ in ࡺ:
+ഥ ࢏ ࢎ࢏ି૚ ൅ ࡮
+ഥ ࢏ ࢞࢏
+ࢎ࢏ ൌ ࡭
+࢟࢏ ൌ ۱࢏ ࢎ࢏ ൅ ۲࢞࢏澢
+Global Convolution Kernel
+ഥሻ
+ഥ ǡ ࡯࡭࡮ǡ ǥ ǡ ࡯࡭
+ഥ ࡺି૚ ࡮
+ሺ࡯࡮
+
+input x
+
+reshape to 2D image
+
+(b) Mamba
+
+* matrix
+multiplication
+A
+
+B
+
+C
+
+ࢎ ൌ ෍ ࡭ሺ࡮ࢄሻ
+
+spatial
+sampling
+
+࢟ ൌ ࡯ࢎ
+
+input x
+
+(c) PVMamba
+
+Figure 1. (a) shows attention [33, 49, 65], whose computational
+costs are expensive, while it is implemented by hardware-friendly
+matrix operations. (b) is Mamba scheme [22, 31, 71] with linear complexity while suffering from recursive computation and
+sequential transformation. (c) Our PVMamba aims to preserve
+the merits of complexity and break the sequential constraints.
+
+age classiﬁcation [31, 71], dense prediction [28, 36, 41, 62],
+and generative tasks [7, 14, 20, 47]. These applications
+show the potential of Mamba in the visual domain.
+Despite their advances in model efﬁciency, SSMs, which
+originated from sequential language tasks [54], lack inherent adaptation for the visual domain. This limitation makes
+many existing SSM architectures lag behind their transformer [5, 33, 49] counterparts in performance on vision
+understanding tasks. We carefully examine the merits and
+demerits of the visual operators as illustrated in Fig. 1. The
+transformer can ﬂexibly attend to the pixels in 2D regions
+and be efﬁcient in matrix calculation while suffering from
+quadratic computational costs. In contrast, Mamba beneﬁts from linear complexity and processes each pixel in sequence, maintaining awareness of their relative order. However, the sequential nature [8, 13] in Mamba introduces two
+main constraints when handling 2D visual data: 1) Vision
+Mamba needs to convert 2D visual data into 1D sequential
+
+10218
+
+

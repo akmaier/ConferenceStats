@@ -1,0 +1,434 @@
+This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+
+TikZero: Zero-Shot Text-Guided Graphics Program Synthesis
+Jonas Belouadi∗
+
+Eddy Ilg†
+Margret Keuper∗,‡
+Hideki Tanaka§
+Raj Dabre§
+Steffen Eger†
+Simone Ponzetto∗
+
+Masao Utiyama§
+
+University of Mannheim, Germany∗
+University of Technology Nuremberg, Germany†
+Max Planck Institute for Informatics, Saarland Informatics Campus, Germany‡
+National Institute of Information and Communications Technology, Japan§
+jonas.belouadi@uni-mannheim.de
+
+Abstract
+
+AutomaTikZv2 ✗
+
+TikZero+ ✓
+
+1
+
+1. Introduction
+Graphics programming languages offer distinct advantages
+over low-level vector formats (PDF, SVG) or raster image formats by representing visual concepts as high-level programs
+that preserve semantics, remain human-interpretable, and
+allow manual editing. These properties are particularly valuable in academia, where specialized graphics programming
+languages like TikZ [1] are popular for creating complex figures with high expressivity. However, this comes with a steep
+learning curve, as seen on the TEX Stack Exchange2 (TEX.SE),
+where nearly 10% of questions concern TikZ and make it the
+most frequently discussed topic on the platform [2, 3].
+1https://github.com/potamides/DeTikZify
+2https://tex.stackexchange.com
+
+Im(ω)
+
+γ
+
+Γ
+Re(ω)
+
+100
+0.4
+0.2
+0
+
+0
+
+50
+
+−0.2
+−0.4
+5
+
+0
+−5
+
+−5
+
+0
+
+0
+
+0
+
+−5 5
+
+0
+
+5
+
+0
+
+−4 −2
+
+4
+
+2
+
+1
+
+3D contour plot of a loss function.
+ℓ1
+
+σ1
+
+σ2
+
+σ3
+
+σ4
+
+σ5
+
+σ6
+
+σ7
+
+σ8
+
+σ9
+
+σ10
+
+σ1
+
+σ2
+
+σ3
+
+σ4
+
+σ5
+
+σ6
+
+σ7
+
+σ8
+
+σ9
+
+σ10
+
+σ1
+
+σ2
+
+σ3
+
+σ4
+
+σ5
+
+σ6
+
+σ7
+
+σ8
+
+σ9
+
+σ10
+
+ℓ2
+
+ℓ3
+
+ℓ4
+
+ℓ5
+
+ℓ6
+
+z
+
+h1
+
+h2
+
+h3
+
+ỹ
+
+x̃
+
+Hidden
+layer 1
+
+Hidden
+layer 2
+
+ℓ2
+
+ℓ3
+
+ℓ4
+
+ℓ5
+
+ℓ6
+
+y
+
+x
+
+σ2
+
+σ3
+
+σ4
+
+σ5
+
+σ6
+
+σ7
+
+σ8
+
+σ9
+
+σ10
+
+σ2
+
+σ3
+
+σ4
+
+σ5
+
+σ6
+
+σ7
+
+σ8
+
+σ9
+
+σ10
+
+Hidden
+1
+layer
+
+x1
+
+Input 2
+
+ℓ7
+
+Hidden
+layer
+1
+
+Output
+layer
+
+z
+
+h1
+
+h2
+
+h3
+
+n
+
+x2
+
+Input 3
+
+σ1
+
+Output
+layer
+
+Input 1
+
+n
+ℓ1
+
+σ1
+
+Input
+layer
+
+ℓ7
+
+Input
+layer
+y
+
+x
+
+y1
+
+Ouput
+
+ỹ
+
+x̃
+
+Input 4
+ℓ1
+
+ℓ2
+
+ℓ3
+
+ℓ4
+
+ℓ5
+
+ℓ6
+
+ℓ7
+
+Input 5
+x
+
+y
+
+z
+
+h1
+
+h2
+
+h3
+
+x̃
+
+yN
+
+xN
+
+ỹ
+
+A multi-layer perceptron with two hidden layers.
+200
+f (x)
+
+180
+160
+
+t
+
+140
+
+y
+
+120
+Distance (m)
+
+Automatically synthesizing figures from text captions is a
+compelling capability. However, achieving high geometric precision and editability requires representing figures
+as graphics programs in languages like TikZ, and aligned
+training data (i.e., graphics programs with captions) remains
+scarce. Meanwhile, large amounts of unaligned graphics
+programs and captioned raster images are more readily available. We reconcile these disparate data sources by presenting
+TikZero, which decouples graphics program generation from
+text understanding by using image representations as an intermediary bridge. It enables independent training on graphics
+programs and captioned images and allows for zero-shot
+text-guided graphics program synthesis during inference. We
+show that our method substantially outperforms baselines
+that can only operate with caption-aligned graphics programs.
+Furthermore, when leveraging caption-aligned graphics programs as a complementary training signal, TikZero matches
+or exceeds the performance of much larger models, including
+commercial systems like GPT-4o. Our code, datasets, and
+select models are publicly available.1
+
+100
+
+x
+
+80
+60
+
+−2
+
+40
+
+−1
+
+1
+
+1 x
+SD
+
+2
+
+20
+0
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9 10 11 12 13 14 15 16 17 18 19
+
+x2
+√1 e− 2
+2π
+x
+
+Time (s)
+
+Gaussian probability density function (blue) with markers showing one
+standard deviation (red).
+
+Figure 1. Qualitative comparison of our TikZero+ model (last
+two columns) and the end-to-end trained baseline AutomaTikZv2
+(LLM; first two columns) on text-guided graphics program synthesis
+with TikZ. Our method generates outputs that more closely follow
+the given captions. Example program listings are in Supp. Mat. F.
+
+With recent advances in generative AI, simplifying the creation of graphics programs has become increasingly feasible.
+Belouadi et al. [2] introduce DeTikZify, an inverse graphics
+model that generates TikZ programs from images and handdrawn sketches. However, creating these visual inputs stays
+cumbersome, motivating alternative input modalities such as
+natural language. While Belouadi et al. [3] propose AutomaTikZ, a text-guided synthesis model for TikZ programs
+trained end-to-end on an aligned caption-program corpus, its
+performance remains limited (cf. Fig. 1) [4, 5].
+We identify insufficient training data as the primary limitation. Unlike inverse graphics models such as DeTikZify,
+which are inherently self-supervised (trained by being conditioned on compiled representations of their output programs)
+and can access sufficient training data (cf. Fig. 2), end-to-
+
+17793
+
+
