@@ -1,0 +1,88 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Structured Packing in LLM Training Improves Long Context Utilization
+Konrad Staniszewski1, 2 , Szymon Tworkowski1, 6 , Sebastian Jaszczur1, 2 , Yu Zhao3 , Henryk
+Michalewski1, 4 , Łukasz Kuciński1, 2, 5 , Piotr Miłoś1, 2, 5
+1
+
+University of Warsaw, Krakowskie Przedmiescie 26/28, 00-927 Warsaw, Poland
+2
+IDEAS NCBR, Chmielna 69, 00-801 Warsaw, Poland
+3
+University of Edinburg, Old College, South Bridge, Edinburgh EH8 9YL, United Kingdom
+4
+Google DeepMind, 5 New Street Square, London, United Kingdom
+5
+Institute of Mathematics Polish Academy of Sciences, Jana i Jedrzeja Sniadeckich 8, 00-656, Warsaw, Poland
+6
+xAI, San Francisco Bay Area, California, U.S.
+ks.staniszewski@uw.edu.pl
+Abstract
+
+find it challenging to utilize information from the middle of
+their inputs (Liu et al. 2023), even on simple synthetic retrieval tasks (Li et al. 2023a). Understanding these issues is
+vital for advancements in LCLM technologies and calls for
+systematic research.
+In this work, we take a step towards better context utilization in LCLMs. We focus on training data, keeping other
+components, such as the architecture and training objectives,
+unchanged. The broad question is: Given training data consisting of documents, how should these documents be organized into training samples to enhance long-context capabilities? While this perspective has received some attention recently (Levine et al. 2022; Chan et al. 2022; Shi et al. 2024),
+the problem remains unsolved. The central finding of this
+work is that structuring training data to increase semantic
+interdependence is an effective strategy towards better long
+context utilization. We achieve this by introducing and evaluating Structured Packing for Long Context (SPL I C E), a
+method for creating training samples by using retrieval (e.g.,
+BM25, Contriever) to collate mutually relevant documents
+into a single training context.
+We empirically validate SPL I C E showing that fine-tuning
+of OpenLLaMA 3Bv2, 7Bv2 (Geng and Liu 2023) and
+CodeLlama 13B (Rozière et al. 2023) with mere 2B–6B tokens already brings improvements in handling long context
+information in downstream tasks that require retrieval and
+in-context learning. These tasks include Qasper (Dasigi et al.
+2021) from SCROLLS (Shaham et al. 2022), HotPotQA
+(Yang et al. 2018), Needle In A Haystack (Kamradt 2023),
+TREC (Li and Roth 2002; Hovy et al. 2001), and DBpedia
+(Lehmann et al. 2015). We also show that SPL I C E significantly alleviates the ’lost-in-the-middle’ phenomenon (Liu
+et al. 2023) and outperforms standard example packing on
+the Needle In A Haystack task (Kamradt 2023) (see Figure
+1). We perform a comprehensive study of the design choices
+and properties of SPL I C E, showing, in particular, that the
+acquired long context capabilities transfer between modalities, such as code and text. SPL I C E also helps to retain
+and in some cases even improve performance on short context benchmarks like GSM8K (Cobbe et al. 2021), MMLU
+(Hendrycks et al. 2021) and TREC (Li and Roth 2002; Hovy
+et al. 2001).
+Our contributions can be summarized as follows:
+
+Recent advancements in long-context language modeling
+have attracted significant attention, yet their practical applications often suffer from suboptimal context utilization. To efficiently address this issue, we introduce the Structured Packing for Long Context, SPL I C E, a method that uses retrieval to
+collate mutually relevant documents into long training samples. We demonstrate that SPL I C E improves performance on
+long-context tasks, particularly by achieving perfect accuracy
+on the synthetic Needle in the Haystack benchmark, and effectively mitigating the ‘lost-in-the-middle’ phenomenon often observed in large language models. Notably, these longcontext capabilities also extend to realistic downstream tasks,
+such as Qasper, across multiple model sizes—3B, 7B, and
+13B—and are achieved with only brief fine-tuning on 2-6
+billion tokens. We supplement these results with a detailed
+analysis of SPL I C E, examining the impact of hyperparameter
+choices, the different mixtures and proportions of SPL I C Egenerated training data, and the choice of the retriever. We
+also study the transfer of long-context utilization skills between the modalities. An intriguing finding from our analysis
+is that training on a corpus of code can enhance performance
+on natural language tasks.
+
+Code — https://github.com/ideas-ncbr/publications 2024
+Extended version — https://arxiv.org/abs/2312.17296
+
+1
+
+Introduction
+
+Large language models (LLMs) (Brown et al. 2020; Chowdhery et al. 2022; Lewkowycz et al. 2022; OpenAI 2023a;
+Bai et al. 2023) have transformed the field of AI. Recently,
+the field has observed the rise of Long Context Language
+Models (LCLMs) that promise to unveil novel and powerful capabilities (Anthropic 2023; OpenAI 2023b; Gemini Team 2024). However, their ability to process long contexts is not always as effective as one hopes. Indeed, several
+studies have highlighted an important limitation: when processing prompts composed of multiple documents, LCLMs
+frequently encounter difficulties in accurately extracting relevant information (Tworkowski et al. 2023; Liu et al. 2023;
+Shi et al. 2023; Kamradt 2023). Additionally, they typically
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+25201
+
+

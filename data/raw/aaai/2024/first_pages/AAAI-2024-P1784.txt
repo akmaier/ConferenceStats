@@ -1,0 +1,95 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+A Separation and Alignment Framework for Black-Box Domain Adaptation
+Mingxuan Xia1,2 , Junbo Zhao2 , Gengyu Lyu3 , Zenan Huang2 ,
+Tianlei Hu2 , Gang Chen2 , Haobo Wang1,2 *
+1
+
+2
+
+School of Software Technology, Zhejiang University
+State Key Laboratory of Blockchain and Data Security, Zhejiang University
+3
+Faculty of Information Technology, Beijing University of Technology
+{xiamingxuan, j.zhao, lccurious, htl, cg, wanghaobo}@zju.edu.cn,
+lyugengyu@bjut.edu.cn
+
+Abstract
+Black-box domain adaptation (BDA) targets to learn a classifier on an unsupervised target domain while assuming only
+access to black-box predictors trained from unseen source
+data. Although a few BDA approaches have demonstrated
+promise by manipulating the transferred labels, they largely
+overlook the rich underlying structure in the target domain.
+To address this problem, we introduce a novel separation and
+alignment framework for BDA. Firstly, we locate those welladapted samples via loss ranking and a flexible confidencethresholding procedure. Then, we introduce a novel graph contrastive learning objective that aligns under-adapted samples
+to their local neighbors and well-adapted samples. Lastly, the
+adaptation is finally achieved by a nearest-centroid-augmented
+objective that exploits the clustering effect in the feature
+space. Extensive experiments demonstrate that our proposed
+method outperforms best baselines on benchmark datasets,
+e.g. improving the averaged per-class accuracy by 4.1% on
+the VisDA dataset. The source code is available at: https:
+//github.com/MingxuanXia/SEAL.
+
+Introduction
+Unsupervised Domain adaptation (UDA) (Ganin and Lempitsky 2015; Saito et al. 2018; Wilson and Cook 2020) is a
+popular research topic in deep learning that enables models
+trained on source domains to generalize well to a target domain without accessing target label information. To handle
+UDA, researchers have developed a plethora of practical algorithms, including adversarial learning-based approaches
+(Tzeng et al. 2015; Ganin and Lempitsky 2015; Ganin et al.
+2016; Tzeng et al. 2017), discrepancy-based methods (Tzeng
+et al. 2014; Sun and Saenko 2016; Long et al. 2017; Zhuang
+et al. 2018) and so on. Thanks to these methodological innovations, UDA has been applied to many real-world scenarios
+such as image classification, speech recognition, and medical
+data analysis (Long et al. 2016; Kang et al. 2019; Sun et al.
+2017; Perone et al. 2019) where obtaining labeled data in a
+target domain can be costly or impractical.
+Though widely applied in many fields, existing UDA methods draw some crucial concerns. Specifically, UDA requires
+accessing to source data which potentially threatens data privacy and security. Besides, when the source domain contains
+* Corresponding author.
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+16005
+
+a large amount of data, practicing these UDA methods may
+suffer from huge storage and computational costs. Therefore,
+a new kind of method called Source Free Domain Adaptation
+(SFDA) (Liang, Hu, and Feng 2020; Li et al. 2020; Yang et al.
+2021) is proposed, where source data is not accessed along
+the adaptation process. Even so, the problem of source information privacy and the limitation of computational resources
+still remains, due to these methods highly rely on the whitebox source model. To mitigate this problem, a special case of
+SFDA called black-box domain adaptation (BDA) has been
+proposed recently (Zhang et al. 2021; Liang et al. 2022a),
+where only a source API can be utilized to train the unlabeled
+target domain. These methods fully detach the target domain
+from the source data and source model, which completely
+mitigates the issues of privacy and computational resources.
+To date, few efforts have been made to address the BDA
+problem. In particular, these algorithms (Zhang et al. 2021;
+Liang et al. 2022a; Yang et al. 2023) mostly assume many
+target samples share features with the source domain and
+thus, are easier to adapt. Inspired by research on learning
+with noisy labels (LNL), they identify these easy samples
+to guide target model training. For example, DINE (Liang
+et al. 2022a) develops adaptive label smoothing for easy and
+hard samples according to predicted values. (Zhang et al.
+2021) selects samples with low loss rank and integrates selftraining methods to adapt the remaining data. The state-ofthe-art BETA method (Yang et al. 2023) also detects small
+loss samples which is achieved by Gaussian Mixture Models,
+and conducts semi-supervised learning after domain division.
+Besides, mixup techniques (Zhang et al. 2018) are integrated
+into DINE and BETA that exploit structural input information
+for boosted performance. Despite the promise, they suffer
+two main limitations. First, these methods mostly rely on
+a fixed budget of easy samples but overlook a rich set of
+well-adapted samples that emerge when the domain gap is
+shrunk. Second, a simple mixup technique is not able to fully
+utilize the topological information in the target domain.
+To address these problems, we present a novel SEparation
+and ALignment (dubbed SEAL) framework for BDA, which
+comprises three key components. The first module separates
+target data into well-adapted and under-adapted sets. Specifically, apart from the original easy samples with lower loss
+rank, we further collect those well-adapted samples with
+high confidence by a flexible thresholding mechanism. The
+
+

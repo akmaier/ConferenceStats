@@ -1,0 +1,81 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+BigMac: A Communication-Efficient Mixture-of-Experts Model Structure for Fast
+Training and Inference
+Zewen Jin1 2 * , Shengnan Wang2 * , Jiaan Zhu1 3 , Hongrui Zhan1 ,
+Youhui Bai2 , Lin Zhang2 , Zhenyu Ming2 , Cheng Li1 3
+1
+
+University of Science and Technology of China
+2
+Huawei Technologies
+3
+Institute of Artificial Intelligence, Hefei Comprehensive National Science Center
+zevin@mail.ustc.edu.cn, wangshengnan12@huawei.com, andyzhu@mail.ustc.edu.cn, zhr2001@mail.ustc.edu.cn,
+baiyouhui@huawei.com, zhang.lin4@huawei.com, mingzhenyu1@huawei.com, chengli7@ustc.edu.cn
+Abstract
+The Mixture-of-Experts (MoE) structure scales the
+Transformer-based large language models (LLMs) and
+improves their performance with only the sub-linear increase in computation resources. Recently, a fine-grained
+DeepSeekMoE structure is proposed, which can further
+improve the computing efficiency of MoE without performance degradation. However, the All-to-All communication
+introduced by MoE has become a bottleneck, especially
+for the fine-grained structure, which typically involves
+and activates more experts, hence contributing to heavier
+communication overhead.
+In this paper, we propose a novel MoE structure named BigMac, which is also fine-grained but with high communication
+efficiency. The innovation of BigMac is mainly due to that
+we abandon the communicate-descend-ascend-communicate
+(CDAC) manner used by fine-grained MoE, which leads
+to the All-to-All communication always taking place at
+the highest dimension. Instead, BigMac designs an efficient
+descend-communicate-communicate-ascend (DCCA) manner. Specifically, we add a descending and ascending projection at the entrance and exit of the expert, respectively,
+which enables the communication to perform at a very low
+dimension. Furthermore, to adapt to DCCA, we re-design the
+structure of small experts, ensuring that the expert in BigMac
+has enough complexity to address tokens. Experimental results show that BigMac achieves comparable or even better
+model quality than fine-grained MoEs with the same number
+of experts and a similar number of total parameters. Equally
+importantly, BigMac reduces the end-to-end latency by up
+to 3.09× for training and increases the throughput by up to
+3.11× for inference on state-of-the-art AI computing frameworks including Megatron, Tutel, and DeepSpeed-Inference.
+
+Figure 1: Convergence result comparison of MoE models
+with three structures. GPT-Fine-Grained takes 38.9 hours
+to reach the target perplexity of 13.69, while GPT-BigMac
+spends only 22.8 hours (1.7× faster). GPT-Vanilla fails to
+converge to the target perplexity under time budget.
+
+consumption. Fortunately, the Mixture-of-Experts (MoE)
+technique, capable of expanding the model size tens or even
+hundreds of times without significantly increasing the computation, is widely used in various emerging huge models, such as GShard (Lepikhin et al. 2020), GLaM (Du
+et al. 2022), Switch Transformer (Fedus, Zoph, and Shazeer
+2022), and Mixtral (Jiang et al. 2024), each of which consists of hundreds of billion parameters or even beyond.
+Recently, DeepSeekMoE (Dai et al. 2024), a fine-grained
+and more parameter-efficient MoE structure, has been proposed. Compared to conventional MoE models, for the same
+model size, DeepSeekMoE has significantly more experts
+per MoE layer and fewer parameters per expert. It was
+demonstrated that such a new structure can achieve comparable or even better results than conventional MoE models with much less time complexity and hence it is adopted
+by many later released models, such as Qwen2 (Yang et al.
+2024) and DeepSeek-v2 (DeepSeek-AI et al. 2024).
+However, the MoE faces a serious All-to-All communication bottleneck during both training and inference. This
+is mainly because of the underlying expert parallelism (EP)
+strategy, which assigns experts to several hardware accelerators to avoid out-of-memory errors or improve efficiency (Fedus, Zoph, and Shazeer 2022). As a result, for
+each MoE layer, two All-to-All communication steps are
+introduced for dispatching tokens to their best-fit experts,
+which may be stored in the other accelerators and then gath-
+
+Introduction
+Increasing the size of Transformer-based large language
+models (LLMs) can continuously improve downstream application performance. Such a phenomenon, known as the
+scaling law, has been demonstrated by the auto-regressive
+dense models such as GPT-series (OpenAI et al. 2024) and
+Llama-series (Dubey et al. 2024). However, this comes at
+the price of higher computing complexity and more resource
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+* Zewen and Shengnan equally contributed to this work.
+
+17689
+
+

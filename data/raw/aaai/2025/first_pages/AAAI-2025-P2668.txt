@@ -1,0 +1,79 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Falcon: Faster and Parallel Inference of Large Language Models Through
+Enhanced Semi-Autoregressive Drafting and Custom-Designed Decoding Tree
+Xiangxiang Gao* , Weisheng Xie * † , Yiwei Xiang, Feng Ji
+Bestpay AI Lab, Shanghai, 200080 China
+{gaoxiangxiang, xieweisheng, xiangyiwei, jifeng}@bestpay.com
+
+Abstract
+
+2023; Ghazvininejad et al. 2019; Xu et al. 2021; Ding et al.
+2021; Guo et al. 2021; Wang et al. 2019; Guo et al. 2019a).
+Intriguingly, the inference speed of LLMs is considerably
+hampered by memory bandwidth, with the main latency bottleneck stemming from reading and writing model parameters to memory, rather than from arithmetic computations
+(Xia et al. 2024). To address this issue, researchers have proposed speculative decoding to expedite the inference speed
+of LLMs without sacrificing accuracy (Zhang et al. 2024;
+Guo et al. 2020). This strategy employs a drafter that efficiently generates k tokens as speculation of future decoding steps within the LLMs. Subsequently, the LLM verifies
+these tokens, with only successfully validated tokens being
+accepted as decoded tokens, thus maintaining the quality of
+the generated output (Xia et al. 2023). By directing computational resources towards validating pre-generated tokens,
+speculative decoding significantly diminishes the memory
+operations needed to access LLM parameters, consequently
+boosting overall inference efficiency (Xia et al. 2024).
+While speculative decoding presents a potential solution
+to decrease the inference latency of LLMs, it also raises several important questions that need further exploration. Notably, existing speculative decoding methods primarily employ two drafting strategies: AR and semi-autoregressive
+(SAR) drafting. AR drafting generates tokens sequentially,
+each dependent on the preceding ones. This sequential dependency constrains the parallelism of the draft models,
+leading to substantial time overheads (Guo et al. 2019b;
+Sun et al. 2019; Geng, Feng, and Qin 2021; Graves et al.
+2006). In contrast, SAR drafting generates multiple tokens
+simultaneously, enhancing the parallelization of the drafting
+process. However, a significant limitation of SAR drafting
+is its inability to fully capture the inter-dependencies between tokens within the same block, potentially resulting in
+a lower acceptance rate for the generated tokens (Bao et al.
+2022; Ran et al. 2020). Consequently, balancing low drafting latency with high speculation accuracy poses a significant challenge in speculative decoding aimed at accelerating
+the inference speed of LLMs (Xia et al. 2024).
+In this paper, we introduce Falcon, an advanced SAR
+speculative decoding framework engineered to boost both
+the drafter’s parallelism and the output quality, thereby amplifying the inference efficiency of LLMs. Falcon integrates
+the Coupled Sequential Glancing Distillation method, which
+
+Striking an optimal balance between minimal drafting latency and high speculation accuracy to enhance the inference speed of Large Language Models remains a significant
+challenge in speculative decoding. In this paper, we introduce Falcon, an innovative semi-autoregressive speculative
+decoding framework fashioned to augment both the drafter’s
+parallelism and output quality. Falcon incorporates the Coupled Sequential Glancing Distillation technique, which fortifies inter-token dependencies within the same block, leading to increased speculation accuracy. We offer a comprehensive theoretical analysis to illuminate the underlying mechanisms. Additionally, we introduce a Custom-Designed Decoding Tree, which permits the drafter to generate multiple
+tokens in a single forward pass and accommodates multiple
+forward passes as needed, thereby boosting the number of
+drafted tokens and significantly improving the overall acceptance rate. Comprehensive evaluations on benchmark datasets
+such as MT-Bench, HumanEval, and GSM8K demonstrate
+Falcon’s superior acceleration capabilities. The framework
+achieves a lossless speedup ratio ranging from 2.91x to 3.51x
+when tested on the Vicuna and LLaMA2-Chat model series.
+These results outstrip existing speculative decoding methods
+for LLMs, including Eagle, Medusa, Lookahead, SPS, and
+PLD, while maintaining a compact drafter architecture equivalent to merely two Transformer layers.
+
+1
+
+Introduction
+
+Large Language Models (LLMs) have demonstrated exceptional performance across various benchmarks, reinforcing
+their practical significance. These models are primarily built
+on the Transformer architecture and utilize autoregressive
+(AR) decoding, effectively capturing complex dependencies
+and generating coherent sequences (Wan et al. 2024). However, due to their considerable model sizes, LLMs also face
+significant computational overhead and latency bottlenecks
+during inference. For example, the inference speed of the
+GLM 10B model is a mere 101 tokens per second when operated on a single Nvidia A100 GPU (Du et al. 2022). This
+presents considerable challenges for the widespread deployment and application of LLMs (Zhu et al. 2024; Xiao et al.
+* These authors contributed equally.
+†
+
+Corresponding Author
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+23933
+
+

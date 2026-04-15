@@ -1,0 +1,96 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Safeguarded Progress in Reinforcement Learning:
+Safe Bayesian Exploration for Control Policy Synthesis
+Rohan Mitta1 , Hosein Hasanbeig2∗ , Jun Wang3 ,
+Daniel Kroening4 * , Yiannis Kantaros3 , Alessandro Abate1
+1
+
+University of Oxford,
+Microsoft Research,
+3
+Washington University,
+4
+Amazon
+alessandro.abate@cs.ox.ac.uk
+2
+
+Abstract
+This paper addresses the problem of maintaining safety during
+training in Reinforcement Learning (RL), such that the safety
+constraint violations are bounded at any point during learning.
+As enforcing safety during training might severely limit the
+agent’s exploration, we propose here a new architecture that
+handles the trade-off between efficient progress and safety
+during exploration. As the exploration progresses, we update
+via Bayesian inference Dirichlet-Categorical models of the
+transition probabilities of the Markov decision process that
+describes the environment dynamics. We then propose a way
+to approximate moments of belief about the risk associated to
+the action selection policy. We demonstrate that this approach
+can be easily interleaved with RL and we present experimental
+results to showcase the performance of the overall architecture.
+
+1
+
+Introduction
+
+Traditionally, RL is principally concerned with the policy
+that the agent generates by the end of the learning process. In
+other words, the quality of agent’s policy during learning is
+overlooked at the benefit of learning how to behave optimally,
+eventually. Accordingly, many standard RL methods rely
+on the assumption that the agent selects each available action at every state infinitely often during exploration (Sutton,
+Bach, and Barto 2018; Puterman 2014). A related technical
+assumption that is often made is that the MDP is ergodic,
+meaning that every state is reachable from every other state
+under proper action selection (Moldovan and Abbeel 2012).
+These assumptions might be reasonable, e.g., in virtual environments where restarting is always an option. However, in
+safety-critical scenarios these assumptions might be unreasonable, as we may explicitly require the agent to never visit
+certain unsafe states. Indeed, in a variety of RL applications
+the safety of the agent is particularly important, e.g., when
+using expensive autonomous platforms or robots that work
+in the proximity of humans. Thus, researchers are paying
+increasing attention not only to maximising a long-term taskdriven reward, but also to enforcing safety during training.
+* The work in this paper was done at the University of Oxford.
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+21412
+
+Related Work The general problem of Safe RL has been
+an active area of research in which numerous approaches
+and definitions of safety have been proposed (Brunke et al.
+2021; Garcia and Fernandez 2015; Pecka and Svoboda 2014).
+Moldovan and Abbeel (2012) define safety in terms of “actions availability”, namely ensuring that an agent is always
+able to return to its current state. Chow et al. (2018a) pursue safety by minimising a cost associated with worst-case
+scenarios, when cost is associated with a lack of safety. Similarly, Miryoosefi et al. (2019) define the safety constraint
+in terms of the expected sum of a vector of measurements
+to be in a target set. Other approaches (Li and Belta 2019;
+Hasanbeig, Abate, and Kroening 2019a,b; Hasanbeig, Kroening, and Abate 2020; Cai et al. 2021) define safety by the
+satisfaction of temporal logical formulae of the learnt policy,
+but do not provide safety while training such a policy. Many
+existing approaches are concerned with guarantees on the
+safety of the learned policy, often under the assumption that
+a backup policy is available (Coraluppi and Marcus 1999;
+Perkins and Barto 2002; Geibel and Wysotzki 2005; Mannucci et al. 2017; Chow et al. 2018b; Mao et al. 2019). These
+methods are applicable to systems if they can be trained on
+accurate simulations, but for many other real-world systems
+we instead require safety during training.
+There has also been research on maintaining safety during
+training. For instance, (Alshiekh et al. 2017; Jansen et al.
+2019; Giacobbe et al. 2021) leverage the concept of a shield
+that stops the agent from choosing any unsafe actions. The
+shield assumes the agent observes the entire MDP (and any
+opponents) to construct a safety (game) model, which is unavailable for many partially-known MDP tasks. The approach
+by Garcia and Fernandez (2012) assumes a predefined safe
+baseline policy that is most likely sub-optimal, and attempts
+to slowly improve it with a slightly noisy action-selection policy, while defaulting to the baseline policy whenever a measure of safety is exceeded. However, this measure of safety
+assumes that nearby states have similar safety levels, which
+may not be the case. Another common approach is to use
+expert demonstrations to learn how to behave safely (Abbeel,
+Coates, and Ng 2010), or even to default to an expert when
+the risk is too high (Torrey and Taylor 2012). Obviously, such
+approaches rely heavily on the expert. Other approaches (Wen
+
+

@@ -1,0 +1,93 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+A Simple Yet Effective Subsequence-Enhanced Approach for Cross-Domain NER
+Jinpeng Hu1 , DanDan Guo2 , Yang Liu1,∗ , Zhuo Li1 , Zhihong Chen1 ,
+Xiang Wan1,3,∗ , Tsung-Hui Chang1,2
+1
+
+Shenzhen Research Institute of Big Data, The Chinese University of Hong Kong, Shenzhen, Guangdong, China
+2
+The Chinese University of Hong Kong, Shenzhen
+3
+Pazhou Lab, Guangzhou, 510330, China
+{jinpenghu, zhuoli3, zhihongchen, yangliu5}@link.cuhk.edu.cn,
+{guodandan, changtsunghui}@cuhk.edu.cn, wanxiang@sribd.cn
+Abstract
+
+Cross-domain named entity recognition (NER), aiming to address the limitation of labeled resources in the target domain, is
+a challenging yet important task. Most existing studies alleviate the data discrepancy across different domains at the coarse
+level via combing NER with language modelings or introducing domain-adaptive pre-training (DAPT). Notably, source
+and target domains tend to share more fine-grained local information within denser subsequences than global information
+within the whole sequence, such that subsequence features are
+easier to transfer, which has not been explored well. Besides,
+compared to token-level representation, subsequence-level information can help the model distinguish different meanings
+of the same word in different domains. In this paper, we propose to incorporate subsequence-level features for promoting
+the cross-domain NER. In detail, we first utilize a pre-trained
+encoder to extract the global information. Then, we re-express
+each sentence as a group of subsequences and propose a novel
+bidirectional memory recurrent unit (BMRU) to capture features from the subsequences. Finally, an adaptive coupling unit
+(ACU) is proposed to combine global information and subsequence features for predicting entity labels. Experimental results on several benchmark datasets illustrate the effectiveness
+of our model, which achieves considerable improvements.
+
+Introduction
+Named entity recognition (NER) is a fundamental task in
+text processing, which provides the necessary elements for
+many downstream tasks, such as relation extraction (Liu et al.
+2022b,a), knowledge graph (Fan et al. 2020), summarization
+(Hu et al. 2022a), etc. Due to the lack of labeled datasets and
+the expensive cost of human labeling, cross-domain NER has
+attracted substantial attention over the past years. It aims to
+adapt the model learned from a source domain with relatively
+large data to a target domain with limited data.
+Recently, many approaches have been proposed for improving the cross-domain NER (Jia, Liang, and Zhang 2019;
+Liu et al. 2020, 2021b; Jia and Zhang 2020). For example,
+(Jia, Liang, and Zhang 2019) built a parameter generation
+network to perform the cross-domain and cross-task knowledge transfer, combining the language modeling and NER.
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+*
+Corresponding author.
+
+12890
+
+Afterward, (Liu et al. 2021b) introduced a new cross-domain
+NER dataset containing five diverse domains and provided a
+domain-related corpus, which can be used to train language
+models for improving NER in the target domain. Although
+these efforts can reduce the domain discrepancy, they typically focus on improving the extraction of sentence-level
+features that belong to the category of coarse-grained level
+information and pay less attention to exploring the dense
+fine-grained subsequence information. From the perspective
+of data sparsity, the coarse-grained level features are more
+sparse than the fine-grained level ones between two different
+domains. For example, finding the same sentences in two
+datasets belonging to distinct domains is almost impossible,
+while identical subsequences are easier to find. Although
+these subsequences belong to different domains, they tend to
+share similar semantic meanings, which is why we believe
+that subsequence-level features are easier to transfer between
+different domains. Besides, there are also some studies focusing on single token transfer (Lin and Lu 2018). However,
+some tokens usually have different meanings when they appear in different domains. For example, the token “nuclear”
+from the news domain is usually attended to the “powers”
+and “disarmament” with a larger probability. However, due
+to limited training data in the target domain in cross-domain
+NER, the high correlation between “nuclear” and “powers”
+might still be preserved, which is not the case in the medical domain. Instead, “nuclear” tends to have close relation
+with “factor” or “transcription”. Thus, the neighborhood of
+a token (e.g., subsequence feature) is also crucial to provide
+strong evidence to help the model distinguish similarities and
+differences between different domains.
+In this paper, we propose to incorporate subsequence-level
+features to improve the feature adaptation for cross-domain
+NER. Specially, we first utilize a pre-trained model to extract
+coarse-level features from the sequence. Then, we split the
+sequence as a group of subsequences with the same length
+as the sequence, and each token in the sequence has a corresponding subsequence. Afterward, we utilize a bidirectional
+sliding window to extract fine-grained local features from
+these subsequences. Finally, we propose an adaptive coupling
+unit (ACU) to integrate fine-grained subsequence features
+and coarse-grained global information to predict the NER
+labels. In doing so, for one thing, denser subsequence-level
+information can be more effectively transferred from the
+
+

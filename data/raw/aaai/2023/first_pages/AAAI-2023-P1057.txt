@@ -1,0 +1,79 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Balanced Column-Wise Block Pruning for Maximizing GPU Parallelism
+Cheonjun Park1 , Mincheol Park1,2 , Hyun Jae Oh3 , Minkyu Kim1 ,
+Myung Kuk Yoon4 , Suhyun Kim2 , and Won Woo Ro1 *
+1
+Yonsei University
+Korea Institute of Science and Technology
+3
+Samsung Electronics
+4
+Ewha Womans University
+{cheonjun.park, mincheol.park, minkyu.kim, wro}@yonsei.ac.kr, hyunjae.oh@samsung.com,
+myungkuk.yoon@ewha.ac.kr, dr.suhyun.kim@gmail.com
+2
+
+Abstract
+Pruning has been an effective solution to reduce the number
+of computations and the memory requirement in deep learning. The pruning unit plays an important role in exploiting the
+GPU resources efficiently. The filter is proposed as a simple
+pruning unit of structured pruning. However, since the filter
+is quite large as pruning unit, the accuracy drop is considerable with a high pruning ratio. GPU rearranges the weight
+and input tensors into tiles (blocks) for efficient computation. To fully utilize GPU resources, this tile structure should
+be considered, which is the goal of block pruning. However,
+previous block pruning prunes both row vectors and column
+vectors. Pruning of row vectors in a tile corresponds to filter pruning, and it also interferes with column-wise block
+pruning of the following layer. In contrast, column vectors
+are much smaller than row vectors and can achieve lower accuracy drop. Additionally, if the pruning ratio for each tile
+is different, GPU utilization can be limited by imbalanced
+workloads by irregular-sized blocks. The same pruning ratio for the weight tiles processed in parallel enables the actual
+inference process to fully utilize the resources without idle
+time. This paper proposes balanced column-wise block pruning, named BCBP, to satisfy two conditions: the column-wise
+minimal size of the pruning unit and balanced workloads. We
+demonstrate that BCBP is superior to previous pruning methods through comprehensive experiments.
+
+Figure 1: Tiling method for computing DNN on GPU which
+is provided by NVIDIA cuBLAS (Nvidia 2008). W-Tile denotes weight tile. I-Tile denotes input tile.
+
+developed to reduce the number of nonzero parameters
+and computational overhead. However, unstructured pruning solely focuses on reducing weights (Han et al. 2015),
+which incurs memory access irregularity and degrades memory access efficiency (Kung et al. 2019; Hill et al. 2017; Yu
+et al. 2017). In contrast, structured pruning (He, Zhang, and
+Sun 2017) reduces weights maintaining memory access regularity by removing closely located weights together. Their
+highly regular patterns can leverage existing general matrix
+multiplication (GEMM) kernels so that they can utilize the
+GPU’s computational resources effectively. However, due to
+the large size of the pruning unit, the accuracy is seriously
+reduced as the pruning ratio increases.
+The pruning unit size should be selected considering two
+main factors: to minimize the loss of representation power,
+and to consider the actual feedforward process inside the device. To satisfy the above conditions, we thoroughly delved
+into GPU optimization methods when computing DNNs,
+such as lowering (im2col) (Chellapilla, Puri, and Simard
+2006; Chetlur et al. 2014) and tiling (Kirk and Wen-Mei
+2016). First, while computing convolutions on GPUs, the input and weight tensors are flattened and transformed into a
+matrix by lowering (im2col) their values. Second, as shown
+in Figure 1, tiling divides the matrices into small equal-sized
+matrices (block) and distributes them to streaming multiprocessors (SMs), which are independent processing units
+
+Introduction
+To achieve higher accuracy in deep neural networks
+(DNNs), recent studies proposed the use of deeper networks
+with larger datasets (Simonyan and Zisserman 2015). Better
+accuracy in DNNs is achieved at the cost of higher computational complexity; therefore, more hardware resources are
+required (Sze et al. 2017). Recent graphic processing unit
+(GPU) architectures have successfully provided a massive
+amount of computational parallelism and can be leveraged
+in DNNs (NVIDIA 2022). However, the computation load
+still needs to be reduced, and pruning can be an effective solution to reduce the amount of computation as well as the
+memory capacity requirement (Han et al. 2015).
+Various pruning techniques (Han et al. 2015; He, Zhang,
+and Sun 2017; Li et al. 2017; Wen et al. 2016) have been
+* Corresponding author.
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+9398
+
+

@@ -1,0 +1,94 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+Improving Biomedical Information Retrieval with Neural Retrievers
+Man Luo,1 Arindam Mitra,2 Tejas Gokhale,1 Chitta Baral1
+1
+
+Arizona State University
+2
+Microsoft
+mluo26@asu.edu, arindam.mitra2@gmail.com, tgokhale@asu.edu, chitta@asu.edu
+
+Abstract
+Information retrieval (IR) is essential in search engines and
+dialogue systems as well as natural language processing tasks
+such as open-domain question answering. IR serve an important function in the biomedical domain, where content and
+sources of scientific knowledge may evolve rapidly. Although
+neural retrievers have surpassed traditional IR approaches such
+as TF-IDF and BM25 in standard open-domain question answering tasks, they are still found lacking in the biomedical
+domain. In this paper, we seek to improve information retrieval
+(IR) using neural retrievers (NR) in the biomedical domain,
+and achieve this goal using a three-pronged approach. First,
+to tackle the relative lack of data in the biomedical domain,
+we propose a template-based question generation method that
+can be leveraged to train neural retriever models. Second, we
+develop two novel pre-training tasks that are closely aligned to
+the downstream task of information retrieval. Third, we introduce the “Poly-DPR” model which encodes each context into
+multiple context vectors. Extensive experiments and analysis
+on the BioASQ challenge suggest that our proposed method
+leads to large gains over existing neural approaches and beats
+BM25 in the small-corpus setting. We show that BM25 and
+our method can complement each other, and a simple hybrid
+model leads to further gains in the large corpus setting.
+
+1
+
+Introduction
+
+Information retrieval (IR) is widely used in commercial
+search engines and is an active area of research for natural language processing tasks such as open-domain question
+answering (ODQA). IR has also become important in the
+biomedical domain due to the explosion of information available in electronic form (Shortliffe et al. 2014). Biomedical
+IR has traditionally relied upon term-matching algorithms
+(such as TF-IDF and BM25 (Robertson and Zaragoza 2009)),
+which search for documents that contain terms mentioned in
+the query. For instance, the first example in Table 1 shows that
+BM25 retrieves a sentence that contains the word “Soluvia”
+from the question. However, term-matching suffers from failure modes, especially for terms which have different meanings in different contexts (example 2), or when crucial semantics from the question are not considered during retrieval
+(for instance, in the third example when the term “how large”
+is not reflected in the answer retrieved by BM25).
+Copyright © 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+11038
+
+Since these failure modes can have a direct impact on
+downstream NLP tasks such as open-domain question answering (ODQA), there has been interest in developing neural
+retrievers (NR) (Karpukhin et al. 2020). NRs which represent
+query and context as vectors and utilize similarity scores for
+retrieval, have led to state-of-the-art performance on ODQA
+benchmarks such as Natural Questions (Kwiatkowski et al.
+2019) and TriviaQA (Joshi et al. 2017). Unfortunately, these
+improvements on standard NLP datasets are not observed in
+the biomedical domain with neural retrievers.
+Recent work provides useful insights to understand a few
+shortcomings of NRs. Thakur et al. (2021) find NRs to be
+lacking at exact word matching, which affects performance
+in datasets such as BioASQ (Tsatsaronis et al. 2015) where
+exact matches are highly correlated with the correct answer.
+Lewis, Stenetorp, and Riedel (2021) find that in the Natural
+Questions dataset, answers for 63.6% of the test data overlap
+with the training data and DPR performs much worse on the
+non-overlapped set than the test-train overlapped set. In this
+work, we found this overlap to be only 2% in the BioASQ
+dataset, which could be a potential reason for lower performance of NR methods. We also discovered that NRs produce
+better representations for short contexts that for long contexts
+– when the long context is broken down into multiple shorter
+contexts, performance of NR models improves significantly.
+In this paper, we seek to address these issues and improve
+the performance of neural retrieval beyond traditional methods for biomedical IR. While existing systems have made
+advances by improving neural re-ranking of retrieved candidates (Almeida and Matos 2020; Pappas, Stavropoulos, and
+Androutsopoulos 2020), our focus is solely on the retrieval
+step, and therefore we compare our neural retriever with
+other retrieval methods. Our method makes contributions to
+three aspects of the retrieval pipeline – question generation,
+pre-training, and model architecture.
+Our first contribution is the “Poly-DPR” model architecture for neural retrieval. Poly-DPR builds upon two recent
+developments: Poly-Encoder (Humeau et al. 2020) and Dense
+Passage Retriever (Karpukhin et al. 2020). In DPR, a question and a candidate context are encoded by two models
+separately into a contextual vector for each, and a score for
+each context can be computed using vector similarity. On the
+other hand, Poly-Encoder represents the query by K vectors
+and produces context-specific vectors for each query. Instead,
+
+

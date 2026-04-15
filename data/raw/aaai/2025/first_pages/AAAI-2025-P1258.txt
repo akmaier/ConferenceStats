@@ -1,0 +1,94 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Towards Real-Time Approximate Counting
+Yash Pote1 r
+⃝ Kuldeep S. Meel2,3 r
+⃝ Jiong Yang3 *
+1
+
+National University of Singapore
+2
+University of Toronto
+3
+Georgia Institute of Technology
+
+Abstract
+Model counting is the task of counting the number of satisfying assignments of a Boolean formula. Since counting is intractable in general, most applications use (ε, δ)approximations, where the output is within a (1 + ε)-factor
+of the count with probability at least 1 − δ. Many demanding
+applications make thousands of counting queries, and the stateof-the-art approximate counter, ApproxMC, makes hundreds
+of calls to SAT solvers to answer a single approximate counting query. The sheer number of SAT calls poses a significant
+challenge to the existing approaches.
+In this work, we propose an approximation scheme, ApproxMC7 that is tailored to such demanding applications with
+low time limits. Compared to ApproxMC, ApproxMC7 makes
+14× fewer SAT calls while providing the same guarantees
+as ApproxMC in the constant-factor regime. In an evaluation
+over 2,247 instances, ApproxMC7 solved 271 more instances
+and achieved a 2× speedup against ApproxMC.
+
+1
+
+Introduction
+
+For a Boolean formula φ : {0, 1}n → {0, 1}, the problem of model counting is to compute the size of the set
+sol(φ) = {σ|φ(σ) = 1}. Model counting is fundamental to
+several domains, including inference on probabilistic graphical models (Chavira and Darwiche 2008; Agrawal, Pote,
+and Meel 2021), neural network verification (Bhattacharyya
+et al. 2020), computational biology (Sashittal and El-Kebir
+2019), and cryptography (Beck, Zinkus, and Green 2020).
+In the seminal paper by Valiant (Valiant 1979), the problem of counting was shown to be #P-complete, with #P
+being the collection of counting problems whose decision
+counterparts are in NP. Subsequently, Toda demonstrated the
+complexity-theoretic hardness of this problem by establishing
+that a single invocation of a #P oracle can solve any problem
+within the polynomial hierarchy; formally, PH ⊆ P#P (Toda
+1989).
+Due to the intractability of exact model counting, there is
+significant interest among researchers and practitioners in the
+* The authors decided to forgo the old convention of alphabetical
+ordering of authors in favor of a randomized ordering, denoted by
+r
+⃝.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+11318
+
+development of counting algorithms that provide probably approximate correct (PAC) guarantees. In PAC model counting,
+given parameters (ε, δ), one seeks to find a (1 + ε) multiplicative estimate of |sol(φ)| with a probability of error at most
+δ. In 1983, Stockmeyer introduced a random hashing-based
+procedure that approximated the count with (ε, δ)-guarantees
+in time polynomial in 1/ε, log(1/δ), and n (the domain size),
+when given access to an NP oracle (Stockmeyer 1983). However, practical implementations of Stockmeyer’s approach
+were not feasible at the time due to the lack of solvers capable of effectively handling NP problems (Gomes, Sabharwal,
+and Selman 2006). In 2013, leveraging the remarkable advancements in SAT solvers, Chakraborty et al. (Chakraborty,
+Meel, and Vardi 2013) extended Stockmeyer’s framework to
+a scalable (ε, δ)-counting algorithm called ApproxMC. This
+development opened the door to practical implementations
+of hashing-based techniques for approximate counting. Since
+then, there has been a sustained interest in further optimizing
+these techniques (Ermon et al. 2013a,b; Chakraborty et al.
+2014; Ivrii et al. 2016; Meel et al. 2016; Chakraborty et al.
+2016; Soos and Meel 2019; Meel and Akshay 2020; Yang
+and Meel 2021; Yang, Chakraborty, and Meel 2022). The
+current state-of-the-art in this field is ApproxMC6 (Yang and
+Meel 2023), which is a variant of ApproxMC augmented with
+rounding techniques.
+Driven by advances in theoretical and practical development, approximate model counting has been deployed in
+applications (Beck, Zinkus, and Green 2020) where hundreds
+of model count estimates are required en route to the final
+answer. This increase in the number of calls, albeit with a
+relaxed approximation accuracy, still poses a critical challenge to the existing approaches when time availability is
+constrained.
+The approximation scheme, ApproxMC chooses an integer
+m and splits the solution space into 2m many roughly equal
+small cells, and uses the number of solutions in a randomly
+selected cell scaled by 2m to approximate the exact number
+of solutions. We use 2-universal hash functions to ensure a
+roughly equal split with low variance, and then we invoke a
+SAT solver to check the cell size. We consider a cell as small
+enough to estimate the model count when the SAT solver
+can only find a number of solutions at most a pre-computed
+threshold, thresh. We boost the confidence up to 1 − δ by
+repeating the above process independently and returning the
+
+

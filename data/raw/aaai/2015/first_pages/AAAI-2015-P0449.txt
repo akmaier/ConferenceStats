@@ -1,0 +1,119 @@
+Proceedings of the Twenty-Ninth AAAI Conference on Artificial Intelligence
+
+Solving Hard Stable Matching Problems via
+Local Search and Cooperative Parallelization
+Danny Munera
+
+Daniel Diaz
+
+Salvador Abreu
+
+University Paris 1/CRI
+danny.munera@malix.univ-paris1.fr
+
+University Paris 1/CRI
+daniel.diaz@univ-paris1.fr
+
+University of Évora/CENTRIA/CRI
+spa@di.uevora.pt
+
+Francesca Rossi
+
+Vijay Saraswat
+
+Philippe Codognet
+
+University of Padova/Harvard University
+frossi@math.unipd.it
+
+IBM TJ Watson Research Center
+vsaraswa@us.ibm.com
+
+JFLI-CNRS/UPMC University of Tokyo
+codognet@is.s.u-tokyo.ac.jp
+
+Abstract
+
+tite market sharing, job markets and social networks. Many
+of these applications involve very large sets.
+We show how to model SMTI problems as permutation
+problems and solve them using a local search approach,
+based on Adaptive Search (AS) (Codognet and Diaz 2001;
+2003). We compare experimentally the sequential version of
+our solver with state of the art exact and approximate algorithms to solve such problems, showing significant improvement in performance or solution quality.
+Moreover, our implementation uses a parallel framework (Munera et al. 2014) written in X10 (Charles et al.
+2005; Saraswat et al. 2012). We show that the independent
+parallel version exhibits a significant speedup with increasing number of cores and the cooperative version achieves
+super-linear speedup on average and behaves very well on
+hard instances.
+The rest of the paper is organized as follows. Section 2
+provides the necessary background. Section 3 details the
+AS modeling of SMTI. In Section 4 we evaluate the performance of the AS implementation. Finally, Section 5 asseses
+the parallel performance of our implementation.
+
+Stable matching problems have several practical applications. If preference lists are truncated and contain
+ties, finding a stable matching with maximal size is
+computationally difficult. We address this problem using a local search technique, based on Adaptive Search
+and present experimental evidence that this approach
+is much more efficient than state-of-the-art exact and
+approximate methods. Moreover, parallel versions (particularly versions with communication) improve performance so much that very large and hard instances can
+be solved quickly.
+
+1
+
+Introduction
+
+In 1962, Gale and Shapley introduced the Stable Marriage
+(SM) problem (Gale and Shapley 1962). An SM instance
+of size n involves a set of n men and a set of n women,
+each of whom have ranked all members of the other set in a
+strict order of preference. Solving such a problem consists in
+finding a marriage, i.e. a one-to-one matching between the
+men and the women. In addition the marriage must be stable,
+meaning that there is no man-woman pair where both would
+rather marry each other than their current partner – such a
+pair is called a blocking pair. Gale and Shapley proved that
+such a stable marriage always exists and proposed a O(n2 )
+algorithm (called GS in what follows) to find one.
+However, requiring each member to rank all members of
+the opposite sex in a strict order is too restrictive for many
+real-life, large-scale applications. A natural variant of SM is
+the Stable Marriage with Incomplete List and Ties (SMTI)
+problem (Iwama et al. 1999; Manlove et al. 2002). In SMTI,
+the preference lists may include ties (to express indifference)
+and may be incomplete (to express that some partners are
+unacceptable) The goal now is to find the stable matching of
+maximal size (that is, with the smallest number of singles).
+This problem is NP-hard.
+SMTI is a special case of the Hospitals/Residents problem (Manlove et al. 2002), for which there are nation-wide
+programmes in several countries. Matching problems can
+also be found in other settings, such as car sharing or bipar-
+
+2
+
+Background
+
+Stable Marriage with Ties and Incompleteness
+We recall the main definitions for SMTI problems (Scott
+2005; Iwama and Miyazaki 2008).
+Definition 1. (SMTI problem) An SMTI instance of size n
+consists of n men and n women, and a preference list for
+each of them, which contains some of the people of the other
+gender. Such preference lists are weak orders, that is, total
+orders possibly containing ties.
+While not required by the theory we assume that the preference list for woman w does not contain man m iff the list
+for m does not contain w. This is trivial to establish with
+a pre-pass; the generator we use (Gent and Prosser 2002)
+already ensures this.
+Definition 2. (Marriage) Given an SMTI instance, a marriage M is a set of pairs (m, w) representing a (possibly
+partial) one-to-one matching of men and women. If a man
+m is not matched in M (i.e. for no w is it the case that
+(m, w) ∈ M ), we say that m is single in M (similarly for
+women). The size of a marriage M is the cardinality of M .
+
+Copyright c 2015, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+1212
+
+

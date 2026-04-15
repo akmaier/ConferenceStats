@@ -1,0 +1,95 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Gradient Weight-normalized Low-rank Projection for Efficient LLM Training
+Jia-Hong Huang* , Yixian Shen* , Hongyi Zhu, Stevan Rudinac, Evangelos Kanoulas
+University of Amsterdam
+j.huang@uva.nl, y.shen@uva.nl, h.zhu@uva.nl, s.rudinac@uva.nl, E.Kanoulas@uva.nl
+
+Abstract
+
+Algorithm 1: Our proposed GradNormLoRP
+Require: Weight matrix W
+Ensure: Updated weight matrix Wupdated
+1: Normalize each column weight vector of W to get
+Wnorm
+2: Apply LoRA with two low-rank matrices I and J to
+reformulate Wnorm
+3: Initialize two sets of low-rank projection matrices
+(UI , VI ) and (UJ , VJ )
+4: for i = 1 to N do
+5:
+Compute gradient matrices ZI and HJ based on I
+and J
+6:
+Project ZI and HJ using (UI , VI ) and (UJ , VJ )
+7:
+if i is a multiple of 250 then
+8:
+Update (UI , VI ) and (UJ , VJ )
+9:
+end if
+10: end for
+11: return Wupdated (Wnorm , ZI , (UI , VI ), HJ , (UJ , VJ ))
+
+Large Language Models (LLMs) have shown remarkable performance across various tasks, but the escalating demands
+on computational resources pose significant challenges, particularly in the extensive utilization of full fine-tuning for
+downstream tasks. To address this, parameter-efficient finetuning (PEFT) methods have been developed, but they often underperform compared to full fine-tuning and struggle
+with memory efficiency. In this work, we introduce Gradient
+Weight-Normalized Low-Rank Projection (GradNormLoRP),
+a novel approach that enhances both parameter and memory
+efficiency while maintaining comparable performance to full
+fine-tuning. GradNormLoRP normalizes the weight matrix
+to improve gradient conditioning, facilitating better convergence during optimization. Additionally, it applies low-rank
+approximations to the weight and gradient matrices, significantly reducing memory usage during training. Extensive
+experiments demonstrate that our 8-bit GradNormLoRP reduces optimizer memory usage by up to 89.5% and enables the
+pre-training of large LLMs, such as LLaMA 7B, on consumerlevel GPUs like the NVIDIA RTX 4090, without additional
+inference costs. Moreover, GradNormLoRP outperforms existing low-rank methods in fine-tuning tasks. For instance, when
+fine-tuning the RoBERTa model on all GLUE tasks with a
+rank of 8, GradNormLoRP achieves an average score of 80.65,
+surpassing LoRA’s score of 79.23. These results underscore
+GradNormLoRP as a promising alternative for efficient LLM
+pre-training and fine-tuning.
+
+Code — https://github.com/Jhhuangkay/Gradient-Weightnormalized-Low-rank-Projection-for-Efficient-LLMTraining
+Extended Version — https://arxiv.org/pdf/2412.19616
+
+Introduction
+Large Language Models (LLMs) pre-trained on extensive
+datasets have demonstrated exceptional effectiveness across
+various domains (Devlin et al. 2019; Liu et al. 2019; He et al.
+2022; Xie et al. 2022; Baevski et al. 2020; Lu et al. 2019; Tan
+and Bansal 2019). As time progresses, open-source LLMs
+have consistently improved in their capabilities, accompanied by a striking increase in the scale of pre-trained models (Raffel et al. 2020a; Zhang et al. 2022; Le Scao et al.
+2023; Touvron et al. 2023; Tay et al. 2023). Consequently,
+employing full fine-tuning, where all learnable parameters
+* These authors contributed equally.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+24123
+
+of a pre-trained model are updated for performing downstream tasks, poses unparalleled challenges despite its track
+record of delivering numerous state-of-the-art results. These
+challenges primarily stem from the escalating demands on
+computational resources.
+To tackle the aforementioned challenge, researchers have
+developed parameter-efficient fine-tuning (PEFT) techniques
+(Houlsby et al. 2019; Hu et al. 2022; Lialin et al. 2023; Liu
+et al. 2024; Kopiczko, Blankevoort, and Asano 2024). These
+methods are tailored to update only a small amount of taskspecific parameters while leaving the majority of the model’s
+parameters unchanged. Among these techniques, low-rank
+approximation-based approaches utilize low-rank matrices
+to approximate weight changes during training, achieving
+both parameter and memory efficiency without requiring
+additional trainable subnetworks to be added to the original
+model architecture.
+Despite their advantages, low-rank-based methods often
+underperform compared to full-rank fine-tuning (Hu et al.
+2022; Lialin et al. 2023; Liu et al. 2024). This performance
+gap is typically attributed to the reduced number of trainable parameters, but other underlying factors, such as altered
+gradient dynamics due to reparameterization, also play a
+significant role. In Figure 2 of our Extended Version, we
+observe that the gradient descent process can become neither
+smooth nor stable when fine-tuning LLMs in an unnormalized subspace. This instability arises from conducting gradi-
+
+

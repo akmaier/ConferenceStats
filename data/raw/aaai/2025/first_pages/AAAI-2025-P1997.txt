@@ -1,0 +1,102 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+A Stochastic Approach to Bi-Level Optimization for
+Hyperparameter Optimization and Meta Learning
+Minyoung Kim1 , Timothy Hospedales1,2
+1
+
+Samsung AI Center Cambridge, UK
+2
+University of Edinburgh, UK
+mikim21@gmail.com, t.hospedales@ed.ac.uk
+
+Abstract
+We tackle the general differentiable meta learning problem that
+is ubiquitous in modern deep learning, including hyperparameter optimization, loss function learning, few-shot learning, invariance learning and more. These problems are often formalized as Bi-Level optimizations (BLO). We introduce a novel
+perspective by turning a given BLO problem into a stochastic
+optimization, where the inner loss function becomes a smooth
+probability distribution, and the outer loss becomes an expected loss over the inner distribution. To solve this stochastic
+optimization, we adopt Stochastic Gradient Langevin Dynamics (SGLD) MCMC to sample inner distribution, and propose a
+recurrent algorithm to compute the MC-estimated hypergradient. Our derivation is similar to forward-mode differentiation,
+but we introduce a new first-order approximation that makes it
+feasible for large models without needing to store huge Jacobian matrices. The main benefits are two-fold: i) Our stochastic
+formulation takes into account uncertainty, which makes the
+method robust to suboptimal inner optimization or non-unique
+multiple inner minima due to overparametrization; ii) Compared to existing methods that often exhibit unstable behavior
+and hyperparameter sensitivity in practice, our method leads
+to considerably more reliable solutions. We demonstrate that
+the new approach achieves promising results on diverse meta
+learning problems and easily scales to learning 87M hyperparameters in the case of Vision Transformers.
+
+Extended version — https://arxiv.org/pdf/2410.10417
+
+1
+
+Introduction
+
+We consider general differentiable meta learning, which includes bi-level optimization (BLO) problems such as hyperparameter optimization (HPO) and few-shot meta-learning.
+We introduce our problem setting, terminology and notation
+through a representative BLO problem of learning neural
+network regularizer hyperparameters (aka weight decay, or
+L1/2-regularization). Expressed as a BLO, this is
+min E(x,y)∼V [lV (x, y; θ∗ (λ))]
+(1)
+λ
+
+s.t. θ∗ (λ) = arg min E(x,y)∼T [lT (x, y; θ)] + R(λ, θ),
+θ
+
+where θ are neural network parameters to learn, λ are all
+hyperparameters to learn (often denoted as outer variables
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+17913
+
+or hyperparameters, depending on the context), T and V
+indicate training and validation data sets, respectively, lT
+and lV indicate training and validation losses, and R is the
+regularization or weight decay term.
+parameter-wise
+P
+P In the
+2
+regularization case, R(λ, θ) =
+λ
+θ
+or
+j
+j
+j λj |θj | in
+j
+which λ has the same structure as θ.
+The main challenge in differentiable BLO is to efficiently
+and accurately compute the hypergradient dlV /dλ to update the hyperparameters. In the literature there exist some
+well-known approaches. Some aim to unroll the inner-loop
+optimization (i.e., forward- or reverse-mode differentiation
+(Franceschi et al. 2017), denoted by FMD and RMD, respectively), while others aim to compute it via the implicit
+function theorem (IFT) to circumvent the infeasible memory cost of saving intermediate Hessian matrices (in FMD)
+or computation graphs (in RMD) from unrolled inner optimization steps. Despite the theoretical promise of IFT-based
+meta-gradient (Rajeswaran et al. 2019; Lorraine, Vicol, and
+Duvenaud 2020) for memory-efficiency, it still suffers from
+a difficult and potentially unstable Hessian inverse, and it is
+highly reliant on the gradient-equal-to-zero (i.e., perfectly
+converged) condition for the inner optimization. In practice
+these drawbacks mean that it is unreliable and hard to tune.
+A fundamental issue for all these existing BLO solutions
+is that the inner optimization is deterministic, and they are
+unable to account for the uncertainty in the inner problem
+and/or its solution. When applied to contemporary deep learning there are at least two highly practical examples of inner
+optimization uncertainty: When implemented in practice by
+minibatch SGD with a finite number of steps, the inner loop
+is not perfectly converged (violating IFT’s assumption); and
+when applied to non-convex neural networks, the inner optimization has many local minima due to overparametrization (Vicol et al. 2022), leading to uncertainty over which
+inner minima is returned.
+To address these issues, we introduce a new stochastic
+gradient approach to hyper-gradient calculation for BLO.
+We generalize the standard deterministic BLO problem to
+a stochastic optimization where the inner optimization produces a smooth probability distribution, and the outer optimization takes an expectation with respect to the inner posterior. This stochastic generalization allows us to deal with
+uncertainty in the inner optimization arising from noise, the
+use of minibatch SGD, or from multiple local minima. More
+
+

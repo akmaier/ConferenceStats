@@ -1,0 +1,92 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+SHAP@k: Efficient and Probably Approximately Correct (PAC) Identification of
+Top-k Features
+Sanjay Kariyappa, Leonidas Tsepenekas, Freddy Lécué, Daniele Magazzeni
+JPMorganChase AI Research
+{sanjay.kariyappa, leonidas.tsepenekas, freddy.lecue, daniele.magazzeni}@jpmorgan.com
+
+Abstract
+The SHAP framework provides a principled method to explain
+the predictions of a model by computing feature importance.
+Motivated by applications in finance, we introduce the Top-k
+Identification Problem (TkIP) (and its ordered variant TkIPO), where the objective is to identify the subset (or ordered
+subset for TkIP-O) of k features corresponding to the highest
+SHAP values with PAC guarantees. While any sampling-based
+method that estimates SHAP values (such as KernelSHAP
+and SamplingSHAP) can be trivially adapted to solve TkIP,
+doing so is highly sample inefficient. Instead, we leverage the
+connection between SHAP values and multi-armed bandits
+(MAB) to show that both TkIP and TkIP-O can be reduced to
+variants of problems in MAB literature. This reduction allows
+us to use insights from the MAB literature to develop sampleefficient variants of KernelSHAP and SamplingSHAP. We
+propose KernelSHAP@k and SamplingSHAP@k for solving
+TkIP; along with KernelSHAP-O and SamplingSHAP-O to
+solve the ordering problem in TkIP-O. We perform extensive
+experiments using several credit-related datasets to show that
+our methods offer significant improvements of up to 40⇥ in
+sample efficiency and 39⇥ in runtime.
+
+1
+
+Introduction
+
+The ability to explain the predictions of ML models is of
+critical importance in highly regulated industries, where laws
+provide right to explanations for people who are adversely
+impacted by algorithmic decision making. Specifically in
+finance, regulations like Fair Credit Reporting Act (Congress
+1970) and Equal Credit Opportunity Act (Congress 1974)
+require a rejected loan/credit application (i.e. adverse action) to be explained to the borrower, by providing reasons
+for why the application was rejected (e.g., low credit score,
+high debt-to-income ratio, recent delinquencies, etc.). Owing
+to its principled formulation, the SHAP framework (Lundberg and Lee 2017) is the defacto choice for explaining
+model predictions in credit-risk assesment models (Bhatt
+et al. 2020). While exact computation of SHAP values is
+computationally intractable, sampling-based techniques like
+KernelSHAP (Lundberg and Lee 2017) and SamplingSHAP
+provide a practical alternative to compute approximate SHAP
+values. Additionally, recent works have developed methods
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+to quantify the approximation error of such sampling-based
+techniques, by providing confidence intervals (CIs) for the
+estimated SHAP values (Covert and Lee 2020).
+Motivated by applications in finance, we introduce two
+new problems with the following objectives:
+1. Top-k Identification Problem (TkIP): Identify an
+unordered set of k features associated with the k highest SHAP values with PAC guarantees1 .
+2. Ordered Top-k Identification Problem (TkIP-O): Identify
+an ordered set of k features associated with the k highest
+SHAP values with PAC guarantees.
+TkIP and TkIP-O are motivated by an important real-world
+use-case of processing credit/loan applications, where the
+lender is required to provide a list of up to four specific principal reasons or features that contributed to the model’s prediction (i.e. explanations) in the event of an adverse decision/action taken; this is standard practice by credit/loan issuers to
+comply with the Equal Credit Opportunity Act (Congress
+1974). While there are no prior works that solve TkIP/TkIPO specifically, there is a recent prior work (Kolpaczki, Bengs,
+and Hüllermeier 2021) that has looked at solving a variant of
+TkIP with a fixed sample budget. However, this work does
+not provide PAC guarantees for its solution and it does not
+solve the ordering problem introduced in TkIP-O.
+Naive baseline. We show that existing sampling-based
+methods like Kernel/SamplingSHAP can be straightforwardly adapted to solve TkIP/TkIP-O. We design a naive
+stopping condition that provides PAC solutions by requiring
+the CI-widths for all features to fall below a threshold. While
+this provides valid solutions for TkIP/TkIP-O, we show that
+this naive baseline requires a large number of samples, emphasizing the need for sample-efficient methods.
+Connection to MAB. We develop a sample-efficient solution for TkIP by observing that this problem can be reduced
+to a stricter variant of the Explore-m problem in multi-arm
+bandits (MAB), where given d arms with an unknown distribution of payoffs, the goal is to find a subset of m-best
+arms with the highest expected payoffs. Here, the features
+are analogous to arms and the SHAP value of each feature is
+analogous to the expected payoff of each arm.
+Similarly, TkIP-O is related to the ordering problem in
+MAB, where given a set of d arms, the goal is to sort them
+1
+
+13068
+
+Formal definitions of PAC guarantees are provided in Section 3.
+
+

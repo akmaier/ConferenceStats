@@ -1,0 +1,91 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+A DA H ESSIAN: An Adaptive Second Order Optimizer for Machine Learning
+Zhewei Yao1∗ , Amir Gholami1∗ , Sheng Shen1 , Mustafa Mustafa2 , Kurt Keutzer1 , Michael
+Mahoney1
+1
+University of California, Berkeley
+Lawrence Berkeley National Laboratory
+{zheweiy, amirgh, sheng.s, keutzer, mahoneymw}@berkeley.edu, mmustafa@lbl.gov
+2
+
+Abstract
+Incorporating second-order curvature information into machine learning optimization algorithms can be subtle, and
+doing so naı̈vely can lead to high per-iteration costs associated
+with forming the Hessian and performing the associated linear
+system solve. To address this, we introduce A DA H ESSIAN, a
+new stochastic optimization algorithm. A DA H ESSIAN directly
+incorporates approximate curvature information from the loss
+function, and it includes several novel performance-improving
+features, including: (i) a fast Hutchinson based method to approximate the curvature matrix with low computational overhead; (ii) a spatial averaging to reduce the variance of the second derivative; and (iii) a root-mean-square exponential moving average to smooth out variations of the second-derivative
+across different iterations. We perform extensive tests on NLP,
+CV, and recommendation system tasks, and A DA H ESSIAN
+achieves state-of-the-art results. In particular, we find that
+A DA H ESSIAN: (i) outperforms AdamW for transformers by
+0.13/0.33 BLEU score on IWSLT14/WMT14, 2.7/1.0 PPL
+on PTB/Wikitext-103; (ii) outperforms AdamW for SqueezeBert by 0.41 points on GLUE; (iii) achieves 1.45%/5.55%
+higher accuracy on ResNet32/ResNet18 on Cifar10/ImageNet
+as compared to Adam; and (iv) achieves 0.032% better score
+than Adagrad for DLRM on the Criteo Ad Kaggle dataset. The
+cost per iteration of A DA H ESSIAN is comparable to first-order
+methods, and A DA H ESSIAN exhibits improved robustness
+towards variations in hyperparameter values. The code for
+A DA H ESSIAN is open-sourced and publicly-available (Yao
+and Gholami 2020).
+
+Introduction
+The high-dimensional and non-convex nature of many machine learning tasks has rendered many classical optimization
+methods inefficient for training and/or evaluating Neural Network (NN) models. As such, first order methods, in particular
+variants of Stochastic Gradient Descent (SGD), have become
+the main workhorse for training NN models. However, they
+are by no means an ideal solution. For example, there are often many ad-hoc rules that need to be followed very precisely
+in order to converge (hopefully) to a point with good generalization properties. This includes heuristics for the choice of
+the many hyperparameters, e.g., learning rate, decay schedule,
+∗
+
+Equal Contribution.
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+10665
+
+momentum parameters, number of warmup iterations, etc.
+Even the choice of the first order optimizer has become an
+ad-hoc rule, which can significantly affect the performance.
+For example, SGD (Robbins and Monro 1951) with
+momentum is typically used in Computer Vision (CV);
+Adam (Kingma and Ba 2015) is used for training transformer
+models for Natural Language Processing (NLP); and Adagrad (Duchi, Hazan, and Singer 2011) is used for Recommendation Systems (RecSys). It is far from obvious a priori
+which variant (if any) is appropriate for a new problem domain, and using the wrong SGD variant can lead to significant performance degradation. Importantly, this may not be
+immediately apparent if one only considers certain popular
+learning tasks, such as ResNet50 (He et al. 2016) training on
+ImageNet (Deng et al. 2009). The reason is that, for these
+tasks, years of industrial scale (namely, brute force) hyperparameter tuning, and years of building systems to exploit first
+derivative (but not second derivative or other) information,
+has led to what may be termed ideal-SGD behaviour. Such a
+brute force approach is computationally and financially not
+possible for many large scale learning problems—certainly
+it is not possible to do routinely. It points to a failure of our
+theoretical understanding, and it has made it challenging to
+train and apply NN models reliably and more generally.
+Many of these issues arise since first order methods only
+use gradient information and do not (reliably1 ) consider the
+curvature properties of the loss landscape. Second order methods, on the other hand, are specifically designed to capture
+and exploit curvature properties by using both gradient and
+Hessian information. They have many favorable properties,
+including resiliency to ill-conditioned loss landscapes, invariance to parameter scaling, and robustness to hyperparameter
+tuning.2 The main idea underlying second order methods
+involves preconditioning the gradient vector before using it
+for weight update. For example, the loss could be very flat
+in one dimension and very sharp in another. As a result, the
+(larger/smaller) step size taken by the optimizer should be
+different for these (flatter/sharper) dimensions. Second or1
+
+Some people view Adam and Adagrad as quasi-Newton methods, i.e., in between first order and second order methods, but the
+connection is quite indirect, and others justify them differently.
+2
+For NNs, ill-conditioning is described in terms of observed
+properties, such as “exploding” and “vanishing” gradients, rather
+than problem-specific structural properties like condition numbers.
+
+

@@ -1,0 +1,83 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+Analogy Training Multilingual Encoders∗
+Nicolas Garneau†1 , Mareike Hartmann†2 , Anders Sandholm†3 ,
+Sebastian Ruder†4 , Ivan Vulić†5 and Anders Søgaard†2,3
+1
+Université Laval
+University of Copenhagen
+3
+Google Research
+4
+DeepMind
+5
+University of Cambridge
+nicolas.garneau@ift.ulaval.ca, {hartmann, soegaard}@di.ku.dk, sandholm@google.com, ruder@google.com,
+iv250@cam.ac.uk
+2
+
+Abstract
+Language encoders encode words and phrases in ways
+that capture their local semantic relatedness, but are
+known to be globally inconsistent. Global inconsistency
+can seemingly be corrected for, in part, by leveraging
+signals from knowledge bases, but previous results are
+partial and limited to monolingual English encoders.
+We extract a large-scale multilingual, multi-word analogy dataset from Wikidata for diagnosing and correcting for global inconsistencies and implement a four-way
+Siamese BERT architecture for grounding multilingual
+BERT (mBERT) in Wikidata through analogy training.
+We show that analogy training not only improves the
+global consistency of mBERT, as well as the isomorphism of language-specific subspaces, but also leads to
+significant gains on downstream tasks such as bilingual
+dictionary induction and sentence retrieval.
+
+Figure 1: Encoders are globally inconsistent.
+
+Introduction
+In NLP, there is a pressing need to build systems that bridge
+the digital language divide and serve all of the world’s
+7,000+ languages (Ruder, Vulić, and Søgaard 2019; Ponti
+et al. 2019). One research direction is to leverage similarities between languages for cross-lingual transfer (Snyder,
+Naseem, and Barzilay 2009; McDonald, Petrov, and Hall
+2011; Täckström et al. 2013), e.g., through general-purpose
+multilingual representations, at the word level (Mikolov,
+Le, and Sutskever 2013; Faruqui and Dyer 2014; Artetxe,
+Labaka, and Agirre 2017) or at the sentence level and in context (Devlin et al. 2019; Lample and Conneau 2019).
+Such pre-trained multilingual models have been shown to
+be surprisingly effective at cross-lingual transfer for some
+tasks (Pires, Schlinger, and Garrette 2019; Wu and Dredze
+2019). Transfer is often simply a result of word-level alignment, however (Artetxe, Ruder, and Yogatama 2020)—and
+∗
+Code is available here: https://github.com/coastalcph/sentencetransformers-for-analogies
+†
+Authors contributed equally to this work.
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+12884
+
+limited for more complex tasks and distant language families (Singh et al. 2019; Hu et al. 2020). Similar deficiencies have been observed for cross-lingual word embeddings
+(Gladkova, Drozd, and Matsuoka 2016; Vulić et al. 2019;
+Glavaš et al. 2019), where transfer has shown to be limited by the fact that word embedding spaces in different
+languages are often locally isomorphic, but not globally so
+(Søgaard, Ruder, and Vulić 2018; Nakashole and Flauger
+2018; Schuster et al. 2019; Wu et al. 2020).
+In this work, we hypothesize non-isomorphism at the
+global level is a result of global inconsistency (see Figure 1).
+Word embeddings often capture semantic similarities and
+analogies (Mikolov et al. 2013; Levy and Goldberg 2014),
+but only for short-range relations (Rogers, Drozd, and Li
+2017). While the vector for king in Figure 1 may be predictable from the vectors of woman, queen, and man; and
+the vector for cock may be predictable from woman, hen, and
+man; the further we get away from woman and man, this effect degrades.1 Encouraging spaces to be globally consistent
+and isomorphic is not straightforward (Zhang et al. 2019;
+Patra et al. 2019). Inspired by the observation that consistently encoding linguistic analogies entails isomorphism in
+the limit (Peng et al. 2020), we train multilingual encoders
+to encode analogies in order to encourage global consistency
+for cross-lingual transfer. Since existing analogy datasets
+are either monolingual or limited in size and the relations
+1
+
+http://bionlp-www.utu.fi/wv demo/
+
+

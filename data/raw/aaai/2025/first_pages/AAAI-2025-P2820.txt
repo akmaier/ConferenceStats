@@ -1,0 +1,90 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Infer Human’s Intentions Before Following Natural Language Instructions
+Yanming Wan1 , Yue Wu1 , Yiping Wang1 , Jiayuan Mao2 * , Natasha Jaques1 *
+1
+
+University of Washington, Seattle, WA 98195
+2
+MIT CSAIL, Cambridge, MA 02139
+{ymwan, nj}@cs.washington.edu, jiayuanm@mit.edu
+
+Abstract
+For AI agents to be helpful to humans, they should be able
+to follow natural language instructions to complete everyday
+cooperative tasks in human environments. However, real human instructions inherently possess ambiguity, because the
+human speakers assume sufficient prior knowledge about their
+hidden goals and intentions. Standard language grounding and
+planning methods fail to address such ambiguities because
+they do not model human internal goals as additional partially observable factors in the environment. We propose a
+new framework, Follow Instructions with Social and Embodied Reasoning (FISER), aiming for better natural language
+instruction following in collaborative embodied tasks. Our
+framework makes explicit inferences about human goals and
+intentions as intermediate reasoning steps. We implement a
+set of Transformer-based models and evaluate them over a
+challenging benchmark, HandMeThat. We empirically demonstrate that using social reasoning to explicitly infer human
+intentions before making action plans surpasses purely end-toend approaches. We also compare our implementation with
+strong baselines, including Chain of Thought prompting on
+the largest available pre-trained language models, and find that
+FISER provides better performance on the embodied social
+reasoning tasks under investigation, reaching the state-of-theart on HandMeThat.
+
+Code — https://github.com/Simon-Wan/FISER
+Extended version — https://arxiv.org/abs/2409.18073
+
+Introduction
+Building AI assistants that can interact with people in a
+shared environment and follow their instructions would unlock assistive robotics and free up domestic labor. Toward
+this broad goal, we need to address the problem of “translating” realistic natural language instructions into actions
+executable by robots. The conventional way that people formulate this problem is grounded language learning, which
+aims at mapping abstract natural language phrases to concretely executable actions. However, these approaches miss
+an important component of many human-robot collaborative
+tasks, which is that the language humans tend to use in everyday scenarios is inherently ambiguous. Human speakers
+* These authors contributed equally.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+25309
+
+assume that listeners possess prior knowledge, leading them
+to omit certain information for efficiency (Grice 1975; Sperber and Wilson 1986; Clark 1996; Dennett 1987; Gergely
+et al. 1995). Resolving this ambiguity depends on leveraging
+other sources of information (e.g., human internal goals and
+historical actions) that are partially observable to the robot.
+Consider the example shown in Fig. 1, where a human is
+tidying up a room. In the middle of her actions, she asks a
+robot for help, saying “Could you pass that from the sofa?”
+This instruction does not appear to be solvable without further
+information about the person’s underlying intention. While
+such internal mental states are not directly observed, agents
+can infer them from human’s past actions. Specifically, if
+the robot can observe that in previous steps, the human put
+several books into a box one by one, it can infer that she
+intends to use that box to store all the books. Based on this
+guess, the robot can check if there are any remaining books
+on the sofa and then hand them to the person.
+Generally speaking, the ambiguity in the instruction mainly
+arises from two aspects. First, the human assumes sufficient
+prior knowledge about her hidden intentions (Dennett 1987;
+Gergely et al. 1995), which is based on the common sense
+knowledge that people tend to group similar items together
+when tidying up, and the observation that the human is gathering books. Second, people make trade-offs between accuracy and efficiency of communication (Grice 1975; Sperber
+and Wilson 1986; Clark 1996). This leads to the challenge
+of building AI agents that can follow efficient, ambiguous
+speech that people naturally adopt when giving directions.
+We consider the case where there’s a human and a robot
+collaborating in a shared environment. The human is working
+on some tasks, and specifies a sub-task for the robot to help
+with by giving a natural language instruction. Past methods
+(e.g., language grounding) attempt to directly complete the
+specified command from the given instructions, since the
+human only acts as a disembodied issuer of instructions and
+is not another active agent in their environments. The human,
+as another partially observable factor in the environment, has
+been overlooked. In this paper, we present a new framework,
+Follow Instructions with Social and Embodied Reasoning
+(FISER), which suggests that we should introduce the human’s intention as explicit variables for the model to draw
+inferences about. By leveraging this structure, our framework
+opts to decompose the problem into two parts – social reason-
+
+

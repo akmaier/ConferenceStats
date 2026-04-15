@@ -1,0 +1,100 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Improving Model Probability Calibration by Integration of Large Data Sources
+with Biased Labels
+Renat Sergazinov 1, 2 , Richard Chen 2 , Cheng Ji 2 , Jing Wu 3 , Daniel Cociorva 2 , Hakan Brunzell 2
+1
+
+Department of Statistics, Texas A&M University, College Station, TX USA
+2
+Buyer Risk Prevention at Amazon, San Diego, CA USA
+3
+WWPS Solution Architecture at Amazon, Herndon, VA USA
+{renserg, rychardy, cjiamzn, jingwua, cociorva, brunzell}@amazon.com
+
+Abstract
+Probability calibration transforms raw output of a classification model into empirically interpretable probability. When
+the model is purposed to detect rare event and only a small
+expensive data source has clean labels, it becomes extraordinarily challenging to obtain accurate probability calibration.
+Utilizing an additional large cheap data source is very helpful, however, such data sources oftentimes suffer from biased
+labels. To this end, we introduce an approximate expectationmaximization (EM) algorithm to extract useful information
+from the large data sources. For a family of calibration methods based on the logistic likelihood, we derive closed-form
+updates and call the resulting iterative algorithm CalEM. We
+show that CalEM inherits convergence guarantees from the
+approximate EM algorithm. We test the proposed model in
+simulation and on the real marketing datasets, where it shows
+significant performance increases.
+
+1
+
+Introduction
+
+Machine learning models, including neural networks and
+gradient boosted trees, often suffer from calibration issues
+(Zadrozny and Elkan 2001; Guo et al. 2017; Zadrozny and
+Elkan 2001; Kuleshov, Fenner, and Ermon 2018; Fernández
+et al. 2018). Calibration refers to the alignment of a model’s
+predicted probabilities with the actual likelihood of outcomes.
+For instance, if a model predicts a probability of 0.2 for a
+specific class over 100 instances, ideally, 20 of those instances should belong to that class. This aspect of model
+performance is crucial for model trustworthiness and safety.
+There has been significant research on developing metrics
+for calibration assessment (Nixon et al. 2019; Gupta et al.
+2020; Gruber and Buettner 2022), methods to post-correct
+mis-calibrated models (Platt et al. 1999; Zadrozny and Elkan
+2002; Kumar, Liang, and Ma 2019; Gupta et al. 2020), and
+techniques for creating better-calibrated classifiers (Bohdal,
+Yang, and Hospedales 2023).
+In this paper, we tackle a separate challenge of training a
+probability calibration model under practical constraints of label imbalance and small sample size. Under such constraints,
+accurate probability calibration becomes challenging as we
+illustrate in Figure 1. As the sample size decreases and the
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+20338
+
+label imbalance exacerbates, the variance (calibration error)
+of the probability calibration model increases significantly.
+A prominent example of real-world data with severe class
+imbalance and small sample size comes from the marketing
+literature (Diemert et al. 2018; Ke et al. 2021; Liu et al. 2023).
+In this context, a key objective is to estimate the probability
+that a customer will naturally convert to a given brand. With
+accurate estimates, marketing firms can strategically allocate
+budgets to target the most promising customer segments and
+improve overall sales. The target variable, a binary conversion indicator, is highly imbalanced (often with fewer than
+1% converting), and the only unbiased dataset is the control
+group that receives no marketing intervention – data which
+can be both costly and limited. Meanwhile, the treatment
+group, exposed to marketing campaigns, produces biased
+labels unsuitable for direct modeling (Ke et al. 2021). Similar
+scenarios arise in (1) medical modeling, where the target is
+disease susceptibility and the treatment is a vaccine; (2) fraud
+prevention, where the target is fraudulent activity and the
+treatment is a preventative measure; and (3) online education,
+where the target is course completion and the treatment is
+a learning intervention. In all of these cases, the goal is to
+estimate the target, but the control data may be expensive,
+while treated samples have modified outcomes and cannot be
+used directly.
+To solve this challenge, we propose a modified EM algorithm to fit any likelihood-based calibration model on the
+combined control and treatment portions of the dataset. We
+first estimate the calibration on the control data and then
+proceed to estimating the transition probability between the
+treatment and control sets. The calibration model could then
+be re-fit on the combined dataset with weights computed
+according to the transition probabilities. The algorithm then
+proceeds by iteratively refining the transition probability and
+calibration model estimates. As we illustrate in Figure 1, the
+algorithm results in smaller variance (calibration error). We
+theoretically show that our approach could be formulated as
+an approximate EM (Dempster, Laird, and Rubin 1977) and
+demonstrate convergence guarantees. We empirically validate
+its performance in simulation and on real marketing datasets,
+where we show improvement over the baseline methods fitted
+on the control-only data.
+The rest of the paper is structured as follows. In Section 3
+we introduce a general EM algorithm with approximate E-
+
+

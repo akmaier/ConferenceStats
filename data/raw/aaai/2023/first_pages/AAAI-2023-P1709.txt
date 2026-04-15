@@ -1,0 +1,82 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Beyond NaN: Resiliency of Optimization Layers in The Face of Infeasibility
+Wai Tuck Wong1 , Sarah Kinsey2 , Ramesha Karunasena1 , Thanh H. Nguyen2 , Arunesh Sinha3
+1
+
+Singapore Management University
+2
+University of Oregon
+3
+Rutgers University
+wt.wong.2020@msc.smu.edu.sg, sarahevekinsey@gmail.com, rameshak@smu.edu.sg, thanhhng@cs.uoregon.edu,
+arunesh.sinha@rutgers.edu
+Abstract
+
+meaningful output can lead to catastrophic outcomes in critical domains such as autonomous driving where decisions
+are needed in real time. Also, such inputs when present in
+training data lead to abrupt failure of training. Our work exploits the failure conditions of the optimization layer of the
+joint network in order to induce such failure. This vulnerability has not been exploited in prior literature.
+First, we present a numerical instability attack. Typically,
+an optimization solver or an equation set solver takes in parameters θ as input. In the joint network, this parameter θ
+is output by the learning layers and feeds into the last optimization layer (see Fig. 1). At its core, the issue lies in
+using functions which are prone to numerical stability issues in its parameters (see appendix). Most optimization or
+equation solvers critically depend on the matrix A—part of
+the parameter θ—to be sufficiently far from a singular matrix to solve the problem. Our attack proceeds by searching
+for input(s) that cause the matrix A to become singular. The
+instability produces NaNs—undefined values in floatingpoint arithmetic—which may result in undesired behavior
+in downstream systems that consume them. We perform this
+search via gradient descent and test three different ways of
+finding a singular matrix in neighborhood of A; only one of
+which works consistently in practice.
+Second, to tackle the numerical instability attack, we propose a novel powerful defense via an efficiently computable
+intermediate layer in the neural network. This layer utilizes
+the singular value decomposition (SVD) of the matrix A
+and, if needed, approximates A closely with a matrix A′ that
+has bounded condition number; the bound is a hyperparameter. Large condition number implies closeness to singularity, hence the bounded condition number guarantees numerical stability in the forward pass through the optimization
+(or equation) solver. Surprisingly, we find that the training
+performance with our defense in place surpasses the performance of the undefended model, even in the absence of attack, perhaps due to more stable gradients.
+Finally, we show the efficacy of our attack and defense in
+(1) a synthetic data problem designed in Amos and Kolter
+(2017) and (2) a variant of the Sudoku experiment used
+in Amos and Kolter (2017) and (3) an autonomous driving
+scenario from Liu, Zhan, and Tomizuka (2017), where failures can occur even without attacks and how augmenting
+with our defense prevent these failures. Lastly, we identify
+
+Prior work has successfully incorporated optimization layers as the last layer in neural networks for various problems,
+thereby allowing joint learning and planning in one neural
+network forward pass. In this work, we identify a weakness
+in such a set-up where inputs to the optimization layer lead to
+undefined output of the neural network. Such undefined decision outputs can lead to possible catastrophic outcomes in
+critical real time applications. We show that an adversary can
+cause such failures by forcing rank deficiency on the matrix
+fed to the optimization layer which results in the optimization
+failing to produce a solution. We provide a defense for the
+failure cases by controlling the condition number of the input
+matrix. We study the problem in the settings of synthetic data,
+Jigsaw Sudoku, and in speed planning for autonomous driving. We show that our proposed defense effectively prevents
+the framework from failing with undefined output. Finally, we
+surface a number of edge cases which lead to serious bugs in
+popular optimization solvers which can be abused as well.
+
+Introduction
+There is a recent trend of incorporating optimization and
+equation solvers as the final layer in a neural network, where
+the penultimate layer outputs parameters of the optimization
+or the equation set that is to be solved (Amos and Kolter
+2017; Donti, Amos, and Kolter 2017; Agrawal et al. 2019;
+Wilder, Dilkina, and Tambe 2019; Wang et al. 2019; Perrault et al. 2020; Li et al. 2020; Paulus et al. 2021). The
+learning and optimizing is performed jointly by differentiating through the optimization layer, which by now is incorporated into standard libraries. Novel applications of this
+method have appeared for decision focused learning, solving games, clustering after learning, with deployment in real
+world autonomous driving (Xiao et al. 2022) and scheduling (Wang et al. 2022). In this work, we explore a novel
+attack vector that is applicable for this setting, but we note
+that the core concepts in this attack can be applied to other
+settings as well. While a lot of work exists in attacks on machine learning, in contrast, we focus on a new attack that
+forces the decision output to be meaningless via specially
+crafted inputs. The failure of the decision system to produce
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+15242
+
+

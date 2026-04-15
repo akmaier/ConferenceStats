@@ -1,0 +1,99 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Heterogeneous Graph Neural Network on Semantic Tree
+Mingyu Guan1 , Jack W. Stokes2 , Qinlong Luo2 , Fuchen Liu2 , Purvanshi Mehta3 , Elnaz Nouri2 ,
+Taesoo Kim1
+1
+
+Georgia Institute of Technology,
+2
+Microsoft Corporation,
+3
+Lica World Inc
+mingyu.guan@gatech.edu, {jstokes, qinlongluo, fuchen.liu}@microsoft.com, purvanshi@lica.world, elnaaz@gmail.com,
+taesoo@gatech.edu
+Abstract
+The recent past has seen an increasing interest in Heterogeneous Graph Neural Networks (HGNNs), since many realworld graphs are heterogeneous in nature, from citation graphs
+to email graphs. However, existing methods ignore a tree hierarchy among metapaths, naturally constituted by different
+node types and relation types. In this paper, we present H ETT REE, a novel HGNN that models both the graph structure
+and heterogeneous aspects in a scalable and effective manner.
+Specifically, H ET T REE builds a semantic tree data structure to
+capture the hierarchy among metapaths. To effectively encode
+the semantic tree, H ET T REE uses a novel subtree attention
+mechanism to emphasize metapaths that are more helpful in
+encoding parent-child relationships. Moreover, H ET T REE proposes carefully matching pre-computed features and labels
+correspondingly, constituting a complete metapath representation. Our evaluation of H ET T REE on a variety of real-world
+datasets demonstrates that it outperforms all existing baselines
+on open benchmarks and efficiently scales to large real-world
+graphs with millions of nodes and edges.
+
+Code — https://github.com/microsoft/HetTree
+
+1
+
+Introduction
+
+Graph neural networks (GNNs) have been widely explored
+in a variety of domains from social networks to molecular
+properties (Pal et al. 2020; Park et al. 2019; Sun, Dai, and Yu
+2022), where graphs are usually modeled as homogeneous
+graphs. However, real-world graphs are often heterogeneous
+in nature (Hu et al. 2020a; Lv et al. 2021). For example,
+as shown in Figure 1(a), a heterogeneous email graph can
+include multiple types of nodes - Domain, Sender, Recipient,
+Message, and IP Address - and the relations among them.
+Moreover, multiple relations can exist between two entities
+in complex heterogeneous graphs. For example, a Sender
+node can be a P1 sender and/or P2 sender of a Message,
+where the P1 sender denotes the entity that actually sent the
+message while an email application displays the P2 sender
+as the “From” address. For example, if Bob sends an email
+on behalf of Alice, the email appears to originate from Alice,
+making Alice the P2 sender and Bob the P1 sender. As a
+result, there are two relations between Sender and Message
+in Figure 1(a), p1 sends and p2 sends.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+16924
+
+To better understand real-world heterogeneous graphs, various heterogeneous graph neural networks (HGNNs) have
+been proposed. The most well-known approaches are the
+metapath-based methods (Schlichtkrull et al. 2017; Wang
+et al. 2019; Fu et al. 2020), which first aggregate neighbor representations along each metapath at the node level
+and then aggregate these representations across metapaths
+at the metapath (semantic) level. However, metapath-based
+approaches often involve manual effort to select a subset
+of meaningful metapaths, because the node-level aggregation along each metapath is computationally expensive (Fu
+et al. 2020; Wang et al. 2019). Other models that do not
+apply the metapath method, such as HetGNN (Zhang et al.
+2019) and HGT (Hu et al. 2020b), carefully encode representations for different node types and/or relation types in
+heterogeneous graphs. These fine-grained embedding methods often utilize multi-layer message-passing techniques as
+in traditional GNNs, thus facing scalability issues. To efficiently model real-world web-scale graphs, researchers and
+practitioners have explored various ways to scale HGNNs.
+Sampling-based methods sample sub-graphs with different
+strategies (Hu et al. 2020b; Zhang et al. 2019), while others
+use model simplification to execute feature propagation as
+a pre-processing stage before training (Yu et al. 2020; Yang
+et al. 2022).
+However, existing HGNNs fail to account for a tree hierarchy among the metapaths. A metapath represents an
+ordered sequence of composite relationships connecting distinct or identical node types (Definition 3.2). For instance, as
+p1 sends
+
+illustrated in Figure 1(a), the metapath Sender −−−−−→
+is sent f rom
+
+M essage −−−−−−−−→ IP is intuitively more closely
+p1 sends
+
+associated with Sender −−−−−→ M essage than with
+s has domain of
+Sender −−−−−−−−−−−→ Domain due to a greater overlap
+in node types and relationships. This overlap can be conceptualized as a parent-child relationship, where the parent
+metapath serves as a prefix to its child metapaths. Consequently, these parent-child relationships naturally form a tree
+hierarchy among the metapaths.
+The exploration of tree structures in heterogeneous graphs
+is not a new topic, as several tree-based HGNNs have investigated this concept. However, existing tree-based HGNNs (Xu
+et al. 2021; Wu and Wang 2022; Qiao et al. 2020) pri-
+
+

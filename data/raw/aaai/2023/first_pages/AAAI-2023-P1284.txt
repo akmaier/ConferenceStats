@@ -1,0 +1,95 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Gradient-Adaptive Pareto Optimization for Constrained Reinforcement Learning
+Zixian Zhou* ,1,2 , Mengda Huang* ,1 , Feiyang Pan†,3 , Jia He3 , Xiang Ao†,1,2,4 ,
+Dandan Tu3 , Qing He1,2
+1
+
+Key Lab of Intelligent Information Processing of Chinese Academy of Sciences (CAS),
+Institute of Computing Technology, CAS, Beijing 100190, China
+2
+University of Chinese Academy of Sciences, Beijing 100049, China
+3
+Huawei EI Innovation Lab
+4
+Institute of Intelligent Computing Technology, Suzhou, CAS
+{zhouzixian21s, huangmengda19s}@ict.ac.cn
+
+Abstract
+Constrained Reinforcement Learning (CRL) burgeons broad
+interest in recent years, which pursues maximizing long-term
+returns while constraining costs. Although CRL can be cast
+as a multi-objective optimization problem, it is still facing the
+key challenge that gradient-based Pareto optimization methods
+tend to stick to known Pareto-optimal solutions even when they
+yield poor returns (e.g., the safest self-driving car that never
+moves) or violate the constraints (e.g., the record-breaking
+racer that crashes the car). In this paper, we propose Gradientadaptive Constrained Policy Optimization (GCPO for short), a
+novel Pareto optimization method for CRL with two adaptive
+gradient recalibration techniques. First, to find Pareto-optimal
+solutions with balanced performance over all targets, we propose gradient rebalancing which forces the agent to improve
+more on under-optimized objectives at every policy iteration.
+Second, to guarantee that the cost constraints are satisfied, we
+propose gradient perturbation that can temporarily sacrifice
+the returns for costs. Experiments on the SafetyGym benchmarks show that our method consistently outperforms previous
+CRL methods in reward while satisfying the constraints.
+
+1
+
+Introduction
+
+Due to the close relationship with real-world applications,
+Constrained Reinforcement Learning (CRL) has burgeoned
+broad interests in recent years (Achiam et al. 2017; Ding
+et al. 2020; Wachi and Sui 2020; Satija, Amortila, and Pineau
+2020). Unlike unconstrained reinforcement learning which
+only aims at maximizing cumulative returns, CRL pursues
+rewards while satisfying specific constraints. For example,
+in the scenario of auto-pilot, the well-trained agent should
+arrive at the destination and meets the safety constraints
+simultaneously (Kong, Zhang, and Xu 2021).
+CRL problems are usually formulated as Constrained
+Markov Decision Processes (CMDPs) (Altman 1999), which
+incorporate rewards and constraints into the same framework.
+Aside from returning a scalar reward after each action like
+* These authors contributed equally.
+†
+Correspondence to Feiyang Pan (pfy824@gmail.com) and Xiang Ao (aoxiang@ict.ac.cn).
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+11443
+
+conventional MDPs, CMDPs send back one or multiple cost
+signals independent of reward. Constraints are expressed explicitly in CMDPs by limiting the expected sum of each cost
+in the corresponding region.
+Essentially, the purpose of CRL is to maximize rewards
+while controlling costs, which would be naturally associated
+with Multi-objective optimization. In recent years, Pareto approaches (Sener and Koltun 2018; Lin et al. 2019), which find
+a steep gradient that benefits all objectives, have been generally leveraged to multi-objective optimization. The ultimate
+goal of Pareto approaches is to find a Pareto-optimal (Pareto
+1897) solution, in which no objective can be advanced without harming any other objectives.
+Adhering to this idea, the CRL problem can be transformed into a search for a specific Pareto-optimal policy,
+which should also remain in the feasible region restricted by
+constraints. However, algorithms for CRL seldom consider
+experience from Pareto optimization area because existing
+Pareto approaches perform poorly in practical CRL problems (Tessler, Mankowitz, and Mannor 2018; Ray, Achiam,
+and Amodei 2019). Although existing Pareto approaches are
+able to find Pareto-optimal policy effectively, they not only
+overlook the constraints, but also yield imbalanced performance in terms of rewards and costs. As shown in Fig.1(b),
+when the gradients of two objective functions disagree, traditional Pareto approaches will synthesize an updating vector
+which is biased to the shorter gradient. Eventually, policy
+updated in such biased direction will be either too risky to be
+aware of the constraint or too conservative to interact with
+the environment. A more detailed theoretical explanation is
+presented in Section 4.
+To tackle these challenges, we propose a practical algorithm for CRL named GCPO (abbr. for Gradient-adaptive
+Constrained Policy Optimization). Beyond previous Pareto
+methods, GCPO employs two gradient recalibration techniques.
+First, the gradient rebalancing mechanism redefines the length
+of gradients of each objective and ensures that the agent focuses more on the underdeveloped objective, leading to more
+balanced development. Second, to achieve feasible solutions,
+we use gradient perturbation to force the agent to control the
+costs when the constraints are not satisfied. Experimental re-
+
+

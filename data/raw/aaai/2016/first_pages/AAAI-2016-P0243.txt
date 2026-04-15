@@ -1,0 +1,113 @@
+Proceedings of the Thirtieth AAAI Conference on Artificial Intelligence (AAAI-16)
+
+Scaling Relational Inference Using Proofs and Refutations
+Ravi Mangal∗ , Xin Zhang∗ , Aditya Kamath∗ , Aditya V. Nori† , Mayur Naik∗
+∗
+
+†
+
+Georgia Institute of Technology, USA
+
+Abstract
+
+∀n1 ,
+∀n1 , n2 , n3 ,
+1.5 : ∀n1 , n2 ,
+
+
+
+
+Many inference problems are naturally formulated using hard
+and soft constraints over relational domains: the desired solution must satisfy the hard constraints, while optimizing the
+objectives expressed by the soft constraints. Existing techniques for solving such constraints rely on efﬁciently grounding a sufﬁcient subset of constraints that is tractable to solve.
+We present an eager-lazy grounding algorithm that eagerly
+exploits proofs and lazily refutes counterexamples. We show
+that our algorithm achieves signiﬁcant speedup over existing
+approaches without sacriﬁcing soundness for real-world applications from information retrieval and program analysis.
+
+Microsoft Research, UK
+
+p(n1 , n1 )
+p(n1 , n2 ) ∧ e(n2 , n3 ) ⇒ p(n1 , n3 )
+¬p(n1 , n2 )
+
+(1)
+(2)
+(3)
+
+Figure 1: Graph reachability using relational constraints.
+
+
+
+
+
+
+
+
+
+
+
+Input facts:
+e(0, 1) e(0, 2)
+e(1, 3) e(1, 4)
+e(2, 5) e(2, 6)
+
+Output facts:
+p(0, 0) p(0, 1)
+p(0, 2) p(0, 3)
+p(0, 4) p(0, 5)
+...
+
+Figure 2: Example graph reachability input and solution.
+
+1
+
+Introduction
+
+Many inference tasks in diverse application domains such as
+machine learning, information retrieval, mathematical optimization, and many others require optimizing certain objectives in addition to satisfying soundness conditions. A natural speciﬁcation for such tasks appears in the form of relational constraints with optional weights in logics such as
+Markov Logic Networks (Richardson and Domingos 2006)
+and Probabilistic Soft Logic (Kimmig et al. 2012). The relational inference problem in such logics seeks a solution
+that satisﬁes all unweighted (“hard”) constraints while maximizing the sum of the weights of satisﬁed weighted (“soft”)
+constraints. Hard constraints thus enable to express soundness conditions while soft constraints allow to express the
+objectives to optimize.
+Figure 1 shows an example that speciﬁes a graph reachability problem using such constraints. Input predicate
+e(n1 , n2 ) is true if the graph has an edge from node n1 to
+n2 . Derived predicate p(n1 , n2 ) is true if the graph has a
+path from n1 to n2 . Hard constraints (1) and (2) enforce reﬂexivity and transitivity conditions, while soft constraint (3)
+ensures that the number of paths derived is minimal. An example input and solution are shown in Figure 2.
+Existing techniques reduce the relational inference
+problem to the Weighted Partial Maximum Satisﬁability
+(WPMS) problem (Papadimitriou 1994). This reduction
+happens via grounding, which is the process of instantiating the predicates or relations over all constants in the cor-
+
+responding input domains. The WPMS problem is computationally hard. To reduce the burden on the WPMS solver,
+the key challenge is to efﬁciently ground a sufﬁcient subset
+of constraints that is tractable to solve. For the example in
+Figure 1, eagerly grounding constraint (2) entails instantiating n1 , n2 , n3 over all nodes in the graph, producing N 3
+grounded constraints, where N is the number of nodes.
+Several techniques have been proposed to lazily ground
+constraints (Niu et al. 2011; Kok et al. 2007; Chaganty
+et al. 2013; Noessner, Niepert, and Stuckenschmidt 2013;
+Riedel 2008; 2009). For the scale of problems we consider, however, these techniques are either too lazy and
+converge very slowly, or too eager and produce instances
+that are beyond the reach of sound WPMS solvers. For instance, a recent technique (Chaganty et al. 2013) grounds
+hard constraints too lazily and soft constraints too eagerly.
+Speciﬁcally, for the graph reachability problem in Figure 1,
+this technique takes L iterations to lazily ground hard constraint (2) (where L is the length of the longest path in the
+input graph), and generates N 2 constraints upfront by eagerly grounding soft constraint (3).
+In this paper, we propose an iterative eager-lazy algorithm
+that strikes a balance between eager grounding and lazy
+grounding. Our key underlying idea comprises two complementary optimizations: eagerly exploiting proofs and lazily
+refuting counterexamples.
+To eagerly exploit proofs, our algorithm uses an efﬁcient
+procedure to upfront ground constraints that will necessarily
+be grounded during the iterative process. As a concrete in-
+
+c 2016, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+3278
+
+

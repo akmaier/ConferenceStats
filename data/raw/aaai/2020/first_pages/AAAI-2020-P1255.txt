@@ -1,0 +1,75 @@
+The Thirty-Fourth AAAI Conference on Artiﬁcial Intelligence (AAAI-20)
+
+Reliable and Efficient Anytime Skeleton Learning
+Rui Ding,1 Yanzhi Liu,2* Jingjing Tian,3* Zhouyu Fu,4** Shi Han,1 Dongmei Zhang1
+1Microsoft Research 2Beijing University of Posts and Telecommunications 3Peking University 4Alibaba Group
+1{juding, shihan, dongmeiz}@microsoft.com, 2lyztyj@bupt.edu.cn, 3tianjj97@pku.edu.cn, 4zhouyu.fz@alibaba-inc.com
+
+Abstract
+Skeleton Learning (SL) is the task for learning an undirected graph from the input data that captures their dependency relations. SL plays a pivotal role in causal learning and
+has attracted growing attention in the research community
+lately. Due to the high time complexity, anytime SL has
+emerged which learns a skeleton incrementally and improves it overtime. In this paper, we first propose and advocate the reliability requirement for anytime SL to be practically useful. Reliability requires the intermediately learned
+skeleton to have precision and persistency. We also present
+REAL, a novel Reliable and Efficient Anytime Learning algorithm of skeleton. Specifically, we point out that the
+commonly existing Functional Dependency (FD) among
+variables could make the learned skeleton violate faithfulness assumption, thus we propose a theory to resolve such
+incompatibility. Based on this, REAL conducts SL on a reduced set of variables with guaranteed correctness thus drastically improves efficiency. Furthermore, it employs a novel
+edge-insertion and best-first strategy in anytime fashion for
+skeleton growing to achieve high reliability and efficiency.
+We prove that the skeleton learned by REAL converges to
+the correct skeleton under standard assumptions. Thorough
+experiments were conducted on both benchmark and realworld datasets demonstrate that REAL significantly outperforms the other state-of-the-art algorithms.
+
+Introduction
+Skeleton Learning (SL) plays a pivotal role in causal learning and knowledge discovery and has attracted growing
+attention in the research community lately (Shanmugam et.
+al. 2015; Peters, Janzing and Schölkopf 2017, Bühlmann
+and Meinshausen 2016). It is the task for learning an undirected graph from the input data that captures the variables’ dependency relations. Under causal sufficiency assumption (i.e., the set of observed variables 𝒱 include all
+the common causes of pairs in 𝒱), each edge A–B in a
+skeleton has causal semantic: there exists direct cause* The contributions by Yanzhi Liu and Jingjing Tian have been conducted
+and completed during their internships at Microsoft Research Asia.
+** The contributions by Zhouyu Fu have been conducted and completed
+during his employment at Microsoft Research Asia.
+Copyright © 2020, Association for the Advancement of Artificial Intelligence (www.aaai.org). All rights reserved.
+
+10101
+
+effect relationship between A and B but the direction is
+unknown. Thus for causal learning, SL is the primary step
+for performing interventions over directly linked variables
+in skeleton to discover cause effects (Kocaoglu, Dimakis
+and Vishwanath 2017; Lindgren et. al. 2018). In addition,
+SL has great potential in knowledge discovery (Chen et al.,
+2012). For example, an engineer tries to diagnose the causes of service degradation and how its impact propagates.
+SL has a high computational complexity (Chickering
+1996). The cost of waiting till the final solution is often
+unacceptable for practical tasks that require decisions to be
+made within given time budget, e.g., 30 minutes for investigating a cloud service degradation (Lou et al., 2017). On
+the other hand, a partially learned skeleton can also provide
+important clues for obtaining local causal relations (Pearl
+2009) or for dependency analysis (Daly et al., 2006). This
+motivates the development of anytime SL techniques to
+incrementally learn a skeleton and improve it over time.
+Two challenges need to be addressed to make anytime
+SL practically useful. One is reliability and the other is
+efficiency. The reliability challenge entails two requirements – precision and persistency. Precision means that the
+partially learned skeleton S(𝑡) at any time 𝑡 should contain
+only trustable edges that correctly encode the dependencies
+between variables. Persistency means that the skeleton
+𝑆(𝑡 + 1) updated at time 𝑡 + 1 should remove as few as
+possible edges from previously learned skeleton 𝑆(𝑡). This
+enables users to reuse their analysis models obtained from
+the previous step over newly added edges rather than start
+from scratch. To the best of our knowledge, the reliability
+issue was not addressed in the existing work.
+Another major source of complication for SL stems from
+the inter-variable Functional Dependency (Vardi 1987) in
+real-world data. For FD (i.e., short for FD relationship)
+between two variables, the value of one variable can be
+fully determined by the other. For instance, Country determines Continent, or Date determines Year. Using terms
+from relational database domain, FDs typically exist between the primary key and other non-key variables within
+a table. Thus, FD is prevalent in tabular datasets composed
+by joining multiple tables. We notice that certain FDs
+
+

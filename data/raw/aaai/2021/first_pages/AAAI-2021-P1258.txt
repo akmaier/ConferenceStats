@@ -1,0 +1,90 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+BANANAS: Bayesian Optimization with Neural Architectures for Neural
+Architecture Search
+Colin White,1 Willie Neiswanger, 23 Yash Savani 1
+1
+Abacus.AI
+Stanford University
+3
+Petuum, Inc.
+colin@abacus.ai, neiswanger@cs.stanford.edu, yash@abacus.ai
+2
+
+Abstract
+Over the past half-decade, many methods have been considered for neural architecture search (NAS). Bayesian optimization (BO), which has long had success in hyperparameter
+optimization, has recently emerged as a very promising strategy for NAS when it is coupled with a neural predictor. Recent
+work has proposed different instantiations of this framework,
+for example, using Bayesian neural networks or graph convolutional networks as the predictive model within BO. However,
+the analyses in these papers often focus on the full-fledged
+NAS algorithm, so it is difficult to tell which individual components of the framework lead to the best performance.
+In this work, we give a thorough analysis of the “BO + neural
+predictor” framework by identifying five main components:
+the architecture encoding, neural predictor, uncertainty calibration method, acquisition function, and acquisition function
+optimization. We test several different methods for each component and also develop a novel path-based encoding scheme
+for neural architectures, which we show theoretically and empirically scales better than other encodings. Using all of our
+analyses, we develop a final algorithm called BANANAS,
+which achieves state-of-the-art performance on NAS search
+spaces. We adhere to the NAS research checklist (Lindauer
+and Hutter 2019) to facilitate best practices, and our code is
+available at https://github.com/naszilla/naszilla.1
+
+Introduction
+Since the deep learning revolution in 2012, neural networks
+have been growing increasingly more complex and specialized (Krizhevsky, Sutskever, and Hinton 2012; Huang et al.
+2017; Szegedy et al. 2017). Developing new state-of-the-art
+architectures often takes a vast amount of engineering and
+domain knowledge. A rapidly developing area of research,
+neural architecture search (NAS), seeks to automate this process. Since the popular work by Zoph and Le (2017), there
+has been a flurry of research on NAS (Liu et al. 2018; Pham
+et al. 2018; Liu, Simonyan, and Yang 2018; Kandasamy
+et al. 2018b; Elsken, Metzen, and Hutter 2018; Jin, Song,
+and Hu 2018). Many methods have been proposed, including evolutionary search, reinforcement learning, Bayesian
+optimization (BO), and gradient descent. In certain settings,
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+1
+Full-length paper here: https://arxiv.org/abs/1910.11858.
+
+10293
+
+zeroth-order (non-differentiable) algorithms such as BO are
+of particular interest over first-order (one-shot) techniques,
+due to advantages such as simple parallelism, joint optimization with other hyperparameters, easy implementation,
+portability to diverse architecture spaces, and optimization of
+other/multiple non-differentiable objectives.
+BO with Gaussian processes (GPs) has had success in deep
+learning hyperparameter optimization (Golovin et al. 2017;
+Falkner, Klein, and Hutter 2018), and is a leading method for
+efficient zeroth order optimization of expensive-to-evaluate
+functions in Euclidean spaces. However, initial approaches
+for applying GP-based BO to NAS came with challenges that
+limited its ability to achieve state-of-the-art results. For example, initial approaches required specifying a distance function
+between architectures, which involved cumbersome hyperparameter tuning (Kandasamy et al. 2018b; Jin, Song, and Hu
+2018), and required a time-consuming matrix inversion step.
+Recently, Bayesian optimization with a neural predictor
+has emerged as a high-performing framework for NAS. This
+is similar to GP-based BO, except the GP is replaced with
+a neural network that is trained to predict the accuracy of
+unseen neural networks. This framework avoids the aforementioned problems with BO in NAS: there is no need to
+construct a distance function between architectures, and the
+neural predictor scales far better than a GP model. Recent
+work has proposed different instantiations of this framework,
+for example, Bayesian neural networks with BO (Springenberg et al. 2016), and graph neural networks with BO (Shi
+et al. 2019; Ma, Cui, and Yang 2019). However, the analyses
+often focus on the full-fledged NAS algorithm, making it
+challenging to tell which components of the framework lead
+to the best performance.
+In this work, we start by performing a thorough analysis
+of the “BO + neural predictor” framework. We identify five
+major components of the framework: architecture encoding,
+neural predictor, uncertainty calibration method, acquisition
+function, and acquisition function optimization. For example,
+graph convolutional networks, variational autoencoder-based
+networks, or feedforward networks can be used for the neural
+predictor, and Bayesian neural networks or different types of
+ensembling methods can be used for the uncertainty calibration method. After conducting experiments on all components
+of the BO + neural predictor framework, we use this analysis
+to define a high-performance instantiation of the framework,
+
+

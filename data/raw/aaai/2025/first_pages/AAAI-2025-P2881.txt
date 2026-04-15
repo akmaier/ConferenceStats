@@ -1,0 +1,139 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+CSR:Achieving 1 Bit Key-Value Cache via Sparse Representation
+Hongxuan Zhang1, 2 * † , Yao Zhao2† , Jiaqi Zheng1 , Chenyi Zhuang2 , Jinjie Gu2 , Guihai Chen1
+1
+
+Nanjing University
+2
+Ant Group
+x zhang@smail.nju.edu.cn, nanxiao.zy@antgroup.com, jzheng@nju.edu.cn,
+{chenyi.zcy, jinjie.gujj}@antgroup.com, gchen@nju.edu.cn
+
+Abstract
+
+Cache Sparse Representation
+
+Decomposition
+
+2
+
+767
+
+≈ 0.4× + 0.7×
+
+The emergence of long-context text applications utilizing
+large language models (LLMs) has presented significant scalability challenges, particularly in memory footprint. The linear growth of the Key-Value (KV) cache, which stores attention keys and values to reduce redundant computations,
+can significantly increase memory usage and may prevent
+models from functioning properly in memory-constrained environments. To address this issue, we propose a novel approach called Cache Sparse Representation (CSR), which
+converts the KV cache by transforming the dense Key-Value
+cache tensor into sparse indexes and weights, offering a more
+memory-efficient representation during LLM inference. Furthermore, we introduce NeuralDict, a novel neural networkbased method to automatically generate the dictionary used in
+our sparse representation. Our extensive experiments demonstrate that CSR matches the performance of state-of-theart KV cache quantization algorithms while ensuring robust
+functionality in memory-constrained environments.
+
+Dictionary in Transformer Layer
+Extract Offline Part
+by Layer Index
+0 1 2 3 ... 764
+
+…
+
+…
+
+... 864
+
+Index
+Basis
+Vector
+
+Collect Online Part
+during Inference
+
+≈ 0.3× + 0.4×
+𝑥
+Sparse Storage
+
+1
+
+873
+
+Coefficients:
+
+0.4
+0.3
+
+0.7
+0.4 FP16
+
+Indexes:
+
+2
+1
+
+767
+873
+
+Restoration
+
+INT16
+
+767
+0.4× + 0.7× =
+2
+
+0.3× + 0.4× =
+1
+
+873 𝑥"
+
+Figure 1: The core idea of CSR is to decompose the original
+dense vectors into sparse coefficients and indexes based on
+a dictionary, which consists of an offline-trained NeuralDict
+that learns features related to the KV cache space during
+training, and components gathered online, thus significantly
+reducing the memory footprint required by the KV cache.
+
+Introduction
+The introduction of large language models (LLMs) has
+brought about a new wave of exciting AI applications, including document summarization, code analysis, extended
+multi-turn applications, tool learning, and more. Among
+these applications, those involving long text have garnered
+significant interest, such as RAG (Retrieval-Augmented
+Generation). RAG tackles the challenge of generating accurate and pertinent content, particularly in scenarios where
+queries extend beyond the training data or require up-todate knowledge, by integrating external information sources.
+This fusion of RAG with LLMs expands the scope of LLMs
+and makes them increasingly applicable for specialized and
+knowledge-driven tasks in real-world contexts. However, the
+significant number of parameters in LLMs, amounting to
+tens or hundreds of billions, results in high memory and
+computation requirements during generation tasks, especially when handling long contexts like RAG. To effectively
+support large language models (LLMs), it is crucial to batch
+multiple requests together to minimize the cost per request.
+
+The key-value (KV) cache utilized to store attention keys
+and values, and thereby avoid redundant computations, can
+lead to a substantial increase in memory usage and become
+a bottleneck for both speed and memory efficiency. The
+cache’s memory consumption grows linearly with the length
+of the input prompt and the number of tokens generated,
+overshadowing even the substantial memory requirements of
+the model parameters. This presents scalability challenges
+for large language models, as the cache’s linearly expanding memory footprint hinders its ability to handle longer sequences. Therefore, it is imperative to develop methods for
+compressing the KV cache to enable long-sequence inference in a memory-efficient manner.
+We provide an overview of existing methods that help mitigate KV cache overhead as follows:(Shazeer 2019) introduces Multi-Query Attention, a variant of Multi-Head Attention (MHA)(Vaswani et al. 2017). MQA allows different attention heads to share the same KV caches, thereby
+reducing memory usage. Furthermore, (Ainslie et al. 2023)
+introduces Grouped-Query Attention (GQA), which strikes
+a balance between the performance degradation caused by
+MQA and the memory footprint associated with Multi-
+
+* The work done during the internship at Ant Group.
+†
+
+These authors contributed equally.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+25860
+
+

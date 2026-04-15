@@ -1,0 +1,79 @@
+The Thirty-Second AAAI Conference
+on Artificial Intelligence (AAAI-18)
+
+AdaComp: Adaptive Residual Gradient
+Compression for Data-Parallel Distributed Training
+Chia-Yu Chen, Jungwook Choi, Daniel Brand, Ankur Agrawal,
+Wei Zhang, Kailash Gopalakrishnan
+IBM Research AI
+1101 Kitchawan Rd. Yorktown Heights, New York 10598
+{cchen, choij, danbrand, ankuragr, weiz, kailash}@us.ibm.com
+while model and pipeline parallelism approaches are more
+effective for fully-connected and recurrent layers of a neural net. All 3 techniques necessitate very high interconnect
+bandwidth between the GPUs (in order to communicate the
+necessary parameters) and impose limits on peak system utilization and model training time. A variety of system topologies have also been explored to efﬁciently implement distributed training using data parallelism techniques ranging
+from simple parameter-server based approaches to the recently proposed Wild-Fire technique (Nair and Gupta 2017)
+that allows direct exchange of weights during reduction. Recently, ring-based system topologies (Luehr 2016) have been
+proposed to maximally utilize inter-accelerator bandwidths
+by connecting all accelerators in the system in a ring network. The accelerator then transports its computed weight
+gradients (from its local mini-batch) directly to the adjacent accelerator (without the use of centralized parameter
+servers). However, as the number of learners increases, distribution of the minibatch data under strong scaling conditions has the adverse effect of signiﬁcantly increasing the
+demand for communication bandwidth between the learners
+while proportionally decreasing the FLOPs needed in each
+learner - creating a severe computation to communication
+imbalance.
+
+Abstract
+Highly distributed training of Deep Neural Networks (DNNs)
+on future compute platforms (offering 100 of TeraOps/s of
+computational capacity) is expected to be severely communication constrained. To overcome this limitation, new gradient
+compression techniques are needed that are computationally
+friendly, applicable to a wide variety of layers seen in Deep
+Neural Networks and adaptable to variations in network architectures as well as their hyper-parameters. In this paper
+we introduce a novel technique - the Adaptive Residual Gradient Compression (AdaComp) scheme. AdaComp is based
+on localized selection of gradient residues and automatically
+tunes the compression rate depending on local activity. We
+show excellent results on a wide spectrum of state of the art
+Deep Learning models in multiple domains (vision, speech,
+language), datasets (MNIST, CIFAR10, ImageNet, BN50,
+Shakespeare), optimizers (SGD with momentum, Adam) and
+network parameters (number of learners, minibatch-size etc.).
+Exploiting both sparsity and quantization, we demonstrate
+end-to-end compression rates of ∼200× for fully-connected
+and recurrent layers, and ∼40× for convolutional layers,
+without any noticeable degradation in model accuracies.
+
+Introduction
+Over the past decade, Deep Learning (DL) has emerged
+as the dominant Machine Learning algorithm showing remarkable success in a wide spectrum of application domains
+ranging from image processing (He et al. 2016), machine
+translation (Wu et al. 2016), speech recognition (Xiong et
+al. 2017) and many others. In each of these domains, DNNs
+achieve superior accuracy through the use of very large and
+deep models - necessitating up to 100s of ExaOps of computation during training (on GPUs) and GBs of model and
+data storage.
+In order to improve the training time over single-node
+systems, distributed algorithms (Chilimbi et al. 2014), (Ho
+et al. 2013), (Lian et al. 2015) are frequently employed to
+distribute the training data over multiple CPUs or GPUs
+- using data parallelism (Gupta, Zhang, and Wang 2016),
+model parallelism (Dean et al. 2012) and pipeline parallelism (Wu et al. 2016) techniques. Data parallelism techniques are widely applied to distribute convolutional layers
+
+Simultaneously, there has been a renaissance in the computational throughput (TeraOps per second) of DL training accelerators - with accelerator throughputs exceeding
+100s of TeraOps/s expected in the next few years (Durant
+et al. 2017), (Merriman 2017). Exploiting hardware architectures based on reduced precision (Gupta et al. 2015),
+(Courbariaux, Bengio, and David 2014), these accelerators
+promise dramatic reduction in training times in comparison to commercially available GPUs today. For a given DL
+network and distribution approach, the bandwidth needed
+for inter-accelerator communication (in GB/s) scales up directly with raw hardware performance as well as the number of learners. In order to guarantee high system performance, radically new compression techniques are therefore
+needed to minimize the amount of data exchanged between
+accelerators. Furthermore, the time required for compression needs to be signiﬁcantly smaller than the computational
+time required for back-propagation. Section 2 discusses various prior compression techniques - most of which were applied to Fully Connected (FC) layers of DL networks. But
+
+c 2018, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+2827
+
+

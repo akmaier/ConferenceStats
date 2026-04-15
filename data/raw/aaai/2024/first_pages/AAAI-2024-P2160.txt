@@ -1,0 +1,63 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Exploring Post-training Quantization in LLMs from Comprehensive Study to Low
+Rank Compensation
+Zhewei Yao* 1 , Xiaoxia Wu∗1 , Cheng Li1 , Stephen Youn1 , Yuxiong He1
+1
+
+DeepSpeed of Microsoft
+
+Abstract
+Post-training quantization (PTQ) has emerged as a promising
+technique for mitigating memory consumption and computational costs in large language models (LLMs). However,
+a systematic examination of various quantization schemes,
+model families, and quantization bit precision has been absent
+from the literature. In this paper, we conduct a comprehensive
+analysis of these factors by investigating the effects of PTQ on
+weight-only, activation-only, and weight-and-activation quantization using diverse methods such as round-to-nearest (RTN),
+GPTQ, ZeroQuant, and their variants. We apply these methods to two distinct model families with parameters ranging
+from 125M to 176B. Our contributions include: (1) a sensitivity analysis revealing that activation quantization is generally
+more susceptible to weight quantization, with smaller models often outperforming larger models in terms of activation
+quantization; (2) an evaluation and comparison of existing
+PTQ methods to optimize model size reduction while minimizing the impact on accuracy, revealing that none of the
+current methods can achieve the original model quality for
+quantization with either INT4-weight or INT4-weight-andINT8-activation; (3) based on these insights, we propose an
+optimized method called Low-Rank Compensation (LoRC),
+which employs low-rank matrices to enhance model quality
+recovery with a minimal increase in model size.
+
+Introduction
+Large language models (LLMs) like Codex (Copilot 2021)
+and ChatGPT (OpenAI 2022) have demonstrated breakthrough performance across various benchmarks, such as natural language understanding and generation, and are now integrated into everyday applications. However, efficiently serving LLMs has become a pressing concern due to their significant memory consumption and computational demands. Unlike classification or diffusion models, LLMs present unique
+challenges, as they involve two distinct phases: prompt and
+generation. The prompt phase is primarily compute-bound,
+while the generation phase, with low batch size and KV cache,
+is mainly memory-bound (Pope et al. 2022).
+As the progression of hardware bandwidth lags behind
+that of computational demand (Gholami et al. 2021), the
+* Equal Contribution.
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+19377
+
+Figure 1: The model size and quality trade-off of different
+quantization methods on models from OPT families. Here
+PTQ (with fine-grained quantization) represents the method
+from (Yao et al. 2022; Frantar et al. 2022), RTN means the
+naive round-to-nearest baseline (with fine-grained quantization as well), and FP16/INT8 is used as the no-accuracy-loss
+baseline. LoRC is our proposed method that works seamless
+with PTQ. Note that we drop all diverged points for better
+visualization.
+resource demands of extra-large models such as MT-NLG530B (Smith et al. 2022)—which necessitates the deployment
+of multiple nodes for operation—escalate, adding to the complexities of cross-node communication. This has emphasized
+the urgency to curtail both the size and computational expense of Large Language Models (LLMs). An increasingly
+effective solution to these issues is post-training quantization
+(PTQ). This method aids in the reduction of training prerequisites while simultaneously lowering the bit precision of
+weights and activations to either INT4 or INT8.
+While the effectiveness of post-training quantization (PTQ)
+has been underscored in a number of recent studies (Yao et al.
+2022; Frantar et al. 2022; Xiao et al. 2022; Dettmers and
+Zettlemoyer 2022), a comprehensive, systematic investigation into several key dimensions of this technique remains to
+
+

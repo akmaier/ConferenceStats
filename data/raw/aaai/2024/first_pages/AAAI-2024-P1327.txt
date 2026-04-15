@@ -1,0 +1,98 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Learning Hybrid Dynamics Models with Simulator-Informed Latent States
+Katharina Ensinger1,2 , Sebastian Ziesche1 , Sebastian Trimpe2
+1
+
+2
+
+Bosch Center for Artificial Intelligence, Renningen, Germany
+Institute for Data Science in Mechanical Engineering, RWTH Aachen Univeristy
+katharina.ensinger@bosch.com
+
+Abstract
+Dynamics model learning deals with the task of inferring unknown dynamics from measurement data and predicting the
+future behavior of the system. A typical approach to address
+this problem is to train recurrent models. However, predictions
+with these models are often not physically meaningful. Further,
+they suffer from deteriorated behavior over time due to accumulating errors. Often, simulators building on first principles
+are available being physically meaningful by design. However,
+modeling simplifications typically cause inaccuracies in these
+models. Consequently, hybrid modeling is an emerging trend
+that aims to combine the best of both worlds. In this paper, we
+propose a new approach to hybrid modeling, where we inform
+the latent states of a learned model via a black-box simulator. This allows to control the predictions via the simulator
+preventing them from accumulating errors. This is especially
+challenging since, in contrast to previous approaches, access to
+the simulator’s latent states is not available. We tackle the task
+by leveraging observers, a well-known concept from control
+theory, inferring unknown latent states from observations and
+dynamics over time. In our learning-based setting, we jointly
+learn the dynamics and an observer that infers the latent states
+via the simulator. Thus, the simulator constantly corrects the
+latent states, compensating for modeling mismatch caused
+by learning. To maintain flexibility, we train an RNN-based
+residuum for the latent states that cannot be informed by the
+simulator.
+
+1
+
+Introduction
+N
+
+Physical processes (xn )n=0 ∈ Rdx can often be described
+via a discrete-time dynamical system
+xn+1 = f (xn ).
+(1)
+In practice, the dynamics f are often unknown but measurements are available. Typically, it is not possible to measure
+the full state space but noisy measurements ŷn for a function
+g of the states can be obtained by sensors, thus
+yn = g(xn )
+(2)
+ŷn = yn + n , with n ∼ N (0, σ 2 ),
+
+and g : Rdx → Rdy . Our general motivation here is to
+make accurate predictions for the future behavior of the measurable states yn in Eq. (2). One common strategy to address this problem is to train recurrent architectures on ŷn
+Copyright c 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+11892
+
+in Eq. (2) (Hochreiter and Schmidhuber 1997; Oliva, Póczos, and Schneider 2017). Analogous to the unknown system,
+they possess internal latent states. Predictions are obtained by
+mapping the latent states to the measurable states yn (cf. Eq.
+(2)) via an observation model. While these methods are able
+to accurately reflect the system’s transitions, they often lack
+physically meaningful predictions, e.g. by violating physical
+laws. Further, small model mismatches lead to accumulating errors over time in the latent states and thus, also in the
+predictions (Zhou et al. 2018).
+To address these problems, it is often beneficial to include
+physical prior knowledge such as energy conservation, invariants etc. in the architecture (Chen et al. 2020; Greydanus,
+Dzamba, and Yosinski 2019). For many systems, it is even
+possible to model a physics-based simulator for the system
+producing stand-alone predictions (Jia et al. 2021; Willard
+et al. 2022). By design, predictions from these models are
+physically meaningful. Further, they typically do not suffer
+as much from error accumulation. However, modeling simplifications or incomplete knowledge lead to inaccuracies
+in the model. In order to combine the best of both worlds,
+hybrid modeling (HM) fuses physics-based simulations with
+learning-based approaches (Takeishi and Kalousis 2021; Wehenkel et al. 2023; Yin et al. 2021). Most hybrid modeling
+approaches rely on analytical descriptions of physics laws.
+However, such simulators are often not available in practice.
+Instead, numerical simulators building on these laws are available that are incompatible with most HM approaches. Further,
+simulator software is often proprietary. As a consequence,
+the simulators are often black-box. More specifically, they
+provide approximations ŝ ∈ Rds to the true outputs y (cf.
+Eq. (2)). Any additional insight as access to the simulator’s
+internal latent states or dynamics is not available.
+We propose to extract the hidden information and dynamics of the simulator outputs. By informing the latent states
+of a learning-based model with this information, we prevent
+them from error accumulation and ensure that they are consistent with the simulator. In contrast to our approach, previous
+approaches in the black-box HM case, typically fuse the
+final predictions to one common prediction. The simplest
+approach is fusing them additively via a residuum model
+(Suhartono et al. 2017), while more sophisticated approaches
+e.g. leverage the spectral properties (Ensinger et al. 2023).
+Thus, the simulator has an influence on the final predictions
+
+

@@ -1,0 +1,100 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+Symmetric Component Caching for Model Counting on Combinatorial Instances
+Timothy van Bremen1∗ , Vincent Derkinderen1∗ , Shubham Sharma2∗ ,
+Subhajit Roy3 , Kuldeep S. Meel4
+1
+
+KU Leuven 2 Nutanix Software India Pvt. Ltd.
+Indian Institute of Technology Kanpur 4 National University of Singapore
+{timothy.vanbremen,vincent.derkinderen}@cs.kuleuven.be, sharma.shubham736@gmail.com, subhajit@iitk.ac.in,
+meel@comp.nus.edu.sg
+3
+
+Abstract
+
+Pehoushek 2000; Sang et al. 2004; Thurley 2006; Aziz et al.
+2015; Oztok and Darwiche 2015; Lagniez and Marquis 2017).
+Many solvers use variants of the classic DPLL algorithm for
+SAT solving (Davis, Logemann, and Loveland 1962), with
+optimizations geared towards model counting (Birnbaum
+and Lozinskii 1999). One prominent optimization used in
+such algorithms is component caching: during the search
+process subsets of clauses that can be solved independently
+(referred to as components) are identified, solved, and cached.
+When the same component appears again along a different
+search path, the model count of the component can simply be
+returned from the cache, alleviating the need to recompute
+it (Bacchus, Dalmao, and Pitassi 2003).
+The exact representation scheme used for storing components in the cache differs between solvers: C ACHET (Sang
+et al. 2004; Sang, Beame, and Kautz 2005) uses a simple
+encoding where the literals in each clause are represented
+as integers with clauses separated by a sentinel. SHARP SAT
+(Thurley 2006) uses a hybrid encoding that achieves a more
+compact representation. G ANAK (Sharma et al. 2019) introduced the notion of a probabilistic cache: the component
+encodings are hashed into a yet smaller representation to enable better cache utilization but, in the process, paying a price
+with a (small) probability of incorrect counts due to hash collisions. The algorithm is parametrized by the probability of
+collision, which can be set as small as the user desires, at
+the expense of poorer cache utilization due to longer hash
+lengths. In addition, G ANAK adds several other optimizations
+that allow it to significantly outperform other state-of-the-art
+model counters.
+However, all existing cache indexing schemes (including
+that of G ANAK) declare a cache hit only on exact matches on
+components. We make an important observation that there
+are often components that are structurally identical but differ only in the variables appearing in the formula. Due to
+the fact that components employ variables disjoint from the
+rest of the formula, the model counts can also be transferred
+across such structurally identical components. Such symmetric components occur naturally in many instances, particularly those arising from combinatorial problems. It is worth
+remarking here that counting variants of many combinatorial problems, such as n-queens, quasigroup (Latin square)
+completion, and graph k-colouring, enjoy straightforward
+reductions to #SAT (Wang et al. 2020; Lauria et al. 2017;
+
+Given a propositional formula ψ, the model counting problem,
+also referred to as #SAT, seeks to compute the number of
+satisfying assignments (or models) of ψ. Modern search-based
+model counting algorithms are built on conflict-driven clause
+learning, combined with the caching of certain subformulas
+(called components) encountered during the search process.
+Despite significant progress in these algorithms over the years,
+state-of-the-art model counters often struggle to handle large
+but structured instances that typically arise in combinatorial
+settings. Motivated by the observation that these counters do
+not exploit the inherent symmetries exhibited in such instances,
+we revisit the component caching architecture employed in
+current counters and introduce a novel caching scheme that focuses on identifying symmetric components. We first prove the
+soundness of our approach, and then integrate it into the stateof-the-art model counter G ANAK. Our extensive experiments
+on hard combinatorial instances demonstrate that the resulting
+counter, S YM G ANAK, leads to improvements over G ANAK
+both in terms of PAR-2 score and the number of instances
+solved.
+
+1
+
+Introduction
+
+Given a propositional formula ψ, the model counting problem,
+also referred to as #SAT, seeks to compute the number of
+satisfying assignments (or models) of ψ. Model counting is a
+fundamental problem in artificial intelligence with a wide variety of applications such as probabilistic inference (Chavira
+and Darwiche 2008), neural network verification (Baluta et al.
+2019), computational biology (Sashittal and El-Kebir 2020),
+and the like. Consequently, the problem of model counting
+has been subject to intense theoretical and practical investigations over the past four decades. The seminal work of
+Valiant (1979) showed that model counting is #P-complete.
+Subsequently, Toda (1991) proved that every problem in the
+polynomial hierarchy can be efficiently solved using only a
+single call to a #P oracle; more formally, PH ⊆ P#P .
+Practical strategies for model counting span a variety of
+approaches, from approximate techniques (Stockmeyer 1983;
+Soos and Meel 2019) with probabilistic error bounds, to exact
+counting (Birnbaum and Lozinskii 1999; Bayardo Jr and
+∗
+
+equal contribution
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+3922
+
+

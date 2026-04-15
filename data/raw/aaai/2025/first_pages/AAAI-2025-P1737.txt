@@ -1,0 +1,88 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Neural Conjugate Flows: A Physics-Informed Architecture with Flow Structure
+Arthur Bizzi, Lucas Nissenbaum, João M. Pereira
+Instituto de Matemática Pura e Aplicada (IMPA), Rio de Janeiro, Brazil
+arthur.bizzi@impa.br, nissenbaum@impa.br, jpereira@impa.br
+
+Abstract
+We introduce Neural Conjugate Flows (NCF), a class of neuralnetwork architectures equipped with exact flow structure. By
+leveraging topological conjugation, we prove that these networks are not only naturally isomorphic to a continuous group,
+but are also universal approximators for flows of ordinary differential equation (ODEs). Furthermore, topological properties
+of these flows can be enforced by the architecture in an interpretable manner. We demonstrate in numerical experiments
+how this topological group structure leads to concrete computational gains over other physics informed neural networks in
+estimating and extrapolating latent dynamics of ODEs, while
+training up to five times faster than other flow-based architectures.
+
+Code — https://github.com/arthur-bizzi/Neural-ConjugateFlows-AAAI
+
+1
+
+Introduction
+
+The introduction of Physics-Informed Neural Networks
+(PINNs) (Raissi, Perdikaris, and Karniadakis 2019) has
+sparked interest in using neural networks to solve and discover differential equations. By encoding modeling into
+“Physics-informed” losses, networks Nθ are trained to approximate solutions to differential equations:
+
+d
+Nθ (x0 , t) = F Nθ (x0 , t)
+dt
+
+d
+⇐⇒ L(θ) =
+Nθ (x0 , t) − F Nθ (x0 , t) = 0,
+dt
+where F : Rn 7→ Rn is a vector field, x0 ∈ Rn are initial
+conditions and Nθ : Rn+1 7→ Rn is a θ−parameterized NN.
+L(θ) denotes an equation loss relative to θ.
+PINNs have since been applied to forward and inverse
+problems across a wide range of domains (De Ryck, Mishra,
+and Molinaro 2022; Patel et al. 2022; Mao, Jagtap, and Karniadakis 2020; Rao, Sun, and Liu 2021; Hasan et al. 2020).
+Still, due to their black-box nature, PINNs struggle significantly with enforcing fundamental structural properties
+of the solutions. Thus, it is often necessary to encode constraints into PINNs through the use of additional Physicsbased losses. These might include terms that reward proper
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+15576
+
+conservation of Hamiltonians (Mattheakis et al. 2022), Lagrangians (Cranmer et al. 2020) and symmetries (Zhang et al.
+2023).
+PINNs are specially notorious for their issues with causal
+dependence on initial conditions, which manifest in the form
+of incorrect initial conditions or non-physical convergence
+to trivial solutions (see Fig. 1 for an example). Attempts
+have also been made to minimize these effects with modified
+losses, emulating causality (Wang, Sankaran, and Perdikaris
+2022) or penalizing large gradients (Yu et al. 2022).
+In contrast, few attempts have been made to tackle these
+issues with new physics-based architectures. Indeed, the vast
+majority of PINNs use general-purpose feed-forward architectures, such as the simple Multi-Layer Percetron (MLP)
+(Cuomo et al. 2022).
+A remarkable solution to these causality issues may be
+found in the framework of Neural Ordinary Differential Equations (Neural ODEs) (Chen et al. 2018). This approach is
+instead based on modeling the derivative term of an ODE
+with a neural network:
+d
+x = Nθ (x)
+dt
+This ODE may then be solved with numerical solvers, using
+the adjoint method to calculate loss gradients.
+This blend of neural and traditional methods leads to these
+networks having the structure of a flow, which we detail
+in Section 2. This leads to a solution that is automatically
+compliant to initial conditions and that implicitly satisfies
+causality and time reversibility, making Neural ODEs specially adequate for physics-informed contexts (Lai et al. 2021;
+O’Leary, Paulson, and Mesbah 2022).
+However, the applicability of Neural ODEs is limited by
+the large computational overhead introduced by the sequential numerical solvers they are built upon. In particular, calculating gradients with the adjoint method leads to significant
+slowdowns (Kidger 2022). Regularizing and optimizing this
+process is an open problem (Finlay et al. 2020).
+A computationally lighter alternative to Neural ODEs was
+proposed in (Biloš et al. 2021). However, this approach comes
+at the cost of the associative property of flows (see Section
+2), leading to an incomplete group structure. In particular,
+although this approach may lead to correct initial conditions,
+it cannot enforce unicity or causality.
+
+

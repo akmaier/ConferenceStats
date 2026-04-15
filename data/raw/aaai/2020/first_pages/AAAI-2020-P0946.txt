@@ -1,0 +1,88 @@
+The Thirty-Fourth AAAI Conference on Artiﬁcial Intelligence (AAAI-20)
+
+Towards Making the Most of BERT in Neural Machine Translation
+Jiacheng Yang,1 Mingxuan Wang,2 Hao Zhou,2 Chengqi Zhao,2 Weinan Zhang,1 Yong Yu,1 Lei Li2
+1
+
+Shanghai Jiao Tong University
+ByteDance AI Lab, Beijing, China
+{PrayStarJirachi, wnzhang, yyu}@sjtu.edu.cn,
+{wangmingxuan.89, zhouhao.nlp, zhaochengqi.d, lileilab}@bytedance.com
+2
+
+and Auli (2019) observe that using pre-trained model in
+such a way leads to remarkable improvements without ﬁnetuning, but give few gains in the setting of ﬁne-tuning in
+resource-poor scenario. While the gain diminishes when
+more labeled data become available. This is not in line with
+our expectation.
+We argue that current approaches do not make the most
+use of BERT in NMT. Ideally, ﬁne-tuning BERT in NMT
+should lead to adequate gain as in other NLP tasks. However,
+compared to other tasks working well with direct BERT ﬁnetuning, NMT has two distinct characteristics, the availability of large training data (10 million or larger) and the high
+capacity of baseline NMT models (i.e. Transformer). These
+two characteristics require a huge number of updating steps
+during training in order to ﬁt the high-capacity model well
+on massive data 1 . Updating too much leads to the catastrophic forgetting problem (Goodfellow et al. 2013), namely
+too much updating in training make the BERT forget its
+universal knowledge from pre-training. The assumption lies
+well with previous observations that ﬁxed BERT improves
+NMT a bit and ﬁne-tuning BERT even offers no gains.
+In this paper, we propose the concerted training approach
+(CT NMT) to make the most use of BERT in NMT. Specifically, we introduce three techniques to integrate the power
+of pre-trained BERT and vanilla NMT, namely asymptotic
+distillation, dynamic switch for knowledge fusion, and ratescheduled updating. First, an asymptotic distillation (AD)
+technique is introduced to keep remind the NMT model of
+BERT knowledge. The pre-trained BERT serves as a teacher
+network while the encoder of the NMT model serves as a
+student. The objective is to mimic the original teacher network by minimizing the loss (typically L2 or cross-entropy
+loss) between the student and the teacher in an asymptotic
+way. The asymptotic distillation does not introduce additional parameters therefore it can be trained efﬁciently. Secondly, a dynamic switching gate (DS) is introduced to combine the encoded embedding from BERT and the encoder
+of NMT. Based on the source input sentence, it provides
+an adaptive way to fuse the power of BERT and NMT’s
+encoder-decoder network. The intuition is that for some
+
+Abstract
+GPT-2 and BERT demonstrate the effectiveness of using pretrained language models (LMs) on various natural language
+processing tasks. However, LM ﬁne-tuning often suffers from
+catastrophic forgetting when applied to resource-rich tasks.
+In this work, we introduce a concerted training framework
+(CT NMT) that is the key to integrate the pre-trained LMs
+to neural machine translation (NMT). Our proposed CT NMT
+consists of three techniques: a) asymptotic distillation to ensure that the NMT model can retain the previous pre-trained
+knowledge; b) a dynamic switching gate to avoid catastrophic
+forgetting of pre-trained knowledge; and c) a strategy to adjust the learning paces according to a scheduled policy. Our
+experiments in machine translation show CT NMT gains of up
+to 3 BLEU score on the WMT14 English-German language
+pair which even surpasses the previous state-of-the-art pretraining aided NMT by 1.4 BLEU score. While for the large
+WMT14 English-French task with 40 millions of sentencepairs, our base model still signiﬁcantly improves upon the
+state-of-the-art Transformer big model by more than 1 BLEU
+score.
+
+Introduction
+Pre-trained text representations like ELMo (Peters et al.
+2018), GPT-2 (Radford et al. 2019; 2018) and BERT (Devlin et al. 2018) have shown their superiors, which significantly boost the performances of various natural language
+processing tasks, including classiﬁcation, POS tagging, and
+question answering. Empirically, on most downstream NLP
+tasks, ﬁne-tuning BERT parameters in training achieves better results compared to using ﬁxed BERT as features.
+However, introducing BERT to neural machine translation (NMT) is non-trivial, directly using BERT in NMT
+does not always yield promising results, especially for the
+resource-rich setup. As in many other NLP tasks, we could
+use BERT as the initialization of NMT encoder, or even
+directly replace the word embedding layer of the encoderdecoder framework with the BERT embeddings. This does
+work in some resource-poor NMT scenarios but hardly gives
+inspiring results in high resource NMT benchmarks such
+as WMT14 English-French, which always have a large size
+of parallel data for training. Furthermore, Edunov, Baevski,
+
+1
+
+For example, for the EN-DE translation task, it always takes
+100 thousands of training steps, while a typical POS tagging model
+needs several hundreds of steps.
+
+c 2020, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+9378
+
+

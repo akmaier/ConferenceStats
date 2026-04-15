@@ -1,0 +1,88 @@
+The Thirty-Fourth AAAI Conference on Artiﬁcial Intelligence (AAAI-20)
+
+A Cardinal Improvement to Pseudo-Boolean Solving
+Jan Elffers,1,2 Jakob Nordström2,3
+1
+
+2
+
+Lund University, University of Copenhagen, 3 KTH Royal Institute of Technology
+jan.elffers@cs.lth.se, jn@di.ku.dk
+
+over Boolean variables, which gives a succinct way of
+encoding problems in many domains. CDCL solvers can
+then be applied to such problems by translating the input
+to CNF (as in, e.g., MiniSat+ (Eén and Sörensson 2006),
+Open-WBO (Martins, Manquinho, and Lynce 2014), and
+NaPS (Sakai and Nabeshima 2015)) or by keeping the
+pseudo-Boolean input but deriving new constraints in the
+form of disjunctive clauses (as in methods implemented in
+clasp (Gebser, Kaufmann, and Schaub 2012) and the Sat4j
+library (Le Berre and Parrain 2010)). Another approach,
+which is quite attractive from a theoretical point of view,
+is to go beyond resolution and try to harness the power
+of cutting planes (Cook, Coullard, and Turán 1987). The
+conﬂict-driven paradigm has been extended to this setting
+in pseudo-Boolean solvers like PRS (Dixon and Ginsberg
+2002), Galena (Chai and Kuehlmann 2005), Pueblo (Sheini
+and Sakallah 2006), Sat4j (Le Berre and Parrain 2010), and
+RoundingSat (Elffers and Nordström 2018).
+
+Abstract
+Pseudo-Boolean solvers hold out the theoretical potential of
+exponential improvements over conﬂict-driven clause learning (CDCL) SAT solvers, but in practice perform very poorly
+if the input is given in the standard conjunctive normal form
+(CNF) format. We present a technique to remedy this problem by recovering cardinality constraints from CNF on the
+ﬂy during search. This is done by collecting potential building
+blocks of cardinality constraints during propagation and combining these blocks during conﬂict analysis. Our implementation has a non-negligible but manageable overhead when detection is not successful, and yields signiﬁcant gains for some
+SAT competition and crafted benchmarks for which pseudoBoolean reasoning is stronger than CDCL. It also boosts performance for some native pseudo-Boolean formulas where
+this approach helps to improve learned constraints.
+
+1
+
+Introduction
+
+The Boolean satisﬁability problem (SAT) is one of the most
+formidable challenges—and impressive success stories—
+of computer science. Although SAT is an NP-complete
+problem (Cook 1971; Levin 1973), and is widely believed to be exponentially hard in the worst case, the last
+few decades have witnessed the emergence of highly efﬁcient SAT solvers based on conﬂict-driven clause learning
+(CDCL) (Marques-Silva and Sakallah 1999),1 with further
+improvements in (Moskewicz et al. 2001) and later papers.
+Today, these solvers are routinely used to solve large-scale
+real-world problems in a wide range of application areas
+(see (Biere et al. 2009) for a comprehensive reference).
+One shortcoming of CDCL is that it uses a fairly weak
+method of reasoning—namely resolution, for which exponential lower bounds are known even for simple combinatorial principles (Haken 1985; Urquhart 1987). Another weakness is that the input must be encoded in conjunctive normal
+form (CNF), which deprives the solver of the possibility to
+reason with more expressive higher-level constraints.
+A natural strengthening of CNF is to allow pseudoBoolean (PB) constraints, i.e., integral linear inequalities
+
+A critical ﬂaw of current cutting-planes-based solvers,
+however, is that while this method of reasoning is exponentially more powerful than resolution in theory, and does not
+care much about whether the input is presented in CNF or
+pseudo-Boolean form, the algorithms actually used in implementations of such solvers make them collapse to CDCL
+as soon as the input is given in CNF (Hooker 1988; 1992;
+Vinyals et al. 2018). This is clearly a highly unsatisfactory
+state of affairs—all the more so since a user of the solver
+might not be aware of that a problem can be rewritten more
+efﬁciently using pseudo-Boolean constraints, or that such
+low-level details of the syntactic representation can make an
+exponential difference in performance.
+Our goal is to address this problem in a principled way,
+by rewriting CNF when a more efﬁcient representation is
+possible, while maintaining good overall performance when
+no obvious improvement can be made. More concretely, in
+this work we propose a way of recovering cardinality constraints, saying that at most k variables (or at least k variables) in some subset can be true, from CNF. Cardinality
+constraints are already enough to make pseudo-Boolean reasoning exponentially stronger than resolution, and have been
+argued to capture most of the improvement over CDCL in
+practice (Chai and Kuehlmann 2005).
+
+c 2020, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+1
+A similar idea in the context of CSPs was independently developed in (Bayardo Jr. and Schrag 1997).
+1495
+
+

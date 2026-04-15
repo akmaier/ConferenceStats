@@ -1,0 +1,91 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Text Diffusion with Reinforced Conditioning
+Yuxuan Liu1 , Tianchi Yang2 , Shaohan Huang2 , Zihan Zhang2 , Haizhen Huang2
+Furu Wei2 , Weiwei Deng2 , Feng Sun2 , Qi Zhang2
+1
+
+Peking University
+Microsoft Corporation
+yx.liu@stu.pku.edu.cn
+
+2
+
+Abstract
+Diffusion models have demonstrated exceptional capability
+in generating high-quality images, videos, and audio. Due to
+their adaptiveness in iterative refinement, they provide a strong
+potential for achieving better non-autoregressive sequence generation. However, existing text diffusion models still fall short
+in their performance due to a challenge in handling the discreteness of language. This paper thoroughly analyzes text diffusion models and uncovers two significant limitations: degradation of self-conditioning during training and misalignment
+between training and sampling. Motivated by our findings, we
+propose a novel Text Diffusion model called TR E C, which
+mitigates the degradation with Reinforced Conditioning and
+the misalignment by Time-Aware Variance Scaling. Our extensive experiments demonstrate the competitiveness of TR E C
+against autoregressive, non-autoregressive, and diffusion baselines. Moreover, qualitative analysis shows its advanced ability
+to fully utilize the diffusion process in refining samples.
+
+Introduction
+Diffusion models (Ho, Jain, and Abbeel 2020; Song, Meng,
+and Ermon 2021) are the de facto state-of-the-art generative
+models in the field of vision (Rombach et al. 2022; Ho et al.
+2022) and audio (Kong et al. 2021; Liu et al. 2022b) given
+their promising capability in generating high-quality samples.
+However, due to the discrete nature of language modality, it is
+non-trivial to extend diffusion to the field of natural language
+generation (NLG), and how to empower NLG with diffusion
+models is becoming a rapidly emerging research area.
+On this front, Austin et al. (2021a) and Hoogeboom et al.
+(2021) design a discrete diffusion process based on categorical distributions, while He et al. (2022) explored diffusion
+with state absorption (i.e., mask tokens as noise injection). Li
+et al. (2022) first proposed to directly remedy the discrete nature by mapping words onto a continuous embedding space.
+However, the above studies only achieved unconditional or
+coarse-grained control of sequence generation, whose empirical applications are limited.
+Consequently, subsequent works mainly focus on conditional generation, which is a more universally applicable
+scenario in NLG. Later improvements in the conditioning
+strategies are mainly categorized three-fold. The first line
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+14069
+
+includes conditioning on controlling attributes, like topics or
+sentiments (Lovelace et al. 2022; Liu et al. 2022a; Li et al.
+2023). The second line applies diffusion models to text-totext generation, i.e., conditioning on input sequences (Gong
+et al. 2023; Yuan et al. 2022; Gao et al. 2022; Ye et al. 2023).
+This yields more applicable tasks like machine translation
+or paraphrasing, which are considered more challenging (Li
+et al. 2023). The third line study conditioning on predictions
+of previous steps, namely self-conditioning (Chen, Zhang,
+and Hinton 2023) to boost model performance.
+In this paper, we start by taking a thorough analysis of the
+vanilla self-conditioning approach and observe it suffers from
+degradation - marginalizing the diffusion latent. Hampered
+by such degradation, sampling with self-conditioning heavily
+depends on the quality of the first step (from pure Gaussian)
+and fails to fully utilize the diffusion process. Besides, by
+analyzing current sampling methods in text diffusion models,
+we discover and study the misalignment issue, bringing out
+insights in designing a better variance schedule.
+Motivated by our findings, we propose TR E C, a novel approach that empower Text Diffusion models with Reinforced
+Conditioning. Specifically, we develop a novel reinforced
+self-conditioning that mitigates the degradation by directly
+motivating quality improvements from self-conditions with
+reward signals. Furthermore, we propose time-aware variance scaling that facilitates training of diffusion. We conduct
+a series of experiments on various tasks of NLG, including
+machine translation, paraphrasing, and question generation.
+Results show that composing operators within our method
+manages to generate high-quality sequences, outperforming
+a series of autoregressive, non-autoregressive, and diffusion
+baselines. Detailed analysis demonstrates the effectiveness
+of TR E C in mitigating degradation of self-conditioning with
+reward signals, as well as leveraging the diffusion process to
+iteratively refine its output.
+
+Preliminaries
+Denoising Diffusion Probablistic Models
+Denoising diffusion probabilistic models (Sohl-Dickstein
+et al. 2015; Ho, Jain, and Abbeel 2020) learn a series of state
+transitions from prior data distribution z0 ∼ q(x) to pure
+Gaussian zT ∼ N (0, I) through forward and reverse diffusion process. Each forward diffusion step t ∈ [1, 2, ..., T ] is
+
+

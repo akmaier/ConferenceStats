@@ -1,0 +1,88 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+DPAUC: Differentially Private AUC Computation in Federated Learning
+Jiankai Sun1 , Xin Yang1 , Yuanshun Yao1 , Junyuan Xie2 , Di Wu2 , Chong Wang 3 *
+1
+
+ByteDance Inc.
+ByteDance Ltd
+3
+Apple
+{jiankai.sun, yangxin.yx, kevin.yao, junyuan.xie, di.wu }@bytedance.com, mr.chongwang@apple.com
+2
+
+Abstract
+Federated learning (FL) has gained significant attention recently as a privacy-enhancing tool to jointly train a machine
+learning model by multiple participants. The prior work on
+FL has mostly studied how to protect label privacy during
+model training. However, model evaluation in FL might also
+lead to potential leakage of private label information. In this
+work, we propose an evaluation algorithm that can accurately
+compute the widely used AUC (area under the curve) metric
+when using the label differential privacy (DP) in FL. Through
+extensive experiments, we show our algorithms can compute
+accurate AUCs compared to the ground truth. The code is available at https://github.com/bytedance/fedlearner/tree/master/
+example/privacy/DPAUC.
+
+Introduction
+With increasing concerns over data privacy in machine learning, regulations like CCPA1 , HIPAA2 , and GDPR3 have been
+introduced to regulate how data can be transmitted and used.
+To address privacy concerns, federated learning (McMahan et al. 2017; Hanzely et al. 2020; Yuan and Ma 2020;
+Ghosh et al. 2020) has become an increasingly popular tool
+to enhance privacy by allowing training models without directly sharing their data. Depending on how data is split
+across parties, FL can be mainly classified into two categories (Yang et al. 2019a): Horizontal Federated Learning (Geiping et al. 2020; Hamer, Mohri, and Suresh 2020;
+Karimireddy et al. 2020; Li et al. 2020) and Vertical Federated Learning (Vepakomma et al. 2018a; Gupta and Raskar
+2018; Abuadbba et al. 2020; Ceballos et al. 2020). In Horizontal FL (hFL), data is split by entity (e.g. a person), and
+data entities owned by each party are disjointed from other
+parties. In Vertical FL (vFL), a data entity is split into different attributes (e.g. features and labels of the same person),
+and each party might own the same data entities but their different attributes. In this paper, we focus on the setting of hFL
+which enables devices (i.e. mobile phones) to collaboratively
+* Work was done when the author was working at ByteDance
+Inc.
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+1
+California Consumer Privacy Act
+2
+Health Insurance Portability and Accountability Act
+3
+General Data Protection Regulation, European Union
+
+15170
+
+learn a machine learning model (i.e. binary classifier) while
+keeping all the training and testing data on the device.
+Although raw data is not shared in federated learning, sensitive information may still be leaked when gradients and/or
+model parameters are communicated between parties. In hFL,
+(Zhu, Liu, and Han 2019) showed that an honest-but-curious
+server can uncover the raw features and labels of a device by
+knowing the model architecture, parameters, and communicated gradient of the loss on the device’s data. Based on their
+techniques, (Zhao, Mopuri, and Bilen 2020) showed that the
+ground truth label of an example can be extracted by exploiting the directions of the gradients of the weights connected
+to the logits of different classes. Researchers have shown that
+vFL can still leak data information indirectly. For example,
+(Li et al. 2022) demonstrated that the gradient norms and
+directions can leak label information in the two-party vFL
+setting. However, the prior work on FL privacy mostly focuses on model training and there can also be privacy leaks
+from model evaluation. Specifically, the private label information owned by clients/devices can be leaked to the server
+when computing evaluation metrics in FL.
+Previous work (Matthews and Harel 2013a) has shown
+that releasing the actual ROC curves on a private test dataset
+can allow an attacker with some prior knowledge of the
+test dataset to recover some sensitive information about the
+dataset. Some recent works(Chen et al. 2016; Stoddard, Chen,
+and Machanavajjhala 2014) proposed to provide differential privacy (DP) for plotting and releasing ROC curves.
+However, they have several challenges such as how to privately compute the true positive rate (TPR) and false positive rate (FPR) values and how many and what thresholds
+to pick(Stoddard, Chen, and Machanavajjhala 2014). And
+they are not designed and applicable for evaluating FL models. As the ground-truth labels often contain highly sensitive
+information (e.g., whether a user has purchased (in online
+advertising) or whether a user has a disease or not (in disease
+prediction) (Vepakomma et al. 2018b; Li et al. 2022), it cannot be directly shared between clients and servers, and clients
+and clients. Hence preventing the label leakage from the AUC
+computation in the general setting of FL is challenging.
+To address the challenge, we consider the area under the
+Receiver operating characteristic (ROC) curve as the target
+AUC to evaluate the accuracy of a binary classifier. Since the
+class label is often the most sensitive information in a predic-
+
+

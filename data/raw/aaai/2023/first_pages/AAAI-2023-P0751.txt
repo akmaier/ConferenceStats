@@ -1,0 +1,95 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Simulating Network Paths with Recurrent Buffering Units
+Divyam Anshumaan1 * , Sriram Balasubramanian1, 2 * † , Shubham Tiwari1
+Nagarajan Natarajan1 , Sundararajan Sellamanickam1 , Venkata N. Padmanabhan1
+1
+Microsoft Research India
+University of Maryland, College Park
+t-danshumaan@microsoft.com, sriramb@cs.umd.edu, t-shutiwari@microsoft.com, nagarajn@microsoft.com,
+ssrajan@microsoft.com, padmanab@microsoft.com
+2
+
+Abstract
+
+manual approach. State-of-the-art (SOTA) data-driven configuration techniques (Yan et al. 2018; Ashok et al. 2020) try to
+mitigate this challenge, but (a) they do not accommodate realworld network behaviors like packet reordering, and (b) scale
+poorly as they rely on black-box optimization (Section 2).
+In this work, we formulate and study a novel ML problem
+of simulating a target network path. The goal is to respond to
+the sending protocol’s actions with realistic delay values for
+every packet, just like the target network would. Note that
+the sending protocol is provided as input and it could be very
+different at test vs train. Formally:
+
+Simulating physical network paths (e.g., Internet) is a cornerstone research problem in the emerging sub-field of AI-fornetworking. We seek a model that generates end-to-end packet
+delay values in response to the time-varying load offered by
+a sender, which is typically a function of the previously output delays. The problem setting is unique, and renders the
+state-of-the-art text and time-series generative models inapplicable or ineffective. We formulate an ML problem at the
+intersection of dynamical systems, sequential decision making, and time-series modeling. We propose a novel grey-box
+approach to network simulation that embeds the semantics of
+physical network path in a new RNN-style model called Recurrent Buffering Unit, providing the interpretability of standard
+network simulator tools, the power of neural models, the efficiency of SGD-based techniques for learning, and yielding
+promising results on synthetic and real-world network traces.
+
+1
+
+Definition 1 (End-to-end network path simulation). Let
+(Π, N ) denote the traces collected using a sending protocol Π, over a target network path N between a sender S and
+N
+a receiver R, i.e., S ⇝ R (e.g., the path between a cloud
+server and a cellular client in certain locations, during the
+b that simulates
+peak hours of a day). We seek a model N
+N
+S ⇝ R s.t. for a new and previously unseen protocol Π′ , the
+b ) “closely match” the ground-truth
+simulated traces (Π′ , N
+(Π′ , N ), that would be obtained if we took the trouble of actu-
+
+Introduction
+
+Network simulation provides a cost-effective way of developing and evaluating networking applications (e.g. videoconferencing) and protocols. It is a cornerstone research problem, recognized as such by the networking community, with
+applications in AI-for-networking (Wei, Gu, and Li 2021).
+Network simulation entails delaying or dropping the data
+packets traversing a sender-receiver network path appropriately. The sender S typically adapts its sending rate continuously based on the feedback in terms of delays or drops
+gleaned from the packets sent previously. For the simulation to be realistic, the packet delays and drops produced by
+the simulation mechanism should reflect the target network
+conditions faithfully, both at the microscopic and the macroscopic levels, so as to recreate application-level metrics such
+as throughput distribution.
+Widely-used network simulation tools such as ns3 (NSNAM 2011) require configuring with a certain network topology,link bandwidth, cross-traffic, etc., typically
+performed manually by networking domain experts. However, it is extremely challenging to ensure realism in such a
+
+N
+
+ally running Π′ too on the same path S ⇝ R under identical
+network conditions. The match is in terms of the metrics that
+networking applications care about; e.g., the joint delay and
+throughput distribution.
+This problem poses the following key challenges:
+(A1) Reactive inputs at test time: At test time, the decisions made by the protocol (e.g., new sending rate), formb , are a response to the delays
+ing the input to the model N
+output by the model. So, we cannot expect the entire input
+sequence to be available ahead of time, unlike in standard
+predictive (Rangapuram et al. 2018; Salinas et al. 2020) or
+generative modeling settings (Esteban, Hyland, and Rätsch
+2017; Fu et al. 2019; Smith and Smith 2020).
+(A2) Unseen test protocols: At test time, the behaviour of
+inputs to the model (governed by Π′ ) can change drastically
+from that of the training time (governed by Π), as it depends
+on how the protocol Π′ reacts to the (simulated) delays.
+(A3) Non-trivial success metric: The stochastic nature of
+the network setting means that the metrics of interest are
+distributional, e.g., joint delay and throughput distribution.
+Unlike in sequential decision making, we cannot attach a
+
+* These authors contributed equally.
+†
+Work partially done as a Research Fellow at Microsoft Research
+India
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+6684
+
+

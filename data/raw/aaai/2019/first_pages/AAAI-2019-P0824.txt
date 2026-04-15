@@ -1,0 +1,124 @@
+The Thirty-Third AAAI Conference on Artificial Intelligence (AAAI-19)
+
+Spell Once, Summon Anywhere:
+A Two-Level Open-Vocabulary Language Model
+Sebastian J. Mielke, Jason Eisner
+Department of Computer Science, Johns Hopkins University, Baltimore, MD, USA
+sjmielke@jhu.edu, jason@cs.jhu.edu
+
+Abstract
+
+an impoverished model of sequential structure (essentially,
+n-gram models with backoff). We instead employ recurrent
+neural networks to model both the sequence of words in a
+sentence and the sequence of characters in a word type, where
+the latter sequence is conditioned on the word’s embedding.
+The resulting model achieves state-of-the-art on multiple
+datasets. It is well-founded in linguistics and Bayesian modeling, but we can easily use it in the traditional non-Bayesian
+language modeling setting by performing MAP estimation.
+We begin by concisely stating a first, closed-vocabulary,
+version of our model in §2, before explaining our motivations from various perspectives in §3. Then §4 motivates
+and describes a simple way to extend the model to the openvocabulary setting. §5 contains quantitative and qualitative
+experiments on multiple language modeling datasets, with
+implementation details provided in supplementary material.
+Finally, we clarify the relation of this model to previous work
+in §6 and summarize our contribution in §7.
+
+We show how the spellings of known words can help us
+deal with unknown words in open-vocabulary NLP tasks.
+The method we propose can be used to extend any closedvocabulary generative model, but in this paper we specifically
+consider the case of neural language modeling. Our Bayesian
+generative story combines a standard RNN language model
+(generating the word tokens in each sentence) with an RNNbased spelling model (generating the letters in each word type).
+These two RNNs respectively capture sentence structure and
+word structure, and are kept separate as in linguistics. By invoking the second RNN to generate spellings for novel words
+in context, we obtain an open-vocabulary language model. For
+known words, embeddings are naturally inferred by combining
+evidence from type spelling and token context. Comparing to
+baselines (including a novel strong baseline), we beat previous
+work and establish state-of-the-art results on multiple datasets.
+
+1
+
+Introduction
+2
+
+In this paper, we propose a neural language model that incorporates a generative model of word spelling. That is, we
+aim to explain the training corpus as resulting from a process that first generated a lexicon of word types—the language’s vocabulary—and then generated the corpus of tokens
+by “summoning” those types.
+Each entry in the lexicon specifies both a syntactic/semantic embedding vector and an orthographic spelling. Our
+model captures the correlation between these, so it can extrapolate to predict the spellings of unknown words in any
+syntactic/semantic context. In this sample from our trained
+English model, the words in this font were unobserved
+in training data, yet have contextually appropriate spellings:
+Following the death of Edward McCartney in 1060
+, the new definition was transferred to the WDIC
+of Fullett .
+While the fully generative approach is shared by previous
+Bayesian models of language (e.g., Goldwater, Griffiths, and
+Johnson (2006)), even those that model characters and words
+at different levels (Mochihashi, Yamada, and Ueda 2009;
+Goldwater, Griffiths, and Johnson 2011) have no embeddings
+and hence no way to relate spelling to usage. They also have
+
+2.1
+
+A joint model of lexicon and text
+
+Lexemes have embeddings and spellings
+
+We will model text that has already been tokenized, i.e., it is
+presented as a sequence of word tokens w1 , w2 , . . ..
+We assume that a language’s word types, which we henceforth call lexemes to avoid confusion, are discrete elements
+w of the vocabulary V = { 1 , 2 , . . . v }. In our model, the
+observable behavior of the lexeme w is determined by two
+properties: a latent real-valued embedding e(w) ∈ Rd , which
+governs where w tends to appear, and w’s spelling σ (w) ∈ Σ∗
+(for some alphabet of characters Σ), which governs how it
+looks orthographically when it does appear.
+We will use e and σ to refer to the functions that map each
+lexeme w to its embedding and spelling. Thus the lexicon is
+specified by (e, σ). Our model1 (given fixed v and n) specifies
+a joint distribution over the lexicon and corpus:
+h
+
+∏
+
+w∈V
+
+p(θ, e, σ, w1 , . . . , wn ) = p(θ) ·
+(1)
+i n
+p(e(w)) · pspell (σ (w) | e(w)) ·∏ pLM (wi |~w<i , e)
+| {z } |
+{z
+} i=1
+|
+{z
+}
+prior on
+spelling model
+
+embeddings
+
+|
+
+Copyright c 2019, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+for all types
+
+{z
+
+lexicon generation
+
+lexeme-level
+
+} recurrent language model
+for all tokens
+
+1 Before extension to the open-vocabulary case, found in Eq. (3).
+
+6843
+
+

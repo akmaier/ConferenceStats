@@ -1,0 +1,86 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Robust Visual Recognition with Class-Imbalanced Open-World Noisy Data
+Na Zhao1 * , Gim Hee Lee2
+1
+
+Singapore University of Technology and Design
+2
+National University of Singapore
+
+Abstract
+Learning from open-world noisy data, where both closed-set
+and open-set noise co-exist in the dataset, is a realistic but
+underexplored setting. Only recently, several efforts have been
+initialized to tackle this problem. However, these works assume the classes are balanced when dealing with open-world
+noisy data. This assumption often violates the nature of realworld large-scale datasets, where the label distributions are
+generally long-tailed, i.e. class-imbalanced. In this paper, we
+study the problem of robust visual recognition with classimbalanced open-world noisy data. We propose a probabilistic
+graphical model-based approach: iMRF to achieve label noise
+correction that is robust to class imbalance via an efficient
+iterative inference of a Markov Random Field (MRF) in each
+training mini-batch. Furthermore, we design an agreementbased thresholding strategy to adaptively collect clean samples
+from all classes that includes corrected closed-set noisy samples while rejecting open-set noisy samples. We also introduce
+a noise-aware balanced cross-entropy loss to explicitly eliminate the bias caused by class-imbalanced data. Extensive experiments on several benchmark datasets including synthetic
+and real-world noisy datasets demonstrate the superior performance robustness of our method over existing methods. Our
+code is available at https://github.com/Na-Z/LIOND.
+
+1
+
+Introduction
+
+The success of modern deep neural networks for visual recognition heavily rely on the availability of large-scale wellannotated datasets such as ImageNet. Unfortunately, the extreme cost and difficulty in annotating extensive data severely
+limits the construction of more large-scale datasets with precise annotations. This limitation impedes the development of
+deep models for fine-grained visual recognition. In contrast,
+tremendous data with noisy labels can be easily accessed
+from the online search engines. Hence, designing robust visual recognition approaches that are unbiased to the noise
+data is appealing. This is commonly known as learning with
+noisy labels in the literature (Song et al. 2022).
+Many studies on learning from noisy data (Han et al. 2018;
+Jiang et al. 2018; Li, Socher, and Hoi 2020; Li et al. 2019;
+Liu et al. 2020b; Patrini et al. 2017; Wei et al. 2020; Zhang
+* Corresponding author: na zhao@sutd.edu.sg.
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+16989
+
+and Sabuncu 2018) generally follow the closed-set assumption, i.e. the real labels of the noisy samples (samples with
+incorrect labels) are within the same label space as the clean
+samples. An example of closed-set (a.k.a. in-distribution)
+noisy data is shown in Fig. 1(a), where one image of ‘cat’
+is mislabeled as ‘dog’ while two images of ‘dog’ are mislabeled as ‘cat’ and ‘horse’, respectively. Although these prior
+works have achieved impressive progress, their closed-set
+assumption is unrealistic in many real applications. This is
+because the training label space is usually a subset of the
+labels in real-world, and thus it is inevitable to take samples
+that are not belonging to the training label space when we
+collect data from the open world. This kind of samples is
+usually known as open-set (a.k.a. out-of-distribution) noisy
+data (Wang et al. 2018; Wei et al. 2021). The prevalent coexistence of closed-set and open-set noise in the training data,
+which is also referred as the open-world noisy data as illustrated in Fig. 1(b), is a practical problem. However, it has not
+been studied until very recently (Li, Xiong, and Hoi 2021;
+Sachdeva et al. 2021; Wu et al. 2021; Yao et al. 2021).
+Despite the relatively realistic open-world setting compared to the naive closed-set assumption, existing approaches
+under this setting still suffer from an unrealistic class balance
+assumption that hypothesizes a uniform density of the label
+distribution. This balance assumption violates the real-world
+large-scale datasets (Li et al. 2017; Van Horn et al. 2018) that
+generally follow long-tailed distributions (Reed 2001) with
+severe class imbalance between the head and tail classes. To
+carry out robust visual recognition using real-world largescale datasets, it is imperative to train a robust deep neural
+network that can effectively learn from the class-imbalanced
+open-world noisy data, as illustrated in Fig. 1 (c).
+This paper is the first to explicitly study this unexplored
+yet pragmatic direction. The challenges lie in the difficulty of
+correctly identifying clean samples, closed-set noisy samples,
+and scarce samples from the tail classes. Prior works that use
+either temporally averaged model (Yao et al. 2021) or smooth
+neighbors (Li, Xiong, and Hoi 2021) for open-world noisy
+label correction face challenges with class imbalance. JoSRC (Yao et al. 2021) may lead to overfitting on noisy labels,
+favoring head classes, while ProtoMix(Li, Xiong, and Hoi
+2021) may struggle to form meaningful neighborhoods due
+to imbalanced class distributions. In contrast, NGC (Wu et al.
+2021) that constructs a global graph with all training samples
+
+

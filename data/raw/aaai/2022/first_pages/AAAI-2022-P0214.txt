@@ -1,0 +1,79 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+Barely-Supervised Learning:
+Semi-supervised Learning with Very Few Labeled Images
+Thomas Lucas1 , Philippe Weinzaepfel1 , Gregory Rogez1
+1
+
+Naver Labs Europe*
+thomas.lucas@naverlabs.com, philippe.weinzaepfel@naverlabs.com, gregory.rogez@naverlabs.com.
+
+Abstract
+
+supervised learning when the set of labeled samples is reduced to a very small number, typically 4 or 8 per class,
+which we refer to as barely-supervised learning.
+The recently proposed FixMatch approach (Sohn et al.
+2020) unifies two trends in semi-supervised learning:
+pseudo-labeling (Lee 2013) and consistency regularization (Bachman, Alsharif, and Precup 2014; Rasmus et al.
+2015). Pseudo-labeling, also referred to as self-training, consists in accepting confident model predictions as targets for
+previously unlabeled images, as if they were true labels.
+Consistency regularization methods obtain training signal
+using a modified version of an input, e.g. using another augmentation, or a modified version of the model being trained.
+In FixMatch, a weakly-augmented version of an unlabeled
+image is used to obtain a pseudo-label as distillation target for a strongly-augmented version of this same image. In
+practice, the pseudo-label is only set if the prediction is confident enough, as measured by the peakiness of the softmax
+predictions. If no confident prediction can be made, no loss
+is applied to the image sample. FixMatch obtains state-ofthe-art semi-supervised results, and was the first to demonstrate performance in barely-supervised learning close to
+fully-supervised methods on CIFAR-10. However, it does
+not perform as well with more realistic images, e.g. on the
+STL-10 dataset when the set of labeled images is small.
+In this paper, we first analyze the causes that hurt performance in this regime. In practice, we find the choice of
+confidence threshold, beyond which a prediction is accepted
+as pseudo-label, to have a high impact on performance. A
+high threshold leads to pseudo-labels that are more likely to
+be correct, but also to fewer unlabeled images being considered. Thus in practice a smaller subset of the unlabeled
+data receives training signal, and the model may not be able
+to make high quality predictions outside of it. If the threshold is set too low, many images will receive pseudo-labels
+but with the risk of using wrong labels, that may then propagate to other images, a problem known as confirmation
+bias (Arazo et al. 2020). In other words, FixMatch faces a
+distillation dilemma between allowing more exploration but
+with possibly noisy labels, or exploring fewer images with
+more chances to have correct pseudo-labels.
+For barely-supervised learning, a possibility is to leverage a self-then-semi paradigm, i.e., to first train a model with
+self-supervision then with semi-supervised learning, as pro-
+
+This paper tackles the problem of semi-supervised learning
+when the set of labeled samples is limited to a small number
+of images per class, typically less than 10, problem that we
+refer to as barely-supervised learning. We analyze in depth
+the behavior of a state-of-the-art semi-supervised method,
+FixMatch, which relies on a weakly-augmented version of
+an image to obtain supervision signal for a more stronglyaugmented version. We show that it frequently fails in barelysupervised scenarios, due to a lack of training signal when
+no pseudo-label can be predicted with high confidence. We
+propose a method to leverage self-supervised methods that
+provides training signal in the absence of confident pseudolabels. We then propose two methods to refine the pseudolabel selection process which lead to further improvements.
+The first one relies on a per-sample history of the model predictions, akin to a voting scheme. The second iteratively updates class-dependent confidence thresholds to better explore
+classes that are under-represented in the pseudo-labels. Our
+experiments show that our approach performs significantly
+better on STL-10 in the barely-supervised regime, e.g. with 4
+or 8 labeled images per class.
+
+1
+
+Introduction
+
+While early deep learning methods have reached outstanding performance in fully-supervised settings (Krizhevsky,
+Sutskever, and Hinton 2012; Simonyan and Zisserman 2015;
+He et al. 2016), a recent trend is to focus on reducing this
+need for labeled data. Self-supervised models take it to the
+extreme by learning models without any labels; in particular recent works based on the paradigm of contrastive learning (He et al. 2020; Chen et al. 2020a; Grill et al. 2020;
+Caron et al. 2020), learn features that are invariant to classpreserving augmentations and have shown transfer performances that sometimes surpass that of models pretrained on
+ImageNet with label supervision. In practice, however, labels are still required for the transfer to the final task. Semisupervised learning aims at reducing the need for labeled
+data in the final task, by leveraging both a small set of labeled samples and a larger set of unlabeled samples from
+the target classes. In this paper, we study the case of semi* www.europe.naverlabs.com
+Copyright © 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+1881
+
+

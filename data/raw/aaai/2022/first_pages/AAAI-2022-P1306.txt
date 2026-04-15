@@ -1,0 +1,85 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+C2 L: Causally Contrastive Learning
+for Robust Text Classification
+Seungtaek Choi1 * , Myeongho Jeong1 * , Hojae Han2 , Seung-won Hwang2
+1
+Yonsei University, Seoul, Republic of Korea
+Seoul National University, Seoul, Republic of Korea
+{hist0613, wag9611}@yonsei.ac.kr, {stovecat, seungwonh}@snu.ac.kr
+2
+
+Abstract
+Despite the super-human accuracy of recent deep models in
+NLP tasks, their robustness is reportedly limited due to their
+reliance on spurious patterns. We thus aim to leverage contrastive learning and counterfactual augmentation for robustness. For augmentation, existing work either requires humans
+to add counterfactuals to the dataset or machines to automatically matches near-counterfactuals already in the dataset. Unlike existing augmentation is affected by spurious correlations,
+ours, by synthesizing “a set” of counterfactuals, and making
+a collective decision on the distribution of predictions on this
+set, can robustly supervise the causality of each term. Our empirical results show that our approach, by collective decisions,
+is less sensitive to task model bias of attribution-based synthesis, and thus achieves significant improvements, in diverse
+dimensions: 1) counterfactual robustness, 2) cross-domain
+generalization, and 3) generalization from scarce data.
+
+Introduction
+Deep learning models have been successful in natural language tasks, aiming to learn how to correlate input features
+to desired outputs. However, these models are reported to
+often rely on “spurious” features, hindering the robustness–
+An illustrative example from (Wang and Culotta 2020a) is,
+classifying the sentiment of “This Spielberg film was wonderful”, to positive. Though the term Spielberg itself does
+not have a causal effect to predicting the review as positive,
+if the given dataset contains many positive reviews for his
+movies, it can correlate to positive. In contrast, another term
+wonderful has a causal effect. While both features have high
+predictive power in this particular dataset, using Spielberg
+for prediction does not generalize well to another set where
+his movie is not as favored.
+In this paper, we aim to reduce spurious correlations, to
+rely more on robust features, with more “causal” effects to
+predicting class labels and generalizing better to new data.
+For finding causal features in language tasks, existing efforts
+look for human annotations, namely counterfactual data augmentations (Kaushik, Hovy, and Lipton 2019), collecting the
+minimally-dissimilar yet differently labeled examples. By
+* These authors contributed equally.
+Copyright © 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+10526
+
+highlighting the different parts between original and counterfactual texts, the model could identify the causal correlations
+of the given task. In our example, the term wonderful is considered causal, as editing the term with bad generates its
+counterfactual pair of negative sentiment.
+However, collecting such counterfactual pairs from human annotators is expensive and thus hard to scale up. Alternatively, there have been efforts to collect such counterfactual pairs automatically, to avoid high human-annotation
+costs: First, matching-based approaches (Wang and Culotta
+2020b) find the most similar samples of opposite labels within
+the dataset. These will be effective when the given dataset
+contains counterfactual pairs, which may not be always practical. Second, attribution-based approaches (Moon et al.
+2020; Liang et al. 2020; Han et al. 2021) no longer rely on
+the dataset coverage, but use attributions from the task model
+instead, such as attention or gradients, to decide “candidate”
+causal term as high-attributed features. This approach can
+be viewed as distilling causality from the task model itself,
+to reduce the dependence on the dataset coverage, though it
+may propagate the bias within the task model, e.g., Spielberg
+is highly-attributed.
+Our work is of combining the strength of the two approaches, by reducing the bias, from both dataset and task
+model. Specifically, we propose a novel pipeline for the unbiased causality identification, which consists of the following
+two steps: 1) candidate proposal and 2) candidate validation.
+The first step identifies “candidate” causal terms, by using
+attention or gradient as in (Moon et al. 2020; Liang et al.
+2020). Then, the second step validates the causality of candidate terms, by estimating a causal “treatment” effect of
+the word, for classifying the given text into its class label,
+i.e., “outcome”, known as Individualized Treatment Effect
+(ITE) in causality literature (Shpitser and Pearl 2006; Shalit,
+Johansson, and Sontag 2017).
+Our distinction is “robustifying” the second step, for which
+we contrast ITE validation of existing and our approaches as
+in Figure 1. Existing efforts (Wang and Culotta 2020b; Klein
+and Nabi 2020) first generate a single counterfactual example,
+then observe if the predicted label differs from the original
+label, which may be incorrect if the task is biased or noisy for
+the generated sentence as shown in Figure 1a. In contrast, we
+make a collective decision over multiple generations, as in
+Figure 1b, and consider decision “distributions” for making
+
+

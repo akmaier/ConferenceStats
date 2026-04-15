@@ -1,0 +1,84 @@
+The Thirty-Third AAAI Conference on Artificial Intelligence (AAAI-19)
+
+Online Embedding Compression for Text
+Classification Using Low Rank Matrix Factorization
+Anish Acharya,∗1 Rahul Goel,1 Angeliki Metallinou,1 Inderjit Dhillon2,3
+1
+
+Amazon Alexa AI, 2 Amazon Search Technologies, 3 University of Texas at Austin
+{achanish, goerahul, ametalli}@amazon.com, isd@a9.com
+
+Abstract
+
+models deployed on servers need to serve millions of requests per day, therefore compressing them would result in
+memory and inference cost savings.
+For NLP specific tasks, the word embedding matrix often
+accounts for most of the network size. The embedding matrix is typically initialized with pretrained word embeddings
+like Word2Vec, (Mikolov et al. 2013) FastText (Bojanowski
+et al. 2016) or Glove (Pennington, Socher, and Manning
+2014) and then fine-tuned on the downstream tasks, including tagging, classification and others. Typically, word embedding vectors are 300-dimensional and vocabulary sizes
+for practical applications could be up to 1 million tokens.
+This corresponds to up to 2Gbs of memory and could be
+prohibitively expensive depending on the application. For
+example, to represent a vocabulary of 100K words using
+300 dimensional Glove embeddings the embedding matrix
+would have to hold 60M parameters. Even for a simple sentiment analysis model the embedding parameters are 98.8%
+of the total network (Shu and Nakayama 2017).
+In this work, we address neural model compression in the
+context of text classification by applying low rank matrix
+factorization on the word embedding layer and then retraining the model in an online fashion. There has been relatively less work in compressing word embedding matrices
+of deepNLP models. Most of the prior work compress the
+embedding matrix offline outside the training loop either
+through hashing or quantization based approaches (Joulin et
+al. 2016; Shu and Nakayama 2017; Raunak 2017).
+Our approach includes starting from a model initialized
+with large embedding space, performing a low rank projection of the embedding layer using Singular Value Decomposition (SVD) and continuing training to regain any
+lost accuracy. This enables us to compress a deep NLP
+model by an arbitrary compression fraction (p), which can
+be pre-decided based on the downstream application constraints and accuracy-memory trade-offs. Standard quantization techniques do not offer this flexibility, as they typically
+allow compression fractions of 1/2 or 1/4 (corresponding to
+16-bit or 8-bit quantization from 32-bits typically).
+We evaluate our method on text classification tasks, both on
+the benchmark SST2 dataset and on a proprietary dataset
+from a commercial artificial agent. We show that our method
+significantly reduces the model size (up to 90%) with minimal accuracy impact (less than 2% relative), and outper-
+
+Deep learning models have become state of the art for natural language processing (NLP) tasks, however deploying
+these models in production system poses significant memory
+constraints. Existing compression methods are either lossy
+or introduce significant latency. We propose a compression
+method that leverages low rank matrix factorization during
+training, to compress the word embedding layer which represents the size bottleneck for most NLP models. Our models are trained, compressed and then further re-trained on the
+downstream task to recover accuracy while maintaining the
+reduced size. Empirically, we show that the proposed method
+can achieve 90% compression with minimal impact in accuracy for sentence classification tasks, and outperforms alternative methods like fixed-point quantization or offline word
+embedding compression. We also analyze the inference time
+and storage space for our method through FLOP calculations, showing that we can compress DNN models by a configurable ratio and regain accuracy loss without introducing
+additional latency compared to fixed point quantization. Finally, we introduce a novel learning rate schedule, the Cyclically Annealed Learning Rate (CALR), which we empirically
+demonstrate to outperform other popular adaptive learning
+rate algorithms on a sentence classification benchmark.
+
+1
+
+Introduction
+
+Deep learning has achieved great success in various NLP
+tasks such as sequence tagging (Chung et al. 2014), (Ma
+and Hovy 2016) and sentence classification (Liu et al. 2015;
+Kim 2014). While traditional machine learning approaches
+extract hand-designed and task-specific features, which are
+fed into a shallow model, neural models pass the input
+through several feedforward, recurrent or convolutional layers of feature extraction that are trained to learn automatic
+feature representations. However, deep neural models often have large memory-footprint and this poses significant
+deployment challenges for real-time systems that typically
+have memory and computing power constraints. For example, mobile devices tend to be limited by their CPU speed,
+memory and battery life, which poses significant size constraints for models embedded on such devices. Similarly,
+∗
+
+Corresponding Author
+Copyright c 2019, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+6196
+
+

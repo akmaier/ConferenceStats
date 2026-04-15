@@ -1,0 +1,98 @@
+The Thirty-Fourth AAAI Conference on Artiﬁcial Intelligence (AAAI-20)
+
+Multi-Level Head-Wise Match and
+Aggregation in Transformer for Textual Sequence Matching
+Shuohang Wang,1,2∗ Yunshi Lan,1 Yi Tay,3† Jing Jiang,1 Jingjing Liu2
+1
+
+Singapore Management University, 2 Microsoft Dynamics 365 AI Research, 3 Nanyang Technological University
+{shwang.2014, yslan.2015, jingjiang}@smu.edu.sg, ytay017@e.ntu.edu.sg, jingjl@microsoft.com
+
+Abstract
+Transformer has been successfully applied to many natural language processing tasks. However, for textual sequence matching, simple matching between the representation of a pair
+of sequences might bring in unnecessary noise. In this paper, we propose a new approach to sequence pair matching
+with Transformer, by learning head-wise matching representations on multiple levels. Experiments show that our proposed
+approach can achieve new state-of-the-art performance on
+multiple tasks that rely only on pre-computed sequence-vectorrepresentation, such as SNLI, MNLI-match, MNLI-mismatch,
+QQP, and SQuAD-binary.
+
+Q1
+Q2
+L
+
+Is there a reason why we should travel alone?
+What are,some reasons to travel alone?
+is duplicated
+
+P
+
+Two young children in blue jerseys, one with
+the number 9 and one with the number 2 are
+standing on the wooden steps in a bathroom
+and washing their hands in a sink.
+Two kids in numbered jerseys want their hands.
+Entailment
+
+H
+L
+
+Table 1: Examples from Quora Question Pairs (QQP) dataset
+for duplicated question detection and Stanford Natural Language Inference dataset for text entailment. “Q1” and “Q2”
+are the question pair. “P” represents the premise and “H” the
+hypothesis. “L” is the label.
+
+Introduction
+Textual sequence matching is important for many natural
+language processing tasks, such as textual entailment (Bowman et al. 2015), paraphrase identiﬁcation (Dolan and Brockett 2005), question answering (Tan et al. 2015), etc. There
+has been a large amount of work focusing on this problem,
+from exploring classic human-crafted features (Wan et al.
+2006), to tree-based neural structures (Mou et al. 2016;
+Tai, Socher, and Manning 2015), and a large number of
+attention-based models (Rocktäschel et al. 2015; Yin et al.
+2015; Parikh et al. 2016; Lin et al. 2017). Table 1 provides
+two examples of real sequence matching problems on duplicated question detection and text entailment.
+Across the rich history of sequence matching research,
+there have been two main streams of studies for solving
+this problem1 . The ﬁrst utilizes a sequence encoder (e.g.,
+LSTM/CNN) to obtain static low-dimensional vector representations of sequence pairs. Subsequently, a parameterized
+function (e.g., Multi-layered Perceptron) is applied on top
+of the representations to learn a matching score (Bowman et
+al. 2015; Mou et al. 2016; Tai, Socher, and Manning 2015;
+Lin et al. 2017). The second direction learns to aggregate
+
+word and phrase level interactions using cross-sentence attention, learning the entire matching function in an end-toend fashion (Rocktäschel et al. 2015; Wang and Jiang 2016;
+Yin et al. 2015; Devlin et al. 2019).
+While models that utilize cross-sentence attention typically
+achieve better performance (Devlin et al. 2019), the encoders
+are unfortunately not re-usable. Hence, new sequence pairs
+require re-computation of word/phrasal alignments. Consequently, this incurs additional computation costs. Conversely,
+models that learn static representations enjoy reuse of their
+ﬁxed vector representations and are therefore inherently more
+efﬁcient (i.e., we only need to compute the scoring function
+on top of the pre-computed representations). As pointed out
+by Reimers and Gurevych (2019), ﬁnding the most similar
+sentence pair in a collection of n = 10,000 sentences need
+to run original BERT n × (n − 1)/2 = 49, 995, 000 times.
+By making use of static representations, we only need to
+run BERT n times together with some much cheaper matrix
+multiplications, which will reduce the running time from 65
+hours to 5 seconds. Moreover, this inherent scalability beneﬁt enables querying of up to millions of documents (Das
+et al. 2019) or answers (Seo et al. 2018), which provides a
+greater recall/coverage in open domain question answering.
+Our work, inspired by this advantage, focuses on improving
+
+∗
+
+Work done when the author was at Singapore Management
+University
+†
+Now working at Google
+c 2020, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+1
+As classiﬁed in the leaderboard of SNLI, https://nlp.stanford.
+edu/projects/snli/.
+9209
+
+

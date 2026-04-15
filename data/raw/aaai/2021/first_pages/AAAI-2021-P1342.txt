@@ -1,0 +1,87 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+Progression Heuristics for Planning with Probabilistic LTL Constraints
+Ian Mallett, Sylvie Thiébaux, Felipe Trevizan
+Research School of Computer Science, The Australian National University
+Ian.Mallett@anu.edu.au, Sylvie.Thiebaux@anu.edu.au, Felipe.Trevizan@anu.edu.au
+
+Abstract
+Probabilistic planning subject to multi-objective probabilistic temporal logic (PLTL) constraints models the problem of
+computing safe and robust behaviours for agents in stochastic
+environments. We present novel admissible heuristics to guide
+the search for cost-optimal policies for these problems. These
+heuristics project and decompose LTL formulae obtained by
+progression to estimate the probability that an extension of a
+partial policy satisfies the constraints. Their computation with
+linear programming is integrated with the recent PLTL-dual
+heuristic search algorithm, enabling more aggressive pruning
+of regions violating the constraints. Our experiments show that
+they further widen the scalability gap between heuristic search
+and verification approaches to these planning problems.
+
+1
+
+Introduction
+
+In safety-critical planning applications, optimising performance is not enough, and utility must be traded-off against
+the risk of jeopardizing complex mission goals and constraints. For instance, consider a Mars rover that must gather
+scientific information and send it to earth (Zilberstein et al.
+2001). Safety requirements and constraints include avoiding
+collision against obstacles, not traversing into unsafe terrains,
+maintaining safe operational temperature and battery levels,
+and so on. The rover should seek to optimise expected science returns while remaining safe by proactively keeping the
+probability of violating each of the above constraints within
+acceptable levels.
+Such planning problems can be modelled as stochastic shortest path problems (SSP) subject to multi-objective
+probabilistic linear temporal logic (MO-PLTL) constraints
+Pr(ψi )∈zi , where the ψi are LTL formulae and zi ⊆ [0, 1]
+are intervals bounding their respective probabilities (Baumgartner, Thiébaux, and Trevizan 2018). Optimal solutions to
+MO-PLTL SSPs take the form of stochastic finite-memory
+policies, where the probability of the next action to perform
+depends both on the current state of the environment and on
+a mode used to track the truth value of the LTL formulae.
+Variants of MO-PLTL SSPs have been extensively studied
+by the automated verification community (Baier and Katoen
+2008), and their resolution is supported by tools such as the
+PRISM model-checker (Kwiatkowska, Norman, and Parker
+Copyright © 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+11870
+
+2011). However, these approaches build, upfront, the entire
+state space of the MO-PLTL SSP, i.e. the synchronous product of the modes and environment states (Etessami et al.
+2008; Forejt et al. 2011; Kwiatkowska and Parker 2013). The
+prohibitive size of this construction, polynomial in the huge
+number of reachable environment states and in the worst case
+double exponential in the size of the formulae, precludes applicability to the factored state spaces found in AI planning.
+Recently, heuristic search has become the state of the art
+approach for solving planning problems modelled as factored
+MO-PLTL SSPs. In particular, Baumgartner et al. (2018)
+introduced PLTL-dual, an algorithm which builds the state
+space of the MO-PLTL SSPs on-the-fly from the factored
+representation. PLTL-dual applies linear programming to increasingly larger subsets of the reachable state space, guided
+by admissible heuristics to prune regions that cannot satisfy
+the constraints or are too costly to form part of an optimal
+policy. When guided by informative heuristics, PLTL-dual
+only needs to expand a fraction of the reachable state space to
+find an optimal policy satisfying the constraints. This yields
+significant scalability improvements over the conventional
+approach implemented in PRISM.
+Unfortunately, effective heuristic guidance can be difficult
+to obtain. Classical planning enjoys a multitude of admissible
+heuristics (Bonet and Geffner 2001; Helmert, Haslum, and
+Hoffmann 2007; Helmert and Domshlak 2009; Pommerening et al. 2014). However, it is only recently that the first
+SSP heuristics taking into account both probabilities and
+costs have been proposed (Trevizan, Thiébaux, and Haslum
+2017). Moreover, only a couple of heuristics exist for deterministic planning with LTL-like constraints (Baier, Bacchus, and McIlraith 2009; Bienvenu, Fritz, and McIlraith
+2011), and heuristic search for SSPs with probabilistic LTL
+constraints is in its infancy. Baumgartner et al. started to investigate the latter, and devised projection heuristics based
+on a representation of LTL formulae and policy modes in
+terms of non-deterministic Büchi automata (NBA) (Vardi
+and Wolper 1994; Babiak et al. 2012). Their experimental
+results show that the size of the linear programs (LPs) required to represent the projections of NBAs grows unacceptably large, so that the projection heuristic with NBAs larger
+than 100 states obtains worse results than the trivial heuristic (Pr(ψi ) = 1 ∀i). To avoid generating NBAs, they also
+experimented with modes obtained by formula progression
+
+

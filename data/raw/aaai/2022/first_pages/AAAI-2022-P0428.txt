@@ -1,0 +1,90 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+The Perils of Learning Before Optimizing
+Chris Cameron1 , Jason Hartford2 , Taylor Lundy1 , Kevin Leyton-Brown1
+1
+
+Department of Computer Science, University of British Columbia
+2
+Mila, Université de Montréal
+{cchris13, tlundy, kevinlb}@cs.ubc.ca, jason.hartford@mila.quebec
+
+Abstract
+
+travel times to minimize mean squared error). In the second
+stage, the model predictions are used to parameterize an optimization problem, which is then solved (e.g., recommend
+facility locations given demand and travel time predictions).
+Recently there has been a lot of interest in the “end-to-end”
+approach of training a predictive model to minimize loss on
+the downstream optimization task (Donti, Amos, and Kolter
+2017; Demirović et al. 2019; Wilder, Dilkina, and Tambe
+2019; Wilder et al. 2020). Advances in deep learning have
+enabled any set of differentiable functions to be chained together, allowing for the end-to-end training of a differentiable
+prediction task coupled with a differentiable downstream task
+using back propagation. Amos and Kolter (2017) introduced
+the concept of optimization as a layer, showing how to analytically compute gradients through a QP solver. This sparked a
+number of follow up papers showing how to build differentiable layers for different classes of optimization problems
+(e.g., submodular optimization (Djolonga and Krause 2017),
+linear programming (Wilder, Dilkina, and Tambe 2019), general cone programs (Agrawal et al. 2019), and disciplined
+convex programs (Agrawal et al. 2020)).
+Such “end-to-end” approaches have been shown to improve performance on a diverse set of applications (e.g., inventory stocking (Amos and Kolter 2017), bipartite matching (Wilder, Dilkina, and Tambe 2019), and facility location
+(Wilder et al. 2020)). The improvements are often attributed
+to the end-to-end approach having made better error tradeoffs than the two-stage approach. For example, Donti, Amos,
+and Kolter (2017) argue that since all models inevitably make
+errors, it is important to look at a final task-based objective;
+Wilder, Dilkina, and Tambe (2019) suggest that end-to-end
+optimization is likely to be especially beneficial for difficult problems where the best model is imperfect (e.g., when
+either model capacity or data is limited); and Elmachtoub
+and Grigas (2020) argue for the effectiveness of end-to-end
+when there is model misspecification and perfect prediction
+is unattainable. One might therefore assume that end-to-end
+learning offers no benefit in an “error-free” setting where we
+have access to the Bayes optimal predictor for a given loss
+function.
+This paper shows otherwise: that even when there is no
+limit on model capacity or training set size, the two-stage
+approach can fail catastrophically in the common case where
+the prediction stage models expectations over prediction tar-
+
+Formulating real-world optimization problems often begins
+with making predictions from historical data (e.g., an optimizer
+that aims to recommend fast routes relies upon travel-time predictions). Typically, learning the prediction model used to
+generate the optimization problem and solving that problem
+are performed in two separate stages. Recent work has showed
+how such prediction models can be learned end-to-end by
+differentiating through the optimization task. Such methods
+often yield empirical improvements, which are typically attributed to end-to-end making better error tradeoffs than the
+standard loss function used in a two-stage solution. We refine
+this explanation and more precisely characterize when endto-end can improve performance. When prediction targets are
+stochastic, a two-stage solution must make an a priori choice
+about which statistics of the target distribution to model—we
+consider expectations over prediction targets—while an endto-end solution can make this choice adaptively. We show
+that the performance gap between a two-stage and end-toend approach is closely related to the price of correlation
+concept in stochastic optimization and show the implications
+of some existing POC results for the predict-then-optimize
+problem. We then consider a novel and particularly practical setting, where multiple prediction targets are combined to
+obtain each of the objective function’s coefficients. We give
+explicit constructions where (1) two-stage performs unboundedly worse than end-to-end; and (2) two-stage is optimal. We
+use simulations to experimentally quantify performance gaps
+and identify a wide range of real-world applications from the
+literature whose objective functions rely on multiple prediction targets, suggesting that end-to-end learning could yield
+significant improvements.
+
+1
+
+Introduction
+
+It is increasingly common to face optimization problems
+whose inputs must be learned from data rather than being
+given directly. For example, consider a facility location application in which loss depends on predictions about both traffic
+congestion and demand. The most natural way to address
+such problems is to separate prediction from optimization
+into two separate stages (Yan and Gregory 2012; Centola
+2018; Bahulkar et al. 2018). In the first stage, a model is
+trained to optimize some standard loss function (e.g., predict
+Copyright © 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+3708
+
+

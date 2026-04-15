@@ -1,0 +1,98 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+TAPE: Leveraging Agent Topology for Cooperative Multi-Agent Policy Gradient
+Xingzhou Lou1,2 * , Junge Zhang1,2† , Timothy J. Norman3 , Kaiqi Huang1,2 , Yali Du4
+1
+
+School of Artificial Intelligence, University of Chinese Academy of Sciences
+2
+Institute of Automation, Chinese Academy of Sciences
+3
+University of Southampton
+4
+King’s College London
+louxingzhou2020@ia.ac.cn, jgzhang@nlpr.ia.ac.cn, t.j.norman@soton.ac.uk
+kqhuang@nlpr.ia.ac.cn, yali.du@kcl.ac.uk
+Abstract
+
+Multi-Agent Policy Gradient (MAPG) has made significant
+progress in recent years. However, centralized critics in
+state-of-the-art MAPG methods still face the centralizeddecentralized mismatch (CDM) issue, which means suboptimal actions by some agents will affect other agent’s policy
+learning. While using individual critics for policy updates
+can avoid this issue, they severely limit cooperation among
+agents. To address this issue, we propose an agent topology
+framework, which decides whether other agents should be considered in policy gradient and achieves compromise between
+facilitating cooperation and alleviating the CDM issue. The
+agent topology allows agents to use coalition utility as learning
+objective instead of global utility by centralized critics or local
+utility by individual critics. To constitute the agent topology,
+various models are studied. We propose Topology-based multiAgent Policy gradiEnt (TAPE) for both stochastic and deterministic MAPG methods. We prove the policy improvement
+theorem for stochastic TAPE and give a theoretical explanation for the improved cooperation among agents. Experiment
+results on several benchmarks show the agent topology is able
+to facilitate agent cooperation and alleviate CDM issue respectively to improve performance of TAPE. Finally, multiple
+ablation studies and a heuristic graph search algorithm are
+devised to show the efficacy of the agent topology.
+
+1
+
+Introduction
+
+Recent years has witnessed dramatic progress of reinforcement learning (RL) and multi-agent reinforcement learning
+(MARL) in real life applications, such as unmanned vehicles (Liu et al. 2022), traffic signal control (Noaeen et al.
+2022) and on-demand delivery (Wang et al. 2023). Taking
+advantage of the centralized training decentralized execution
+(CTDE) (Oliehoek, Spaan, and Vlassis 2008; Kraemer and
+Banerjee 2016) paradigm, current cooperative MARL methods (Du et al. 2023; Wang et al. 2020a,b; Peng et al. 2021;
+Zhang et al. 2021; Zhou, Lan, and Aggarwal 2022) adopt
+value function factorization or a centralized critic to provide centralized learning signals to promote cooperation and
+achieve implicit or explicit credit assignment. Multi-agent
+*Work done while visiting King’s College London
+†
+
+Correspondence
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+17496
+
+policy gradient (MAPG) (Lowe et al. 2017; Foerster et al.
+2018; Zhou et al. 2020; Zhang et al. 2021; Zhou, Lan, and
+Aggarwal 2022; Du et al. 2019) applies RL policy gradient
+techniques (Sutton and Barto 2018; Silver et al. 2014; Lillicrap et al. 2015) to the multi-agent context. In CTDE, MAPG
+methods adopt centralized critics or value-mixing networks
+(Rashid et al. 2020b,a; Wang et al. 2020a) for individual
+critics so that agents can directly update their policies to maximize the global Q value Qπ
+tot in their policy gradient. As a
+result, agents cooperate more effectively and obtain better
+expected team rewards.
+The centralized critic approach has an inherent problem
+known as centralized-decentralized mismatch (CDM) (Wang
+et al. 2020c; Chen et al. 2022). The CDM issue refers to
+sub-optimal, or explorative actions of some agents negatively
+affecting policy learning of others, causing catastrophic miscoordination. The CDM issue arises because sub-optimal or
+explorative actions may lead to a small or negative centralized global Q value Qπ
+tot , even if other agents take good or
+optimal actions. In turn, the small Qπ
+tot will make the other
+agents mistake their good actions as bad ones and interrupt
+their policy learning. The Decomposed Off-Policy (DOP) approach (Wang et al. 2020c) deals with sub-optimal actions of
+other agents by linearly decomposed individual critics, which
+ignore the other agents’ actions in the policy gradient. But
+the use of individual critics severely limits agent cooperation.
+We give an example to illustrate the issue of learning with centralised critics and individual critics respectively. Consider an one-step matrix game with two agents
+A, B where each agent has two actions a0 , a1 . Reward
+R(a0 , a0 ) = 2, R(a0 , a1 ) = −4, R(a1 , a0 ) = −1 and
+R(a1 , a1 ) = 0. Assume agent A has a near-optimal policy with probability ϵ choosing non-optimal action a1
+and is using the COMA centralized critic (Foerster et al.
+2018) for policy learning. If agent A takes optimal action a0 and B takes the non-optimal action a1 , agent A’s
+counterfactual advantage AdvA (a0 , a1 ) = Qπ
+tot (a0 , a1 ) −
+π
+[(1 − ϵ) Qπ
+tot (a0 , a1 ) + ϵQtot (a1 , a1 )] = −4ϵ < 0, which
+means agent A will mistakenly think a0 as a bad action. Consequently, the sub-optimal action of agent B causes agent
+A to decrease the probability of taking optimal action a0
+and deviate from the optimal policy. Similar problems will
+occur with other centralized critics. If we employ individual critics, however, cooperation will be limited. Assume
+
+

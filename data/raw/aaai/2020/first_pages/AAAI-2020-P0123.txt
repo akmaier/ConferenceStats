@@ -1,0 +1,126 @@
+The Thirty-Fourth AAAI Conference on Artiﬁcial Intelligence (AAAI-20)
+
+Generalizable Resource Allocation in
+Stream Processing via Deep Reinforcement Learning
+Xiang Ni,♣∗ Jing Li,♥ Mo Yu,♠ Wang Zhou,♠ Kun-Lung Wu♠
+
+♣
+Citadel, ♠ IBM Research, ♥ New Jersey Institute of Technology
+xiang.ni@citadel.com, jingli@njit.edu, {yum, klwu}@us.ibm.com, wang.zhou@ibm.com
+
+Abstract
+This paper considers the problem of resource allocation in
+stream processing, where continuous data ﬂows must be processed in real time in a large distributed system. To maximize
+system throughput, the resource allocation strategy that partitions the computation tasks of a stream processing graph onto
+computing devices must simultaneously balance workload
+distribution and minimize communication. Since this problem of graph partitioning is known to be NP-complete yet
+crucial to practical streaming systems, many heuristic-based
+algorithms have been developed to ﬁnd reasonably good solutions. In this paper, we present a graph-aware encoderdecoder framework to learn a generalizable resource allocation strategy that can properly distribute computation tasks
+of stream processing graphs unobserved from training data.
+We, for the ﬁrst time, propose to leverage graph embedding
+to learn the structural information of the stream processing
+graphs. Jointly trained with the graph-aware decoder using
+deep reinforcement learning, our approach can effectively
+ﬁnd optimized solutions for unseen graphs. Our experiments
+show that the proposed model outperforms both METIS, a
+state-of-the-art graph partitioning algorithm, and an LSTMbased encoder-decoder model, in about 70% of the test cases.
+
+Src
+
+OP
+1
+
+OP
+4
+
+OP
+2
+
+OP
+5
+
+OP
+3
+
+OP
+6
+
+OP
+7
+
+OP
+9
+
+OP
+11
+
+OP
+13
+
+OP
+15
+
+OP
+10
+
+OP
+12
+
+OP
+14
+
+OP
+16
+
+OP
+8
+
+Sink
+
+Figure 1: An example stream processing graph. The nodes
+of the graph represent operators labeled with the amount
+of computation work. The darker color of an operator illustrates higher CPU utilization. The directed edges depict
+data ﬂowing from the source to destination operators. The
+edge width represents the amount of data ﬂowing through
+that connection.
+To exploit the abundant parallelism in stream graphs, operators are distributed to computing devices (resources, e.g.,
+CPUs or GPUs) for execution. One objective in a stream processing system is to maximize the throughput — the number of tuples processed per second. If two connected operators are distributed to the same device, they can communicate via a simple function call (IBM Streams 2019). If they
+are distributed to different devices, however, they need to
+communicate over a network. As function calls are more efﬁcient than network communications, it is important to properly distribute operators to computing devices. A good resource allocation strategy should well balance the trade-offs
+between distributing computation evenly across devices and
+minimizing communication cost between devices.
+The distribution of operators to resources can be formulated as a two-step graph partitioning problem: ﬁrst determining the right number of partitions k and then performing
+k-way partitioning to divide operators into k sets2 . Finding
+the optimal graph partition is known to be NP-complete. In
+practice, only approximate solutions are possible with the
+adoption of heuristic rules (Karypis and Kumar 1998). Generally, existing graph partitioning libraries share a common
+drawback: they usually fail to give a good approximation
+of the minimum number of partitions k and may not consistently generate high-quality partitions, since k is usually
+
+Introduction
+In various industrial domains, such as aviation, medicine,
+transportation, telecommunication, and banking, online
+stream processing has been widely used to analyze highrate data with high throughput and generate live results
+in a timely manner (IBM Streams 2019; Flink 2019). The
+computation in stream processing is driven by incoming
+data ﬂowing through a Directed Acyclic Graph (DAG)1 .
+A stream graph is comprised of operators, which conduct
+computation on the incoming tuples, and directed edges,
+each of which connects two operators and transmits tuples between them. Tuples are structured data items with
+strongly-typed attributes. Operators are event-driven and execute only when there is a tuple received. Figure 1 shows an
+example of a stream graph.
+∗
+This work was done when the author was at IBM.
+c 2020, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+1
+Some systems, e.g., (IBM Streams 2019), allow cycles.
+
+2
+This is referred to as the fusion of operators into Processing
+Elements (PEs) in (IBM Streams 2019), where each set is a PE.
+
+857
+
+

@@ -1,0 +1,93 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+The Bandit Whisperer: Communication Learning for Restless Bandits
+Yunfan Zhao1, 2 * Tonghan Wang1 * , Dheeraj Mysore Nagaraj3 , Aparna Taneja3 , Milind Tambe1, 3
+1
+
+Harvard University,
+2
+GE Healthcare,
+3
+Google Deepmind
+
+Abstract
+Applying Reinforcement Learning (RL) to Restless Multi-Arm
+Bandits (RMABs) offers a promising avenue for addressing
+allocation problems with resource constraints and temporal
+dynamics. However, classic RMAB models largely overlook
+the challenges of (systematic) data errors, a common occurrence in real-world scenarios due to factors like varying data
+collection protocols and intentional noise for differential privacy. We demonstrate that conventional RL algorithms used
+to train RMABs can struggle to perform well in such settings.
+To solve this problem, we propose the first communication
+learning approach in RMABs, where we study which arms,
+when involved in communication, are most effective in mitigating the influence of such systematic data errors. In our setup,
+the arms receive Q-function parameters from similar arms as
+messages to guide behavioral policies, steering Q-function updates. We learn communication strategies by considering the
+joint utility of messages across all pairs of arms and using a
+Q-network architecture that decomposes the joint utility. Both
+theoretical and empirical evidence validate the effectiveness
+of our method in significantly improving RMAB performance
+across diverse problems.
+
+1
+
+Introduction
+
+Restless Multi-Arm Bandits (RMABs) have been successfully applied to a range of multi-agent constrained resource allocation problems, such as healthcare, online advertising, and
+anti-poaching (Ruiz-Hernández, Pinar-Pérez, and DelgadoGómez 2020; Lee, Lavieri, and Volk 2019; Hodge and Glazebrook 2015; Mate et al. 2022; Modi, Mary, and Moy 2019;
+Zhao, Krishnamachari, and Liu 2008; Bagheri and Scaglione
+2015; Tripathi and Modiano 2019). In classical RMABs,
+there are a fixed number of arms, each may be described as an
+MDP with two actions (active and passive). At each timestep,
+constrained by the global budget, the RMAB strategically
+selects a subset of arms to play the active action with the
+objective of maximizing long-term accumulated rewards. Although finding an exact RMAB solution is PSPACE-hard (Papadimitriou and Tsitsiklis 1999), the whittle index solution is
+known to be near optimal (Whittle 1988; Weber and Weiss
+1990) in this situation. Beyond classical RMABs, important
+* These authors contributed equally.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+23404
+
+applications of RMABs involve more complex systems with
+multiple actions, continuous state spaces, and arms opting in
+and out of the system. Recent studies have explored a variety
+of methods to address these challenges (Hawkins 2003; Killian, Perrault, and Tambe 2021; Verloop 2016; Zayas-Caban,
+Jasin, and Wang 2019; Ghosh et al. 2023), with deep Reinforcement Learning (RL) emerging as a particularly effective
+approach, achieving state-of-the-art results across various
+RMAB settings (Zhao et al. 2023; Xiong and Li 2023; Wang
+et al. 2023; Killian et al. 2022).
+Unfortunately, these previous studies consider RMAB
+models where the reward data can be collected from every
+arm reliably. In real-world scenarios modeled via RMABs,
+such as maternal healthcare (Biswas et al. 2021; Verma et al.
+2024; Behari et al. 2024) and SIS epidemic model concerning
+COVID intervention (Yaesoubi and Cohen 2011), each arm
+represents a different entity, which could be a beneficiary or
+a geographical region, where data collection protocols are
+potentially different. Different arms may be affected by noise
+caused by systematic errors that arise due to the following
+practical reasons. (1) Variability in data collection and handling protocols. There may be differences in data collection
+in different arms (entities), e.g., differences in the frequency
+and quality of data collected, in worker awareness or standards for data preprocessing, cleaning, and digitization. This
+variability represents sampling bias (Paulus et al. 2023) and
+may cause systematic errors (Dubrow 2022) in some arms.
+For example, in maternal care, specific data collection approaches may cause systematic overestimation of expected
+delivery dates (Fulcher et al. 2020). (2) Data integrity and
+privacy. For example, when data is gathered through surveys,
+topical or political bias (Paulus et al. 2023) can introduce
+systematic errors in some arms due to influence of authorities
+or impacted populations (e.g., keeping the number of COVID
+cases low (Paulus et al. 2023)). Additionally, driven by the
+principle of differential privacy, noise might be intentionally
+added to the data (Dwork, Roth et al. 2014).
+Motivated by these scenarios, in this paper we study the
+RMAB model where some arms are affected by noise in
+their observed rewards at some states, with these noisy arms
+and rewards not known a priori. The challenge of applying
+existing RL methods to this setting is that systematic errors
+might create false optima, preventing the exploration of states
+with true high rewards and leading to suboptimal actions
+
+

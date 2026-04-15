@@ -1,0 +1,86 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+Learning Contextual Representations for Semantic Parsing with
+Generation-Augmented Pre-Training
+Peng Shi1∗ , Patrick Ng2 , Zhiguo Wang2 , Henghui Zhu2 , Alexander Hanbo Li2 ,
+Jun Wang2 , Cicero Nogueira dos Santos2 , Bing Xiang2
+1
+University of Waterloo, 2 AWS AI Labs
+peng.shi@uwaterloo.ca, {patricng,zhiguow,henghui,hanboli,juwanga,cicnog,bxiang}@amazon.com
+
+Abstract
+
+Pain Point 1: Fail to match and detect the column mentions.
+Utterance: Which professionals live in a city containing the
+substring ’West’? List his or her role, street, city and state.
+Prediction: SELECT role code, street, state
+FROM Professionals WHERE city LIKE ’%West%’
+Error: Missing column city in SELECT clause.
+
+Most recently, there has been significant interest in learning contextual representations for various NLP tasks, by
+leveraging large scale text corpora to train large neural language models with self-supervised learning objectives, such
+as Masked Language Model (MLM). However, based on a pilot study, we observe three issues of existing general-purpose
+language models when they are applied to text-to-SQL semantic parsers: fail to detect column mentions in the utterances, fail to infer column mentions from cell values, and fail
+to compose complex SQL queries. To mitigate these issues,
+we present a model pre-training framework, GenerationAugmented Pre-training (GAP), that jointly learns representations of natural language utterances and table schemas
+by leveraging generation models to generate pre-train data.
+GAP M ODEL1 is trained on 2M utterance-schema pairs and
+30K utterance-schema-SQL triples, whose utterances are produced by generative models. Based on experimental results,
+neural semantic parsers that leverage GAP M ODEL as a representation encoder obtain new state-of-the-art results on both
+S PIDER and C RITERIA - TO -SQL benchmarks.
+
+Pain Point 2: Fail to infer columns based on cell values.
+Utterance: Give the average life expectancy for countries in
+Africa which are republics?
+Prediction: SELECT Avg(LifeExpectancy) FROM
+country WHERE Continent = ’Africa’
+Error: Missing GovernmentForm = ’Republic’.
+Pain Point 3: Fail to compose complex target SQL.
+Utterance: Which semesters do not have any student enrolled?
+List the semester name.
+Prediction: SELECT semester name FROM Semesters
+WHERE semester id NOT IN (SELECT
+semester name FROM Student Enrolment)
+Error: Should use semester id in nested SQL to align with
+the column in WHERE clause.
+
+Table 1: Error examples collected from the S PIDER development set based on the RAT-SQL + BERT (Wang et al. 2019).
+
+Introduction
+Recently, deep contextual language models (Devlin et al.
+2018; Liu et al. 2019b; Lewis et al. 2019; Dong et al. 2019;
+Raffel et al. 2019) have shown their effective modeling ability for text, achieving state-of-the-art results in series of NLP
+tasks. These models capture the syntactic and semantic information of the input text, generating fine-grained contextual embeddings, which can be easily applied to downstream
+models. Despite the success of large scale pre-trained language models on various tasks, it is less clear how to extend
+them to semantic parsing tasks such as text-to-SQL (Warren and Pereira 1982; Popescu, Etzioni, and Kautz 2003;
+Popescu et al. 2004; Li, Yang, and Jagadish 2006), which requires joint reasoning of the natural language utterance and
+structured database schema information. Recent work (Guo
+et al. 2019; Wang et al. 2019; Bogin, Gardner, and Berant
+2019b,a) shows that with more powerful pre-trained language models, the highly domain-specific semantic parsers
+
+can be further improved, even though these language models
+are trained for pure text encoding.
+However, based on error analysis on the output of neural language model-based text-to-SQL systems, we observe
+that these models can be further enhanced if we could mitigate the following three pain points, which are also illustrated in Table 1. (1) The model is ineffective to match and
+detect column names in utterances. The model should learn
+to detect column names mentioned in utterances by matching utterance tokens with the schema, and use the matched
+columns in the generated SQL. The error analysis indicates
+that, in some cases, models miss some columns when synthesizing the target SQL, while the column is mentioned
+explicitly in the utterance. (2) The model fails to infer the
+columns implicitly from cell values. This problem is trickier than the first one, because the model is expected to infer
+the column name based on some cell values mentioned in
+the utterance, instead of just matching the utterance tokens
+with the schema. This requires the model to have more domain knowledge. For example, as presented in the second
+
+∗
+
+Work done while at AWS AI Labs.
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+1
+This refers to the language models that are pre-trained with
+GAP framework.
+
+13806
+
+

@@ -1,0 +1,81 @@
+The Thirty-Second AAAI Conference
+on Artificial Intelligence (AAAI-18)
+
+Towards Training Probabilistic Topic Models on
+Neuromorphic Multi-Chip Systems
+Zihao Xiao, Jianfei Chen, Jun Zhu∗
+Dept. of Comp. Sci. & Tech., TNList Lab, State Key Lab for Intell. Tech. & Sys.
+Center for Bio-Inspired Computing Research, Tsinghua University, Beijing, 100084, China
+{xiaozh15, chenjian14}@mails.tsinghua.edu.cn, dcszj@tsinghua.edu.cn
+
+Yuan et al. 2015). However, all these algorithms are implemented on general purpose computers (GPCs), which
+are powerful in computing and ﬂexible in programming but
+energy-consuming.
+Neuromorphic multi-chip systems (NMSs) represent an
+emerging hardware technology for low-energy implementations of spiking neural networks (SNNs). SNNs were originally studied to understand the computation in the brain,
+where a neuron communicates with other neurons via voltage spikes. Different from GPCs, NMSs have some special
+designs, making it highly nontrivial to implement an ordinary leaning algorithm. First, there are dedicated computing units calculating a weighted sum of the inputs and triggering spikes accordingly. Second, NMSs use distributed
+memory (Merolla et al. 2014), and the on-chip memory is
+typically limited (e.g., 52MB for TruthNorth (Merolla et
+al. 2014) and 128MB for SpiNNaker (Furber et al. 2014)).
+When a SNN is large, its neurons and model parameters
+(e.g., synaptic weights) must reside on several chips. As
+the inter-chip communication is only efﬁcient for spikes by
+using the AER protocol (Mahowald 1994), parameter communication is either impossible or inefﬁcient. To extend the
+storage size, a NMS can be integrated with an external memory (O’Connor et al. 2013) to store some infrequently accessed data. But in many scenarios where low-energy computing is required, the external memory can also be limited
+(e.g., on a mobile phone). Thus, it is important to consider
+the limited memory issue when implementing new models.
+For topic models, existing learning algorithms do not
+satisfy the basic computation and communication designs
+of NMSs; thus cannot be directly implemented on NMSs.
+For the popular collapsed Gibbs sampling (CGS) (Grifﬁths
+and Steyvers 2004), the update of a model parameter (i.e.,
+a count) only depends on its latest value, without needing parameter communication. But the sampling operation
+in CGS is not implemented by SNN dynamics compatible
+with NMSs. When the limited external memory is considered, CGS is undesirable because it stores the whole corpus and all topic assignments. Moreover, though the existing online or stochastic algorithms are memory-efﬁcient,
+they require intensive parameter communications, i.e., the
+update of one parameter depends on the exact value of another parameter. Speciﬁcally, the variational inference (VI)
+methods (Blei, Ng, and Jordan 2003; Hoffman et al. 2013;
+
+Abstract
+Probabilistic topic models are popular unsupervised learning methods, including probabilistic latent semantic indexing (pLSI) and latent Dirichlet allocation (LDA). By now,
+their training is implemented on general purpose computers (GPCs), which are ﬂexible in programming but energyconsuming. Towards low-energy implementations, this paper investigates their training on an emerging hardware technology called the neuromorphic multi-chip systems (NMSs).
+NMSs are very effective for a family of algorithms called
+spiking neural networks (SNNs). We present three SNNs to
+train topic models. The ﬁrst SNN is a batch algorithm combining the conventional collapsed Gibbs sampling (CGS) algorithm and an inference SNN to train LDA. The other two
+SNNs are online algorithms targeting at both energy- and
+storage-limited environments. The two online algorithms are
+equivalent with training LDA by using maximum-a-posterior
+estimation and maximizing the semi-collapsed likelihood,
+respectively. They use novel, tailored ordinary differential
+equations for stochastic optimization. We simulate the new
+algorithms and show that they are comparable with the GPC
+algorithms, while being suitable for NMS implementation.
+We also propose an extension to train pLSI and a method to
+prune the network to obey the limited fan-in of some NMSs.
+
+1
+
+Introduction
+
+Topic models have been widely used to discover latent semantic structures from a large corpus of text documents or
+images in a bag-of-words format (Sivic et al. 2005). The
+most popular models are probabilistic Latent Semantic Indexing (pLSI) (Hofmann 1999) and its Bayesian formulation
+of Latent Dirichlet Allocation (LDA) (Blei, Ng, and Jordan
+2003). On mobile applications, LDA is a robust Bayesian
+model that is suitable to learn from small, noisy data, e.g.,
+images, texts and context logs (Bao et al. 2012). Moreover, some researchers have reported that learning LDA
+with a hybrid architecture consisting of mobile devices and
+servers reduces costs on the server end, as well as the response times on the mobile end (Robinson and Li 2015). On
+servers, much recent progress has been made on developing efﬁcient algorithms to learn a large number of topics on
+massive-scale datasets (Wang et al. 2014; Chen et al. 2016;
+∗
+
+corresponding author.
+c 2018, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+6459
+
+

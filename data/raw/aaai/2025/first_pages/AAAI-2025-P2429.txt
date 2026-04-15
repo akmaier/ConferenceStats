@@ -1,0 +1,103 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Textualize Visual Prompt for Image Editing via Diffusion Bridge
+Pengcheng Xu1,2 , Qingnan Fan2 , Fei Kou2 , Shuai Qin2 , Hong Gu2 , Ruoyu Zhao2,3 ,
+Charles Ling1 , Boyu Wang1 *
+1
+
+Western University
+2
+VIVO
+3
+Xidian University
+{pxu67, charles.ling}@uwo.ca, fqnchina@gmail.com, koufei@hotmail.com, royzhao@stu.xidian.edu.cn,
+{guhong, shuai.qin}@vivo.com, bwang@csd.uwo.ca,
+Abstract
+Visual prompt, a pair of before-and-after edited images, can
+convey indescribable imagery transformations and prosper in
+image editing. However, current visual prompt methods rely
+on a pretrained text-guided image-to-image generative model
+that requires a triplet of text, before, and after images for retraining over a text-to-image model. Such crafting triplets and
+retraining processes limit the scalability and generalization of
+editing. In this paper, we present a framework based on any
+single text-to-image model without reliance on the explicit
+image-to-image model thus enhancing the generalizability and
+scalability. Specifically, by leveraging the probability-flow ordinary equation, we construct a diffusion bridge to transfer the
+distribution between before-and-after images under the text
+guidance. By optimizing the text via the bridge, the framework
+adaptively textualizes the editing transformation conveyed by
+visual prompts into text embeddings without other models.
+Meanwhile, we introduce differential attention control during
+text optimization, which disentangles the text embedding from
+the invariance of the before-and-after images and makes it
+solely capture the delicate transformation and generalize to
+edit various images. Experiments on real images validate competitive results on the generalization, contextual coherence,
+and high fidelity for delicate editing with just one image pair
+as the visual prompt.
+
+Project page — pengchengpcx.github.io/TextVDB/
+
+1
+
+Introduction
+
+Prompting (Touvron et al. 2023; Floridi and Chiriatti 2020;
+Liu et al. 2023), providing specific instructions or context for
+the model, is an effective and emergent tool to guide the largescale text-to-image (T2I) models to generate (Rombach et al.
+2022; Podell et al. 2024; Saharia et al. 2022; Ramesh et al.
+2022) or edit (Hertz et al. 2023; Kawar et al. 2023; Parmar
+et al. 2023; Mokady et al. 2023; Gal et al. 2023) remarkable
+images. However, in the visual task, not all aspects can be
+accurately and comprehensively described through language
+alone. For instance, how to explain the tone transformation
+between photographs or the personal repaint of a painting?
+These imagery transformations are abstract, complex, and
+difficult to convey via a text prompt. In such cases, a pair
+* Corresponding author
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+21779
+
+of before-and-after images, serving as the visual prompt,
+are more precise and expressive to represent the imagery
+transformation and guide the image generation and editing.
+This motivates us to explore the visual prompt for image
+editing: given a pair of before-and-after images as a visual
+prompt, how to distill the transformation from the visual
+prompt into text embedding for the text-guided image editing.
+Early on, visual prompt for image editing is employed with
+in-context learning, primarily effective on classical tasks (e.g.,
+segmentation, detection) (Bar et al. 2022; Wang et al. 2024).
+Recently, it is explored within diffusion models for arbitrary
+visual content editing (Nguyen et al. 2024; Motamed, Paudel,
+and Van Gool 2025; Cheng et al. 2023; Yang et al. 2024; Gu
+et al. 2024), and there are mainly three types of approaches.
+The first category relies on the text-guided image-to-image
+(TI2I) model (e.g., InstructPix2Pix) (Brooks, Holynski, and
+Efros 2023). Such a TI2I model has an explicit text-guided
+image-to-image transformation process. By directly optimizing the text condition that guides the model to manipulate and
+change the before-image to the after-image, the model converts the transformation between the image pair into text (Gal
+et al. 2023; Nguyen et al. 2024). However, training such
+a TI2I model needs to construct a data triplet of text, and
+before-and-after images. More importantly, such training data
+is constructed based on the T2I model. For more delicate editing, crafting such triplets requires meticulous effort, limiting
+the scalability of the training data in the TI2I model (Zhang
+et al. 2024). Similarly, the second type in-context learning
+methods (Gu et al. 2024; Yang et al. 2024) leverages the diffusion inpainting model which also requires extra complex data
+(mask and cropped images) for more training to get good
+generalization ability. This contrasts with the general T2I
+model, which utilizes a simpler tuple of images and text for
+training, making it easier to collect and scale up. The third
+category adopts textual inversion (Gal et al. 2023; Motamed,
+Paudel, and Van Gool 2025; Šubrtová et al. 2023) to invert the
+before-and-after images into text embeddings sequentially
+and learn the transformation or concept by comparison of two
+embeddings. However, textual inversion is inferior for image
+reconstruction and cannot capture all image details, making
+it challenging to learn delicate editing transformations and
+resulting in a coarse concept. Thus, these designs limit the
+model to learning precise transformations and generalizing
+to edit high-fidelity images.
+
+

@@ -1,0 +1,99 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+GO Hessian for Expectation-Based Objectives
+Yulai Cong,∗ Miaoyun Zhao,* Jianqiao Li, Junya Chen, Lawrence Carin
+Department of Electrical and Computer Engineering, Duke University
+
+An alternative framework, attracting increasing attention
+recently, considers the form
+
+Abstract
+An unbiased low-variance gradient estimator, termed GO gradient, was proposed recently for expectation-based objectives
+Eqγ (y) [f (y)], where the random variable (RV) y may be
+drawn from a stochastic computation graph (SCG) with continuous (non-reparameterizable) internal nodes and continuous/discrete leaves. Based on the GO gradient, we present
+for Eqγ (y) [f (y)] an unbiased low-variance Hessian estimator,
+named GO Hessian, which contains the deterministic Hessian
+as a special case. Considering practical implementation, we
+reveal that the GO Hessian in expectation obeys the chain
+rule and is therefore easy-to-use with auto-differentiation and
+Hessian-vector products, enabling efficient cheap exploitation
+of curvature information over deep SCGs. As representative examples, we present the GO Hessian for non-reparameterizable
+gamma and negative binomial RVs/nodes. Leveraging the
+GO Hessian, we develop a new second-order method for
+Eqγ (y) [f (y)], with challenging experiments conducted to verify its effectiveness and efficiency.
+
+1
+
+Framework II: minγ L(γ) , Eqγ (y) [f (y)],
+
+Introduction
+
+Many machine learning problems can be formulated as an
+optimization problem involving an expectation. A classic
+such setup (Robbins and Monro 1951) is of the form
+Framework I: minϑ J (ϑ) , Eq(x) [h(x, ϑ)],
+
+(1)
+
+where the random variable (RV) x obeys a distribution q(x)
+unrelated to the parameters ϑ of interest, and h(x, ϑ) is
+a continuous function wrt ϑ. General assumptions making J (ϑ) (and the following L(γ)) a valid loss function
+are omitted for simplicity. In practice one often encounPN
+ters its finite-sum form minϑ N1 i=1 h(xi , ϑ) with q(x) =
+PN
+1
+i=1 δ(x − xi ), where δ(·) is the Dirac delta function
+N
+(this discrete form is typically an approximation, based on N
+observed samples drawn from the true underlying data distribution). A popular example of Framework I is maximumlikelihood learning with the data distribution q(x) and the
+negative log-likelihood h(x, ϑ) = − log p(x; ϑ), where
+p(x; ϑ) represents the model.
+∗
+
+Equal Contribution. Correspondence to: Miaoyun Zhao,
+miaoyun9zhao@gmail.com.
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+12060
+
+(2)
+
+where parameters γ of interest determine the distribution
+qγ (y) that, for example, models a stochastic computation
+graph (SCG) (Schulman et al. 2015a; Parmas 2018; Weber
+et al. 2019).1 Note in general the function f (·) may also be related to γ; however, as the generalization is straight-forward,
+we focus on the setup in (2) for simpler derivations. Popular
+examples of Framework II include the ELBO in variational
+inference (Bishop 2006; Kingma and Welling 2014), the generator training objective of generative adversarial networks
+(Goodfellow et al. 2014), and many objectives associated
+with reinforcement learning (RL) (Schulman et al. 2015b;
+Finn, Abbeel, and Levine 2017; Foerster et al. 2018).
+Many optimization methods have been proposed for
+Framework I, utilizing the first-order gradient information
+(Allen-Zhu 2018; Jin et al. 2019) or exploiting the secondorder Hessian information (Tripuraneni et al. 2018; Zhou and
+Gu 2020). Compared with first-order methods, second-order
+ones are often characterized by convergence in fewer training
+iterations to a second-order stationary point, requiring less
+tweaking of meta-parameters (like learning rate), invariance
+to linear parameter rescaling, and navigating better when facing pathological curvature in deep learning (Martens 2010;
+Tripuraneni et al. 2018). For computation and memory efficiency in high-dimensions (like for deep neural networks),
+recent second-order methods often resort to Hessian-free
+techniques, i.e., Hessian-vector products (HVP), which can
+be computed as efficiently as gradients (Pearlmutter 1994)
+and remove the need to construct the full Hessian (Martens
+2010; Kohler and Lucchi 2017; Kasai and Mishra 2018).
+In contrast to the classic Framework I, few optimization
+methods have been proposed for Framework II with general
+SCG qγ (y), partially because of the significant challenge in
+even estimating its gradient with low variance without bias in
+general/non-reparameterizable (subsequently abbreviated as
+“non-rep”) situations (Cong et al. 2019; Weber et al. 2019).
+1
+
+When the RV y is reparameterizable (rep) (Salimans, Knowles
+et al. 2013; Rezende, Mohamed, and Wierstra 2014), Framework II
+can be rewritten as Framework I for optimization. To distinguish,
+we focus on the challenging non-rep setup for Framework II by
+default, despite the proposed GO Hessian also applies to rep RVs.
+
+

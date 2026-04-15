@@ -1,0 +1,89 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Reinforcement Learning and Data-Generation for Syntax-Guided Synthesis
+Julian Parsert1 2 , Elizabeth Polgreen2 ,
+1
+
+University of Oxford
+University of Edinburgh
+julian.parsert@gmail.com, elizabeth.polgreen@ed.ac.uk
+2
+
+Abstract
+Program synthesis is the task of automatically generating code
+based on a specification. In Syntax-Guided Synthesis (SyGuS)
+this specification is a combination of a syntactic template
+and a logical formula, and the result is guaranteed to satisfy
+both. We present a reinforcement-learning guided algorithm
+for SyGuS which uses Monte-Carlo Tree Search (MCTS) to
+search the space of candidate solutions. Our algorithm learns
+policy and value functions which, combined with the upper
+confidence bound for trees, allow it to balance exploration
+and exploitation. A common challenge in applying machine
+learning approaches to syntax-guided synthesis is the scarcity
+of training data. To address this, we present a method for
+automatically generating training data for SyGuS based on
+anti-unification of existing first-order satisfiability problems,
+which we use to train our MCTS policy. We implement and
+evaluate this setup and demonstrate that learned policy and
+value improve the synthesis performance over a baseline by
+over 26 percentage points in the training and testing sets. Our
+tool outperforms state-of-the-art tool cvc5 on the training set
+and performs comparably in terms of the total number of problems solved on the testing set (solving 23% of the benchmarks
+on which cvc5 fails). We make our data set publicly available,
+to enable further application of machine learning methods to
+the SyGuS problem.
+
+Introduction
+Syntax-Guided Synthesis (Alur et al. 2013) allows a user to
+synthesize code that is guaranteed to satisfy a logical and
+a syntactic specification, as shown in Example 1. The logical specification is given as a quantified formula: in the
+example, we must find a program such that ∀x, y.f (x, y) ≥
+x ∧ f (x, y) ≥ y ∧ f (x, y) = x ∨ x(f, y) = y. The syntactic specification is given as a context-free grammar. Applications of SyGuS include planning (Chasins and Newcomb 2016), deobfuscation (Jha et al. 2010), invariant synthesis (Fedyukovich et al. 2019), verified lifting (Kamil et al.
+2016), and generating rewrite rules in SMT solvers (Reynolds
+and Tinelli 2017).
+Surprisingly, the dominant techniques for SyGuS are still
+based on enumerative synthesis (Reynolds et al. 2019; Alur,
+Radhakrishna, and Udupa 2017), where the synthesizer exhaustively enumerates a grammar, and checks resulting proCopyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+10670
+
+grams against the specification until a correct solution is
+found. Good search heuristics can lead to extreme differences in performance (Reynolds et al. 2019), so one would
+expect machine learning techniques to be prominent.
+In fact, in programming-by-example (PBE), where the
+specification is in the form of input-output (I/O) examples,
+the dominant heuristics are now machine-learning based (Balog et al. 2017; Bavishi et al. 2019). In PBE, training data
+is easy to generate by taking any program and generating
+I/O examples for it. We hypothesize that the reason these
+machine-learning techniques have not yet had a significant
+impact in SyGuS with logical specifications is the lack of
+easily available training data.
+We present a synthesis algorithm that can learn its own
+heuristics via a reinforcement learning (RL) loop with relatively small quantities of training data. We use a Monte-Carlo
+Tree Search (MCTS) based approach to search for solutions
+within the syntactic specification using policy/value functions.
+The policy and value functions are iteratively improved via
+an RL loop. To evaluate a candidate program, we use a Satisfiability Modulo Theories (SMT) solver. Implementing these
+techniques we were able to achieve an improvement of over
+26 percentage points (34.7% baseline vs 60.9% in the best
+iteration) on the testing set, and similar results on the training
+set. Compared with the state-of-the-art tool cvc5 (Barbosa
+et al. 2022) we can solve 182 problems that cvc5 cannot solve
+and on average 25 more problems on the training set while
+solving 6 fewer problems on the testing set.
+To obtain training data, we develop a novel method for
+automatically generating SyGuS problems, based on antiunification. Generating training data for logical specifications
+is challenging. In PBE, the standard approach to generating data is to randomly generate solutions and their corresponding input-output specifications. For example, we might
+generate the solution (ite(≥ x y) x y) for f , where ite is
+the if-then-else operator, and the specification f (2, 1) = 2,
+f (2, 2) = 2, f (1, 1) = 1. This approach cannot be easily
+applied to SyGuS with logical specifications because, if we
+randomly generate solutions, it is extremely hard to infer a
+meaningful logical specification that captures that solution
+without also revealing the solution in the specification. This
+means that any inferred specifications are unlikely to be representative of real SyGuS problems. We could also randomly
+generate logical specifications, but these are highly unlikely
+
+

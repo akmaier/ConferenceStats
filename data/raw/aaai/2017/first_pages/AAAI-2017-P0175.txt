@@ -1,0 +1,90 @@
+Proceedings of the Thirty-First AAAI Conference on Artificial Intelligence (AAAI-17)
+
+SeqGAN: Sequence Generative
+Adversarial Nets with Policy Gradient
+Lantao Yu,† Weinan Zhang,†∗ Jun Wang,‡ Yong Yu†
+†
+
+Shanghai Jiao Tong University, ‡ University College London
+{yulantao,wnzhang,yyu}@apex.sjtu.edu.cn, j.wang@cs.ucl.ac.uk
+
+of sequence increases. To address this problem, (Bengio et al.
+2015) proposed a training strategy called scheduled sampling
+(SS), where the generative model is partially fed with its own
+synthetic data as preﬁx (observed tokens) rather than the true
+data when deciding the next token in the training stage. Nevertheless, (Huszár 2015) showed that SS is an inconsistent
+training strategy and fails to address the problem fundamentally. Another possible solution of the training/inference discrepancy problem is to build the loss function on the entire
+generated sequence instead of each transition. For instance,
+in the application of machine translation, a task speciﬁc sequence score/loss, bilingual evaluation understudy (BLEU)
+(Papineni et al. 2002), can be adopted to guide the sequence
+generation. However, in many other practical applications,
+such as poem generation (Zhang and Lapata 2014) and chatbot (Hingston 2009), a task speciﬁc loss may not be directly
+available to score a generated sequence accurately.
+General adversarial net (GAN) proposed by (Goodfellow
+and others 2014) is a promising framework for alleviating the
+above problem. Speciﬁcally, in GAN a discriminative net D
+learns to distinguish whether a given data instance is real or
+not, and a generative net G learns to confuse D by generating
+high quality data. This approach has been successful and
+been mostly applied in computer vision tasks of generating
+samples of natural images (Denton et al. 2015).
+Unfortunately, applying GAN to generating sequences has
+two problems. Firstly, GAN is designed for generating realvalued, continuous data but has difﬁculties in directly generating sequences of discrete tokens, such as texts (Huszár 2015).
+The reason is that in GANs, the generator starts with random
+sampling ﬁrst and then a determistic transform, govermented
+by the model parameters. As such, the gradient of the loss
+from D w.r.t. the outputs by G is used to guide the generative model G (paramters) to slightly change the generated
+value to make it more realistic. If the generated data is based
+on discrete tokens, the “slight change” guidance from the
+discriminative net makes little sense because there is probably no corresponding token for such slight change in the
+limited dictionary space (Goodfellow 2016). Secondly, GAN
+can only give the score/loss for an entire sequence when it
+has been generated; for a partially generated sequence, it is
+non-trivial to balance how good as it is now and the future
+score as the entire sequence.
+In this paper, to address the above two issues, we fol-
+
+Abstract
+As a new way of training generative models, Generative Adversarial Net (GAN) that uses a discriminative model to guide
+the training of the generative model has enjoyed considerable
+success in generating real-valued data. However, it has limitations when the goal is for generating sequences of discrete
+tokens. A major reason lies in that the discrete outputs from the
+generative model make it difﬁcult to pass the gradient update
+from the discriminative model to the generative model. Also,
+the discriminative model can only assess a complete sequence,
+while for a partially generated sequence, it is non-trivial to
+balance its current score and the future one once the entire
+sequence has been generated. In this paper, we propose a sequence generation framework, called SeqGAN, to solve the
+problems. Modeling the data generator as a stochastic policy in
+reinforcement learning (RL), SeqGAN bypasses the generator
+differentiation problem by directly performing gradient policy
+update. The RL reward signal comes from the GAN discriminator judged on a complete sequence, and is passed back to
+the intermediate state-action steps using Monte Carlo search.
+Extensive experiments on synthetic data and real-world tasks
+demonstrate signiﬁcant improvements over strong baselines.
+
+Introduction
+Generating sequential synthetic data that mimics the real one
+is an important problem in unsupervised learning. Recently,
+recurrent neural networks (RNNs) with long short-term
+memory (LSTM) cells (Hochreiter and Schmidhuber 1997)
+have shown excellent performance ranging from natural language generation to handwriting generation (Wen et al. 2015;
+Graves 2013). The most common approach to training an
+RNN is to maximize the log predictive likelihood of each
+true token in the training sequence given the previous observed tokens (Salakhutdinov 2009). However, as argued in
+(Bengio et al. 2015), the maximum likelihood approaches
+suffer from so-called exposure bias in the inference stage:
+the model generates a sequence iteratively and predicts next
+token conditioned on its previously predicted ones that may
+be never observed in the training data. Such a discrepancy between training and inference can incur accumulatively along
+with the sequence and will become prominent as the length
+∗
+
+Weinan Zhang is the corresponding author.
+c 2017, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+2852
+
+

@@ -1,0 +1,93 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+TimeCMA: Towards LLM-Empowered Multivariate Time Series Forecasting via
+Cross-Modality Alignment
+Chenxi Liu1 , Qianxiong Xu1 * , Hao Miao2 , Sun Yang3 , Lingzheng Zhang4 , Cheng Long1 ,
+Ziyue Li5∗ , Rui Zhao 6
+1
+
+S-Lab, Nanyang Technological University, Singapore
+2
+Aalborg University, Denmark
+3
+Peking University, China
+4
+HKUST (Guangzhou), China
+5
+University of Cologne, Germany
+6
+SenseTime Research, China
+{chenxi.liu, qianxiong.xu, c.long}@ntu.edu.sg, haom@cs.aau.dk, 2201210484@stu.pku.edu.cn,
+lingzhengzhang01@gmail.com, zlibn@wiso.uni-koeln.de, zhaorui@sensetime.com
+Abstract
+Multivariate time series forecasting (MTSF) aims to learn
+temporal dynamics among variables to forecast future time
+series. Existing statistical and deep learning-based methods
+suffer from limited learnable parameters and small-scale training data. Recently, large language models (LLMs) combining
+time series with textual prompts have achieved promising
+performance in MTSF. However, we discovered that current
+LLM-based solutions fall short in learning disentangled embeddings. We introduce TimeCMA, an intuitive yet effective
+framework for MTSF via cross-modality alignment. Specifically, we present a dual-modality encoding with two branches:
+the time series encoding branch extracts disentangled yet weak
+time series embeddings, and the LLM-empowered encoding
+branch wraps the same time series with text as prompts to
+obtain entangled yet robust prompt embeddings. As a result,
+such a cross-modality alignment retrieves both disentangled
+and robust time series embeddings, “the best of two worlds”,
+from the prompt embeddings based on time series and prompt
+modality similarities. As another key design, to reduce the
+computational costs from time series with their length textual
+prompts, we design an effective prompt to encourage the most
+essential temporal information to be encapsulated in the last
+token: only the last token is passed to downstream prediction.
+We further store the last token embeddings to accelerate inference speed. Extensive experiments on eight real datasets
+demonstrate that TimeCMA outperforms state-of-the-arts.
+
+Code — https://github.com/ChenxiLiu-HNU/TimeCMA
+
+Introduction
+With the proliferation of scalable mobile sensing, large
+amounts of time series data, collected across domains such
+as traffic (Xiao et al. 2022; Miao et al. 2024) and environment (Liu et al. 2024a, 2022), have driven applications such
+as multivariate time series forecasting (MTSF). MTSF aims
+to mine temporal dynamics among variables from historical
+* Corresponding author
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+18780
+
+data to predict future time series, enabling users to make
+proactive decisions, e.g., investment choice (Niu et al. 2020)
+or weather preparation (Liu et al. 2023).
+MTSF methods can be divided into statistical methods (Smith and Demetsky 1997) and deep learning-based
+methods (Wu et al. 2023; Miao et al. 2022). However, the
+limited number of learnable parameters and the small-scale
+training data prevent these methods from achieving better
+performance and being more robust (Jin et al. 2024b; Liu
+et al. 2021c,b). Recent advances (Zhou et al. 2023) have incorporated pre-trained LLMs (Radford et al. 2019, 2018) into
+time series to benefit from the robust embeddings learned
+from abundant language data (Liang et al. 2024).
+Existing LLM-based methods for time series forecasting
+can be categorized by input data types. (1) Time series-based
+LLMs (Zhou et al. 2023; Liu et al. 2024b) replace the LLM’s
+tokenizer with a randomly initialized embedding layer to process time series data. However, this embedding layer initialized with random weights often results in weak embeddings
+due to a domain gap between time series and language data.
+(2) Prompt-based LLMs (Jin et al. 2024b) introduce prompts
+with text as additional input to help the LLMs understand the
+time series forecasting task. The prompts are contextualized
+within time series with text descriptions to facilitate the datato-text transformation (Jin et al. 2024a; Xue and Salim 2023)
+or directly summarize the time series information using pure
+text (Liu et al. 2024c; Jia et al. 2024; Huang et al. 2024).
+These prompts are then processed by pre-trained LLMs to
+obtain robust embeddings, allowing the prompt-based LLMs
+to outperform existing methods, as evidenced in Table 1.
+Although prompt-based LLMs have achieved notable performance, they were challenged by the data entanglement
+issue (Chang et al. 2024). Specifically, existing methods (Liu
+et al. 2024c; Jia et al. 2024) concatenate disentangled yet
+weak time series embeddings (Fig. 1(a), upper) with text
+prompt embeddings (Fig. 1(a), lower). As one stream of existing methods shown in Fig. 1(b), these fused embeddings
+are then fed into subsequent time series processing stages.
+However, the output embeddings are entangled, which de-
+
+

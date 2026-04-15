@@ -1,0 +1,91 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Probabilistic Offline Policy Ranking with Approximate Bayesian Computation
+Longchao Da1 , Porter Jenkins2 , Trevor Schwantes2 , Jeffrey Dotson2 , Hua Wei1 *
+1
+
+Arizona State University,
+Brigham Young University
+{longchao,hua.wei}@asu.edu, {pjenkins,jeff dotson}@cs.byu.edu, Schwantes2@gmail.com
+2
+
+Abstract
+In practice, it is essential to compare and rank candidate policies offline before real-world deployment for safety and reliability. Prior work seeks to solve this offline policy ranking
+(OPR) problem through value-based methods, such as Offpolicy evaluation (OPE). However, they fail to analyze special
+case performance (e.g., worst or best cases), due to the lack of
+holistic characterization of policies’ performance. It is even
+more difficult to estimate precise policy values when the reward is not fully accessible under sparse settings. In this paper,
+we present Probabilistic Offline Policy Ranking (POPR), a
+framework to address OPR problems by leveraging expert
+data to characterize the probability of a candidate policy behaving like experts, and approximating its entire performance
+posterior distribution to help with ranking. POPR does not rely
+on value estimation, and the derived performance posterior can
+be used to distinguish candidates in worst-, best-, and averagecases. To estimate the posterior, we propose POPR-EABC,
+an Energy-based Approximate Bayesian Computation (ABC)
+method conducting likelihood-free inference. POPR-EABC reduces the heuristic nature of ABC by a smooth energy function,
+and improves the sampling efficiency by a pseudo-likelihood.
+We empirically demonstrate that POPR-EABC is adequate
+for evaluating policies in both discrete and continuous action
+spaces across various experiment environments, and facilitates probabilistic comparisons of candidate policies before
+deployment.
+
+Introduction
+Policies trained in simulation often encounter performance
+drops when deployed in a different simulated environment (Jayawardana et al. 2022; Wei et al. 2022) or the real
+world (Hanna and Stone 2017; Da et al. 2023). With a set
+of candidate policies, evaluating and ranking prior to real
+deployment is critical for real-world applications. Off-policy
+evaluation (OPE) allows one to estimate the goodness of a
+policy (often referred to as target/candidate policy) using data
+collected from another, possibly unrelated policy (referred
+to as behavior policy). Such evaluation is important because
+testing and implementing a policy in the real world can be
+costly in areas like trading (Liu et al. 2020) and physical
+retail (Jenkins et al. 2022, 2020), even vital in situations like
+* Corresponding Author
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+20370
+
+healthcare (Liao et al. 2020) and transportation (Du et al.
+2023; Vlachogiannis et al. 2023; Li et al. 2023).
+With growing interest in OPE, the research community has
+produced a number of estimators, including importance sampling (IS) (Thomas and Brunskill 2016; Farajtabar, Chow,
+and Ghavamzadeh 2018; Jiang and Li 2016), direct methods (DM) (Harutyunyan et al. 2016; Li et al. 2010; Le,
+Voloshin, and Yue 2019; Kostrikov and Nachum 2020) and
+distribution correction estimation (DICE) methods (Dai et al.
+2020; Zhang, Liu, and Whiteson 2020; Yang et al. 2022).
+Importance-sampling-based methods weight the data collected from the behavior policy according to the probability
+of transitioning to each state under the target policy, yet they
+assume access to a probability distribution over actions from
+the behavior policy. DM and DICE do not require knowing
+the output probabilities of the behavior policy, where DM
+directly learns an environment or value model from offline
+data, and DICE methods learn to estimate the discounted
+stationary distribution ratios. Most of these methods compute
+the point estimates of the policy’s value (Dudı́k, Langford,
+and Li 2011; Jiang and Li 2016; Zhang, Liu, and Whiteson
+2020; Yang et al. 2020), some of which additionally estimate
+the value with confidence intervals (Thomas, Theocharous,
+and Ghavamzadeh 2015; Kuzborskij et al. 2020; Feng et al.
+2020; Dai et al. 2020; Kostrikov and Nachum 2020).
+While various estimators have been proposed for off-policy
+evaluation, in many cases, precise policy value estimation
+is not necessary. Instead, practitioners often place greater
+emphasis on the correctness of comparison and ranking of
+candidate policies. Existing work in Supervised Off-Policy
+Ranking (SOPR) (Jin et al. 2021) takes a supervised learning approach to policy ranking, and requires an adequate
+training set or policies with explicitly labeled performance.
+In practice, this approach is challenging because (1) actual
+policy data is typically limited, and (2) access to labeled performance data is a strict assumption. The behavior policy is
+usually inaccessible and behavioral data is usually restricted,
+such as in healthcare or confidential financial trading domains.
+Additionally, when the policies are hard to differentiate from
+mean performance, we might care about the performance
+under special situations like the worst or best cases (Agarwal
+et al. 2021), which none of the above literature could address.
+In this paper, we propose the Probabilistic Offline Policy
+Ranking (POPR) framework to address the above challenges.
+
+

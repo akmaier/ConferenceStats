@@ -1,0 +1,94 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+Similarity Search for Efficient Active Learning and Search of Rare Concepts
+Cody Coleman, 1 Edward Chou, 2 Julian Katz-Samuels, 3 Sean Culatana, 2 Peter Bailis, 1
+Alexander C. Berg, 4 Robert Nowak, 3 Roshan Sumbaly, 2 Matei Zaharia, 1 I. Zeki Yalniz 2
+1
+
+Stanford University,
+2
+Facebook AI,
+3
+University of Wisconsin,
+4
+Facebook AI Research
+cody@cs.stanford.edu
+Abstract
+
+hicle, can be difficult due to the diversity of real-world data.
+Stop signs may appear in a variety of conditions (e.g., on
+a wall or held by a person), can be heavily occluded, or
+have modifiers (e.g., “Except Right Turn”) [Karpathy 2020].
+Large-scale datasets are essential but not sufficient; finding
+the relevant examples for these long-tail tasks is challenging.
+Active learning and search methods have the potential to
+automate the process of identifying these rare, high-value
+data points, but often become intractable at-scale. Existing
+techniques carefully select examples over a series of rounds
+to improve model quality (active learning [Settles 2012])
+or find positive examples in highly skewed settings (active
+search [Garnett et al. 2012]). Each selection round iterates
+over the entire unlabeled data to identify the optimal example or batch of examples to label based on uncertainty (e.g.,
+the entropy of predicted class probabilities) or other heuristics [Settles 2011, 2012, Lewis and Gale 1994, Garnett et al.
+2012, Zhang et al. 2020, Beluch et al. 2018, Yoo and Kweon
+2019, Gal, Islam, and Ghahramani 2017, He and Carbonell
+2007, Sinha, Ebrahimi, and Darrell 2019, Joshi, Porikli, and
+Papanikolopoulos 2009, Settles and Craven 2008, Sener and
+Savarese 2018, Ash et al. 2020]. Depending on the selection criteria, each round can scale linearly [Lewis and Gale
+1994, Joshi, Porikli, and Papanikolopoulos 2009] or even
+quadratically [Settles and Craven 2008, Sener and Savarese
+2018] with the size of the unlabeled data. The computational cost of this process has become an impediment as
+datasets and model architectures have increased rapidly in
+size [Amodei and Hernandez 2018]. Recent work has tried
+to address this problem with sophisticated methods to select
+larger and more diverse batches of examples in each selection round and reduce the total number of rounds needed to
+reach the target labeling budget [Sener and Savarese 2018,
+Kirsch, van Amersfoort, and Gal 2019, Coleman et al. 2020,
+Pinsler et al. 2019, Jiang et al. 2018]. Nevertheless, these
+approaches still scan over all of the examples to find the optimal batch for each round, which remains intractable for
+web-scale datasets with billions of examples. The selection
+rounds of these techniques need to scale sublinearly with
+the unlabeled data size to tackle these massive and heavily
+skewed problems.
+In this paper, we propose Similarity search for Efficient Active Learning and Search (SEALS) as a simple
+approach to further improve computational efficiency and
+
+Many active learning and search approaches are intractable
+for large-scale industrial settings with billions of unlabeled
+examples. Existing approaches search globally for the optimal examples to label, scaling linearly or even quadratically
+with the unlabeled data. In this paper, we improve the computational efficiency of active learning and search methods by
+restricting the candidate pool for labeling to the nearest neighbors of the currently labeled set instead of scanning over all
+of the unlabeled data. We evaluate several selection strategies
+in this setting on three large-scale computer vision datasets:
+ImageNet, OpenImages, and a de-identified and aggregated
+dataset of 10 billion publicly shared images provided by a
+large internet company. Our approach achieved similar mAP
+and recall as the traditional global approach while reducing
+the computational cost of selection by up to three orders of
+magnitude, enabling web-scale active learning.
+
+1
+
+Introduction
+
+Large-scale unlabeled datasets can contain millions or billions of examples covering a wide variety of underlying concepts [Chelba et al. 2013, Zhang, Zhao, and LeCun 2015,
+Wan et al. 2019, Russakovsky et al. 2015, Kuznetsova et al.
+2020, Thomee et al. 2016, Lee, Rao, and Arnold 2019]. Yet,
+these massive datasets often skew towards a relatively small
+number of common concepts, for example ‘cats’, ‘dogs’,
+and ‘people’ [Liu et al. 2019, Zhang et al. 2017, Wang,
+Ramanan, and Hebert 2017, Van Horn and Perona 2017].
+Rare concepts, such as ‘harbor seals’, tend to only appear
+in a small fraction of the data (usually less than 1%). However, performance on these rare concepts is critical in many
+settings. For example, harmful or malicious content may
+comprise only a small percentage of user-generated content, but it can have a disproportionate impact on the overall
+user experience [Wan et al. 2019]. Similarly, when debugging model behavior for safety-critical applications like autonomous vehicles, or when dealing with representational
+biases in models, obtaining data that captures rare concepts
+allows machine learning practitioners to combat blind spots
+in model performance [Karpathy 2018, Holstein et al. 2019,
+Ashmawy, Yi, and Chao 2019, Karpathy 2020]. Even a simple task, such as stop sign detection by an autonomous veCopyright © 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+6402
+
+

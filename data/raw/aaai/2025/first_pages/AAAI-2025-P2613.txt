@@ -1,0 +1,125 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+MAGIC: Generating Self-Correction Guideline for In-Context Text-to-SQL
+Arian Askari1 * , Christian Poelitz2 , Xinye Tang3
+1
+Leiden University
+Microsoft Research Cambridge, UK,
+3
+Microsoft Redmond
+{cpoelitz, xinye.tang}@microsoft.com, a.askari@liacs.leidenuniv.nl
+2
+
+Abstract
+
+Question: What is the biggest monthly consumption of the
+customers who use euro as their currency?
+
+Self-correction in text-to-SQL is the process of prompting
+large language model (LLM) to revise its previously incorrectly generated SQL, and commonly relies on manually
+crafted self-correction guidelines by human experts that are
+not only labor-intensive to produce but also limited by the human ability in identifying all potential error patterns in LLM
+responses. We introduce MAGIC, a novel multi-agent method
+that automates the creation of the self-correction guideline.
+MAGIC uses three specialized agents: a manager, a correction,
+and a feedback agent. These agents collaborate on the failures
+of an LLM-based method on the training set to iteratively generate and refine a self-correction guideline tailored to LLM
+mistakes, mirroring human processes but without human involvement. Our extensive experiments show that MAGIC’s
+guideline outperforms expert human’s created ones. We empirically find out that the guideline produced by MAGIC enhances the interpretability of the corrections made, providing
+insights in analyzing the reason behind the failures and successes of LLMs in self-correction.
+
+Texto-to-SQL via GPT4 using DIN-SQL method
+
+SELECT MAX(SUM(yearmonth.Consumption) / 12) FROM
+yearmonth INNER JOIN customers ON yearmonth.CustomerID =
+customers.CustomerID WHERE customers.Currency = 'EUR'
+
+Incorrect
+SQL
+
+Self-correction w/ MAGIC’s guideline (Entire response of GPT4)
+
+Datasets —
+https://huggingface.co/datasets/microsoft/MAGIC
+
+Introduction
+Converting natural language questions to SQL database
+queries, known as text-to-SQL, serves as a pivotal component for empowering non-expert data analysts in extracting
+desired information from relational databases using natural
+language (Qu et al. 2024). While large language models have
+shown a significant improvement in text-to-SQL and serve
+as state-of-the methods according to the leaderboards (Li
+et al. 2024c), they are prone to mistakes and even GPT4 has
+a notable accuracy gap of 30% within human (Li et al. 2023).
+A solution for resolving the mistakes of LLM is the emerging concept of ‘self-correction’ (Madaan et al. 2023) that
+defines as the ability of LLMs in revising their previous mistakes under the hypothesis that recognizing errors is easier
+than avoiding them (Gou et al. 2024; Madaan et al. 2023).
+Self-correction in context of text-to-SQL is the process of
+prompting an LLM to revise its previously incorrectly generated SQL (Zhang et al. 2024; Chen et al. 2023).
+* Work done during an internship at Microsoft.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+23433
+
+1.Aggregation within Aggregation: Did I mistakenly try to use an
+aggregate function (SUM) directly inside another aggregate
+function (MAX) without a subquery? Yes, this is not allowed in SQL.
+I need to calculate the total consumption per customer first, then
+find the maximum of these averages.
+2.Grouping by Customer: Did I forget to group by the customer ID
+after summing their consumption? Yes, to calculate the total
+consumption per customer, I need to group by CustomerID.
+3.Correct Calculation of Monthly Consumption: Did I correctly
+calculate the monthly consumption by dividing the total
+consumption by 12? Yes, but this calculation should be done after
+summing up the consumption for each customer.
+4.Filtering on Currency: Did I correctly filter customers based on
+their currency being 'EUR'? Yes, this part of the query is correct.
+5.Selecting the Maximum Monthly Consumption: Did I ensure to
+select the maximum monthly consumption after calculating the
+monthly consumption for each customer? This needs to be done in
+a step after calculating the monthly consumption for each
+customer.
+Revised SQL: SELECT MAX(MonthlyConsumption) FROM
+(SELECT yearmonth.CustomerID, SUM(yearmonth.Consumption) /
+12 AS MonthlyConsumption FROM yearmonth INNER JOIN
+customers ON yearmonth.CustomerID = customers.CustomerID
+WHERE customers.Currency = 'EUR' GROUP BY
+yearmonth.CustomerID)
+
+Mistake
+found
+
+Mistake
+found
+
+Mistake
+found
+
+No
+mistake
+
+Mistake
+found
+
+Correct
+SQL
+
+Figure 1: Example of self-correction using automatically
+generated guidelines by MAGIC
+
+While self-correction for LLMs has been widely studied
+in variety of tasks including code generation with GPT4
+(Shypula et al. 2024; Pan et al. 2023; Kamoi et al. 2024), it
+has been relatively unexplored in text-to-SQL. The common
+method for self-correcting in existing few-shot LLM based
+methods that achieve state-of-the-art effectiveness is designing a self-correction guideline by human and prompting it
+to GPT-4 together with its initial generated SQL (Pourreza
+and Rafiei 2023). This self-correction guideline commonly
+engineered based on the train set where an expert human analyzes common mistakes of the LLM on the training data and
+design a guideline to prevent common mistakes. This process
+is a time-consuming and challenging task that is limited to
+the ability of humans in identifying all the mistake patterns
+
+

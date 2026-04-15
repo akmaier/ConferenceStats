@@ -1,0 +1,519 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+SARG: A Novel Semi Autoregressive Generator for Multi-turn Incomplete
+SARG: A Novel Semi Autoregressive
+Generator for Multi-turn Incomplete
+Utterance Restoration
+Mengzuo Huang
+
+Utterance Restoration
+
+1,2 *
+
+Feng Li2∗
+
+Wuhe Zou2
+
+Weidong Zhang2†
+
+1,2∗
+Mengzuo Huang
+, Feng Li2∗ , Wuhe Zou2 , Weidong Zhang2†
+1
+
+Dalian
+University of Technology
+1
+Dalian University of Technology
+Netease
+Games
+AI Lab, HangZhou, China
+2
+Netease Games AI Lab, HangZhou, China
+hmengzuo@mail.dlut.edu.cn
+hmengzuo@mail.dlut.edu.cn
+{lifeng06,zouwuhe,zhangweidong02}@corp.netease.com
+{lifeng06,zouwuhe,zhangweidong02}@corp.netease.com
+2
+
+Abstract
+Abstract
+Dialogueinsystems
+in open domain
+have achieved
+Dialogue systems
+open domain
+have achieved
+great great
+suc- success due to the easily obtained single-turn corpus and the
+cess due todevelopment
+the easily of
+obtained
+single-turn
+corpus
+and the
+deep learning,
+but the
+multi-turn
+scenario
+development
+of
+deep
+learning,
+but
+the
+multi-turn
+scenario
+is still a challenge because of the frequent coreference and
+is still a challenge
+because
+of In
+the this
+frequent
+coreference
+information
+omission.
+paper, we
+investigateand
+the ininformationcomplete
+omission.
+In this
+paper, which
+we investigate
+in- imutterance
+restoration
+has broughtthe
+general
+provement over
+multi-turn
+dialogue
+systems in
+recent
+complete utterance
+restoration
+which has
+brought
+general
+im-studMeanwhile,
+jointly
+inspired by
+the in
+autoregression
+for text
+provement ies.
+over
+multi-turn
+dialogue
+systems
+recent studgeneration
+andinspired
+the sequence
+labeling
+for text editing,
+we proies. Meanwhile,
+jointly
+by the
+autoregression
+for text
+a novel
+semi autoregressive
+generator
+(SARG)
+with the
+generation pose
+and the
+sequence
+labeling for text
+editing,
+we prohigh efficiency and flexibility. Moreover, experiments on two
+pose a novel
+semi
+autoregressive
+generator
+(SARG)
+with
+the
+benchmarks show that our proposed model significantly outhigh efficiency
+and flexibility.
+Moreover,
+experiments
+two and
+performs
+the state-of-the-art
+models
+in terms ofon
+quality
+benchmarksinference
+show that
+our
+proposed
+model
+significantly
+outspeed.
+performs the state-of-the-art models in terms of quality and
+1
+inference speed.
+
+Introduction
+
+Dialogue systems in open-domain have attracted increasing
+attention (Li Introduction
+2020; Huang, Zhu, and Gao 2020), and been
+widely utilized
+in real-worldhave
+applications
+(Adiwardana
+Dialogue systems
+in open-domain
+attracted
+increasinget al.
+2020;
+Gong
+et
+al.
+2019;
+Hewitt
+and
+Beaver
+2020).
+Howattention (Li 2020; Huang, Zhu, and Gao 2020), and
+been
+ever, due to frequently occurred coreference and informawidely utilized
+in real-world
+applications
+etaal.
+tion omission,
+as shown
+in Figure 1,(Adiwardana
+there still exists
+major
+2020; Gong
+et
+al.
+2019;
+Hewitt
+and
+Beaver
+2020).
+Howchallenge: it is hard for machines to understand the real inever, due totention
+frequently
+occurred
+and information
+from the
+original coreference
+utterance without
+the context. A seomission, as
+shown
+in of
+Table 1,
+there stilland
+exists a
+major chal-have
+ries of
+models
+retrieval-based
+generative-based
+studied
+for
+multi-turn
+systemsthe
+(Yan,
+and Wu
+lenge: it isbeen
+hard for
+machines
+to
+understand
+realSong,
+intention
+2016; Zhang
+et al. 2018;
+Zhou
+al. 2018; A
+Wuseries
+et al. of
+2016),
+from the original
+utterance
+without
+theet context.
+and
+they
+generally
+combine
+the
+context
+and
+the
+original
+models of retrieval-based and generative-based have been utas inputsystems
+to retrieve
+or generate
+responses.
+However,
+studied forterance
+multi-turn
+(Yan,
+Song, and
+Wu 2016;
+these methods lack great generalizations since they have a
+Zhang et al.
+2018; Zhou et al. 2018; Wu et al. 2016), and
+strong reliance on the size of the multi-turn corpus.
+they generally
+the original
+utter-utterSu combine
+et al. 2019the
+andcontext
+Pan et and
+al. 2019
+propose their
+ance as input
+to
+retrieve
+or
+generate
+responses.
+However,
+ance restoration models, respectively, which are aimed at
+these methods
+lackthegreat
+generalizations
+since
+have a
+restoring
+semantic
+information of
+the they
+original
+utterance
+strong reliance
+the size
+ofofthe
+multi-turn
+corpus.
+based on
+on the
+history
+the session
+from a
+different perspective.
+Restoration
+methods
+decouple
+multi-turn
+Su et al.
+2019
+and Pan et
+al. 2019
+propose
+theirsystems
+utter- into
+the single-turn
+whichwhich
+alleviate
+dependence
+ance restoration
+models,problems,
+respectively,
+aretheaimed
+at
+
+Utterance 1
+(Translation)
+Utterance 2
+
+Utterance 3
+Utterance 30
+
+Utterance 1
+Utterance 2
+Utterance 3
+Utterance 30
+
+Context 1
+Human: 为什么？
+Human: Why?
+Chatbot: 这个你得问李淳风呀。
+Chatbot: You’ll have to ask Li Chunfeng
+about that.
+Human: 我去问他。
+Human: I’ll ask him.
+Human: 我去问李淳风。
+Human: I’ll ask Li Chunfeng.
+Context 2
+Human: 你最喜欢什么电影？
+Human:What movie do you like most?
+Chatbot: 泰坦尼克。
+Chatbot: Titanic.
+Human: 为什么呢？
+Human: Why?
+Human: 为什么最喜欢泰坦尼克？
+Human: Why do you like Titanic most?
+
+Figure 1: An example of utterance restoration in human-
+
+Table
+1: An example of utterance restoration in humanmachine dialogue system. Utterance 30 0is the restored senmachine
+dialogue
+system.3.Utterance
+is the restored
+tence based
+on Utterance
+Red means 3coreference
+and bluesentence
+based
+on
+Utterance
+3.
+Red
+means
+coreference
+and blue
+means omission.
+means omission.
+on multi-turn dialogue corpus and also achieve leading per-
+
+theformance.
+single-turn
+problems,
+alleviate
+dependence
+Specifically,
+Su which
+et al. 2019
+employthe
+transformeron based
+multi-turn
+dialogue
+corpus
+and
+also network
+achieve to
+leading
+Seq2Seq
+architecture
+and
+pointer
+rewriteperthe
+original
+utterance, and
+theyal.split
+the whole
+into
+formance.
+Specifically,
+Su et
+2019
+employsession
+transformerhistory
+and original
+utteranceand
+forpointer
+capturing
+differentoattenbased
+Seq2Seq
+architecture
+network
+rewrite
+Pan et al.
+2019 and
+propose
+a split
+cascadethe
+frame
+of session
+“pick-and-into
+thetions.
+original
+utterance,
+they
+whole
+combine”
+to restoreutterance
+the incomplete
+utterance from
+history.
+history
+and original
+for capturing
+different
+attenAnd
+both
+of
+them
+generate
+restored
+utterance
+from
+scratch
+in
+restoring the∗semantic
+information
+of
+the
+original
+utterance
+tions.
+Pan
+et
+al.
+2019
+propose
+a
+cascade
+frame
+of
+“pick-andEqual contribution. This work was conducted when
+an autoregressive manner of Seq2Seq, which is highly timebased on the
+history
+of the
+from
+a different
+perspecMengzuo
+Huang
+wassession
+interning at
+Netease
+Games AI Lab
+combine”
+to restore
+the incomplete utterance from history.
+consuming
+during inference.
+†
+Corresponding author
+tive. Restoration
+methods
+decouple multi-turn systems into
+And both of them generate restored utterance from scratch in
+Unlike some traditional end-to-end text generation task,
+Copyright c 2021, Association for the Advancement of Artificial
+an autoregressive
+manner of Seq2Seq, which is highly time*
+Intelligence
+(www.aaai.org).
+All rights
+where the apparent disparity exists between the sources and
+Equal
+contribution.
+This work
+wasreserved.
+conducted when
+consuming during inference.
+Mengzuo Huang was interning at Netease Games AI Lab
+Unlike some traditional end-to-end text generation task,
+†
+Corresponding author
+13055
+where
+the apparent disparity exists between the sources and
+Copyright © 2021, Association for the Advancement of Artificial
+targets,
+utterance restoration always has some considerable
+Intelligence (www.aaai.org). All rights reserved.
+1
+https://github.com/NetEase-GameAI/SARG
+overlapping regions between inputs and outputs. Intuitively,
+
+

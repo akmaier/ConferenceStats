@@ -1,0 +1,80 @@
+The Thirty-Second AAAI Conference
+on Artificial Intelligence (AAAI-18)
+
+Controlling Global Statistics in
+Recurrent Neural Network Text Generation
+Thanapon Noraset, David Demeter, Doug Downey
+Department of Electrical Engineering & Computer Science
+Northwestern University, Evanston IL 60208, USA
+{nor, ddemeter}@u.northwestern.edu, d-downey@northwestern.edu
+
+text generators tend to fail is by repeating the same words
+or phrases too often, leading to nonsensical output (See,
+Liu, and Manning 2017; Paulus, Xiong, and Socher 2017;
+Noraset et al. 2017). Can we learn a low-perplexity model
+that avoids this failure mode? Likewise, we may want to adjust our model’s output distribution to not reﬂect undesirable
+biases in our training corpus, or to utilize a different style,
+such as shorter sentences or more positive sentiment.
+In this paper, we present a regularization technique that
+allows modelers to specify additional soft constraints on
+language models during the training. For example, the constraints might encourage the model to repeat words less often, or to use shorter sentences, etc. The constraints are
+stated as a reference distribution that gives target marginal
+probability values for events in the text (e.g., the probability
+that a certain word will repeat consecutively). The regularizer encourages the global statistics of the model to match
+the reference distribution. Implementing the regularizer in
+RNNLMs is challenging because the marginal output probabilities of an RNNLM do not correspond directly to parameters of the model (as they do in simpler n-gram models),
+and instead must be inferred. In this work, we solve this
+problem by computing estimates of the model’s marginals
+from a sample of generated text, which is continually updated as training proceeds. We then use the estimates during
+training to encourage the model to generate text that matches
+the reference distribution by minimizing the KL-divergence.
+We refer to this method as Dynamic KL Regularization.
+To evaluate our approach, we experiment with two types
+of constraints in RNNLMs. The ﬁrst type aims to reduce local repetition. Local repetition is a long-standing issue with
+RNNLMs: the models disproportionately repeat the same
+word within a short window (see Figure 1). The problem becomes particularly acute when we ask the RNN to generate
+its estimate of the high-likelihood text for a given input. We
+show how using dynamic KL regularization to encourage the
+RNNLM to exhibit a similar repetition proﬁle to the training
+data can reduce repetition with little harm to perplexity. The
+second type of constraints attempt to match n-gram statistics from a reference corpus. Training an RNNLM on even
+tens of millions of tokens can be computationally costly, but
+often we can readily acquire n-gram statistics over even billions of tokens. We show how dynamic KL regularization
+can be used to incorporate large-corpus statistics that im-
+
+Abstract
+Recurrent neural network language models (RNNLMs) are an
+essential component for many language generation tasks such
+as machine translation, summarization, and automated conversation. Often, we would like to subject the text generated
+by the RNNLM to constraints, in order to overcome systemic
+errors (e.g. word repetition) or achieve application-speciﬁc
+goals (e.g. more positive sentiment). In this paper, we present
+a method for training RNNLMs to simultaneously optimize
+likelihood and follow a given set of statistical constraints on
+text generation. The problem is challenging because the statistical constraints are deﬁned over aggregate model behavior, rather than model parameters, meaning that a straightforward parameter regularization approach is insufﬁcient. We
+solve this problem using a dynamic regularizer that updates
+as training proceeds, based on the generative behavior of the
+RNNLMs. Our experiments show that the dynamic regularizer outperforms both generic training and a static regularization baseline. The approach is successful at improving wordlevel repetition statistics by a factor of four in RNNLMs on
+a deﬁnition modeling task. It also improves model perplexity when the statistical constraints are n-gram statistics taken
+from a large corpus.
+
+Introduction
+Recurrent neural network language models (RNNLMs) are
+a critical component of many natural language generation tasks such as machine translation, summarization, automated conversation, and caption generation (Sutskever,
+Vinyals, and Le 2014; Bahdanau, Cho, and Bengio 2014;
+Rush, Chopra, and Weston 2015; Karpathy and Fei-Fei
+2015; Li et al. 2016). The models are trained to maximize the
+likelihood of a training corpus, and evaluated on the likelihood they assign to a held-out test corpus (measured in terms
+of perplexity). RNNLMs, and in particular Long Short-term
+Memory Networks (LSTM) (Hochreiter and Schmidhuber
+1997), have provided dramatic improvements in the perplexities of language models in recent years (Jozefowicz et al.
+2016; Melis, Dyer, and Blunsom 2017).
+However, while RNNLMs optimize well on the perplexity metric, when we utilize the models to generate text we
+often wish to encourage the models to obey additional statistical constraints. For example, one way in which RNNLM
+c 2018, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+5333
+
+

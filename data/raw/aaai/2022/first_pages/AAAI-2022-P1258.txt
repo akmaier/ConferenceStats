@@ -1,0 +1,97 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+Span-Based Semantic Role Labeling
+with Argument Pruning and Second-Order Inference
+Zixia jia* 1,2,3,4 , Zhaohui Yan* 1,2,3,4 , Haoyi Wu1 , Kewei Tu†1,2
+1
+
+School of Information Science and Technology, ShanghaiTech University
+Shanghai Engineering Research Center of Intelligent Vision and Imaging
+3
+Shanghai Institute of Microsystem and Information Technology, Chinese Academy of Sciences
+4
+University of Chinese Academy of Sciences
+{jiazx, yanzhh, wuhy1, tukw}@shanghaitech.edu.cn
+2
+
+Abstract
+We study graph-based approaches to span-based semantic role
+labeling. This task is difficult due to the need to enumerate all
+possible predicate-argument pairs and the high degree of imbalance between positive and negative samples. Based on these
+difficulties, high-order inference that considers interactions
+between multiple arguments and predicates is often deemed
+beneficial but has rarely been used in span-based semantic
+role labeling. Because even for second-order inference, there
+are already O(n5 ) parts for a sentence of length n, and exact
+high-order inference is intractable. In this paper, we propose a
+framework consisting of two networks: a predicate-agnostic argument pruning network that reduces the number of candidate
+arguments to O(n), and a semantic role labeling network with
+an optional second-order decoder that is unfolded from an approximate inference algorithm. Our experiments show that our
+framework achieves significant and consistent improvement
+over previous approaches.
+
+Introduction
+The task of semantic role labeling (SRL) aims to recognize
+the predicate-argument structure of each predicate in a sentence. Lots of previous work shows that the shallow semantic
+structures found by SRL are beneficial to many downstream
+natural language processing tasks, especially those involving
+text understanding, such as machine reading comprehension
+(Wang et al. 2015; Zhang et al. 2020), question answering
+(Eckert and Neves 2018; Khashabi et al. 2018) and machine
+translation (Marcheggiani, Bastings, and Titov 2018).
+There are two annotation types of SRL, namely
+dependency-based SRL where each argument is a single
+token and span-based SRL where each argument is a span
+that consists of one or more words. Span-based SRL is more
+difficult than dependency-based SRL because it needs to not
+only label semantic roles but also detect argument boundaries.
+In this paper, we focus on span-based SRL.
+Two main classes of approaches to span-based SRL are
+sequence labeling approaches (Yang and Mitchell 2017; He
+et al. 2017; Tan et al. 2018; Strubell et al. 2018) and graphbased approaches (He et al. 2018; Li et al. 2019; Ouchi,
+* These authors contributed equally.
+†
+
+Corresponding author.
+Copyright © 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+10822
+
+Shindo, and Matsumoto 2018; Marcheggiani and Titov 2020).
+Sequence labeling approaches often employ the BIO tagging
+scheme and predict a BIO tag for each word in the input
+sentence. In comparison, graph-based approaches directly
+predict predicate-argument pairs, which can better leverage
+span-level features. Besides, graph-based approaches can handle multiple predicates in the same sentence, while sequence
+labeling approaches cannot.
+There are two major challenges faced by graph-based approaches. The first is that we need to enumerate all possible predicate-argument pairs, resulting in O(n3 ) complexity,
+which is too computationally expensive. The second is that
+a sentence typically contains only a few predicate-argument
+pairs among O(n3 ) word-span pairs, leading to a severe data
+imbalance problem in training and low recall in prediction.
+These two challenges can be addressed with argument pruning, which tries to remove unlikely arguments and produce a
+much smaller and more balanced candidate argument set for
+subsequent SRL prediction. Previous work trains the argument pruner jointly with the SRL predictor (He et al. 2018;
+Li et al. 2019). However, joint training is problematic in that
+the SRL training loss is defined over candidate arguments
+produced by the pruner and hence when the pruner changes
+during training, so does the SRL training loss, leading to a
+moving target for training. In this paper, we propose to train
+argument pruning independently from SRL prediction, leading to more stable training and better SRL performance. We
+also propose a new argument pruning model that empirically
+outperforms previous methods.
+Utilizing high-order information has been proved beneficial on many tasks such as dependency parsing (Wang,
+Huang, and Tu 2019; Wang and Tu 2020; Zhang, Li, and
+Zhang 2020) and dependency-based SRL (Lyu, Cohen, and
+Titov 2019; Chen, Lyu, and Titov 2019; Li et al. 2020b). It
+is often deemed beneficial to SRL prediction. For example,
+in the sentence “We watch the musician who is respected by
+many people playing violin on TV”, “musician” is far from
+“playing” while “people” is adjacent to “playing”, which may
+confuse an SRL model, but if we know “violin” is the argument (of role Arg1) of predicate “play”, then “musician”
+becomes a more likely argument (of role Arg0) of “play”
+than “people”. However, high-order inference on span-based
+SRL is extremely difficult because of two challenges. First,
+
+

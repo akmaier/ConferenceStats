@@ -1,0 +1,94 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Neural Policy Safety Verification via Predicate Abstraction: CEGAR
+Marcel Vinzent1 , Siddhant Sharma2 , Jörg Hoffmann1,3
+2
+
+1
+Saarland University, Saarland Informatics Campus, Saarbrücken, Germany
+Department of Electrical Engineering, Indian Institute of Technology Delhi, New Delhi, India
+3
+German Research Center for Artificial Intelligence (DFKI), Saarbrücken, Germany
+{vinzent, hoffmann}@cs.uni-saarland.de, Siddhant.Sharma.ee119@ee.iitd.ac.in
+
+Abstract
+
+et al. 2019; Dutta, Chen, and Sankaranarayanan 2019). Recent work extends this thread to hybrid systems, addressing
+smooth (tanh/sigmoid) activation functions by compilation
+into such systems (Ivanov et al. 2021). Another thread explores bounded-length verification of neural controllers (Akintunde et al. 2018, 2019; Amir, Schapira, and Katz 2021).
+Here we follow up on the work by Vinzent et al. (2022)
+(henceforth: Vea22), which tackles NN policies π with
+ReLU activation functions taking discrete action choices in
+non-deterministic state spaces over bounded-integer state
+variables. The approach extends predicate abstraction
+(PA) (Graf and Saı̈di 1997; Ball et al. 2001; Henzinger et al.
+2004) to what Vea22 baptise policy predicate abstraction
+(PPA). Like PA, PPA builds an over-approximating abstraction defined through a set P of predicates, where each
+p ∈ P is a linear constraint over the state variables (e.g.
+x = 7 or x ≤ y). Unlike PA however, PPA abstracts not the
+full state space Θ, but the policy-restricted state space Θπ ,
+i.e., the state-space subgraph containing only the transitions
+taken by π. Vea22’s method builds the fragment of ΘπP – the
+predicate abstraction of Θπ – reachable from ϕ0 , and checks
+whether ϕu is reached. If this is not the case, then π is safe.1
+Compared to bounded model checking (BMC), which
+iteratively checks length-L safety through an encoding into
+SMT (de Moura and Bjørner 2008), the advantage of PPA
+is that the required SMT calls are much cheaper. PPA uses
+SMT to decide about the existence of individual abstract
+state transitions. While many such SMT calls are needed,
+each is local to a single NN decision, requiring a singly copy
+of the NN π in the SMT encoding. In contrast, BMC requires
+global SMT encodings pertaining to sequences of NN decision steps, with one copy of π in each step, which incurs a
+blow-up prohibitive in L. Indeed, Vea22 show that PPA can
+outperform a simple implementation of BMC.
+The central weakness of this result, thus far, is that Vea22
+supplied the underlying predicate sets P manually. They examined performance as a function of |P|, with predicate
+sets scaled according to simple manually designed schemes.
+Their positive results pertain to particular points in these
+scaling schemes: particular instances of P that work well,
+
+Neural networks (NN) are an increasingly important representation of action policies π. Recent work has extended
+predicate abstraction to prove safety of such π, through policy predicate abstraction (PPA) which over-approximates the
+state space subgraph induced by π. The advantage of PPA is
+that reasoning about the NN – calls to SMT solvers – is required only locally, at individual abstract state transitions, in
+contrast to bounded model checking (BMC) where SMT must
+reason globally about sequences of NN decisions. Indeed,
+it has been shown that PPA can outperform a simple BMC
+implementation. However, the abstractions underlying these
+results (i.e., the abstraction predicates) were supplied manually. Here we automate this step. We extend counterexampleguided abstraction refinement (CEGAR) to PPA. This involves dealing with a new source of spuriousness in abstract
+unsafe paths, pertaining not to transition behavior but to the
+decisions of the neural network π. We introduce two methods
+tackling this issue based on the states involved, and we show
+that global SMT calls deciding spuriousness exactly can be
+avoided. We devise algorithmic enhancements leveraging incremental computation and heuristic search. We show empirically that the resulting verification tool has significant advantages over an encoding into the state-of-the-art model checker
+nuXmv. In particular, ours is the only approach in our experiments that succeeds in proving policies safe.
+
+1
+
+Introduction
+
+Neural networks (NN) are an increasingly important representation of action policies, in particular in planning (Issakkimuthu, Fern, and Tadepalli 2018; Groshev et al. 2018;
+Garg, Bajpai, and Mausam 2019; Toyer et al. 2020). But
+how to verify that such a policy is safe? Given a policy π,
+a start condition ϕ0 , and an unsafety condition ϕu , how
+to verify whether a state su |= ϕu is reachable from a state
+s0 |= ϕ0 under π? Such verification is potentially very hard
+as it compounds the state space explosion with the difficulty
+of analyzing even single NN decision episodes.
+Research on this question still is in its early stages. A
+prominent line of works addresses neural controllers of dynamical systems, where the NN outputs a vector u of reals forming input to a continuous state-evolution function
+f (Sun, Khedr, and Shoukry 2019; Tran et al. 2019; Huang
+
+1
+Note here that this safety result is specific to ϕ0 , i.e., checking
+different start conditions requires to re-run PPA. The advantage is
+that, given a fixed ϕ0 , we can leverage restricted reachability under
+π. Vea22 show that this is crucial for PPA to be practicable.
+
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+15188
+
+

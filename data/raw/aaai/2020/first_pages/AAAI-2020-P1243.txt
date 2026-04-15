@@ -1,0 +1,94 @@
+The Thirty-Fourth AAAI Conference on Artiﬁcial Intelligence (AAAI-20)
+
+Tandem Inference: An Out-of-Core Streaming
+Algorithm for Very Large-Scale Relational Inference
+Sriram Srinivasan∗
+
+Eriq Augustine∗
+
+Lise Getoor
+
+UC Santa Cruz
+ssriniv9@ucsc.edu
+
+UC Santa Cruz
+eaugusti@ucsc.edu
+
+UC Santa Cruz
+getoor@ucsc.edu
+
+knowledge graphs (Pujara et al. 2013), diagnosis of physical systems (Chen, Chen, and Qian 2014), and information
+retrieval (Srinivasan et al. 2019b).
+While SRL methods have seen a great deal of success,
+they face a major challenge when scaling to large datasets.
+The beneﬁt of easily generating large graphical models from
+a few template rules can turn into a curse as the graphical
+models can quickly grow to intractable sizes that do not ﬁt
+in memory. Consider a simple transitive rule: Link(A, B) ∧
+Link(B, C) → Link(A, C), commonly used in conjunction with link prediction tasks. When this rule is instantiated
+(grounded) with a simple dataset of 1000 entries, a graphical
+model with a billion potentials is generated.
+To address this issue, several approaches have been proposed. Lifted inference (de Salvo Braz, Amir, and Roth
+2005; Singla and Domingos 2008; den Broeck et al. 2011;
+Kersting 2012; Sarkhel et al. 2014; Kimmig, Mihalkova, and
+Getoor 2015; Srinivasan et al. 2019a) is a commonly employed and effective approach that exploits symmetry in the
+data to generate a more compact model on which to perform
+inference. While effective in many settings, a key drawback of these approaches is that evidence or noisy data can
+break symmetries, making lifting less effective. To address
+this issue, approximate lifting approaches have also been
+proposed (Sen, Deshpande, and Getoor 2009; den Broeck,
+Choi, and Darwiche 2012; Venugopal and Gogate 2014;
+Das et al. 2019) which exploit approximate symmetries, allowing for greater and more robust compression. However,
+if the ground model lacks signiﬁcant symmetry, approximate
+lifting may improve tractability only at the cost of correctness.
+Several approaches orthogonal to lifted inference have
+also been proposed that attempt to perform efﬁcient grounding by utilizing hybrid database approaches (Niu et al.
+2011), exploiting the structure of rules (Augustine and
+Getoor 2018), perform efﬁcient approximate counting for
+faster inference (Venugopal, Sarkhel, and Gogate 2015;
+Sarkhel et al. 2016; Das et al. 2016), or distributing models
+across multiple machines (Magliacane et al. 2015). However
+these methods, while quite useful, only provide partial solutions to grounding and efﬁcient inference at scale. The hybrid database approach increases runtime substantially, ex-
+
+Abstract
+Statistical relational learning (SRL) frameworks allow users
+to create large, complex graphical models using a compact,
+rule-based representation. However, these models can quickly
+become prohibitively large and not ﬁt into machine memory.
+In this work we address this issue by introducing a novel technique called tandem inference (TI). The primary idea of TI is
+to combine grounding and inference such that both processes
+happen in tandem. TI uses an out-of-core streaming approach
+to overcome memory limitations. Even when memory is not
+an issue, we show that our proposed approach is able to do
+inference faster while using less memory than existing approaches. To show the effectiveness of TI, we use a popular
+SRL framework called Probabilistic Soft Logic (PSL). We
+implement TI for PSL by proposing a gradient-based inference engine and a streaming approach to grounding. We show
+that we are able to run an SRL model with over 1B cliques in
+under nine hours and using only 10 GB of RAM; previous approaches required more than 800 GB for this model and are
+infeasible on common hardware. To the best of our knowledge, this is the largest SRL model ever run.
+
+1
+
+Introduction
+
+Statistical relational learning (SRL) (Richardson and
+Domingos 2006; Getoor and Taskar 2007; Raedt and Kersting 2011) is an effective method of combining weighted
+ﬁrst-order logic with probabilistic inference to make highquality, structured predictions. A characterizing trait of SRL
+is the ability to generate large graphical models from a
+small set of logical templates (rules). Several different SRL
+frameworks have been proposed, each exploring different
+types of graphical models, inference algorithms, or hyperparameter learning methods (Richardson and Domingos 2006;
+Bach et al. 2017; Venugopal, Sarkhel, and Gogate 2016).
+SRL methods have achieved state-of-the-art results in a varied set of domains such as image classiﬁcation (Aditya,
+Yang, and Baral 2018), activity recognition (London et al.
+2013), natural language processing (Ebrahimi, Dou, and
+Lowd 2016), recommender systems (Kouki et al. 2015),
+∗
+
+These authors contributed equally to this work.
+c 2020, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+10259
+
+

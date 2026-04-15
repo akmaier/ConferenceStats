@@ -1,0 +1,91 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+State-Conditioned Adversarial Subgoal Generation
+Vivienne Huiling Wang1,2 , Joni Pajarinen2 , Tinghuai Wang3 , Joni-Kristian Kämäräinen1
+1
+Computing Sciences, Tampere University, Finland
+Department of Electrical Engineering and Automation, Aalto University, Finland
+3
+Huawei Helsinki Research Center, Finland
+{huiling.wang,joni.kamarainen}@tuni.fi, joni.pajarinen@aalto.fi, tinghuaiwang@huawei.com
+2
+
+Abstract
+Hierarchical reinforcement learning (HRL) proposes to solve
+difficult tasks by performing decision-making and control
+at successively higher levels of temporal abstraction. However, off-policy HRL often suffers from the problem of a
+non-stationary high-level policy since the low-level policy is
+constantly changing. In this paper, we propose a novel HRL
+approach for mitigating the non-stationarity by adversarially
+enforcing the high-level policy to generate subgoals compatible with the current instantiation of the low-level policy. In
+practice, the adversarial learning is implemented by training a
+simple state conditioned discriminator network concurrently
+with the high-level policy which determines the compatibility
+level of subgoals. Comparison to state-of-the-art algorithms
+shows that our approach improves both learning efficiency and
+performance in challenging continuous control tasks.
+
+Introduction
+Hierarchical reinforcement learning (HRL), in which hierarchical policies learn to perform decision-making at successively higher levels of temporal and behavioral abstraction,
+has long held the promise to tackle complex problems with
+long-term credit assignment and sparse rewards. Among the
+prevailing HRL paradigms, the goal-conditioned HRL frameworks (Dayan and Hinton 1992; Schmidhuber and Wahnsiedler 1993; Kulkarni et al. 2016; Vezhnevets et al. 2017;
+Nachum et al. 2018; Levy et al. 2019; Zhang et al. 2020;
+Li et al. 2021) have achieved remarkable success. In goalconditioned HRL, a high-level policy breaks the original task
+into a series of subgoals that a low-level policy is incentivized
+to reach. The effectiveness and efficiency of goal-conditioned
+HRL relies on reasonable and semantically meaningful subgoals providing a strong supervision signal to the low-level
+policy.
+Nonetheless, off-policy training of a hierarchy of policies
+remains a key challenge due to the non-stationary state transitions induced by the hierarchical structure. Specifically,
+the same high-level action taken under the same state in
+the past may result in significantly different low-level state
+transitions due to the constantly changing low-level policy
+which renders the experience invalid for training. When all
+policies within the hierarchy are trained simultaneously, the
+high-level transition will constantly change as long as the
+low-level policy continues to be updated. However, learning
+Copyright c 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+10184
+
+hierarchical policies in parallel is still feasible as long as
+the high-level policy is able to efficiently adapt itself to the
+updated versions of low-level policy, and the hierarchical policy stabilizes once the low-level policy has converged to an
+optimal or near optimal policy. HIRO (Nachum et al. 2018)
+and HAC (Levy et al. 2019) have made attempts to address
+this problem by relabeling an experience in the past with a
+high-level action, i.e., subgoal, to maximize the probability
+of the past lower-level actions. In other words, the high-level
+action which induced a low-level behavior in the past may be
+relabeled to a subgoal which is likely to induce the same lowlevel behavior with the current low-level policy. However, the
+relabeling approach does not facilitate efficient training of
+the high-level policy to comply with the update of low-level
+policy, which consistently generates incompatible subgoals
+and deteriorates the non-stationarity issue. Such unfit state
+transitions in off-policy training lead to improper learning of
+the high-level value function, therefore negatively affecting
+high-level policy exploration.
+In this paper, we present a novel approach for mitigating
+the non-stationarity in goal-conditioned HRL. We aim to significantly improve the high-level policy’s knowledge of the
+low-level’s ability, thus improving the overall learning efficiency and stability. Concretely, we introduce an adversarial
+learning paradigm for HRL which enforces the high-level
+policy to learn to generate subgoals compatible with the current instantiation of the low-level policy. This is motivated
+by the assumption that the relabeled subgoals are sampled
+from a distribution which is asymptotically approximating
+an optimal high-level policy under stationary data distribution. Consequently the increasing divergence between the
+distribution of current subgoals and relabeled subgoals is the
+key indication of the non-stationarity. This suggests a conjecture that once this distribution divergence is mitigated the
+high-level policy naturally achieves stationarity.
+To this end, we propose a discriminator network to distinguish a generated subgoal that may not be reachable by
+the low level policy from a relabeled subgoal that we know
+is reachable by the low level policy. The high-level policy
+plays the role of the generator network that learns to generate
+subgoals following a distribution compatible with the current
+low level policy.
+The proposed adversarial learning thus reduces the shift
+and consequently the divergence in data distribution from relabeled experience to the current high-level policy behaviour
+and encourages the high level policy to generate reasonable
+
+

@@ -1,0 +1,241 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Learning from Ambiguous Demonstrations with Self-Explanation Guided
+Reinforcement Learning
+Yantian Zha* , Lin Guan* , Subbarao Kambhampati
+Arizona State University
+{yantian.zha,guanlin,rao}@asu.edu
+
+Abstract
+Our work aims at efficiently leveraging ambiguous demonstrations for the training of a reinforcement learning (RL)
+agent. An ambiguous demonstration can usually be interpreted in multiple ways, which severely hinders the RL agent
+from learning stably and efficiently. Since an optimal demonstration may also suffer from being ambiguous, previous
+works that combine RL and learning from demonstration
+(RLfD works) may not work well. Inspired by how humans
+handle such situations, we propose to use self-explanation (an
+agent generates explanations for itself) to recognize valuable
+high-level relational features as an interpretation of why a
+successful trajectory is successful. This way, the agent can
+leverage the explained important relations as guidance for its
+RL learning. Our main contribution is to propose the SelfExplanation for RL from Demonstrations (SERLfD) framework, which can overcome the limitations of existing RLfD
+works. Our experimental results show that an RLfD model
+can be improved by using our SERLfD framework in terms
+of training stability and performance. To foster further research in self-explanation-guided robot learning, we have
+made our demonstrations and code publicly accessible at
+https://github.com/YantianZha/SERLfD. For a deeper understanding of our work, interested readers can refer to our arXiv
+version at https://arxiv.org/pdf/2110.05286.pdf, including an
+accompanying appendix.
+
+1
+
+Introduction
+
+Reinforcement Learning from human visual demonstrations
+(RLfD) has gained prominence as an approach that improves
+the sampling efficiency of reinforcement learning (RL) by
+using the demonstrations to warm-start the learning process.
+RLfD offers advantages over pure imitation learning methods, such as overcoming distribution drift and limited adaptivity. As a driving force in the field of robotics, RLfD has
+shown great promise. However, it still suffers from sampling
+inefficiency when dealing with highly ambiguous demonstrations.
+The challenges arise from the inherent ambiguity and
+noisy details present in human demonstrations, which can
+easily distract the learning process. This issue becomes even
+more vexing in tasks that involve both tacit and explicit
+* Equal contribution; correspondence to yantian.zha@asu.edu
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+Robot-Push Domain
+
+1.2
+
+1.1
+𝒖𝒖 𝒑𝒑
+
+demonstrations
+
+predicates
+
+is_block_pushed
+is_ring_pushed
+block_at_yellow
+block_at_blue
+ring_at_yellow
+ring_at_blue
+block_at_L1
+block_at_L2
+ring_at_L1
+ring_at_L2
+
+step = 𝟐𝟐
+
+step = 𝟏𝟏
+
+step = 𝟎𝟎
+
+𝒖𝒖 𝒑𝒑
+
+predicates
+
+is_block_pushed
+is_ring_pushed
+block_at_yellow
+block_at_blue
+ring_at_yellow
+ring_at_blue
+block_at_L1
+block_at_L2
+ring_at_L1
+ring_at_L2
+
+𝓓𝓓𝒔𝒔𝒔𝒔𝒔𝒔𝒔𝒔𝒔𝒔𝒔𝒔𝒔𝒔
+
+𝒖𝒖 𝒑𝒑
+
+predicates
+
+is_block_pushed
+is_ring_pushed
+block_at_yellow
+block_at_blue
+ring_at_yellow
+ring_at_blue
+block_at_L1
+block_at_L2
+ring_at_L1
+ring_at_L2
+
+background
+
+𝒑𝒑 = 𝑪𝑪(𝒔𝒔)domain: There are
+Figure 1: Fig 1.1 shows the Robot-Push
+knowledge
+𝓓𝓓𝒇𝒇𝒇𝒇𝒇𝒇𝒇𝒇
+two target regions which
+we can index as L1 and L2. L1
+Discriminator
+and L2 Generator
+are also randomly assigned with the
+colors yellowSE-Net
+generates
+utility user
+and-blue
+or
+blue-and-yellow
+in
+each
+episode.
+A human
+execute
+traj
+weights u (self-explanation)
+demonstrates
+the task of pushing the ring and block into the
+policy 𝝅𝝅𝒊𝒊
+𝒖𝒖
+blue and yellow region respectively. Fig 1.2:= a𝑺𝑺𝑺𝑺 −
+three-step
+𝑵𝑵𝑵𝑵𝑵𝑵(𝒔𝒔)
+calculate
+shaped
+𝝅𝝅𝒊𝒊+𝟏𝟏 with grounded predicates (p) and reward
+robot execution
+predicted
+dot-product(𝒑𝒑, 𝒖𝒖)
+𝒓𝒓
+task
+self-explanations
+𝒓𝒓
+optimize policy (u).
+
+rewards
+
+optimize discriminator
+→ optimize SE-Net
+
+state augmentation and/or reward shaping
+
+knowledge components. For example, consider a task that
+requires understanding specific relations between objects
+(e.g., putting an object in a particular spatial relation with
+respect to another object) as well as a tacit motor demonstration of how the object is moved. In such cases, the ambigustep =
+step = 𝟏𝟏 reduced
+stepbe
+= 𝟎𝟎considerably
+ityRobot-Push
+in the demonstration
+can
+if 𝟐𝟐the
+Domain
+2.2
+robot takes into account
+the possible space of explicit knowl2.1
+edge or symbolic relations that the human teacher could be
+interested in. To put it simply, imagine the difficulty of playing a game of “dumb
+charades”
+when
+you 𝒖𝒖are
+unsure of
+predicates
+predicates
+𝒖𝒖 𝒑𝒑
+predicates
+𝒖𝒖 𝒑𝒑
+𝒑𝒑
+is_block_pushed
+is_block_pushed
+whether your friend is is_block_pushed
+miming
+movie
+names
+or
+place
+names.
+is_ring_pushed
+is_ring_pushed
+is_ring_pushed
+block_at_yellow
+block_at_yellow
+block_at_yellow
+In this paper, we propose
+a
+framework
+inspired
+by
+cogblock_at_blue
+block_at_blue
+block_at_blue
+ring_at_yellow
+ring_at_yellowthatring_at_yellow
+nitive psychology research,
+which suggests
+humans
+enring_at_blue
+ring_at_blue
+ring_at_blue
+block_at_L1
+block_at_L1
+block_at_L1strathance their learning by
+employingblock_at_L2
+a
+self-explanation
+block_at_L2
+block_at_L2
+ring_at_L1
+egy. We introduce a ring_at_L1
+self-explanation
+guided ring_at_L1
+reinforcement
+ring_at_L2
+ring_at_L2
+ring_at_L2
+learning approach where the robot attempts to “self-explain”
+the potential relations over objects that the human teacher
+is considering. To support this, we establish a shared vocabulary of possible predicates in the domain, and the robot
+takes into account this space of predicate groundings when
+parsing a given demonstration. By doing so, we significantly
+reduce the ambiguity in the demonstration, effectively addressing the sample complexity issue.
+
+10395
+
+

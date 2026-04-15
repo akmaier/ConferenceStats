@@ -1,0 +1,90 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Learning Uncertainty-Aware Temporally-Extended Actions
+Joongkyu Lee1 * , Seung Joon Park2 * , Yunhao Tang3 , Min-hwan Oh1
+1
+
+Seoul National University
+2
+Samsung Research
+3
+Google DeepMind
+jklee0717@snu.ac.kr, soonjun.park@samsung.com, robintyh@deepmind.com, minoh@snu.ac.kr
+
+Abstract
+In reinforcement learning, temporal abstraction in the action
+space, exemplified by action repetition, is a technique to facilitate policy learning through extended actions. However, a primary limitation in previous studies of action repetition is its potential to degrade performance, particularly when sub-optimal
+actions are repeated. This issue often negates the advantages
+of action repetition. To address this, we propose a novel algorithm named Uncertainty-aware Temporal Extension (UTE).
+UTE employs ensemble methods to accurately measure uncertainty during action extension. This feature allows policies
+to strategically choose between emphasizing exploration or
+adopting an uncertainty-averse approach, tailored to their specific needs. We demonstrate the effectiveness of UTE through
+experiments in Gridworld and Atari 2600 environments. Our
+findings show that UTE outperforms existing action repetition
+algorithms, effectively mitigating their inherent limitations
+and significantly enhancing policy learning efficiency.
+
+Introduction
+Temporal abstraction is a promising approach to solving
+complex tasks in reinforcement learning (RL) with complex
+structures and long horizons (Fikes, Hart, and Nilsson 1972;
+Dayan and Hinton 1992; Parr and Russell 1997; Sutton, Precup, and Singh 1999; Precup 2000; Bacon, Harb, and Precup
+2017; Barreto et al. 2019; Machado, Barreto, and Precup
+2021). Hierarchical reinforcement learning (HRL) enables
+the decomposition of this sequential decision-making problem into simpler lower-level actions or subtasks. Intuitively,
+an agent explores the environment more effectively when
+operating at a higher level of abstraction and solving smaller
+subtasks (Machado, Barreto, and Precup 2021). One of the
+most prominent approaches for HRL is the option framework (Sutton, Precup, and Singh 1999; Precup 2000), which
+describes the hierarchical structure in decision making in
+terms of temporally-extended courses of action. Temporallyextended actions have been shown to speed up learning, potentially providing more effective exploration compared to
+single-step explorative action and requiring a smaller number of high-level decisions when solving a problem (Stolle
+* These authors contributed equally.
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+13391
+
+and Precup 2002; Biedenkapp et al. 2021). From a cognitive perspective, such observations are also coherent with
+how humans learn, generalize from experiences, and perform
+abstraction over tasks (Xia and Collins 2021).
+There has been a line of works that propose repetition
+of action for an extended period as a specialized form
+of temporal abstraction (Lakshminarayanan, Sharma, and
+Ravindran 2017; Sharma, Srinivas, and Ravindran 2017;
+Dabney, Ostrovski, and Barreto 2020; Metelli et al. 2020;
+Biedenkapp et al. 2021; Park, Kim, and Kim 2021).1 Hence,
+the action-repetition methods address the problem of learning
+when to perform a new action while repeating an action for
+multiple time-steps (Dabney, Ostrovski, and Barreto 2020;
+Biedenkapp et al. 2021). The extension length, the interaction steps to repeat the same action, is learned by an agent
+along with what action to execute (Sharma, Srinivas, and
+Ravindran 2017; Biedenkapp et al. 2021). As shown by the
+improved empirical performances (Dabney, Ostrovski, and
+Barreto 2020; Biedenkapp et al. 2021), these action repetition
+approaches can be well justified by the commitment to action
+for deriving a deeper exploration. These approaches can help
+suppress the dithering behavior of the agent that can result in
+short-sighted exploration in a local neighborhood.
+However, simple action repetition alone cannot guarantee
+performance improvement. Repetition of a sub-optimal action for an extended period can lead to severe deterioration
+in the performance. For example, a game may terminate due
+to reckless action repetition when an agent is in a dangerous
+region. A more uncertainty-averse behavior would be helpful
+in this scenario. On the other hand, an agent may linger in the
+local neighborhood due to a lack of optimism, especially in
+sparse reward settings. In that case, a more exploration-favor
+behavior can be beneficial. In either case, a suitable control
+of uncertainty of value estimates over longer horizons can be
+a crucial element. In particular, the calibration of how much
+exploration the agent can take, or how uncertainty-averse the
+agent should be, can definitely depend on an environment.
+Thus, the degree of uncertainty to be considered should be
+1
+In fact, action repetition for a fixed number of steps was one
+of the strategies deployed in solving Atari 2600 games (Mnih et al.
+2015; Machado et al. 2018). Despite its simplicity, the action repetition provided sufficient performance gains so that almost all modern
+methods of solving Atari games are still implementing such action
+repetitions.
+
+

@@ -1,0 +1,95 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+Classifying Sequences of Extreme Length with Constant Memory
+Applied to Malware Detection
+Edward Raff, 1,2,3 William Fleshman, 4 Richard Zak, 1,2,3
+Hyrum S. Anderson, 5 Bobby Filar, 6 Mark McLean 1
+
+1
+
+Laboratory for Physical Sciences, 2 Booz Allen Hamilton, 3 University of Maryland, Baltimore County
+4
+U.S. Army, 5 Microsoft, 6 Elastic
+{edraff, rzak, mrmclea}@lps.umd.edu, {raff edward, zak richard}@bah.com, {raff.edward, richard.zak}@umbc.edu,
+william.c.fleshman.mil@mail.mil, hyruma@microsoft.com, robert.filar@elastic.co
+Abstract
+
+should be extracted. To quantify the cost of such efforts, a
+single program can take weeks for experts with decades of
+experience to reverse engineer (Votipka et al. 2019), so the
+ability to build models that perform their own feature extraction and construction can save an enormous amount of time
+if successful.
+Toward this goal, we follow the approach of MalConv,
+which proposed to tackle the problem of malware detection
+as a time series classification problem (Raff et al. 2018). For
+an input file x of T bytes in length, a neural network must
+learn to produce an output label y ∈ {Benign, Malicious}.
+The MalConv architecture was relatively small (≈ 1 million
+parameters) but represented a meaningful malware detector
+by performing convolutions over raw byte inputs. Additionally, the work identified a number of challenges with this task.
+In particular, their approach would process up to 2 MB of
+a file—equivalent to a time series prediction problem with
+T = 2, 000, 000 steps. The next longest time series task we
+are aware of is only on the order of ≤ 16, 000 steps (van den
+Oord et al. 2016). Due to the extreme length of raw byte inputs, the MalConv solution required an NVIDIA DGX-1 with
+128 GB of GPU memory to train over one month of compute
+time. This has made MalConv difficult to replicate, while
+simultaneously neglecting the fact that 2 MB is relatively
+small with respect to the distribution of observed executable
+file sizes, where the tails can reach in excess of 100 MB.
+In this work, we produce a solution to the high memory
+cost to train MalConv, making the memory use invariant to
+the length of the input — allowing us to train on data points
+in excess of 200,000,000 time steps in length using a single
+GPU. This reduces the memory used to train MalConv by
+a factor of 116× while simultaneously providing an up to
+25.8× speedup, reducing the compute requirements from a
+DGX-1 down to a free Google Colab instance. Our approach
+leverages the sparse gradients of temporal max pooling to cap
+the memory requirement during training on long inputs. By
+significantly reducing the runtime and memory constraints of
+MalConv, we are able to explore more advanced architectures
+for the task of time series classification. In particular, we
+develop a new global channel gating (GCG) that allows us to
+enhance MalConv to learn interactions of features across the
+entire input space. GCG can be implemented in only 7 lines
+of Python, making it easy to implement while improving the
+
+Recent works within machine learning have been tackling inputs of ever-increasing size, with cybersecurity presenting sequence classification problems of particularly extreme lengths.
+In the case of Windows executable malware detection, inputs
+may exceed 100 MB, which corresponds to a time series with
+T = 100, 000, 000 steps. To date, the closest approach to
+handling such a task is MalConv, a convolutional neural network capable of processing up to T = 2, 000, 000 steps. The
+O(T ) memory of CNNs has prevented further application of
+CNNs to malware. In this work, we develop a new approach
+to temporal max pooling that makes the required memory invariant to the sequence length T . This makes MalConv 116×
+more memory efficient, and up to 25.8× faster to train on its
+original dataset, while removing the input length restrictions
+to MalConv. We re-invest these gains into improving the MalConv architecture by developing a new Global Channel Gating
+design, giving us an attention mechanism capable of learning
+feature interactions across 100 million time steps in an efficient manner, a capability lacked by the original MalConv
+CNN. Our implementation can be found at https://github.com/
+NeuromorphicComputationResearchProgram/MalConv2
+
+1
+
+Introduction
+
+Cybersecurity has received increased attention from machine
+learning practitioners and researchers due to the number of
+challenges that exist within the space. Industry datasets are
+routinely measured in petabytes (Spafford 2014), have noisy
+labels, are both structured and unstructured, suffer from continuous concept drift (Kantchelian et al. 2013), and adversarial attacks have been well motivated as a daily occurrence
+for decades (Rajab et al. 2011). In this work we are interested in the task of static malware detection, where using the
+on-disk byte representation, one wishes to predict if a new
+executable program is benign or malicious. Current industry
+models rely heavily on domain knowledge feature extraction,
+which is time consuming and expensive, and requires intimate knowledge of Windows and low-level assembly and
+software design. Because malware authors adapt, this feature
+engineering is a continuous processes, which can require
+reverse engineering effort to determine what new features
+Copyright © 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+9386
+
+

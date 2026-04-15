@@ -1,0 +1,88 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+Optimization for Classical Machine Learning Problems on the GPU
+Sören Laue1, 2 , Mark Blacher1 , Joachim Giesen1
+1
+
+Friedrich-Schiller-University Jena, Germany
+2
+Data Assessment Solutions GmbH
+{soeren.laue, mark.blacher, joachim.giesen}@uni-jena.de
+
+Abstract
+
+method involves an inherently sequential Cauchy point computation that determines the variables that will be modified
+in the current iteration. The Cauchy point is computed by
+minimizing a quadratic approximation over the gradient projection path, resulting in a large number of sequential scalar
+computations, which means that all but one core on a multicore processor will be idle. This problem is aggrevated on
+modern GPUs that feature a few orders of magnitude more
+cores than a standard CPU, e.g., 2304 instead of 18.
+
+Constrained optimization problems arise frequently in classical machine learning. There exist frameworks addressing
+constrained optimization, for instance, CVXPY and GENO.
+However, in contrast to deep learning frameworks, GPU support is limited. Here, we extend the GENO framework to
+also solve constrained optimization problems on the GPU.
+The framework allows the user to specify constrained optimization problems in an easy-to-read modeling language. A
+solver is then automatically generated from this specification.
+When run on the GPU, the solver outperforms state-of-the-art
+approaches like CVXPY combined with a GPU-accelerated
+solver such as cuOSQP or SCS by a few orders of magnitude.
+
+Let us substantiate this issue by the following example (see the appendix for details). On a non-negative least
+squares problem, the L-BFGS-B algorithm needs 4.9 seconds in total until convergence, where 0.6 seconds are spent
+in the Cauchy point subroutine. When run on a modern
+GPU, the same code needs 5.2 seconds in total while 4.6 seconds are spent in the Cauchy point subroutine. It can be seen
+that while all other parts of the L-BFGS-B algorithm can
+be parallelized nicely on a GPU, the inherently sequential
+Cauchy point computation does not and instead, dominates
+the computation time on the GPU; as a result, the L-BFGS-B
+method is not faster on a GPU than on a CPU, rendering the
+benefits of the GPU moot.
+
+Introduction
+Training classical machine learning models typically means
+solving an optimization problem. Hence, the design and implementation of solvers for training these models has been
+and still is an active research topic. While the use of GPUs
+is standard in training deep learning models, most solvers
+for classical machine learning problems still target CPUs.
+Easy-to-use deep learning frameworks like TensorFlow or
+PyTorch can be used to solve unconstrained problems on the
+GPU. However, many classical problems entail constrained
+optimization problems. So far, deep learning frameworks do
+not support constrained problems, not even problems with
+simple box constraints, that is, bounds on the variables. Optimization frameworks for classical machine learning like
+CVXPY (Agrawal et al. 2018; Diamond and Boyd 2016) can
+handle constraints but typically address CPUs. Here, we extend the GENO framework (Laue, Mitterreiter, and Giesen
+2019) for constrained optimization to also target GPUs.
+Adding GPU support to an optimization framework for
+classical machine learning problems is not straightforward. An efficient algorithmic framework could use the
+limited-memory quasi-Newton method L-BFGS-B (Byrd
+et al. 1995) that allows to solve large-scale optimization
+problems with box constraints. More general constraints
+can then be addressed by the augmented Lagrangian approach (Hestenes 1969; Powell 1969). However, porting the
+L-BFGS-B method to the GPU does not provide any efficiency gain for the following reason: In each iteration the
+
+Here, we present a modified L-BFGS-B method that runs
+efficiently on the GPU, because it avoids the sequential
+Cauchy point computation. For instance, on the same problem as above, it needs 0.8 seconds in total on the GPU. We
+integrate an implementation of this method into the GENO
+framework for constrained optimization. Experiments on
+several classical machine learning problems show that our
+implementation outperforms state-of-the-art approaches like
+the combination of CVXPY with GPU-accelerated solvers
+such as cuOSQP or SCS by several orders of magnitude.
+Contributions. The contributions of this paper can be
+summarized as follows:
+1. We design a provably convergent L-BFGS-B algorithm
+that can handle box constraints on the variables and runs efficiently on the GPU.
+2. We combine our algorithm with an Augmented Lagrangian approach for solving constrained optimization
+problems.
+3. We integrate our approach into the GENO framework for
+constrained optimization. It outperforms comparable stateof-the-art approaches by several orders of magnitude.
+
+Copyright c 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+7300
+
+

@@ -1,0 +1,141 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+Language Modelling via Learning to Rank
+Arvid Frydenlund1,2 , Gagandeep Singh3 , Frank Rudzicz1,2,4
+1
+
+Department of Computer Science, University of Toronto
+2
+Vector Institute for Artificial Intelligence
+3
+Nuance Communications Inc.
+4
+Unity Health Toronto
+arvie@cs.toronto.edu, gagandeep.singh1@nuance.com, frank@cs.toronto.edu
+Abstract
+
+where we use the softmax function to model a multinomial
+distribution over a set vocabulary V , wt ∈ R|V | are the logits produced by the model at step t, j indexes the score for
+the j th word-type, and gt is the ground-truth (GT) index at
+time t. Such models are trained by minimizing the per-word
+cross-entropy (CE or H(y, p)) against the ground-truth text,
+y = y1 , . . . , yT ∈ R|V | which are one-hot representations
+of x1 , . . . , xT ,
+
+We consider language modelling (LM) as a multi-label structured prediction task by re-framing training from solely predicting a single ground-truth word to ranking a set of words
+which could continue a given context. To avoid annotating
+top-k ranks, we generate them using pre-trained LMs: GPT2, BERT, and Born-Again models. This leads to a rankbased form of knowledge distillation (KD). We also develop a
+method using N -grams to create a non-probabilistic teacher
+which generates the ranks without the need of a pre-trained
+LM.
+We confirm the hypotheses that we can treat LMing as a ranking task and that we can do so without the use of a pre-trained
+LM. We show that rank-based KD generally improves perplexity (PPL) — often with statistical significance — when
+compared to Kullback–Leibler-based KD. Surprisingly, given
+the simplicity of the method, the N -grams act as competitive teachers and achieve similar performance as using either
+BERT or a Born-Again model as teachers. GPT-2 always acts
+as the best teacher, though, and using it and a Transformer-XL
+student on Wiki-02, rank-based KD reduces a cross-entropy
+baseline from 65.27 to 55.94 and against a KL-based KD of
+56.70.
+
+1
+
+−
+
+During training, we assume that y is a one-hot distribution since we do not have access to the true data distribution.
+This assumption is obviously incorrect, considering that humans are able to form a valid continuation of most contexts
+with multiple potential words. Call these potential words the
+branching set of a given context. Instead, we may want to
+give partial credit for predicting words in the branching set,
+like ‘rug’ in instances when the GT is ‘mat’ (and vice versa)
+based on the semantic similarity between the words and contexts. One method for achieving this is via label smoothing.
+
+Introduction and Motivation
+
+1.1
+
+T
+Y
+
+p(xt | x<t )
+
+t=1
+
+=
+
+T
+Y
+t=1
+
+gt
+
+e wt
+P|V |
+
+j
+
+wt
+j=1 e
+
+=
+
+gt
+T
+Y
+e wt
+
+t=1
+
+Zt
+
+Label Smoothing and Knowledge Distillation
+
+Label smoothing (LS) is a method which modifies each yt
+to be soft-targets, instead of one-hot, by redistributing probability from the GT label to other labels (Szegedy et al. 2016).
+It is commonly implemented using a hand-crafted function,
+such as setting the GT probability to 0.9 and spreading the
+remaining 0.1 uniformly across the other labels (Pereyra
+et al. 2017). LS is a simple method which has different motivations depending on the problem it is meant to solve. One
+problem is noisy labels (Lukasik et al. 2020a). Here one
+views the GTs as truly one-hot but possibly incorrect due to
+errors in annotation. A second problem is to regularize overconfident models in situations where we desire that model’s
+probabilities should not spike to a single prediction (Pereyra
+et al. 2017; Müller, Kornblith, and Hinton 2019). Here, one
+again views the GTs as truly one-hot but they do not want
+the model to make predictions too close to the one-hot distribution due to how the model is to be used. However, in our
+case, we use label smoothing to make the single-target GTs
+multi-target, under the view that the true GTs are actually
+multi-target but that we lack access to this information.
+
+More often than not, there are many ways to say the same
+thing. For example, ‘the cat sat on the mat’ is semantically equivalent to ‘the cat sat on the rug’, in most contexts.
+This basic fact about language is ignored when training language models, where we try to maximize the probability
+of predicting a single ground-truth word for a given context and penalize all other words regardless of any potential
+semantic equivalence. In particular, a word-level language
+model (LM) defines a distribution over T discrete tokens,
+x1 , . . . , xT , as
+
+p(x1 , . . . , xT | x0 ) =
+
+i
+T |V |
+T |V |
+1 XX i
+e wt
+1 XX i
+yt log
+y (log Zt − wti ). (2)
+=
+T t=1 i=1
+Zt
+T t=1 i=1 t
+
+(1)
+,
+
+Copyright © 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+10636
+
+

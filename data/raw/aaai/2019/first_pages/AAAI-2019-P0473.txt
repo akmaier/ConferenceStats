@@ -1,0 +1,78 @@
+The Thirty-Third AAAI Conference on Artificial Intelligence (AAAI-19)
+
+Scalable Distributed DL Training: Batching Communication and Computation
+Shaoqi Wang, Aidi Pi, Xiaobo Zhou
+Department of Computer Science
+University of Colorado, Colorado Springs, CO, USA
+{swang, epi, xzhou}@uccs.edu
+
+Abstract
+
+the one iteration execution contains four sequential operations. First, the workers pull the parameters from the servers.
+Then, they conduct forward computation based on the pulled
+parameters, and compute the gradients through backward
+computation. Finally, they push the gradients during each
+synchronization into the servers.
+However, as the number of nodes in a cluster increases,
+the distributed implementation with PS often scales poorly.
+For instance, a recent study (Zhang et al. 2017) shows that
+training VGG19-22K network that contains 229M (million)
+parameters with open-source TensorFlow on 32 nodes can
+be slower than training on a single node. The reason is
+that when the number of nodes increases, more nodes share
+the network bandwidth of the cluster so that the available
+bandwidth for each node decreases (Ahmad et al. 2014;
+Wang et al. 2018b). As the result, the parameter communication time and gradient communication time increase,
+prolonging the execution time of one iteration. Thus, the
+cluster network bandwidth becomes a severe bottleneck for
+large-scale distributed DL training.
+Previous efforts reduce the impact of communication constraint on the scalability of distributed DNN model training
+from two aspects. From the aspect of algorithm, Gradient
+Quantization (Zhou et al. 2016; Wen et al. 2017; Micikevicius et al. 2018) and Sparsification (Aji and Heafield 2017;
+Lin et al. 2018; Chen et al. 2018) reduce the gradient communication time by cutting down the size of gradients in
+communication. These techniques need to balance the tradeoff between the model accuracy and the size of gradients.
+From the aspect of PS design, Poseidon (Zhang et al. 2017)
+proposes a novel PS architecture, in which gradient communication is overlapped with backward computation layer by
+layer to reduce the execution time of these two operations.
+With the layer by layer strategy, the gradients of each layer
+are pushed to the servers immediately after the backward
+computation in the layer. However, Poseidon does not overlap parameter communication with forward computation.
+The trend of Gradient Quantization and Sparsification continues reducing the size of gradients in communication. As
+the result, parameter communication accounts for an increasingly large part of the total communication between the workers and the servers. To this end, we propose to overlap parameter communication with forward computation so as to reduce
+the execution time including parameter communication time
+
+Scalability of distributed deep learning (DL) training with
+parameter server architecture is often communication constrained in large clusters. There are recent efforts that use a
+layer by layer strategy to overlap gradient communication
+with backward computation so as to reduce the impact of
+communication constraint on the scalability. However, the approaches cannot be effectively applied to the overlap between
+parameter communication and forward computation. In this
+paper, we propose and design iBatch, a novel communication
+approach that batches parameter communication and forward
+computation to overlap them with each other. We formulate
+the batching decision as an optimization problem and solve it
+based on greedy algorithm to derive communication and computation batches. We implement iBatch in the open-source DL
+framework BigDL and perform evaluations with various DL
+workloads. Experimental results show that iBatch improves
+the scalability of a cluster of 72 nodes by up to 73% over the
+default PS and 41% over the layer by layer strategy.
+
+Introduction
+Deep learning (DL) (LeCun, Bengio, and Hinton 2015),
+a class in machine learning (ML) field, has achieved remarkable success across a wide range of applications, including image recognition, object detection, and natural
+language processing. In DL, deep neural network (DNN)
+models achieve high accuracy through the use of deeply
+layered structures with many parameters (He et al. 2016;
+Szegedy et al. 2017).
+In order to reduce the training time of DNN models in a single compute node, DL frameworks (e.g., TensorFlow (Abadi
+et al. 2016), BigDL (Wang et al. 2018c)) implement distributed DNN models, in which the training data is partitioned over distributed clusters with multiple nodes by taking
+advantage of data parallelism. Among the distribution implementations, parameter server (PS) architecture (Li et al. 2014;
+Dai et al. 2015; Xing et al. 2015) is a common communication architecture that synchronizes parameter updates (i.e.,
+gradients) among multiple nodes. PS separates the cluster
+nodes into workers and servers. The servers serve as a distributed storage of model parameters. In the default setting,
+Copyright c 2019, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+5289
+
+

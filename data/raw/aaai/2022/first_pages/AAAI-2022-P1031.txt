@@ -1,0 +1,85 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+Scaling Up Influence Functions
+Andrea Schioppa∗ , Polina Zablotskaia, David Vilar, Artem Sokolov
+Google Research
+{arischioppa, polinaz, vilar, artemsok}@google.com
+
+loss L if x were infinitesimally up-weighted in D, with:
+
+Abstract
+
+IH (x, z) = h∇Θ L(z), H −1 ∇Θ L(x)i,
+
+We address efficient calculation of influence functions for
+tracking predictions back to the training data. We propose
+and analyze a new approach to speeding up the inverse Hessian calculation based on Arnoldi iteration. With this improvement, we achieve, to the best of our knowledge, the first
+successful implementation of influence functions that scales
+to full-size (language and vision) Transformer models with
+several hundreds of millions of parameters. We evaluate our
+approach on image classification and sequence-to-sequence
+tasks with tens to a hundred of millions of training examples. Our code will be available at https://github.com/googleresearch/jax-influence.
+
+1
+
+(1)
+
+∇2Θ L is the Hessian of the model at param-
+
+where H =
+eters Θ. The straight-forward IF implementation, using the
+approximate Hessian inversion procedure LISSA (Agarwal,
+Bullins, and Hazan 2017), has O(p) memory and O(r · p)
+time complexities, where r is the LISSA iteration count and
+p = |Θ|, incurred at every x. Besides the need of careful tuning of LISSA, the O(p)-memory has been the major obstacle on the way of IF deployment for debugging applicationrelevant DNNs with hundreds of millions (or more) training
+examples and model parameters; so noise or mislabeling issues remain unfixed or even undetected, and are adversely
+impacting predictions.
+In this work, we focus on reducing the IF memory footprint by not materializing O(p)-size gradients nor Hessians, and decoupling the required number of H estimations,
+O(r · |D|), from the training data size. This allows to parallelize computation over larger b and scale to huge datasets
+and models. Specifically, we use Arnoldi iteration (Arnoldi
+1951) to find the dominant (in absolute value) eigenvalues
+of H and their orthonormal eigenvectors on a random data
+subset, |D0 |  |D|, and then cheaply invert the diagonalized
+H, avoiding calls to LISSA as well as its convergence and
+stability issues. As H is Hermitian, (1) is symmetric w.r.t. x
+and z, so previous work cached {∇Θ L(x)} to improve IFs
+usability (Guo et al. 2021), however, it only spares one backward pass per x and requires to re-estimate the product of
+the (unstorable) H −1 with ∇Θ L(z) every time an influence
+on z is requested. The crux of our approach is in caching
+instead H in the trivially-invertable diagonalized form and
+for the small-dimensional subspace spanned by a few dominant eigenvectors, p̃  p. Hessian-gradient products are
+then reduced to simple scalar-gradient products, which do
+not need to be materialized in memory as (1) can now be implemented with Jacobian-vector products. In summary, our
+approach renders repeated re-estimations of H −1 ∇Θ L(x) at
+every x unnecessary and they are replaced with the memoryand time-efficient forward-mode differentiation.
+Empirically, IFs with Arnoldi iteration achieve speedups of 3-4 orders of magnitude over the LISSA-powered
+IFs (Koh and Liang 2017) and of 10x over TracIn (Pruthi
+et al. 2020), a heuristic gradient-only alternative to IFs (§5),
+
+Introduction
+
+Recognizing data’s highest agency in defining deep neural
+networks’ (DNNs) performance, the pursuit of state-of-theart has made datasets for training modern DNNs grow to
+sizes that can no longer be curated by humans. This has
+acutely aggravated data issues like noise and mislabeled
+data: Noise is characteristic of tasks where training data is
+crawled from the Web (e.g. machine translation) and where
+golden-truth labels are heuristically paired to inputs (Uszkoreit et al. 2010), leaving ample room for errors and inheriting biases of the heuristic. Wrong labels can be also introduced by non-expert crowd annotators who, considering
+the amount of data to be labeled, are hard to incentivize for
+quality within available budgets (Bowman and Dahl 2021).
+Given the above, a natural way to interpret and fix DNN
+models is to track their bad (or good) predictions down to
+the training examples that caused them (Cook and Weisberg
+1980; Koh and Liang 2017; Yeh et al. 2018), and take appropriate action on the found examples or annotation policies. Addressing this, Koh and Liang (2017) proposed influence functions (IFs) as a theoretically motivated method,
+grounded in robust statistics (Cook and Weisberg 1982), of
+quantifying the effect of training examples on predictions:
+For a query example z, IFs estimate the most influential example x in training data D, in terms of absolute change of
+∗
+
+Google AI Resident.
+Copyright c 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+8179
+
+

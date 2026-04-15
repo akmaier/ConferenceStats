@@ -1,0 +1,86 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+RetGen: A Joint Framework for Retrieval and Grounded Text Generation Modeling
+Yizhe Zhang * , Siqi Sun, Xiang Gao, Yuwei Fang,
+Chris Brockett, Michel Galley, Jianfeng Gao, Bill Dolan
+Microsoft Corporation, Redmond, WA, USA
+yizhe.zhang@hotmail.com, {siqi.sun,xiag,yuwfan,mgalley,chrisbkt,jfgao,billdol}@microsoft.com
+
+Abstract
+Recent advances in large-scale pre-training such as GPT-3
+allow seemingly high quality text to be generated from a
+given prompt. However, such generation systems often suffer
+from problems of hallucinated facts, and are not inherently
+designed to incorporate useful external information. Grounded
+generation models appear to offer remedies, but their training typically relies on rarely-available parallel data where
+information-relevant documents are provided for context. We
+propose a framework that alleviates this data constraint by
+jointly training a grounded generator and document retriever
+on the language model signal. The model learns to reward retrieval of the documents with the highest utility in generation,
+and attentively combines them using a Mixture-of-Experts
+(MoE) ensemble to generate follow-on text. We demonstrate
+that both generator and retriever can take advantage of this
+joint training and work synergistically to produce more informative and relevant text in both prose and dialogue generation.
+
+Introduction
+Recent large-scale pre-trained language models (LMs) such
+as BERT (Devlin et al. 2019), GPT-2 (Radford et al. 2019),
+GPT-3 (Brown et al. 2020), and T5 (Raffel et al. 2019) have
+brought numerous breakthroughs in natural language generation (NLG) across a variety of tasks. These models, however, are not designed to leverage external information to
+enhance or to verify the predicted text. Gao et al. (2020),
+for example, demonstrate that they fail to reliably generate responses grounded in real-world knowledge, and may
+fall short when generating goal-directed responses that are
+optimized for information-seeking task completion. These
+models pose several challenges in information-demanding
+scenarios: First, they are usually trained offline, rendering
+the model agnostic to the latest information (e.g., asking a
+chat-bot trained from 2011-2018 about COVID-19). Second,
+they are mostly trained on public data, rendering them less
+suitable in scenarios where customized or personalized information must be processed (e.g., writing suggestions based
+on private user-data). Third, even in scenarios that call only
+for public information, generation from these LMs may be
+unfaithful to the facts (e.g., hallucinations about birth dates),
+* Work done at Microsoft Research
+Copyright © 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+11739
+
+especially when the people or entities are less well known
+and the scenario demands a high degree of fidelity. As a practical matter, moreover, there remains a fundamental capacity
+issue in that large LMs cannot effectively represent all the
+information about every person or entity in the world.
+A solution that would at first glance seem obvious is
+to ground the language model in real-world knowledge,
+which can be present in either structured data (e.g., a
+knowledge-graph) or unstructured data (e.g., documents such
+as Wikipedia, user documents or background stories) (Wu
+et al. 2021; Ghazvininejad et al. 2018; Dinan et al. 2019; Qin
+et al. 2019). The advantage of using unstructured grounding
+data over structured data is that the former provides richer
+information and it is typically more flexible when it comes
+to maintaining and updating the information base. However,
+training a grounded text generation model that takes additional unstructured documents as input typically demands
+that the training data contains pairs of context and corresponding oracle documents. These pairs are seldom available. Recent work, such as REALM (Guu et al. 2020) and
+RAG (Lewis et al. 2020b), attempts to leverage information
+retrieval machinery in real time to mitigate this data paucity
+in open-domain question answering systems. The approach
+taken in this paper is in similar vein, but is not confined
+to the specialized case of question answering, and seeks to
+present a mechanism to that addresses the broader problem
+of informational accuracy in text generation.
+In this paper, we investigate the task of generating text by
+potentially taking advantage from massive reference documents. We called this task as Information-aware Text Generation (ITG). Note that ITG is related but different from
+open-domain Question Answering (ODQA). In ODQA, the
+input is typically an information query/question, and the generation is expected to be the answer for that query. In ITG,
+the input is usually not an information query/question. The
+task is to potentially leverage any possible external reference documents to predict the next utterance or sentence.
+Unlike the ODQA, ITG might not always directly seek an
+answer from retrieved documents, instead it usually requires
+the retrieved information to be digested as context to subtly
+influence the generation. Therefore, ITG can be applied to
+scenarios like dialogue generation and text auto-completion
+which generalize the open-domain QA scenario.
+Below, we present a large-scale general purpose pre-
+
+

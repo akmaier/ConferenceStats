@@ -1,0 +1,87 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Task Planning for Object Rearrangement in Multi-Room Environments
+Karan Mirakhor* , Sourav Ghosh* , Dipanjan Das, Brojeshwar Bhowmick
+Visual Computing and Embodied Intelligence Lab, TCS Research, Kolkata, India
+{karan.mirakhor, g.sourav10, dipanjan.da, b.bhowmick}@tcs.com
+
+Abstract
+Object rearrangement in a multi-room setup should produce
+a reasonable plan that reduces the agent’s overall travel and
+the number of steps. Recent state-of-the-art methods fail to
+produce such plans because they rely on explicit exploration
+for discovering unseen objects due to partial observability and
+a heuristic planner to sequence the actions for rearrangement.
+This paper proposes a novel task planner to efficiently plan a
+sequence of actions to discover unseen objects and rearrange
+misplaced objects within an untidy house to achieve a desired
+tidy state. The proposed method introduces several innovative
+techniques, including (i) a method for discovering unseen
+objects using commonsense knowledge from large language
+models, (ii) a collision resolution and buffer prediction method
+based on Cross-Entropy Method to handle blocked goal and
+swap cases, (iii) a directed spatial graph-based state space
+for scalability, and (iv) deep reinforcement learning (RL) for
+producing an efficient plan to simultaneously discover unseen
+objects and rearrange the visible misplaced ones to minimize
+the overall traversal. The paper also presents new metrics and a
+benchmark dataset called MoPOR to evaluate the effectiveness
+of the rearrangement planning in a multi-room setting. The
+experimental results demonstrate that the proposed method
+effectively addresses the multi-room rearrangement problem.
+
+Introduction
+Organizing an untidy household according to user preferences is a challenging task that encompasses multiple aspects,
+including perception, planning, navigation, and manipulation
+(Batra et al. 2020). When an agent engages in multi-room
+object rearrangement, it must rely on sensor data and prior
+knowledge to devise a comprehensive plan that involves sequencing the object movement to achieve the desired tidy
+state. The specifications for this goal state can be defined
+using various modalities such as geometry, images, language,
+etc. (Batra et al. 2020).
+Current research on object rearrangement primarily focuses on single-room setups, emphasizing perception and
+commonsense reasoning. However, these studies often assume established navigation and manipulation abilities, neglecting the importance of efficient planning in the rearrangement process. Approaches like (Kant et al. 2022; Sarch et al.
+* These authors contributed equally.
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+10350
+
+2022) use image or language-based commonsense reasoning
+to detect misplaced objects but struggle with cases involving blocked goal positions or object swapping. Alternatively,
+methods like (Weihs et al. 2021; Gadre et al. 2022; Trabucco
+et al. 2022) concentrate on egocentric perception, employing
+various scene representations to identify misplaced objects
+and using greedy planners for rearrangement based on user
+specifications. (Sarch et al. 2022) performs user-specific rearrangement using semantic relations for object identification
+and exploration, followed by rearrangement using a heuristic
+planner. Many existing methods explicitly explore the room
+to locate objects outside the egocentric view, compensating
+for partial information. However, recent methods (Sarch et al.
+2022; Trabucco et al. 2022; Ghosh et al. 2022) face challenges with high traversal costs due to sub-optimal planners,
+especially in larger multi-room settings (see Fig 1).
+Enhancing planning performance is essential for making
+rearrangement feasible, as it allows us to minimize the time
+and resources required by the agent to reach the desired goal
+state. In the context of rearrangement task planning, (Ghosh
+et al. 2022) proposes a method that assumes complete room
+visibility from a bird’s eye perspective. Their approach aims
+to overcome planning challenges, including the combinatorial
+expansion of rearrangement sequencing and swap case resolution, without requiring an explicit buffer. However, their
+Euclidean distance-based reward does not minimize overall
+agent traversal during planning, as shown in Fig 1. Their state
+representation lacks scalability to large numbers of objects.
+Additionally, their parameter network suffers from two main
+issues: (i) predicting the goal location of non-blocked misplaced objects, which is already known from the goal state in
+rearrangement, leading to performance degradation. (ii) predicting the buffer location for swap cases without considering
+the object’s geometry and the available free space, resulting
+in poor generalization. Furthermore, depending on accurate
+ground-truth object positions in both the current and goal
+states, is not viable in the real-world. In contrast, our focus
+is on a novel, practical and broader aspect of the object rearrangement problem in the multi-room setting, under partial
+observability using the egocentric camera view of the agent.
+Our main emphasis is on efficient task planning, which is
+necessary for effective rearrangement as illustrated in Fig 1.
+Task planning for efficient multi-room object rearrangement under partial observability as depicted in Fig 2, presents
+
+

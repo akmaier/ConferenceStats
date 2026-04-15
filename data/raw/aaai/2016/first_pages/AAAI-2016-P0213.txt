@@ -1,0 +1,116 @@
+Proceedings of the Thirtieth AAAI Conference on Artificial Intelligence (AAAI-16)
+
+Decentralized Robust Subspace Clustering
+Bo Liu†, Xiao-Tong Yuan‡, Yang Yu†, Qingshan Liu‡, Dimitris N. Metaxas†
+†Department of Computer Science, Rutgers, The State University of New Jersey
+‡Jiangsu Province Key Laboratory of Big Data Analysis Technology,
+Nanjing University of Information Science and Technology
+lb507@cs.rutgers.edu
+
+Abstract
+We consider the problem of subspace clustering using
+the SSC (Sparse Subspace Clustering) approach, which
+has several desirable theoretical properties and has been
+shown to be effective in various computer vision applications. We develop a large scale distributed framework
+for the computation of SSC via an alternating direction method of multiplier (ADMM) algorithm. The proposed framework solves SSC in column blocks and only
+involves parallel multivariate Lasso regression subproblems and sample-wise operations. This appealing property allows us to allocate multiple cores/machines for
+the processing of individual column blocks. We evaluate our algorithm on a shared-memory architecture. Experimental results on real-world datasets conﬁrm that
+the proposed block-wise ADMM framework is substantially more efﬁcient than its matrix counterpart used by
+SSC, without sacriﬁcing accuracy. Moreover, our approach is directly applicable to decentralized neighborhood selection for Gaussian graphical models structure
+estimation.
+
+ 1
+
+ j
+
+ 
+
+ 
+
+ 
+
+ 
+
+X1
+
+...
+
+
+
+
+Xj
+
+...
+
+
+Xm
+
+
+
+
+
+
+
+ 
+
+Xj  X1 ... Xj ... Xm  Cj  Ej
+
+
+
+
+ 
+
+Figure 1: The framework of the proposed distributed sparse
+subspace clustering algorithm. The overall dataset is decomposed and assigned to multiple cores or machines. Ci and
+Ei is learned through the communication of master core or
+machine with others. Finally C and E is derived by aggrem
+gating {Ci }m
+i=1 and {Ei }i=1 .
+
+Introduction
+Sparse subspace clustering
+
+In high-dimensional analysis, it is commonly assumed that
+data lie in certain more interpretable low-dimensional structures instead of being randomly distributed across the ambient space. Subspace Clustering (SC) is such a tool that
+assumes the intrinsic structure of data can be described by
+subspace and aims to recover the underlying subspace structures from the observed high-dimensional ambient data. In
+fact, when data are generated from multiple classes, it is reasonable to assume that each class can be well represented
+by a subspace. Given X as a collection of samples in a
+d-dimension ambient space; these samples may be partiK
+tioned as X = k=1 Xk with each Xk being a collection of
+samples distributed around (unknown) subspace Sk ⊂ Rd .
+The task of SC is to approximately group the points in X
+into their respective subspaces. The SC model is gaining
+increasing attention in computer vision and machine learning due to its desirable statistical properties and promising performance on real-world datasets (Candès et al. 2011;
+Elhamifar and Vidal 2013; Feng et al. 2014).
+
+Let X = [x1 , ...xn ] ∈ Rd×n be the data matrix whose
+columns are the samples in X . In real-world problems, due
+to the presence of noise, it is usually assumed that X is generated from the following superposition model:
+X = Z + Y0 + E0
+
+(1)
+
+where Z = [z1 , ...zn ] is the clean data matrix with columns
+sampled exactly from {Sk }K
+k=1 , Y0 is a dense random matrix modeling noise and E0 is a matrix with certain sparsity
+structures modeling sparse outliers. The state-of-the-art robust subspace clustering algorithms take advantage of the
+so-called self-expressiveness property of linear subspaces,
+i.e., each noiseless data point from one of the subspaces
+can be reconstructed by a combination of the other noiseless data points from the same subspace. Formally, the selfexpressiveness model is deﬁned over the clean data as:
+Z = ZC
+
+s.t. diag(C) = 0
+
+where C ∈ R
+is the representation coefﬁcient matrix
+and diag(C) is the vector of the diagonal elements of C.
+n×n
+
+c 2016, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+3539
+
+

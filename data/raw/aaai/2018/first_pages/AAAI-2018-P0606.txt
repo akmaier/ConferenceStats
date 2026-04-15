@@ -1,0 +1,81 @@
+The Thirty-Second AAAI Conference
+on Artificial Intelligence (AAAI-18)
+
+Auto-Balanced Filter Pruning for
+Efﬁcient Convolutional Neural Networks∗
+Xiaohan Ding,1 Guiguang Ding,1 Jungong Han,2 Sheng Tang3
+1
+
+School of Software, Tsinghua University, Beijing 100084, China
+School of Computing and Communications, Lancaster University, Lancaster, LA1 4YW, UK
+3
+Institute of Computing Technology, Chinese Academy of Sciences, Beijing 100190, China
+dxh17@mails.tsinghua.edu.cn, dinggg@tsinghua.edu.cn, jungonghan77@gmail.com, ts@ict.ac.cn
+2
+
+connection-wise pruning techniques. However, these methods make the parameter tensors of convolutional or fullyconnected layers just sparser, but no smaller, hence the compression may not transfer directly to acceleration without
+support from specially designed hardware (Molchanov et al.
+2016) (Han et al. 2016).
+Some other works focus on ﬁlter-wise pruning approaches
+and have made promising achievements, which can be divided into two categories. One category of works tends to
+impose sparse constraints on the model and produce a compact network by training, where the representatives include
+group sparsity regularizer (Lebedev and Lempitsky 2016),
+group Lasso regularization (Wen et al. 2016) (Alvarez and
+Salzmann 2016), tensor low rank constraints (Zhou, Alvarez, and Porikli 2016) and group sparse constraints (Zhou,
+Alvarez, and Porikli 2016). Another category of works iteratively discards unimportant ﬁlters from a well-trained network and usually requires re-training to avoid severe accuracy drop. (Abbasi-Asl and Yu 2017) measures a ﬁlter’s importance by the classiﬁcation accuracy reduction of the network after pruning it, and eliminates one single ﬁlter at each
+iteration based on this metric. (Molchanov et al. 2016) and
+(Li et al. 2016) prune ﬁlters in a similar iterative way but
+by different metrics. (Hu et al. 2016) evaluates a ﬁlter’s importance by its output on a subset of the training data and
+prunes a fraction of the ﬁlters in several layers simultaneously at one single iteration.
+In this paper, we aim to combine the advantages of the
+two paradigms. On the one hand, we are inspired by the idea
+that the network can be trained under a certain constraint to
+introduce structured sparsity in the parameters. On the other
+hand, a progressive approach consisting of alternate pruning and re-training is more suitable for pursuing the highest
+compression rate, since we can easily roll back to a previous state when the network is irreversibly damaged. Taking
+both points into account, we seek for an approach where we
+ﬁne-tune a well-trained model to make it robust to pruning,
+then alternately prune and re-train it to produce a signiﬁcantly smaller network. The rationale behind our idea is that
+we can certainly pre-train the network as a prevention of the
+structural damage at the very beginning, instead of making
+up for the performance reduction after pruning.
+There is thereby an urgent need but it is still a signiﬁcant
+challenge to ﬁnd a powerful pre-training method before the
+
+Abstract
+In recent years considerable research efforts have been devoted to compression techniques of convolutional neural networks (CNNs). Many works so far have focused on CNN
+connection pruning methods which produce sparse parameter tensors in convolutional or fully-connected layers. It has
+been demonstrated in several studies that even simple methods can effectively eliminate connections of a CNN. However, since these methods make parameter tensors just sparser
+but no smaller, the compression may not transfer directly to
+acceleration without support from specially designed hardware. In this paper, we propose an iterative approach named
+Auto-balanced Filter Pruning, where we pre-train the network
+in an innovative auto-balanced way to transfer the representational capacity of its convolutional layers to a fraction of
+the ﬁlters, prune the redundant ones, then re-train it to restore
+the accuracy. In this way, a smaller version of the original network is learned and the ﬂoating-point operations (FLOPs) are
+reduced. By applying this method on several common CNNs,
+we show that a large portion of the ﬁlters can be discarded
+without obvious accuracy drop, leading to signiﬁcant reduction of computational burdens. Concretely, we reduce the inference cost of LeNet-5 on MNIST, VGG-16 and ResNet-56
+on CIFAR-10 by 95.1%, 79.7% and 60.9%, respectively.
+
+Introduction
+The past few years have witnessed rapid developments of
+convolutional neural networks (CNNs) in the areas of computer vision, natural language processing, etc. However,
+due to their nature of computational intensity, as CNNs
+grow wider and deeper, their computational burdens have
+increased dramatically, making them difﬁcult to deploy on
+embedded systems. Therefore, this research community is
+soliciting the solutions that are able to simplify the CNNs
+but without losing too much accuracy.
+Recent researches on CNN compression methods have attracted much attention. Some excellent works, such as (Han
+et al. 2015) and (Guo, Yao, and Chen 2016), have explored
+∗
+This research was supported by the National Natural Science
+Foundation of China (Grant No. 61571269) and the Royal Society Newton Mobility Grant (IE150997). Corresponding author:
+Guiguang Ding.
+c 2018, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+6797
+
+

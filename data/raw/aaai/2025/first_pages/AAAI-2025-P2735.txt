@@ -1,0 +1,87 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Scaffold-BPE: Enhancing Byte Pair Encoding for Large Language Models
+with Simple and Effective Scaffold Token Removal
+Haoran Lian1 , Yizhe Xiong2,3 , Jianwei Niu1,4,5,6 * , Shasha Mo1 * , Zhenpeng Su7 ,
+Zijia Lin2 * , Hui Chen2,3 * , Jungong Han2 , Guiguang Ding2,3 *
+1
+
+Beihang University,
+Tsinghua University,
+3
+BNRist,
+4
+State Key Laboratory of Virtual Reality Technology and Systems, Beihang University,
+5
+Zhongguancun Laboratory,
+6
+Zhengzhou University Research Institute of Industrial Technology, Zhengzhou University,
+7
+Chinese Academy of Sciences
+{lianhaoran,niujianwei,moshasha}@buaa.edu.cn, xiongyizhe2001@163.com, suzhenpeng@iie.ac.cn,
+linzijia07@tsinghua.org.cn, {jichenhui2012,jungonghan77}@gmail.com, dinggg@tsinghua.edu.cn
+2
+
+Abstract
+
+bytes or characters in a dataset into a new token and adds it
+to the vocabulary until a desired vocabulary size is reached.
+And in the encoding stage, the vocabulary is utilized to represent any text. The adoption of BPE in LLMs is driven by
+its capability to decompose words into smaller, manageable
+subword units, thus avoiding out-of-vocabulary words, facilitating flexible and semantically complete representations
+of input data. Actually, BPE has also been widely used in
+traditional NLP tasks, like machine translation (Provilkov
+et al. 2019; Xu et al. 2020), information extraction (Wei et al.
+2021, 2023b,a) and summarization (Wu et al. 2021; Xu et al.
+2022).
+Since its inception, BPE has undergone various modifications to better suit the needs of complex NLP tasks, including identifying the optimal vocabulary size for various tasks
+(Xu et al. 2020; Gutierrez-Vasques et al. 2021), optimizing
+the encoding paths of tokens to achieve subword regularization (Provilkov et al. 2019; He et al. 2020), etc.
+However, there is an inherent limitation in the BPE
+method: the iterative merging process can lead to an imbalance in token frequencies by including low-frequency tokens in vocabulary. For example, as illustrated in Figure 1,
+in the commonly used Pile dataset (Gao et al. 2020) that
+is tokenized by the original BPE method of 32K vocabulary size (as LLaMA series (Touvron et al. 2023a,b)), the
+token “zona” mostly appears as a component of the token
+“Arizona” rather than as an independent, high-frequency token. Despite its lower standalone frequency, BPE includes
+“zona” in the final vocabulary because it is the “intermediate token” to derive the frequent token “Arizona”. We define
+such intermediate tokens that are crucial for constructing
+longer frequent tokens but do not appear frequently on their
+own as Scaffold Tokens. Note that not all subwords are simply scaffold tokens. For example, “ing” is not identified as a
+scaffold token, as there are many words containing “ing” but
+are not tokens in the vocabulary. For example, “connecting”
+is represented as “connect”+“ing” (2 tokens). Such words
+help to keep “ing” a frequent token. Therefore, “ing” is not
+
+Byte Pair Encoding (BPE) serves as a foundation method for
+text tokenization in the Natural Language Processing (NLP)
+field. Despite its wide adoption, the original BPE algorithm
+harbors an inherent flaw: it inadvertently introduces a frequency imbalance for tokens in the text corpus. Since BPE
+iteratively merges the most frequent token pair in the text
+corpus to generate a new token and keeps all generated tokens in the vocabulary, it unavoidably holds tokens that primarily act as components of a longer token and appear infrequently on their own. We term such tokens as Scaffold Tokens. Due to their infrequent occurrences in the text corpus,
+Scaffold Tokens pose a learning imbalance issue. To address
+that issue, we propose Scaffold-BPE, which incorporates a
+dynamic scaffold token removal mechanism by parameterfree, computation-light, and easy-to-implement modifications
+to the original BPE method. This novel approach ensures the
+exclusion of low-frequency Scaffold Tokens from the token
+representations for given texts, thereby mitigating the issue of
+frequency imbalance and facilitating model training. On extensive experiments across language modeling and even machine translation, Scaffold-BPE consistently outperforms the
+original BPE, well demonstrating its effectiveness.
+
+1
+
+Introduction
+
+In recent years, Large Language Models (LLMs) have become a burgeoning paradigm in handling a broad array of
+Natural Language Processing (NLP) tasks. The tokenization process in most modern LLMs (Radford et al. 2019;
+Brown et al. 2020; Rae et al. 2021; Zhang et al. 2022; Biderman et al. 2023; Touvron et al. 2023a; Yang et al. 2023;
+Achiam et al. 2023; Dubey et al. 2024; Lian et al. 2024a)
+employs Byte Pair Encoding (BPE) (Sennrich et al. 2015),
+a method that was originally designed for data compression
+(Gage 1994). BPE consists of two main stages. In the training stage, BPE iteratively merges the most frequent pairs of
+* Corresponding Authors.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+24539
+
+

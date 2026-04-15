@@ -1,0 +1,92 @@
+Proceedings of the Thirtieth AAAI Conference on Artificial Intelligence (AAAI-16)
+
+Indexable Probabilistic Matrix Factorization
+for Maximum Inner Product Search
+Marco Fraccaro,† Ulrich Paquet,‡ Ole Winther†
+†
+
+Technical University of Denmark, Lyngby, Denmark
+‡
+Microsoft Research, Cambridge, United Kingdom
+
+where V ∈ RD×M contains vj in its columns. To score
+all the items requires an O(M ) linear scan. Real systems,
+however, are constrained to complete such requests in a few
+milliseconds, and scoring and sorting all items is practically
+infeasible (Bachrach et al. 2014).
+Instead of solving (1) directly, a number of approaches apply a separate post-processing step to V and ui , so that the
+MIPS is transformed to an Euclidean search on the resulting
+vectors. The vectors might be expanded to D+1 dimensions,
+where the triangle inequality holds, and Approximate Nearest Neighbour Search (ANNS) data structures like kd-trees
+(Muja and Lowe 2014) or Locality Sensitive Hashing (LSH)
+can be used (Neyshabur and Srebro 2015). The component
+of the required extra dimension is typically much larger than
+any in vj , and this artifact reduces the speedups potentially
+obtainable through ANNS (Bachrach et al. 2014). Alternatively, a transformation to D + m dimensions so that (1) becomes an Euclidian distance search in the transformation’s
+limit m → ∞ also allows LSH to be used (Shrivastava and
+Li 2014; 2015), although with weaker theoretical guarantees than those found in (Neyshabur and Srebro 2015). Both
+these post-processing steps give sublinear retrieval time by
+transforming the problem to one that is geometrically indexable, by which we mean one that allows O(log M ) or sublinear retrieval time.
+As V and ui originate from a statistical model, an alternative view is not to rely on retro-actively adjusting a model
+for faster retrieval, but instead to frame the model to operate on natively geometrically indexable vectors, and utilise
+the tools provided by an inference framework to ﬁnd such
+a geometrically indexable embedding. Through the simple
+constraint of requiring all item vectors vj to have a ﬁxed
+norm, say vj  = 1, MIPS(V, ui ) is equivalent to a minimization over Euclidean distances, i.e. a Nearest Neighbour
+Search (NNS):
+
+Abstract
+The Maximum Inner Product Search (MIPS) problem, prevalent in matrix factorization-based recommender systems,
+scales linearly with the number of objects to score. Recent
+work has shown that clever post-processing steps can turn the
+MIPS problem into a nearest neighbour one, allowing sublinear retrieval time either through Locality Sensitive Hashing
+or various tree structures that partition the Euclidian space.
+This work shows that instead of employing post-processing
+steps, substantially faster retrieval times can be achieved for
+the same accuracy when inference is not decoupled from the
+indexing process. By framing matrix factorization to be natively indexable, so that any solution is immediately sublinearly searchable, we use the machinery of Machine Learning to best learn such a solution. We introduce Indexable
+Probabilistic Matrix Factorization (IPMF) to shift the traditional post-processing complexity into the training phase
+of the model. Its inference procedure is based on Geodesic
+Monte Carlo, and adds minimal additional computational cost
+to standard Monte Carlo methods for matrix factorization. By
+coupling inference and indexing in this way, we achieve more
+than a 50% improvement in retrieval time against two state of
+the art methods, for a given level of accuracy in the recommendations of two large-scale recommender systems.
+
+1
+
+Introduction
+
+The Maximum Inner Product Search (MIPS) problem is
+common when matrix factorization-based recommender
+systems are deployed, or when inner product-based comparisons are done between the embedded vector of a query
+object and many potential target objects’ vectors, like that
+of words in a neural language model. Naively, it scales linearly with the number of objects to score, and various inroads have recently been made towards sublinear retrieval
+time (Bachrach et al. 2014; Neyshabur and Srebro 2015;
+Shrivastava and Li 2014; 2015). In the parlance of a basic
+recommender system, user i and item j are embedded into
+vectors ui and vj ∈ RD . To present items to a user, all
+j = 1, . . . , M items are scored by uTi vj , and the head of
+their sorted list is returned. As an operation, the MIPS problem retrieves the maximizer
+MIPS(V, ui ) = argmaxj uTi vj ,
+
+(∗)
+
+NNS(V, ui ) = argmin ui −vj 2 = argmax uTi vj . (2)
+j
+
+j
+
+The step denoted with (∗) follows from all vj  being
+equal. To exploit this, we introduce Indexable Probabilistic Matrix Factorization (IPMF) in Section 2. It is an extension of Bayesian Probabilistic Matrix Factorization (BPMF)
+(Salakhutdinov and Mnih 2008a) that is made inherently geometrically indexable by letting {vj } be a priori governed
+
+(1)
+
+c 2016, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+1554
+
+

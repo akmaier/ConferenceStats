@@ -1,0 +1,90 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+A Perspective of Q-value Estimation on
+Offline-to-Online Reinforcement Learning
+Yinmin Zhang1, 2 * , Jie Liu2, 3 * , Chuming Li1, 2 * , Yazhe Niu2 ,
+Yaodong Yang4† , Yu Liu2† , Wanli Ouyang2
+1
+
+The University of Sydney, SenseTime Computer Vision Group, Australia
+2
+Shanghai Artificial Intelligence Laboratory
+3
+Multimedia Laboratory, The Chinese University of Hong Kong
+4
+Institute for AI, Peking University
+yinmin.zhang@sydney.edu.au, jieliu@ie.cuhk.edu.hk, chli3951@uni.sydney.edu.au,
+yaodong.yang@pku.edu.cn, liuyuisanai@gmail.com, ouyangwanli@pjlab.org.cn
+Abstract
+Offline-to-online Reinforcement Learning (O2O RL) aims
+to improve the performance of offline pretrained policy using only a few online samples. Built on offline RL algorithms,
+most O2O methods focus on the balance between RL objective
+and pessimism, or the utilization of offline and online samples.
+In this paper, from a novel perspective, we systematically study
+the challenges that remain in O2O RL and identify that the reason behind the slow improvement of the performance and the
+instability of online finetuning lies in the inaccurate Q-value
+estimation inherited from offline pretraining. Specifically, we
+demonstrate that the estimation bias and the inaccurate rank
+of Q-value cause a misleading signal for the policy update,
+making the standard offline RL algorithms, such as CQL and
+TD3-BC, ineffective in the online finetuning. Based on this
+observation, we address the problem of Q-value estimation by
+two techniques: (1) perturbed value update and (2) increased
+frequency of Q-value updates. The first technique smooths
+out biased Q-value estimation with sharp peaks, preventing
+early-stage policy exploitation of sub-optimal actions. The
+second one alleviates the estimation bias inherited from offline
+pretraining by accelerating learning. Extensive experiments
+on the MuJoco and Adroit environments demonstrate that the
+proposed method, named SO2, significantly alleviates Q-value
+estimation issues, and consistently improves the performance
+against the state-of-the-art methods by up to 83.1%.
+
+Introduction
+In recent years, deep offline Reinforcement Learning (RL)
+(Yu et al. 2020; Agarwal, Schuurmans, and Norouzi 2020; Bai
+et al. 2021) has received increasing attention due to its potential for leveraging abundant logged data or expert knowledge
+(e.g., human demonstrations) to learn high-quality policies.
+Analogous to trends in computer vision (He et al. 2021; Radford et al. 2021; Bommasani et al. 2021) and natural language
+processing (Devlin et al. 2019; Brown et al. 2020), where
+powerful models pretrained on large, diverse datasets generalize to task-specific data through finetuning, offline-to-online
+* Equal contribution. Author ordering is determined by coin flip.
+†
+
+Corresponding author
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+16908
+
+reinforcement learning (O2O RL) aims to enhance the performance of a pretrained offline RL policy via finetuning on
+only a few online collected samples. In O2O RL, the central
+challenge is to maximize the efficient utilization of additional
+online samples for further performance improvement.
+We find that directly finetuning offline RL policies with online interactions remains inefficient in many cases, as shown
+in Figure 2a. Most existing works (Zhao et al. 2022; Lee
+et al. 2022) assume that the above issue results from the
+state-action distribution shift between the offline and online
+samples. To handle this distribution shift, they propose different methods to progressively transfer from offline to online
+finetuning settings, including the balance between RL objective and pessimism (Zhao et al. 2022) and between the usage
+of offline and online samples (Lee et al. 2022).
+The main contribution of this paper is to offer a comprehensive understanding of the problem in O2O RL, focusing
+on Q-value estimation, a perspective that has been underexplored. While prior research acknowledges this issue, our
+work delves deeper into it, unveiling two key challenges: (1)
+biased Q-value estimation and (2) inaccurate rank of Q-value
+estimation, which represents the distinguishability in the quality of different state-action pairs. Despite most offline RL
+policies trained in pessimistic manners such as conservative
+Q-learning (Kumar et al. 2020), action constraints (Fujimoto
+and Gu 2021), and Q-ensemble (An et al. 2021), we still
+observe severe overestimation (CQL and TD3-BC) or underestimation (EDAC) compared to an online RL policy trained
+from scratch with similar performance. These disparities result in in a severe bootstrap error, as shown in Figure 2b.
+Moreover, it is well-known that the inaccurate rank of Qvalue estimation, such as inaccurate advantage, results in misleading signals to policy updates. To quantitatively assess the
+accuracy of Q-value estimation rank, we compute Kendall’s
+τ coefficient between the estimated and true Q-values, separately for offline RL and online RL policies. Figure 2c shows
+that offline RL methods (CQL, TD3-BC, and EDAC) have
+lower Kendall’s τ coefficient compared to the online RL,
+SAC. This indicates that the offline RL is less accurate in
+ranking estimated Q-values than the online RL. Consequently,
+the signal from the inaccurate Q-value estimation used in pol-
+
+

@@ -1,0 +1,93 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+TrustUQA: A Trustful Framework for Unified Structured Data Question Answering
+Wen Zhang1,4 , Long Jin1 , Yushan Zhu1 , Jiaoyan Chen2 , Zhiwei Huang1 , Junjie Wang1 , Yin Hua1
+, Lei Liang3 , Huajun Chen1,4,5 *
+1
+Zhejiang University
+University of Manchester
+3
+Ant Group
+4
+ZJU-Ant Group Joint Lab of Knowledge Graph
+5
+Zhejiang Key Laboratory of Big Data Intelligent Computing
+{zhang.wen, longjin, yushanzhu, huajunsir}@zju.edu.cn
+2
+
+Abstract
+Natural language question answering (QA) over structured
+data sources such as tables and knowledge graphs have been
+widely investigated, especially with Large Language Models
+(LLMs) in recent years. The main solutions include question
+to formal query parsing and retrieval-based answer generation. However, current methods of the former often suffer
+from weak generalization, failing to dealing with multi-types
+of sources, while the later is limited in trustfulness. In this
+paper, we propose TrustUQA, a trustful QA framework that
+can simultaneously support multiple types of structured data
+in a unified way. To this end, it adopts an LLM-friendly and
+unified knowledge representation method called Condition
+Graph (CG), and uses an LLM and demonstration-based twolevel method for CG querying. For enhancement, it is also
+equipped with dynamic demonstration retrieval. We have evaluated TrustUQA with 5 benchmarks covering 3 types of structured data. It outperforms 2 existing unified structured data
+QA methods. In comparison with the baselines that are specific to one data type, it achieves state-of-the-art on 2 of the
+datasets. Further more, we have demonstrated the potential
+of our method for more general QA tasks, QA over mixed
+structured data and QA across structured data.
+
+Code — https://github.com/zjukg/TrustUQA
+Extended version — https://arxiv.org/abs/2406.18916
+
+1
+
+Introduction
+
+Question answering (QA) seeking answers for a natural language question from structured data has attracted increasing attention in the past decade (2023a; 2023), leading to a
+few directions including QA over tables (2023), QA over
+knowledge graph (i.e., KGQA) (2018), QA over temporal KG (2023b) and so on. A straightforward and widely
+studied solution is to parse questions into formal queries
+that can be executed on data storage and reasoning engines (a.k.a. NL2Query). According to the data source types,
+these works are divided into NL2SQL (2020) for relational
+databases, NL2SPARQL (2020) for KGs, etc. However, current NL2Query methods are specifically developed for one
+* Corresponding Author
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+25931
+
+query language corresponding to one data type.This significantly limits their generality and usage in real-world scenarios, especially when it is unknown in which data resource the
+answer lies, or the answer relies on multiple data sources.
+With the development of LLMs and Retrieval-augmented
+Generation (RAG), another solution, which first retrieves
+relevant evidences of the question from data sources and
+then generates the answer, has become more and more popular (2023a; 2024). Using different retrieval techniques for different structured data, this solution can lead to more general
+methods. For example, StructGPT(2023a) iteratively retrieves
+evidences and feeds them into an LLM for answer generation,
+supporting KG, table and relational database. However, this
+solution suffers from some trustfulness issues: (i) the generated answer may be inconsistent with the original structured
+data due to the hallucination of LLMs (2023b), the insistence
+of LLMs’ parametric knowledge (2023) and the irrelevant evidences that are retrieved; (ii) a list of evidences are exposed
+to the LLM, potentially leaking private data if a third-party
+LLM is used; (iii) the evidences can provide some plausible
+citations to the answer but it is hard to provide high quality
+explanations. In contrast, NL2Query can mostly avoid the
+issue of (i) and (ii) as only some meta data and prototypes
+need to be exposed to the LLM to generate the query instead
+of the answer, and the issue of (iii) since the query and its
+reasoning procedure are both accessible, providing logically
+rigorous explanation to the answer. Therefore, in this work,
+we adopt NL2Query, and propose a trustful and unified
+framework named TrustUQA supporting different types
+of structured data simultaneously.
+There are two desiderata for TrustUQA. (1) It is expected
+to represent diverse structured data. Thus we propose Condition Graph (CG) and corresponding techniques for translating tables, KGs and temporal KGs into a CG. (2) It can
+support effective querying over the data representation. Thus
+we propose a method called Lwo-layer Function-based
+CG Query, which firstly uses LLMs to write basic queries
+(i.e., LLM queries) based on the question, and then uses predefined rules to transform these LLM queries to queries that
+can be executed on the CG (i.e., execution queries) for the
+eventual answer. Functions of the LLM query are designed
+with simple vocabularies that are more understandable by
+LLMs, and thus this method can get higher accuracy using
+no fine-tuning but few-shot prompting. We also propose a dy-
+
+

@@ -1,0 +1,116 @@
+The Thirty-Second AAAI Conference
+on Artificial Intelligence (AAAI-18)
+
+A Parallelizable Acceleration Framework
+for Packing Linear Programs∗
+Palma London
+
+Shai Vardi
+
+California Institute of Technology
+plondon@caltech.edu
+
+California Institute of Technology
+svardi@caltech.edu
+
+Adam Wierman
+
+Hanling Yi
+
+California Institute of Technology
+adamw@caltech.edu
+
+The Chinese University of Hong Kong
+yh014@ie.cuhk.edu.hk
+many other areas. In machine learning speciﬁcally, they
+show up in an array of problems, e.g., in applications of
+graphical models (Ravikumar, Agarwal, and Wainwright
+2010), associative Markov networks (Taskar, Chatalbashev,
+and Koller 2004), and in relaxations of maximum a posteriori (MAP) estimation problems (Sanghavi, Malioutov, and
+Willsky 2008), among others.
+In all these settings, practical applications require LP
+solvers to work at extreme scales and, despite decades of
+work, commercial solvers such as Cplex and Gurobi do not
+scale as desired in many cases. Thus, despite a large literature, the development of fast, parallelizable solvers for packing LPs is still an active direction.
+Our focus in this paper is on a speciﬁc class of packing
+LPs for which data is either very costly, or hard to obtain. In
+these situations m  n; i.e., the number of data points m
+available is much smaller than the number of variables, n.
+Such instances are common in areas such as genetics, astronomy, and chemistry. There has been considerable research
+focusing on this class of problems in recent years, in the context of LPs (Donoho and Tanner 2005; Bienstock and Iyengar 2006) and also more generally in convex optimization
+and compressed sensing (Candes, Romberg, and Tao 2006;
+Donoho 2006), low rank matrix recovery (Recht, Fazel, and
+Parrilo 2010; Candes and Plan 2011), and graphical models
+(Yuan and Lin 2007a; Mohan et al. 2014).
+
+Abstract
+This paper presents an acceleration framework for packing
+linear programming problems where the amount of data available is limited, i.e., where the number of constraints m is
+small compared to the variable dimension n. The framework
+can be used as a black box to speed up linear programming
+solvers dramatically, by two orders of magnitude in our experiments. We present worst-case guarantees on the quality
+of the solution and the speedup provided by the algorithm,
+showing that the framework provides an approximately optimal solution while running the original solver on a much
+smaller problem. The framework can be used to accelerate
+exact solvers, approximate solvers, and parallel/distributed
+solvers. Further, it can be used for both linear programs and
+integer linear programs.
+
+1
+
+Introduction
+
+This paper proposes a black-box framework that can be used
+to accelerate both exact and approximate linear programming (LP) solvers for packing problems while maintaining
+high quality solutions.
+LP solvers are at the core of many learning and inference
+problems, and often the linear programs of interest fall into
+the category of packing problems. Packing problems are linear programs of the following form:
+n
+(1a)
+maximize
+j=1 cj xj
+n
+i ∈ [m]
+(1b)
+subject to
+j=1 aij xj ≤ bi
+0 ≤ xj ≤ 1
+
+j ∈ [n]
+
+Contributions of this paper. We present a black-box acceleration framework for LP solvers. When given a packing
+LP and an algorithm A, the framework works by sampling
+an s -fraction of the variables and using A to solve LP (1)
+restricted to these variables. Then, the dual solution to this
+sampled LP is used to deﬁne a thresholding rule for the primal variables of the original LP; the variables are set to either 0 or 1 according to this rule. The framework has the
+following key properties:
+
+(1c)
+
+n
+where A ∈ [0, 1]m×n , b ∈ Rm
+≥0 , c ∈ R≥0 .
+Packing problems arise in a wide variety of settings, including max cut (Trevisan 1998), zero-sum matrix games
+(Nesterov 2005), scheduling and graph embedding (Plotkin,
+Shmoys, and Tardos 1995), ﬂow controls (Bartal, Byers, and
+Raz 2004), auction mechanisms (Zurel and Nisan 2001),
+wireless sensor networks (Byers and Nasser 2000), and
+
+1. It can be used to accelerate exact or approximate LPsolvers (subject to some mild assumptions which we discuss below).
+
+∗
+
+This work was supported in part by NSF grants AitF-1637598,
+CNS-1518941, CPS-154471, the Linde Institute, and the International Teochew Doctors Association Zheng Hanming Visiting
+Scholar Award Scheme.
+c 2018, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+2. Since the original algorithm A is run only on a (much
+smaller) LP with s -fraction of the variables, the framework provides a dramatic speedup.
+
+3706
+
+

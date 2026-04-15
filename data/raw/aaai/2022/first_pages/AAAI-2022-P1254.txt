@@ -1,0 +1,144 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+Transformer Uncertainty Estimation with Hierarchical Stochastic Attention
+Jiahuan Pei1,2 * , Cheng Wang2† , György Szarvas2
+1
+
+2
+
+University of Amsterdam
+Amazon Development Center Germany GmbH, Berlin, Germany
+{jpei, cwngam, szarvasg}@amazon.de
+
+Abstract
+𝑧𝑗
+
+Transformers are state-of-the-art in a wide range of NLP
+tasks and have also been applied to many real-world products. Understanding the reliability and certainty of transformer model predictions is crucial for building trustable
+machine learning applications, e.g., medical diagnosis. Although many recent transformer extensions have been proposed, the study of the uncertainty estimation of transformer
+models is under-explored. In this work, we propose a novel
+way to enable transformers to have the capability of uncertainty estimation and, meanwhile, retain the original predictive performance. This is achieved by learning a hierarchical stochastic self-attention that attends to values and a set of
+learnable centroids, respectively. Then new attention heads
+are formed with a mixture of sampled centroids using the
+Gumbel-Softmax trick. We theoretically show that the selfattention approximation by sampling from a Gumbel distribution is upper bounded. We empirically evaluate our model on
+two text classification tasks with both in-domain (ID) and outof-domain (OOD) datasets. The experimental results demonstrate that our approach: (1) achieves the best predictive performance and uncertainty trade-off among compared methods; (2) exhibits very competitive (in most cases, improved)
+predictive performance on ID datasets; (3) is on par with
+Monte Carlo dropout and ensemble methods in uncertainty
+estimation on OOD datasets.
+
+1
+
+𝑥𝑖
+
+𝑓
+
+𝑦
+
+𝑧𝑗
+
+𝑊𝑖𝑗
+
+𝑥𝑖
+
+(a)
+
+(b)
+𝑧𝑗
+𝑥𝑖
+
+𝑓𝑗
+
+𝑓
+
+𝑧𝑗
+
+𝑦
+𝑥𝑖
+
+𝑊𝑖𝑗 = 𝜇𝑖𝑗 + 𝜖 ∗ 𝜎𝑖𝑗
+𝜖~𝐺𝑎𝑢𝑠𝑠𝑖𝑜𝑛(0,1)
+
+𝑦
+
+𝑊𝑖𝑗
+
+𝑟𝑖~𝐵𝑒𝑟𝑛𝑜𝑢𝑙𝑙𝑖(1 − 𝑝)
+(c) 𝑟𝑖
+𝑝 ∈ [0; 1]
+
+𝑦𝑗
+
+𝑊𝑖𝑗
+
+𝑧𝑗
+𝑧𝑘 𝑓 k
+𝑥𝑖
+
+𝑥𝑖
+
+𝑓
+
+𝑊𝑖k
+
+𝑦k
+
+𝑥𝑖
+
+𝑓
+
+𝑦
+
+𝑦
+
+𝑔𝑖~𝐺𝑢𝑚𝑏𝑒𝑙[−log(− log 𝑢 ]
+𝑔𝑖 𝑢~𝑈𝑛𝑖𝑓𝑜𝑟𝑚(0,1)
+
+(e)
+
+(d)
+
+Figure 1: The methods of uncertainty estimation. (a) Deterministic neural network outputs a single-point prediction;
+(b) Bayesian neural network captures uncertainty via sampling from a Gaussian distribution; (c) Variational dropout
+captures uncertainty via sampling dropout masks from a
+Bernoulli distribution; (d) Ensemble captures uncertainty
+by combining multiple independently trained deterministic
+models with different random seeds; (e) Gumbel-Softmax
+trick for uncertainty estimation, the randomness comes from
+the sampling categorical distribution from a Gumbel.
+2020) are the representative state-of-the-art type of neural
+architectures that have shown remarkable performance on
+various recent Natural Language Processing (NLP) (Gillioz
+et al. 2020) and Information Retrieval (IR) (Ren et al. 2021)
+tasks.
+Although transformers excel in terms of predictive performance (Tetko et al. 2020; Han et al. 2021), they do not
+offer the opportunity for practitioners to inspect the model
+confidence due to their deterministic nature, i.e., incapability to assess if transformers are confident about their predictions. This influence is non-trivial because transformers
+are cutting-edge basic models for NLP. Thus, estimating the
+predictive uncertainty of transformers benefits a lot in terms
+of building and examining model reliability for the downstream tasks.
+To estimate the uncertainty of neural models’ prediction,
+one common way is to inject stochasticity (e.g., noise or randomness) (Kabir et al. 2018; Gawlikowski et al. 2021). It
+enables models to output a predictive distribution, instead
+
+Introduction
+
+Uncertainty estimation and quantification are important
+tools for building trustworthy and reliable machine learning
+systems (Lin, Engel, and Eslinger 2012; Kabir et al. 2018;
+Riedmaier et al. 2021). Particularly, when such machinelearned systems are applied to make predictions that involve important decisions, e.g., medical diagnosis (Ghoshal
+and Tucker 2020), financial planning and decision-making
+(Baker et al. 2020; Oh and Hong 2021), and autonomous
+driving (Hoel, Wolff, and Laine 2020). The recent development of neural networks has shown excellent predictive
+performance in many domains. Among those, transformers,
+including the vanilla transformer (Vaswani et al. 2017) and
+its variants such as BERT (Devlin et al. 2019; Wang et al.
+* This work has been done while doing internship at Amazon.
+†
+
+Corresponding author.
+Copyright © 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+11147
+
+

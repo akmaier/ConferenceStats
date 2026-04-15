@@ -1,0 +1,192 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+SongMASS: Automatic Song Writing with Pre-training and Alignment Constraint
+Zhonghao Sheng1,∗ , Kaitao Song2,∗ , Xu Tan3,† , Yi Ren4 , Wei Ye1,† , Shikun Zhang1 , Tao Qin3
+1
+
+National Engineering Research Center for Software Engineering, Peking University
+2
+Nanjing University of Science and Technology
+3
+Microsoft Research Asia
+4
+Zhejiang University
+{zhonghao.sheng,wye,zhangsk}@pku.edu.cn, kt.song@njust.edu.cn, {xuta, taoqin}@microsoft.com, rayeren@zju.edu.cn
+Melody :
+
+Abstract
+Automatic song writing aims to compose a song (lyric and/or
+melody) by machine, which is an interesting topic in both
+academia and industry. In automatic song writing, lyric-tomelody generation and melody-to-lyric generation are two
+important tasks, both of which usually suffer from the following challenges: 1) the paired lyric and melody data are
+limited, which affects the generation quality of the two tasks,
+considering a lot of paired training data are needed due to the
+weak correlation between lyric and melody; 2) Strict alignments are required between lyric and melody, which relies
+on specific alignment modeling. In this paper, we propose
+SongMASS to address the above challenges, which leverages masked sequence to sequence (MASS) pre-training and
+attention based alignment modeling for lyric-to-melody and
+melody-to-lyric generation. Specifically, 1) we extend the
+original sentence-level MASS pre-training to song level to
+better capture long contextual information in music, and use
+a separate encoder and decoder for each modality (lyric or
+melody); 2) we leverage sentence-level attention mask and
+token-level attention constraint during training to enhance the
+alignment between lyric and melody. During inference, we
+use a dynamic programming strategy to obtain the alignment
+between each word/syllable in lyric and note in melody. We
+pre-train SongMASS on unpaired lyric and melody datasets,
+and both objective and subjective evaluations demonstrate
+that SongMASS generates lyric and melody with significantly better quality than the baseline method.
+
+rest
+
+B3 C4
+
+G3 E4 D4 C4
+
+Another day has gone
+
+Lyric :
+
+E4 D4 C4
+
+B3 C4
+
+I’m still all
+
+alone
+
+rest
+
+Paired Aligned Data :
+still
+
+all
+
+alone
+
+R
+
+G3
+
+Another
+E4
+
+D4
+
+C4
+
+B3
+
+C4
+
+R
+
+E4
+
+D4
+
+C4
+
+B3
+
+C4
+
+7
+Duration
+16
+
+1
+16
+
+1
+8
+
+1
+16
+
+3
+16
+
+1
+16
+
+5
+16
+
+1
+4
+
+1
+8
+
+1
+16
+
+3
+16
+
+1
+16
+
+5
+16
+
+Lyric
+Pitch
+
+day has gone
+
+I’m
+
+Figure 1: A song fragment “Another day has gone, I’m still
+all alone” with its melody. The table shows the alignment of
+the lyric and melody (pitch and duration).
+
+L2M and M2L have distinctive characteristics that differ
+them from other sequence to sequence learning tasks: 1)
+lyric and melody are weakly correlated in L2M and M2L
+while other tasks (Bahdanau, Cho, and Bengio 2014) have
+strongly correlation between source and target sequences; 2)
+one word or syllable in lyric always strictly aligns with one
+or more notes in melody, while other tasks do not require
+strict alignments. An example of aligned lyric and melody
+piece is shown in Figure 1.
+The above distinctive characteristics throw several challenges in modeling L2M and M2L: 1) They require large
+amount of paired melody and lyric data to learn the mapping
+relationship between lyric and melody due to weak correlation. However, it is difficult to collect such large amount of
+paired data, and thus both tasks suffer from limited paired
+data; 2) They need additionally generate strict alignments
+between word/syllable in lyric and note in melody, and thus
+how to model the alignments well is critical to ensure the
+generation quality of lyric and melody. Previous works (Bao
+et al. 2019; Li et al. 2020; Watanabe et al. 2018; Lee, Fang,
+and Ma 2019) on L2M and M2L have not considered the
+scenario of limited paired data, and only leverage some
+greedy decisions for lyric and melody alignment, which cannot well address these challenges. In this paper, we propose
+SongMASS, an automatic song writing system for L2M and
+M2L, which addresses the first challenge with masked sequence to sequence pre-training and the second challenge
+with attention based alignment constraint.
+Specifically, to handle the challenges of limited paired
+
+Introduction
+Automatic song writing is an interesting and challenging
+task in both research and industry. Two most important
+tasks in automatic song writing are lyric-to-melody generation (L2M) (Bao et al. 2019; Yu and Canales 2019;
+Lee, Fang, and Ma 2019) and melody-to-lyric generation
+(M2L) (Watanabe et al. 2018; Lu et al. 2019; Lee, Fang,
+and Ma 2019). L2M and M2L can be regarded as sequence
+to sequence learning tasks and can be modeled by the techniques in sequence modeling since both melody and lyric
+can be represented as discrete token sequence. However,
+∗
+
+The first two authors contribute equally to this work.
+Corresponding Author: Xu Tan, xuta@microsoft.com, and
+Wei Ye, wye@pku.edu.cn.
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+†
+
+13798
+
+

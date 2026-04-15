@@ -1,0 +1,90 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+MERGE: Fast Private Text Generation
+Zi Liang, Pinghui Wang* , Ruofei Zhang,
+Nuo Xu, Shuo Zhang, Lifeng Xing, Haitao Bai, Ziyang Zhou
+MOE KLINNS Lab, Xi’an Jiaotong University, Xi’an 710049, P. R. China
+{liangzid, zs412082986, xlf20200926, haitao.bai, dakandao}@stu.xjtu.edu.cn,
+phwang@mail.xjtu.edu.cn, rfzhang@gmail.com, nxu@sei.xjtu.edu.cn
+
+Abstract
+The drastic increase in language models’ parameters has led to
+a new trend of deploying models in cloud servers, raising growing concerns about private inference for Transformer-based
+models. Existing two-party privacy-preserving techniques,
+however, only take into account natural language understanding (NLU) scenarios. Private inference in natural language
+generation (NLG), crucial for applications like translation and
+code completion, remains underexplored. In addition, previous
+privacy-preserving techniques suffer from convergence issues
+during model training and exhibit poor inference speed when
+used with NLG models due to the neglect of time-consuming
+operations in auto-regressive generations. To address these
+issues, we propose a fast private text generation framework
+for Transformer-based language models, namely MERGE.
+MERGE reuses the output hidden state as the word embedding to bypass the embedding computation and reorganize
+the linear operations in the Transformer module to accelerate the forward procedure. Extensive experiments show that
+MERGE achieves a 26.5x speedup to the vanilla encrypted
+model under the sequence length 512, and reduces 80% communication cost, with an up to 10x speedup to state-of-the-art
+approximated models.
+
+Introduction
+Recently, from pre-trained language models (PLMs) to large
+language models (LLMs), Transformer (Vaswani et al. 2017)
+based models have attracted significant attention because of
+their exceptional performance in downstream tasks. Due to
+the high demand for computing power, this growth of model
+parameters also has caused the trend of hosting models to
+cloud service providers, which raises wide concerns about
+privacy inference and training. For example, existing natural
+language processing (NLP) services like Copilot1 and ChatGPT require users to submit their queries in plain text, which
+may contain confidential information such as source code,
+medical information, and personal preferences.
+To alleviate the privacy problem, recent works (Hao et al.
+2022; Chen et al. 2022) have developed two-party secure
+inference services for PLMs by secure Multi-Party Computation (MPC). MPC ensures the privacy of user data and
+* Corresponding author.
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+1
+https://github.com/features/copilot
+
+19884
+
+model weights, and shares them secretly. However, PLMs
+inference under MPC is considerably slow compared to the
+plain-text version, which limits its application in real-world
+services. To address this issue, several works have attempted
+to simplify the bottleneck operations such as activation functions and softmax in the Transformer model. For instance,
+(Mishra et al. 2020) uses Neural Architecture Search (NAS)
+to replace the activation functions with linear layers, and
+(Li et al. 2022) approximates the exponential operation with
+polynomial functions.
+Though designed for Transformer, existing works (Hao
+et al. 2022; Chen et al. 2022; Li et al. 2022) solely explore
+the scenario of natural language understanding (NLU) (e.g.,
+on the GLUE (Wang et al. 2019) benchmark). Unfortunately,
+we observe that they have no significant improvements in
+natural language generation (NLG) tasks (cf., Fig. 1). By
+illustrating the bottleneck of NLU and NLG inference procedures, we find that auto-regressive generation used in PLMs
+suffers from extra time cost in embedding table query and
+token sampling (i.e., GenTime), which slows down the whole
+inference procedure heavily.
+In this paper, we explore accelerating the generation procedure of language models. Different from existing works that
+merely approximate the nonlinear operations, we consider
+the optimization at the architecture level and attempt to reorganize and simplify the whole generation procedure as well
+as Transformer modules. To this end, we propose MERGE
+(short for MPC-based Embedding Resending GEneration),
+a fast and easy-to-adopt framework for private text generation. MERGE is compatible with previous MPC-based works
+(e.g., MPCformer, THE-X, and IRON) and mainstream PLMs
+(e.g., GPT-2 (Radford et al. 2019), T5 (Raffel et al. 2020), and
+Bart (Lewis et al. 2020)). In concrete, MERGE can simplify
+the time-consuming operations in NLG such as embedding
+query and token sampling. To achieve that, we first put forward a strategy called embedding resending, which directly
+uses the output hidden state as the new input token embedding. Embedding resending helps to bypass the embedding
+table query operation and decouple the computation between
+forward representation learning and next token sampling.
+Besides, following the recent research (Hassid et al. 2022)
+in attention mechanism, we approximate self-attention with
+constant attention matrices and merge tensor computations
+in the Transformer module before inference. Nevertheless,
+
+

@@ -1,0 +1,83 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Column-Oriented Datalog on the GPU
+Yihao Sun1 , Sidharth Kumar2 , Thomas Gilray3 , Kristopher Micinski1
+1
+Syracuse University
+University of Illinois at Chicago
+3
+Washington State University
+{ysun67, kkmicins}@syr.edu, sidharth@uic.edu, thomas.gilray@wsu.edu
+2
+
+Abstract
+
+minimally-locking data structures such as B-Trees and tries
+(Jordan et al. 2019a,b). However, row-based storage can
+face scalability challenges on modern CPUs, especially
+those with multiple Core Chiplet Dies (CCDs) that do not
+share caches. Accessing entire rows can lead to suboptimal
+cache alignment and increased memory access latency,
+particularly for tasks such as joins and indexing, which
+frequently access only a subset of columns. Additionally,
+these systems are not entirely lock-free, which can further
+limit scalability as core counts increase. Our benchmarks
+show that both engines’ performance saturates at 32 cores
+and declines rapidly when scaling up to 64 cores.
+Some CPU-based in-memory Datalog reasoners, such
+as VLog and Nemo (Urbani, Jacobs, and Krötzsch 2016;
+Ivliev et al. 2023), adopt a column-oriented tuple representation (Abadi, Madden, and Hachem 2008) along with compression techniques such as run-length encoding (Robinson and Cherry 1967). On CPU-based systems, the columnoriented approach trades space for time, enabling these engines to run on machines with limited RAM.
+However, the performance claim between these two storage layouts shifts with the emergence of new hardware,
+particularly datacenter GPUs. These SIMD-like superchips,
+such as the NVIDIA H100, can execute more than 16 k
+threads simultaneously and are supported by 96 GB of highbandwidth memory (HBM) (JEDEC 2021), and have significant potential to accelerate data-intensive workloads. Such
+massively parallel systems demand higher memory locality
+and fully lock-free code, making it challenging to migrate
+existing row-oriented Datalog engines to this hardware. In
+contrast, the column-oriented storage layout, with its smaller
+tuple size, naturally fits the SIMD architecture. This layout has already proven to be more cache-friendly and offers better memory locality for SIMD-enhanced CPU-based
+systems, as demonstrated in the database community (Ailamaki et al. 1999; Zukowski, Nes, and Boncz 2008), and
+is widely used in high-performance OLAP databases such
+as DuckDB (Raasveldt and Mühleisen 2019) and MonetDB/X100 (Boncz, Zukowski, and Nes 2005).
+Due to the data-intensive nature of Datalog and the similarities between GPUs and SIMD processors, we believe
+that column-oriented storage could be a better fit for modern datacenter GPUs. In this paper, we present FV LOG, a
+column-oriented Datalog Engine backend designed for mod-
+
+Datalog is a logic programming language widely used in
+knowledge representation and reasoning (KRR), program
+analysis, and social media mining due to its expressiveness
+and high performance. Traditionally, Datalog engines use either row-oriented or column-oriented storage. Engines like
+VLog and Nemo favor column-oriented storage for efficiency
+on limited-resource machines, while row-oriented engines
+like Soufflé use advanced data structures with locking to perform better on multi-core CPUs. The advent of modern datacenter GPUs, such as the NVIDIA H100 with its ability to
+run over 16k threads simultaneously and high memory bandwidth, has reopened the debate on which storage layout is
+more effective. This paper presents the first column-oriented
+Datalog engines tailored to the strengths of modern GPUs.
+We present FV LOG, a CUDA-based Datalog runtime library
+with a column-oriented GPU datastructure that supports all
+necessary relational algebra operations. Our results demonstrate over 200× performance gains over SOTA CPU-based
+column-oriented Datalog engines and a 2.5× speedup over
+GPU Datalog engines in various workloads, including KRR.
+
+Introduction
+Datalog (Abiteboul, Hull, and Vianu 1995) has become
+a de-facto standard for reasoning across a breadth of
+fields, including deductive databases (Sáenz-Pérez, Caballero, and Garcı́a-Ruiz 2011), program analysis (Bravenboer and Smaragdakis 2009), business analytics (Aref et al.
+2015a), and knowledge representation (Nenov et al. 2015).
+For example, popular applications of RDF, such as OWL 2
+RL ontologies (Motik et al. 2019) with SWRL rules (Horrocks et al. 2004), are easily transliterated into Datalog rules.
+A Datalog engine then executes these rules to a fixed point,
+materializing a database for subsequent querying. While
+early systems such as OWLIM (Kolovski, Wu, and Eadon
+2010) and WebPIE (Urbani et al. 2010) were challenged by
+slow performance, modern Datalog engines enable scaling
+useful queries to internet-scale datasets (Ajileye and Motik
+2022).
+High-performance Datalog engines such as RDFox (Motik et al. 2014) and Soufflé (Jordan, Scholz,
+and Subotić 2016) are typically designed for CPUbased hardware, storing tuples in row-based format with
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+15177
+
+

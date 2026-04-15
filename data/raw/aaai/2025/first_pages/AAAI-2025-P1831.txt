@@ -1,0 +1,101 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Sweeping Heterogeneity with Smart MoPs:
+Mixture of Prompts for LLM Task Adaptation
+Chen Dun1 * , Mirian Del Carmen Hipolito Garcia2 * , Guoqing Zheng2 , Ahmed Hassan Awadallah2 ,
+Robert Sim2 , Anastasios Kyrillidis1, 3
+1
+
+Rice University, Computer Science Department
+2
+Microsoft
+3
+Ken Kennedy Institute at Rice University
+
+Abstract
+Prompt instruction tuning is a popular approach to better adjust
+pretrained LLMs for specific downstream tasks. How to extend
+this approach to simultaneously handle multiple tasks and data
+distributions is an interesting question. We propose Mixture of
+Prompts (MoPs) with smart gating functionality. Our proposed
+system identifies relevant skills embedded in different groups
+of prompts and dynamically weighs experts (i.e., collection
+of prompts) based on the target task. Experiments show that
+MoPs are resilient to model compression, data source, and task
+composition, making them highly versatile and applicable in
+various contexts. In practice, MoPs can simultaneously mitigate prompt training “interference” in multi-task, multi-source
+scenarios (e.g., task and data heterogeneity across sources)
+and possible implications from model approximations. Empirically, MoPs show particular effectiveness in compressed
+model scenarios, while maintaining favorable performance in
+uncompressed settings: MoPs can reduce final perplexity from
+9% up to 70% in non-i.i.d. distributed cases and from 3% up
+to 30% in centralized cases, compared to baselines.
+
+Introduction
+Advances in large language models (LLMs) show that they
+are powerful general-purpose models (Bubeck et al. 2023),
+with the ability to solve different tasks out of the box. (Soft)
+prompt instruction tuning helps in this direction by finetuning
+deployed models to adjust to individual downstream tasks,
+without the need of full-model finetuning (Lester, Al-Rfou,
+and Constant 2021; Kenton et al. 2021; Tamkin et al. 2021).1
+Yet, vanilla finetuning procedures do not always behave
+well in some practical scenarios. For instance, consider the
+following: A company XYZ intends to develop a generalpurpose office assistant application that solves different tasks
+at the same time. A desired solution would be to create a
+* These authors contributed equally.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+1
+Similar attempts created the term parameter-efficient finetuning
+(PEFT) methods (Houlsby et al. 2019), including adapter tuning
+(Houlsby et al. 2019), prefix tuning (Li and Liang 2021), prompt
+tuning (Lester, Al-Rfou, and Constant 2021), low-rank adaptation
+(LoRA) (Hu et al. 2021), few-shot tuning (IA3 ) (Liu et al. 2022a)
+and compression aware prompts (Xu et al. 2023); in this work,
+without loss of generality and as a proof-of-concept, we focus on
+soft prompt instruction pruning.
+
+16426
+
+family of prompts that can be combined on-the-fly and tackle
+a wide variety of incoming tasks, without heavy supervision. With that goal in mind, company XYZ uses both human
+“labelers” to generate demonstration data of related tasks
+(maybe, stored in a central server) and client data to utilize
+their own local demonstration.
+Most existing approaches suggest the “centrally training
+and finetuning” solution, where all data (company-owned and
+private client) are gathered, and a pre-trained model is further finetuned. However, beyond the privacy concerns due to
+centrally collecting all data, such an approach, while it would
+work for the tasks and data included in the training dataset, it
+would not necessarily adapt to new incoming tasks. Further,
+company XYZ desires to decrease both training and inference
+costs of the final model by deploying highly compressed
+models and aiming for the generation of specialized “experts”
+that can be used on the fly and just-in-time for most incoming
+clients, without necessarily requiring further finetuning.2
+Overview of our approach and contributions. Such scenarios suggest a multi-source, multi-task prompt tuning approach. We consider scenarios where the system does not
+just face data from a single data distribution but has to learn
+how to handle data and task heterogeneity. Following recent
+literature (Mittal, Bengio, and Lajoie 2022), our emphasis
+here is on training specialized prompts that operate in a modular way such that, when combined, they tackle tasks in a
+just-in-time manner.
+We propose to use Mixture of Prompts (or MoPs) in multisource, multi-task prompt instruction tuning to efficiently
+leverage all available data from both the central server and
+local clients while using highly compressed models.
+The use of MoPs is guided by a gating functionality that
+can identify relevant skills embedded in different groups of
+prompts (“experts” in this work) based on the data domain of
+the current input. This approach dynamically selects a “soft”
+combination of relevant prompts, which we hypothesize is
+critical to avoid the appearance of implicit “interference”
+during training. Simply put, if prompts are not aware of
+multiple data sources and we allow all prompts to “follow"
+(=be trained toward) the streaming incoming tasks and data
+2
+
+The definition of an “expert” here will be apparent later in the
+text; this should not necessarily be assumed as MLP experts in a
+sparse mixture of expert scenarios (Puigcerver et al. 2023).
+
+

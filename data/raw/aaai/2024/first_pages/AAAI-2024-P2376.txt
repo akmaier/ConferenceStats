@@ -1,0 +1,91 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Contrastive Credibility Propagation for Reliable Semi-supervised Learning
+Brody Kutt, Pralay Ramteke, Xavier Mignot, Pamela Toman, Nandini Ramanan, Sujit Rokka
+Chhetri, Shan Huang, Min Du, William Hewlett
+Palo Alto Networks, AI Research
+{bkutt, pramteke, xmignot, ptoman, nramanan, schhetri, shuang1, midu, whewlett}@paloaltonetworks.com
+
+Abstract
+Producing labels for unlabeled data is error-prone, making
+semi-supervised learning (SSL) troublesome. Often, little is
+known about when and why an algorithm fails to outperform
+a supervised baseline. Using benchmark datasets, we craft five
+common real-world SSL data scenarios: few-label, open-set,
+noisy-label, and class distribution imbalance/misalignment in
+the labeled and unlabeled sets. We propose a novel algorithm
+called Contrastive Credibility Propagation (CCP) for deep
+SSL via iterative transductive pseudo-label refinement. CCP
+unifies semi-supervised learning and noisy label learning for
+the goal of reliably outperforming a supervised baseline in any
+data scenario. Compared to prior methods which focus on a
+subset of scenarios, CCP uniquely outperforms the supervised
+baseline in all scenarios, supporting practitioners when the
+qualities of labeled or unlabeled data are unknown.
+
+1
+
+Introduction
+
+A fundamental goal of semi-supervised learning (SSL) is to
+ensure the use of unlabeled data results in a classifier that outperforms a baseline trained only on labeled data (supervised
+baseline). However, this is often not the case (Oliver et al.
+2018). The problem is often overlooked as SSL algorithms
+are frequently evaluated only on clean and balanced datasets
+where the sole experimental variable is the number of given
+labels. Worse, in the pursuit of maximizing label efficiency,
+many modern SSL algorithms such as (Berthelot et al. 2019;
+Sohn et al. 2020; Zheng et al. 2022; Li, Xiong, and Hoi 2021)
+and others rely on a mechanism that directly encourages the
+marginal distribution of label predictions to be close to the
+marginal distribution of ground truth labels (known as distribution alignment). This assumption is rarely true in practice.
+We identify five key dataset quality variables (data variables)
+that can strongly impact SSL algorithm performance and are
+common in real-world datasets.
+1. Few-label: Varying the number of labeled samples per
+class typically while the amount of unlabeled data grows
+or is held constant.
+2. Open-set: Including and varying the ratio of out-ofdistribution (OOD) samples, i.e. samples which belong to
+no class, in the unlabeled data.
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+21294
+
+3. Noisy-label: Varying the percent of given labels that are
+incorrect.
+4. Class distribution imbalance/misalignment: Varying
+the disparity of class frequency distributions between labeled and unlabeled data. We explore increasingly imbalanced distributions in the labeled and unlabeled data
+separately (while keeping the other uniform to ensure
+misalignment).
+Thoroughly evaluating the practicality of an SSL algorithm
+requires analyzing its response to these variables at differing
+severity. Identifying specific quality issues in a dataset can
+be challenging for practitioners. Often, real-world SSL workflows encounter scarcity and noise in labeled data, which is
+also sampled from a distribution distinct from the unlabeled
+data, derived from the often unknown target distribution.
+Moreover, the unlabeled data distribution may be inaccessible
+due to privacy concerns or real-time data collection in fully
+autonomous systems. Consequently, such systems necessitate external components like Out-of-Distribution (OOD)
+detectors to prevent failures, albeit at the cost of increased
+complexity. Instead of maximizing the robustness to any one
+data variable, we strive to build an SSL algorithm that is
+robust to all data variables, i.e. can match or outperform a
+supervised baseline. To address this challenge, we first hypothesize that sensitivity to pseudo-label errors is the root
+cause of all failures. This rationale is based on the simple
+fact that a hypothetical SSL algorithm consisting of a pseudolabeler with a rejection option and means to build a classifier
+could always match or outperform its supervised baseline if
+the pseudo-labeler made no mistakes. Such a pseudo-labeler
+is unrealistic, of course. Instead, we build into our solution
+means to work around those inevitable errors.
+Our contributions can be summarized as follows. To the
+best of our knowledge, our work is the first to 1) define an
+SSL algorithm that unifies a pseudo-labeling strategy and an
+approach to overcome label noise 2) use credibility vectors
+to properly represent uncertainty during pseudo-label generation 3) propose a generalized contrastive loss for non-discrete
+positive pairs 4) demonstrate a reliable performance boost
+over a supervised baseline across five real-world data scenarios at differing levels of severity. The rest of this work is
+organized as follows. We overview related works in Sec. 2.
+We introduce CCP in Sec. 3. In Sec. 4, we detail our experimental results before concluding in Sec. 5.
+
+

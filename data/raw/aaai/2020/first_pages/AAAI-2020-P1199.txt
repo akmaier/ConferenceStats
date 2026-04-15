@@ -1,0 +1,124 @@
+The Thirty-Fourth AAAI Conference on Artiﬁcial Intelligence (AAAI-20)
+
+Neural Architecture Search Using Deep
+Neural Networks and Monte Carlo Tree Search
+Linnan Wang,∗1 Yiyang Zhao,∗2 Yuu Jinnai,1 Yuandong Tian,3 Rodrigo Fonseca1
+1
+
+Brown University 2 Worcester Polytechnic Institute 3 Facebook AI Research
+
+Abstract
+
+ 
+
+Neural Architecture Search (NAS) has shown great success
+in automating the design of neural networks, but the prohibitive amount of computations behind current NAS methods requires further investigations in improving the sample
+efﬁciency and the network evaluation cost to get better results
+in a shorter time. In this paper, we present a novel scalable
+Monte Carlo Tree Search (MCTS) based NAS agent, named
+AlphaX, to tackle these two aspects. AlphaX improves the
+search efﬁciency by adaptively balancing the exploration and
+exploitation at the state level, and by a Meta-Deep Neural
+Network (DNN) to predict network accuracies for biasing the
+search toward a promising region. To amortize the network
+evaluation cost, AlphaX accelerates MCTS rollouts with a
+distributed design and reduces the number of epochs in evaluating a network by transfer learning, which is guided with
+the tree structure in MCTS. In 12 GPU days and 1000 samples, AlphaX found an architecture that reaches 97.84% top-1
+accuracy on CIFAR-10, and 75.5% top-1 accuracy on ImageNet, exceeding SOTA NAS methods in both the accuracy
+and sampling efﬁciency. Particularly, we also evaluate AlphaX on NASBench-101, a large scale NAS dataset; AlphaX
+is 3x and 2.8x more sample efﬁcient than Random Search
+and Regularized Evolution in ﬁnding the global optimum. Finally, we show the searched architecture improves a variety
+of vision applications from Neural Style Transfer, to Image
+Captioning and Object Detection.
+
+1
+
+
+
+
+
+
+
+  
+
+ 
+ 
+
+(a) random search
+" 
+
+" 
+
+ 
+ ! 
+   
+
+(b) greedy methods
+
+$#
+'
+
+&
+
+&
+%
+
+%
+
+
+
+$
+
+$
+
+
+ 
+ 
+
+ 
+! 
+   
+
+(c) MCTS
+
+(d) Performance
+
+Figure 1: Comparisons of NAS algorithms: (a) random
+search makes independent decision without using prior rollouts (previous search trajectories). An online model is to
+evaluate how promising the current search branch based
+on prior rollouts, and random search has no online model.
+(b) Search methods guided by online performance models
+built from previous rollouts. With static, coarse-grained exploration strategy (e.g., -greedy in Q-learning), they may
+quickly be stuck in a sub-optimal solution; and the chance
+to escape is exponentially decreasing along the trajectory. (c)
+AlphaX builds online models of both performance and visitation counts for adaptive exploration. The numbers in nodes
+represent values. (d) Performance of different search algorithms on NASBench-101. AlphaX is 3x, 1.5x more sampleefﬁcient than random search and -greedy based Q-learning.
+
+Introduction
+
+Designing efﬁcient neural architectures is extremely laborious. A typical design iteration starts with a heuristic design hypothesis from domain experts, followed by the design validation with hours of GPU training. The entire design process requires many of such iterations before ﬁnding a satisfying architecture. Neural Architecture Search has
+emerged as a promising tool to alleviate human effort in this
+trial and error design process, but the tremendous computing
+resources required by current NAS methods motivate us to
+investigate both the search efﬁciency and the network evaluation cost.
+AlphaGo/AlphaGoZero (Silver et al. 2016; Tian et al.
+2019) have recently shown super-human performance in
+playing the game of Go, by using a speciﬁc search algorithm called Monte-Carlo Tree Search (MCTS) (Kocsis
+
+and Szepesvári 2006). Given the current game state, MCTS
+gradually builds an online model for its subsequent game
+states to evaluate the winning chance at that state, based
+on search experiences in the current and prior games, and
+makes a decision. The search experience is from the previous search trajectories (called rollouts) that have been tried,
+and their consequences (whether the player wins or not).
+Different from the traditional MCTS approach that evalu-
+
+∗
+
+Linnan Wang and Yiyang Zhao contributed equally
+c 2020, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+9983
+
+

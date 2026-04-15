@@ -1,0 +1,88 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Learning Rational Subgoals from Demonstrations and Instructions
+Zhezheng Luo* 1 , Jiayuan Mao* 1 , Jiajun Wu2 ,
+Tomás Lozano-Pérez1 , Joshua B. Tenenbaum1 , Leslie Pack Kaelbling1
+1
+
+Massachusetts Institute of Technology
+2
+Stanford University
+
+Abstract
+We present a framework for learning useful subgoals that support efficient long-term planning to achieve novel goals. At
+the core of our framework is a collection of rational subgoals
+(RSGs), which are essentially binary classifiers over the environmental states. RSGs can be learned from weakly-annotated
+data, in the form of unsegmented demonstration trajectories,
+paired with abstract task descriptions, which are composed of
+terms initially unknown to the agent (e.g., collect-wood then
+craft-boat then go-across-river). Our framework also discovers dependencies between RSGs, e.g., the task collect-wood
+is a helpful subgoal for the task craft-boat. Given a goal description, the learned subgoals and the derived dependencies
+facilitate off-the-shelf planning algorithms, such as A∗ and
+RRT , by setting helpful subgoals as waypoints to the planner, which significantly improves performance-time efficiency.
+Project page: https://rsg.csail.mit.edu
+
+Introduction
+Being able to decompose complex tasks into subgoals is critical for efficient long-term planning. Consider the example
+in Fig. 1: planning to craft a boat from scratch is hard, as it
+requires a long-term plan going from collecting materials to
+crafting boats, but it can be made easier if we know that having an axe and having wood are useful sub-goals. Planning
+hierarchically with these subgoals can substantially reduce
+the search required. It is also helpful to understand the temporal dependencies between these subgoals, such as having
+wood being a useful subgoal to achieve prior to crafting boat
+makes long-term planning much more efficient.
+In this work, we propose Rational Subgoals (RSGs), a
+framework for learning useful subgoals and their temporal
+dependencies from demonstrations. Our system learns with
+very weak supervision, in the form of a small number of unsegmented demonstrations of complex behaviors paired with
+abstract task descriptions. The descriptions are composed of
+terms that are initially unknown to the agent, much as an
+adult might narrate the high-level steps when demonstrating
+a cooking recipe to a child. These action terms indicate important subgoals in the action sequence, and our agent learns
+* These authors contributed equally.
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+12068
+
+to detect when these subgoals are true in the world, infer their
+temporal dependencies, and leverage them to plan efficiently.
+Illustrated in Fig. 1, our model learns from a dataset of
+paired but unaligned low-level state-action sequences and
+the corresponding abstract task description (collect-wood
+then craft-boat then go-across-river). For each action term
+o (e.g., collect-wood), our model learns a goal condition Go ,
+which maps any state to a binary random variable, indicating whether the state satisfies the goal condition. Given the
+training data, we decompose the observed trajectory into fragments, each of which corresponds to a “rational” sequence
+of actions for achieving a subgoal in the description.
+While this model-based approach enables great generality in generating behaviors, it suffers from the slow online
+computation. To speed up online planning, we compute a dependency matrix whose entries encode which subgoals might
+be helpful to achieve before accomplishing another subgoal
+(e.g., having wood is a helpful subgoal for the task crafting
+boat, and thus the entry (having wood, crafting boat) will
+have a higher weight). During test time, given a final goal
+(e.g., craft boat) and the initial state, a hierarchical search
+algorithm is applied at both the subgoal level and the lower,
+environmental-action level.
+The explicit learning of subgoals and their dependency
+structures brings two important advantages. First, the subgoal dependency allows us to explicitly set helpful subgoals
+as waypoints for planners. This significantly improves their
+runtime efficiency. Second, compared to alternative subgoal
+parameterizations such as reward functions, subgoals in the
+form of a state classifier allows us to use simple and efficient
+planners. For example, in continuous spaces, we can use
+Rapidly-exploring Random Trees (RRT) to search for plans
+in the robot configuration space. These planers do not require
+training and generalize immediately to novel environments.
+We evaluate RSGs in Crafting World (Chen, Gupta, and
+Marino 2021), an image-based grid-world domain with a
+rich set of object crafting tasks, and Playroom (Konidaris,
+Kaelbling, and Lozano-Perez 2018), a 2D continuous domain
+with geometric constraints. Our evaluation shows that our
+model clearly outperforms baselines on planning tasks where
+the agent needs to generate trajectories to accomplish a given
+task. Another important application of RSGs is to create a
+language interface for human-robot communication, which
+includes robots interpreting human actions and humans in-
+
+

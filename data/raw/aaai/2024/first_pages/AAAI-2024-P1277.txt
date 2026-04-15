@@ -1,0 +1,87 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Fed-QSSL: A Framework for Personalized Federated Learning under Bitwidth and
+Data Heterogeneity
+Yiyue Chen1 , Haris Vikalo1 , Chianing Wang2 *
+1
+
+The University of Texas at Austin
+2
+Toyota InfoTech Lab USA
+yiyuechen@utexas.edu, hvikalo@utexas.edu, johnny.wang@toyota.com
+
+Abstract
+Motivated by high resource costs of centralized machine learning schemes as well as data privacy concerns, federated learning (FL) emerged as an efficient alternative that relies on aggregating locally trained models rather than collecting clients’
+potentially private data. In practice, available resources and
+data distributions vary from one client to another, creating an
+inherent system heterogeneity that leads to deterioration of the
+performance of conventional FL algorithms. In this work, we
+present a federated quantization-based self-supervised learning scheme (Fed-QSSL) designed to address heterogeneity
+in FL systems. At clients’ side, to tackle data heterogeneity
+we leverage distributed self-supervised learning while utilizing low-bit quantization to satisfy constraints imposed by
+local infrastructure and limited communication resources. At
+server’s side, Fed-QSSL deploys de-quantization, weighted
+aggregation and re-quantization, ultimately creating models
+personalized to both data distribution as well as specific infrastructure of each client’s device. We validated the proposed
+algorithm on real world datasets, demonstrating its efficacy,
+and theoretically analyzed impact of low-bit training on the
+convergence and robustness of the learned models.
+
+Introduction
+Federated learning (FL) (McMahan et al. 2017; Kairouz et al.
+2021) recently emerged in response to the challenges in data
+privacy, storage cost and computation commonly faced by the
+conventional (centralized) learning systems. In centralized
+learning, a server collects and stores data to be used for model
+training, raising concerns regarding potential leakage of sensitive information and inefficient utilization of the storage
+and computation resources. Lately, advancements in software
+and hardware technologies have equipped smart edge devices
+with computational power that enables local data processing,
+allowing implementation of distributed frameworks such as
+FL in a variety of real-world applications (Chen, Sun, and Jin
+2019). In FL systems, participating devices collaboratively
+learn a model while preserving privacy by training on local
+data that remains private. A server aggregates local updates
+to obtain a global model which is then distributed to the
+clients; in turn, the clients continue local training using the
+* This work was supported by Toyota Motor North America.
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+11443
+
+latest global model as a starting point. In addition to the conventional supervised learning, federated learning is suitable
+for meta-learning and unsupervised learning problems (Jiang
+et al. 2019; Servetnyk, Fung, and Han 2020).
+Heterogeneity in local data distribution, as well as imbalance in the computation and memory capabilities of the
+participating devices, present major challenges to federated
+learning (Zhao et al. 2018; Yoon et al. 2022). Practical scenarios where both sources of heterogeneity occur include
+healthcare disorder prediction for patients with different profiles and monitoring devices, transportation systems over
+different vehicles and terrain, and indoor/outdoor air quality
+detection, to name just a few. Several recent FL techniques
+aim to alleviate the impact of data, model or device heterogeneity (Jiang, Shan, and Zhang 2020; Lin et al. 2020; Diao,
+Ding, and Tarokh 2020; Wang et al. 2022). However, variations in bitwidth available to the clients that participate in
+training have been much less studied (Yoon et al. 2022). To
+our knowledge, there exists no prior work in literature investigating FL in setting where both the local data and device
+bitwidth are heterogeneous – the focus of our work.
+On one hand, clients’ devices collect and/or generate data
+at different times and locations, leading to discrepancy in
+data amounts and distribution. When distributed devices train
+locally, each learned model optimizes an objective specified
+in regard to a local dataset. If the data across participating
+devices is non-IID, the devices end up optimizing distinct
+objectives which generally adversely affects training convergence and, ultimately, negatively impacts performance of
+the resulting global model trained by classical FL algorithms
+such as FedAvg (McMahan et al. 2017; Li et al. 2019). This is
+exacerbated when a client’s dataset contains only a small subset of classes or few data points, leading to an insufficiently
+expressive local model. In turn, using such models in the aggregation step at the server leads to a global model that lacks
+robustness and in general may significantly underperform its
+centrally trained counterparts (Zhao et al. 2018).
+On the other hand, to satisfy the constraints on local compute and memory footprint as well as on the communication
+bandwidth between clients and the central server, each client
+needs to train a local model in low bitwidth operations and
+store the updated model in low bitwidth (Yoon et al. 2022).
+When the clients’ devices have different bitwidth capabilities,
+a number of novel challenges arise including: (1) Quantized
+
+

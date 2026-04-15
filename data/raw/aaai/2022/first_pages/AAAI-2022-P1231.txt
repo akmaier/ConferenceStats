@@ -1,0 +1,89 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+Unsupervised Deep Keyphrase Generation
+Xianjie Shen1 , Yinghan Wang2 * , Rui Meng3† , Jingbo Shang4‡
+1,4
+
+University of California, San Diego
+2
+Amazon.com Inc
+3
+Salesforce Research
+{xishen, jshang}@eng.ucsd.edu, yinghanw@amazon.com, ruimeng@salesforce.com,
+
+Abstract
+Keyphrase generation aims to summarize long documents
+with a collection of salient phrases. Deep neural models have
+demonstrated remarkable success in this task, with the capability of predicting keyphrases that are even absent from a
+document. However, such abstractiveness is acquired at the expense of a substantial amount of annotated data. In this paper,
+we present a novel method for keyphrase generation, AutoKeyGen, without the supervision of any annotated doc-keyphrase
+pairs. Motivated by the observation that an absent keyphrase
+in a document may appear in other places, in whole or in
+part, we construct a phrase bank by pooling all phrases extracted from a corpus. With this phrase bank, we assign phrase
+candidates to new documents by a simple partial matching algorithm, and then we rank these candidates by their relevance
+to the document from both lexical and semantic perspectives.
+Moreover, we bootstrap a deep generative model using these
+top-ranked pseudo keyphrases to produce more absent candidates. Extensive experiments demonstrate that AutoKeyGen
+outperforms all unsupervised baselines and can even beat a
+strong supervised method in certain cases.
+
+Introduction
+The goal of keyphrase generation is to produce a list of
+phrases to summarize and characterize a long document
+(e.g., research papers and news articles). It has a wide spectrum of downstream applications, to name a few, information retrieval (Jones and Staveley 1999), text summarization (Zhang, Zincir-Heywood, and Milios 2004), and text
+categorization (Hulth and Megyesi 2006).
+The trade-off between the capability of generating absent
+keyphrases (i.e., phrases do not appear in the original document) and the reliance on document-keyphrase supervision
+has long existed among keyphrase generation methods. Meng
+et al. (2017) have shown that in scientific documents, up to
+50% of keyphrases are absent from the source text, yet they
+can be helpful for downstream applications such as search
+and recommendation (Boudin and Gallina 2021). With the
+advance of deep neural networks, recent studies (Meng et al.
+* Work completed before joining Amazon.
+†
+
+The research was accomplished at University of Pittsburgh.
+Jingbo Shang is the corresponding author.
+Copyright © 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+‡
+
+11303
+
+2017; Chen et al. 2019; Sun et al. 2019; Alzaidy, Caragea,
+and Giles 2019; Yuan et al. 2018; Meng et al. 2019, 2020)
+are capable of generating keyphrases, according to their semantic relevance to a document, no matter they are present or
+not. Although these methods have achieved state-of-the-art
+performance, they require a tremendous number of documentkeyphrase pairs to supervise the training, and the data is typically expensive and laborious to collect. For example, Meng
+et al. (2017) utilized half a million scientific papers with
+author-annotated keyphrases to train a Sequence-to-Sequence
+model. Similarly, Xiong et al. (2019) collected 68,000 web
+pages and have them annotated by professional annotators.
+While many extractive methods (Hasan and Ng 2010; Shang
+et al. 2018; Bennani-Smires et al. 2018) do not need any direct supervision and demonstrate robust performance across
+various datasets, they can only predict phrases that appear in
+the original document. There are several extractive studies
+that try to recall absent phrases by including related documents as additional inputs (Wan and Xiao 2008; Florescu and
+Caragea 2017), however, compared with supervised generative methods, their performance is not competitive.
+In this paper, we aim to alleviate this trade-off by proposing
+an unsupervised method that can generate both present and
+absent keyphrases without utilizing any human annotation.
+We observe that absent keyphrases of a document can be
+present in other documents. Also, some absent keyphrases
+actually appear in the original document in part (as separate
+tokens). For example, in the test split of Inspec dataset, a
+popular benchmark dataset for keyphrase generation, bvcc02
+Motivated by these observations, we propose a novel unsupervised deep keyphrase generation method AutoKeyGen as
+illustrated in Figure 1. Specifically, we first follow previous
+works (Hasan and Ng 2010; Shang et al. 2018; BennaniSmires et al. 2018) to extract candidate present keyphrases
+from all documents and pool them together into a phrase
+bank. From this present phrase bank, we can draw candidate
+absent keyphrases for each document through a partial matching process, requiring each stemmed word in the candidate
+phrase must exist in the input document. To rank both types
+of keyphrases, we fuse two types of similarity: the TF-IDF
+score at the lexical level and the embedding similarity at the
+semantic level. We further utilize these top-ranked present
+and absent candidates as “silver” data to train a deep generative model. This generative model is expected to augment
+
+

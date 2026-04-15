@@ -1,0 +1,86 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+LaCAM: Search-Based Algorithm for Quick Multi-Agent Pathfinding
+Keisuke Okumura
+Tokyo Institute of Technology
+Tokyo, Japan
+okumura.k@coord.c.titech.ac.jp
+
+Abstract
+
+To this end, this paper proposes a novel algorithm called
+lazy constraints addition search for MAPF (LaCAM). From
+the theoretical side, LaCAM is complete. It returns a solution for solvable instances, otherwise reports the nonexistence. From the empirical side, we demonstrate that LaCAM can solve a variety of MAPF instances in a very short
+time, including instances with large maps (e.g., 1491 × 656
+four-connected grid), instances with massive agents (e.g.,
+10, 000), or dense situations. For instance, LaCAM solved
+all instances with 400 agents on a 32 × 32 grid with 20% obstacles from the MAPF benchmark (Stern et al. 2019), with
+a median runtime of 1 s. In contrast, baseline sub-optimal
+MAPF algorithms (Silver 2005; Standley 2010; Okumura
+et al. 2022; Li, Ruml, and Koenig 2021; Li et al. 2022)
+mostly failed to solve the instances with the timeout of 30 s.
+LaCAM has an easily extensible structure, which comprises a two-level search. At the high-level, it searches a sequence of configurations, where a configuration is a tuple
+of locations for all agents. At the low-level, it searches constraints that specify which agents go where in the next configuration. Successors at the high-level (i.e., configurations)
+are generated in a lazy manner while following constraints
+from the low-level, leading to a dramatic reduction of the
+search effort. Similar to the popular CBS algorithm (Sharon
+et al. 2015), due to its simplicity, we consider that LaCAM
+can apply to many domains not limited to MAPF such as
+multi-robot motion planning (Solis et al. 2021).
+Throughout the paper, we focus on sub-optimal LaCAM.
+The discussion of optimal LaCAM appears at the end, together with a qualitative discussion of why LaCAM is quick.
+In what follows, we present problem formulation, the algorithm, evaluation, and related work in order. The supplementary material is available on https://kei18.github.io/lacam.
+
+We propose a novel complete algorithm for multi-agent
+pathfinding (MAPF) called lazy constraints addition search
+for MAPF (LaCAM). MAPF is a problem of finding collisionfree paths for multiple agents on graphs and is the foundation
+of multi-robot coordination. LaCAM uses a two-level search
+to find solutions quickly, even with hundreds of agents or
+more. At the low-level, it searches constraints about agents’
+locations. At the high-level, it searches a sequence of all
+agents’ locations, following the constraints specified by the
+low-level. Our exhaustive experiments reveal that LaCAM
+is comparable to or outperforms state-of-the-art sub-optimal
+MAPF algorithms in a variety of scenarios, regarding success
+rate, planning time, and solution quality of sum-of-costs.
+
+1
+
+Introduction
+
+The multi-agent pathfinding (MAPF) problem (Stern et al.
+2019) aims to assign collision-free paths on graphs to each
+agent, which is the foundation of multi-robot coordination.
+In MAPF applications such as fleet operations in automated
+warehouses (Wurman, D’Andrea, and Mountz 2008), it is
+necessary to solve MAPF with thousands of agents in a realtime manner.
+In general, the design of MAPF algorithms needs to consider a trade-off between quality and speed. From the quality side, solving MAPF optimally is NP-hard in various criteria (Yu and LaValle 2013). Although many effective optimal algorithms have been developed, it is still challenging to handle a few hundred of agents in real-time (i.e.,
+short timeframes in this context) even with state-of-the-art
+methods (Li et al. 2021b; Lam et al. 2022). From the speed
+side, sub-optimal algorithms can quickly solve large MAPF
+instances while compromising solution quality. However,
+in real-time applications (i.e., scenarios with deadlines for
+planning time in this context) or in instances with massive agents such that optimal algorithms never handle, there
+is no choice but to use sub-optimal algorithms. In addition, recently proposed frameworks can effectively refine the
+quality of known MAPF solutions (Okumura, Tamura, and
+Défago 2021; Li et al. 2021a). Consequently, the development of quick sub-optimal algorithms has practical value.
+
+2
+
+Preliminaries
+
+Problem Definition An MAPF instance is defined by a
+graph G = (V, E), a set of agents A = {1, . . . , n}, a tuple of
+distinct starts S = (s1 , . . . , sn ) and goals G = (g1 , . . . , gn ),
+where si , gi ∈ V .
+Given an MAPF instance, let πi [t] ∈ V denote the location of an agent i at discrete time t ∈ N≥0 . At each
+timestep t, i can move to an adjacent vertex, or can stay at its
+current vertex, i.e., πi [t + 1] ∈ neigh(πi [t]) ∪ {πi [t]}, where
+neigh(v) is the set of vertices adjacent to v ∈ V . Agents
+
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+11655
+
+

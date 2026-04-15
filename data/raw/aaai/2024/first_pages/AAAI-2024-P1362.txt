@@ -1,0 +1,115 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Taming the Sigmoid Bottleneck:
+Provably Argmaxable Sparse Multi-Label Classification
+Andreas Grivas, Antonio Vergari† , Adam Lopez†
+School of Informatics, University of Edinburgh, UK
+{agrivas, avergari, alopez}@ed.ac.uk
+
+Abstract
+
+−++
+
+Sigmoid output layers are widely used in multi-label classification (MLC) tasks, in which multiple labels can be assigned to any input. In many practical MLC tasks, the number of possible labels is in the thousands, often exceeding the
+number of input features and resulting in a low-rank output
+layer. In multi-class classification, it is known that such a lowrank output layer is a bottleneck that can result in unargmaxable classes: classes which cannot be predicted for any input. In this paper, we show that for MLC tasks, the analogous
+sigmoid bottleneck results in exponentially many unargmaxable label combinations. We explain how to detect these
+unargmaxable outputs and demonstrate their presence in three
+widely used MLC datasets. We then show that they can be
+prevented in practice by introducing a Discrete Fourier Transform (DFT) output layer, which guarantees that all sparse label combinations with up to k active labels are argmaxable.
+Our DFT layer trains faster and is more parameter efficient,
+matching the F1@k score of a sigmoid layer while using up to
+50% fewer trainable parameters. Our code is publicly available at https://github.com/andreasgrv/sigmoid-bottleneck.
+
+1
+
+−−+
+
+−−−
+
+(a)
+
+++−
+
++−−
+
+Unargmaxability:
+and − + −
+cannot be predicted.
++−+
+
++ Unspecified septicemia
++ Lymphosarcoma and...
++ Anemia, unspecified
+
++++
+
+Clinical
+Document
+
++ Influenza...
++ Cellulitis and...
++ Rash...
++ Sepsis
+− Viral pneumonia...
+.
+−
+.
+.
+
+(b) Unargmaxable test example from
+MIMIC-III for BSL with d = 50.
+
+Figure 1: When we have more labels (n) than features (d),
+some label combinations are unargmaxable, i.e. impossible
+to predict. Left: in a d = 2 feature space with n = 3 classification hyperplanes through the origin, only 6 out of 8 label
+combinations can be predicted irrespective of how we orient
+the hyperplanes.1 Right: a BSL trained on the MIMIC-III
+clinical MLC dataset with d = 50 and n = 8921 is unable
+to predict this label combination2 which has the depicted 7
+active labels (+) and the remaining ones are inactive (−).
+
+Introduction
+
+Sigmoid classifiers for Multi-Label Classification (MLC)
+are simple to implement: just append a linear layer with sigmoid activations to your neural feature encoder of choice.
+They are widely used in neural MLC with thousands of output labels; applications include clinical coding (Mullenbach
+et al. 2018), image classification (Baruch et al. 2020), finegrained entity typing (Choi et al. 2018) and protein function prediction (Kulmanov and Hoehndorf 2019). Moreover,
+they are the default for MLC in frameworks such as Scikitlearn (Pedregosa et al. 2011) and Keras (Paul and Rakshit
+2014). In this paper we highlight an overlooked weakness
+of this layer. If, as is common for computational efficiency,
+we make the number of features smaller than the number of
+labels, the result is a Bottlenecked Sigmoid Layer (BSL),
+in which exponentially many label combinations cannot be
+predicted irrespective of input. We say that such outputs
+are unargmaxable (Grivas, Bogoychev, and Lopez 2022).
+Fig. 1a illustrates how a BSL with two features and three
+labels must have unargmaxable label combinations.
+
+But unargmaxable label combinations are only a problem if our application requires those combinations. As we
+show in this paper, they often do. For example, in the
+safety-critical application of clinical MLC (see Section 5),
+unargmaxability can make it impossible to label a report
+with a specific combination of findings, as illustrated with
+a real example in Fig. 1b. This would be surprising and unacceptable to users of the system when such label combinations do indeed occur in data. Since BSLs are widely used, it
+is critical for developers and users of a model to be aware of
+this problem and to be able to guarantee that all meaningful
+outputs for the task at hand are argmaxable.
+Previous work has shown that bottlenecked output layers
+have restrictions on expressivity, but focused only on multi1
+
+Adding a bias term to the BSL allows the hyperplanes to have
+offsets and they will not necessarily meet at the origin. However,
+this cannot solve the problem: such a BSL is more restricted than
+increasing d by one: we still only get 7 out of 8 label combinations.
+2
+There are also unargmaxable test examples for d = 100 and
+d = 200, we chose this example as it had fewer active labels.
+
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+† Co-supervision.
+
+12208
+
+

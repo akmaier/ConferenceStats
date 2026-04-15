@@ -1,0 +1,87 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Sample-Dependent Adaptive Temperature Scaling
+for Improved Calibration
+Tom Joy1,3 , Francesco Pinto1 , Ser-Nam Lim2 , Philip H. S. Torr1 , Puneet K. Dokania1,3
+1
+
+University of Oxford,
+2
+Meta AI,
+3
+Five AI
+tom.joy@five.ai
+
+Abstract
+
+the calibration error (in expectation) over the entire validation set, and since neural networks are overconfident on average, practically speaking, the effect of temperature scaling
+is to reduce the confidence for every prediction. However,
+as we will discuss, different samples contribute by varying
+amounts to the calibration error.
+This issue can be seen in Fig. 1, which shows the histogram of the individual contributions to the calibration errors; i.e. the distribution of p(y|pi ) − pi , where p(y|pi ) is
+the accuracy and pi is the softmax probability for the data
+point i, the calibration error can be obtained by taking the
+weighted average over all the values.1 Here the mismatch between per data-point confidence and accuracy is not constant
+across all the data-points, and hence miscalibration cannot
+be fixed by scaling the logits by a single fixed value, a key
+assumption in vanilla temperature scaling. The calibration
+error varies significantly, with a small (but not insignificant)
+number of samples on which the network is overconfident.
+Consequently, scaling the predictions with a single temperature value will adjust all of the errors in the same way. Typically, the temperature values obtained are greater than 1,
+resulting in a reduction of confidence of all predictions, regardless of whether they are correct with low confidence or
+incorrect with high confidence.
+To combat this, we propose a method which produces perdata-point predictions of the temperature, permitting an adequate decrease in the confidence on samples which the classifier is likely to get wrong, and an increase in the confidence
+on predictions it is likely to get correct. As a result, we obtain better test Expected Calibration Error (ECE)(Guo et al.
+2017) both on in-distribution sets (i.e. the test set is i.i.d.
+with respect to the training set) and under covariate-shifted
+sets (i.e. the test set shares the same set of labels of the training set, but the inputs are not i.i.d. with respect to the training
+set).
+Like temperature scaling, our method is applied posthoc and is very fast to train and test. We extensively test
+the calibration of ResNet50 (He et al. 2016) and WideResNet28 (Zagoruyko and Komodakis 2016) when using our
+method on CIFAR10/CIFAR100 and TinyImageNet, in-
+
+It is now well known that neural networks can be wrong with
+high confidence in their predictions, leading to poor calibration. The most common post-hoc approach to compensate for
+this is to perform temperature scaling, which adjusts the confidences of the predictions on any input by scaling the logits by a fixed value. Whilst this approach typically improves
+the average calibration across the whole test dataset, this improvement typically reduces the individual confidences of
+the predictions irrespective of whether the classification of
+a given input is correct or incorrect. With this insight, we
+base our method on the observation that different samples
+contribute to the calibration error by varying amounts, with
+some needing to increase their confidence and others needing
+to decrease it. Therefore, for each input, we propose to predict a different temperature value, allowing us to adjust the
+mismatch between confidence and accuracy at a finer granularity. Our method is applied post-hoc, enabling it to be
+very fast with a negligible memory footprint and is applied
+to off-the-shelf pre-trained classifiers. We test our method
+on the ResNet50 and WideResNet28-10 architectures using
+the CIFAR10/100 and Tiny-ImageNet datasets, showing that
+producing per-data-point temperatures improves the expected
+calibration error across the whole test set.
+
+1
+
+Introduction
+
+For neural networks (NNs) to be employed in real-world
+safety-critical applications, we do not only require them to
+produce correct predictions, but also provide reliable confidence estimates in their predictions (i.e. they are calibrated).
+Limiting our scope to neural classifiers, using the maximum probability of the predictive distribution as a confidence measure, literature has established that a mismatch
+exists between such notion of confidence and the expected
+accuracy. Indeed, such models generally suffer from being
+on average overconfident over the test set.
+A simple approach to rectify this issue is to perform temperature scaling (Guo et al. 2017), a post-hoc method which
+scales the logits by a single scalar value, obtained through
+cross validation. This approach improves the classifier’s performance on standard calibration metrics across a test set.
+However, from a per-sample point of view there are significant issues. Since the temperature is found by minimising
+
+1
+
+Here p(y|pi ) is obtained through histogram binning and represents the accuracy of each bin, and the weights are proportional
+to the number of samples in each bin.
+
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+14919
+
+

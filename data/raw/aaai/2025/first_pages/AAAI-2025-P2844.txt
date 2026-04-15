@@ -1,0 +1,98 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+InverseCoder: Self-improving Instruction-Tuned Code LLMs with Inverse-Instruct
+Yutong Wu1, 2 , Di Huang1 , Wenxuan Shi1, 2 , Wei Wang3 , Yewen Pu4 , Lingzhe Gao3
+Shihao Liu3 , Ziyuan Nan1, 2 , Kaizhao Yuan1, 2 , Rui Zhang1 , Xishan Zhang1 ,
+Zidong Du1 , Qi Guo1 , Dawei Yin3 , Xing Hu1 , Yunji Chen1, 2 *
+1
+
+SKL of Processors, Institute of Computing Technology, CAS
+2
+University of Chinese Academy of Sciences
+3
+Baidu Inc., Beijing, China
+4
+Autodesk Research
+wuyutong22s@ict.ac.cn
+
+Abstract
+Recent advancements in open-source code large language
+models (LLMs) have been driven by fine-tuning on the data
+generated from powerful closed-source LLMs, which are expensive to obtain. This paper explores whether it is possible to
+use a fine-tuned open-source model to generate additional data
+to augment its instruction-tuning dataset. We make two observations: (1) A code snippet can serve as the response to different instructions. (2) Instruction-tuned code LLMs perform
+better at translating code into instructions than the reverse.
+Based on these observations, we propose Inverse-Instruct, a
+data augmentation technique that uses a fine-tuned LLM to
+generate additional instructions of code responses from its
+own training dataset. The additional instruction-response pairs
+are added to the original dataset, and a stronger code LLM
+can be obtained by fine-tuning on the augmented dataset. We
+empirically validate Inverse-Instruct on a range of open-source
+code models (e.g., CodeLlama-Python and DeepSeek-Coder)
+and benchmarks (e.g., HumanEval(+), MBPP(+), DS-1000
+and MultiPL-E), showing it consistently improves the base
+models.
+
+Code — https://github.com/wyt2000/InverseCoder
+Extended version — https://arxiv.org/abs/2407.05700
+
+1
+
+Introduction
+
+Code generation, which aims to generate code that satisfies
+the user’s intent from inputs/outputs or natural language, has
+been a significant challenge in computer science. Recently,
+closed-source LLMs like GPT-3.5 and GPT-4 (OpenAI 2023)
+have enabled the generation of general-purpose code (like
+Python) based on natural language, making them broadly
+applicable in the fields of programming assistance (Microsoft
+2023), computer vision (Surı́s, Menon, and Vondrick 2023;
+Gupta and Kembhavi 2023), science (Nejjar et al. 2023), and
+embodied intelligence (Liang et al. 2023; Ma et al. 2023;
+Tang, Key, and Ellis 2024; Wang et al. 2023).
+To develop high-performance open-source models, researchers have leveraged these closed-source LLMs to generate datasets of instructions and code, then distilled these
+* Corresponding author.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+25525
+
+datasets into smaller, open-source code LLMs via instruction tuning (Luo et al. 2023; Wei et al. 2023; Yu et al. 2023;
+Song et al. 2024). For example, Code Alpaca (Chaudhary
+2023) was fine-tuned on 20K instruction-code pairs generated based on GPT-3.5 with S ELF -I NSTRUCT (Wang et al.
+2022). Luo et al. (2023) used Evol-Instruct (Xu et al. 2023),
+a method that creates a diverse set of instruction data from
+GPT-3.5 for code generation via evolution heuristics. OSSI NSTRUCT (Wei et al. 2023) first creates coding problems
+from the source code snippet, then queries strong LLMs for
+their corresponding solutions. Fine-tuned with 75K GPT3.5 OSS-I NSTRUCT data and 110K GPT-4 Evol-Instruct
+data (i.e. evol-codealpaca-v1) (theblackcat102 2023),
+MagicoderS series achieve state-of-the-art (SOTA) results
+among open-source code models. These approaches have one
+thing in common: they heavily rely on generating data by
+querying stronger closed-source LLMs (e.g., GPT-4), which
+incurs significant additional expenses. Therefore, it is crucial to develop a self-improvement method for open-source
+models without relying on stronger guidance.
+This paper explores how to improve an instruction-tuned
+code LLM by querying itself (rather than querying a closedsource LLM). We make the following two observations :
+1. A single code snippet can serve as a valid response to
+multiple instructions.
+2. Instruction-tuned code LLMs perform better at translating
+code into instructions than translating instructions into
+code (see Section 3).
+The first observation suggests that an instruction-tuned LLM
+can generate a new instruction for each response code in its
+training dataset, thereby expanding the original dataset. The
+second observation confirms that generating data in this way
+(Code-to-NL) is more effective than NL-to-Code.
+Therefore, we develop Inverse-Instruct, a simple yet effective instruction tuning approach based on self-generating
+instructions from code snippets (Figure 1). Inverse-Instruct
+starts with an instruction-code corpus, and a code LLM finetuned on it. We first clean and extract code snippets from the
+corpus, then let the code LLM translate these code snippets
+into new instructions. Next, we use the code LLM to evaluate
+and filter consistent instruction-code pairs from the newly
+generated data. Finally, the filtered dataset is combined with
+the original instruction dataset to fine-tune a new model. The
+
+

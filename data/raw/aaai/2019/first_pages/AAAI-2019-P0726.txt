@@ -1,0 +1,93 @@
+The Thirty-Third AAAI Conference on Artificial Intelligence (AAAI-19)
+
+Character-Level Language Modeling with Deeper Self-Attention
+Rami Al-Rfou,* Dokook Choe,* Noah Constant,* Mandy Guo,* Llion Jones*
+Google AI
+1600 Amphitheatre Parkway
+Mountain View, California 94043
+{rmyeid, choed, nconstant, xyguo, llion}@google.com
+
+Abstract
+
+only effectively uses around 200 tokens of context (even if
+more is provided), and that word order only has an effect
+within approximately the last 50 tokens.
+In this paper, we show that a non-recurrent model can
+achieve strong results on character-level language modeling.
+Specifically, we use a network of transformer self-attention
+layers (Vaswani et al. 2017) with causal (backward-looking)
+attention to process fixed-length inputs and predict upcoming characters. The model is trained on mini-batches of sequences from random positions in the training corpus, with
+no information passed from one batch to the next.
+Our primary finding is that the transformer architecture is
+well-suited to language modeling over long sequences and
+could replace RNNs in this domain. We speculate that the
+transformer’s success here is due to its ability to “quickly”
+propagate information over arbitrary distances; by comparison, RNNs need to learn to pass relevant information forward step by step.
+We also find that some modifications to the basic transformer architecture are beneficial in this domain. Most importantly, we add three auxiliary losses, requiring the model
+to predict upcoming characters (i) at intermediate sequence
+positions, (ii) from intermediate hidden representations, and
+(iii) at target positions multiple steps in the future. These
+losses speed up convergence, and make it possible to train
+deeper networks.
+
+LSTMs and other RNN variants have shown strong performance on character-level language modeling. These models
+are typically trained using truncated backpropagation through
+time, and it is common to assume that their success stems
+from their ability to remember long-term contexts. In this
+paper, we show that a deep (64-layer) transformer model
+(Vaswani et al. 2017) with fixed context outperforms RNN
+variants by a large margin, achieving state of the art on two
+popular benchmarks: 1.13 bits per character on text8 and
+1.06 on enwik8. To get good results at this depth, we show
+that it is important to add auxiliary losses, both at intermediate network layers and intermediate sequence positions.
+
+Introduction
+Character-level modeling of natural language text is challenging, for several reasons. First, the model must learn a
+large vocabulary of words “from scratch”. Second, natural
+text exhibits dependencies over long distances of hundreds
+or thousands of time steps. Third, character sequences are
+longer than word sequences and thus require significantly
+more steps of computation.
+In recent years, strong character-level language models
+typically follow a common template (Mikolov et al. 2010;
+2011; Sundermeyer, Schlüter, and Ney 2012). A recurrent
+neural net (RNN) is trained over mini-batches of text sequences, using a relatively short sequence length (e.g. 200
+tokens). To capture context longer than the batch sequence
+length, training batches are provided in sequential order, and
+the hidden states from the previous batch are passed forward to the current batch. This procedure is known as “truncated backpropagation through time” (TBTT), because the
+gradient computation doesn’t proceed further than a single
+batch (Werbos 1990). A range of methods have arisen for
+unbiasing and improving TBTT (Tallec and Ollivier 2017;
+Ke et al. 2017).
+While this technique gets good results, it adds complexity to the training procedure, and recent work suggests
+that models trained in this manner don’t actually make
+“strong” use of long-term context. For example Khandelwal
+et al. (2018) find that a word-based LSTM language model
+
+Character Transformer Model
+Language models assign a probability distribution over token sequences t0:L by factoring out the joint probability as
+follows, where L is the sequence length:
+Pr(t0:L ) = P (t0 )
+
+L
+Y
+
+Pr(ti |t0:i−1 ),
+
+(1)
+
+i=1
+
+To model the conditional probability Pr(ti |t0:i−1 ), we
+train a transformer network to process the character sequence t0:i−1 . Transformer networks have recently showed
+significant gains in tasks that require processing sequences
+accurately and efficiently.
+Our character-level transformer architecture has 64 transformer layers. Following Vaswani et al. (2017), by “transformer layer” we mean a block containing a multihead selfattention sub-layer followed by a feed-forward network of
+
+* Equal contribution.
+Copyright © 2019, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+3159
+
+

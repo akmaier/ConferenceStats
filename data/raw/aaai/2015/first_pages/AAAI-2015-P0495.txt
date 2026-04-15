@@ -1,0 +1,92 @@
+Proceedings of the Twenty-Ninth AAAI Conference on Artificial Intelligence
+
+Tartanian7: A Champion Two-Player No-Limit
+Texas Hold’em Poker-Playing Program
+Noam Brown, Sam Ganzfried, and Tuomas Sandholm
+Computer Science Department
+Carnegie Mellon University
+{nbrown, sganzfri, sandholm}@cs.cmu.edu
+R over all states of private information separately for each
+of the public buckets that have been previously computed.
+These abstractions can be computed using any arbitrary approach, Ar . For our poker agent, we used an abstraction algorithm that had previously been demonstrated to perform
+well as the Ar ’s (Johanson et al. 2013). To compute the abstraction of public information at round r̂, we compute a distance between pairs of public states based on how often the
+states were grouped together using a strong base abstraction.
+We then use this distance function to compute the public abstraction using a custom clustering algorithm.
+
+Abstract
+The leading approach for solving large imperfect-information
+games is automated abstraction followed by running an equilibrium-finding algorithm. We introduce a distributed version of the most commonly used equilibrium-finding algorithm, counterfactual regret minimization (CFR), which enables CFR to scale to dramatically larger abstractions and
+numbers of cores. The new algorithm begets constraints on
+the abstraction so as to make the pieces running on different
+computers disjoint. We introduce an algorithm for generating such abstractions while capitalizing on state-of-the-art abstraction ideas such as imperfect recall and the earth-mover’sdistance similarity metric. Our techniques enabled an equilibrium computation of unprecedented size on a supercomputer
+with a high inter-blade memory latency. Prior approaches run
+slowly on this architecture. Our approach also leads to a significant improvement over using the prior best approach on
+a large shared-memory server with low memory latency. Finally, we introduce a family of post-processing techniques
+that outperform prior ones. We applied these techniques to
+generate an agent for two-player no-limit Texas Hold’em. It
+won the 2014 Annual Computer Poker Competition, beating
+each opponent with statistical significance.
+
+1
+
+Algorithm 1 Main abstraction algorithm
+Inputs: number of rounds R; round where public information abstraction is desired r̂; number of public buckets C; number of desired private buckets per public bucket at round r, Br ; abstraction
+algorithm used for round r, Ar
+for r = 1 to r̂ − 1 do
+cluster information states at round r using Ar
+cluster public information states at round r̂ into C buckets (using
+our custom distance function and clustering algorithm)
+for r = r̂ to R do
+for c = 1 to C do
+cluster private information states at round r that have
+public information in public bucket c into Br buckets
+using abstraction algorithm Ar
+
+Hierarchical Abstraction Algorithm
+
+In order to enable distributed equilibrium finding, we have
+developed a new abstraction algorithm that creates an information abstraction that assigns disjoint components of
+the game tree to different blades so that sampling in each
+blade will only access information sets that are located on
+that blade. At a high level, the first stage of our hierarchical abstraction algorithm is to cluster public information at
+some early point in the game (public flop boards, i.e., combinations of public flop cards, in the case of Texas Hold’em
+(TH)), giving a global basis for distributing the rest of the
+game into non-overlapping pieces. Then, as a second stage
+our algorithm conducts clustering of information states (that
+can include both public and private information) in a way
+that honors the partition generated in the first stage.
+The main abstraction algorithm, Algorithm 1, works as
+follows. Let r̂ be the special round of the game where we
+perform the public clustering. For the initial r̂ − 1 rounds,
+we compute an abstraction using an arbitrary algorithm Ar
+for round r. Next, the public states at round r̂ are clustered
+into C buckets. Once this public abstraction has been computed, we compute abstractions for each round from r̂ to
+
+2
+
+Equilibrium-Finding Algorithm
+
+To solve the abstract game, we developed a modification of
+Monte Carlo CFR (MCCFR) (Lanctot et al. 2009) specifically for architectures with high inter-blade memory access
+latency. It designates one blade as the “head” blade, which
+is used to store the regrets and average strategies for the top
+part of the game tree (preflop round in TH). The algorithm
+begins by sampling private information and conducting MCCFR on the head blade. When an action sequence is reached
+that transitions outside the top of the game tree (to the flop
+in TH), the algorithm will send the current state to each of
+the C child blades. Each child blade then samples public information from its public bucket, and continues the iteration
+of MCCFR. Once all the child blades complete their part
+of the iteration, their calculated values are returned to the
+head blade. The head blade calculates a weighted average
+of these values, weighing them by the number of choices of
+public information (possible flops in TH) that they sampled
+from. This ensures that the expected value is unbiased. The
+head node then continues its iteration of MCCFR, repeating
+the process whenever the sample exits the top part (a flop
+
+Copyright c 2015, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+4270
+
+

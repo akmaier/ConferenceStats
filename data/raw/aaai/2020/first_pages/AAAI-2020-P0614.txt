@@ -1,0 +1,95 @@
+The Thirty-Fourth AAAI Conference on Artiﬁcial Intelligence (AAAI-20)
+
+Differentiable Reasoning on Large Knowledge Bases and Natural Language
+Pasquale Minervini,∗†1 Matko Bošnjak,∗‡1
+Tim Rocktäschel,1,2 Sebastian Riedel,1,2 Edward Grefenstette1,2
+1
+
+UCL Centre for Artiﬁcial Intelligence, University College London
+2
+Facebook AI Research
+{p.minervini, m.bosnjak, t.rocktaschel, s.riedel, e.grefenstette}@cs.ucl.ac.uk
+
+standard deductive reasoners (Huang, van Harmelen, and ten
+Teije 2005).
+A rich and broad literature in MR has approached this
+problem within a variety of frameworks, including Natural Logic (MacCartney and Manning 2007), Semantic Parsing (Bos 2008), Natural Language Inference and Recognising
+Textual Entailment (Fyodorov, Winter, and Francez 2000;
+Bowman et al. 2015), and Question Answering (Hermann et
+al. 2015). Nonetheless, such methods suffer from several limitations. They rely on signiﬁcant amounts of annotated data
+to suitably approximate the implicit distribution from which
+the data is drawn. In practice, this makes them unable to generalise well in the absence of a sufﬁcient quantity of training
+data or appropriate priors on model parameters (Evans and
+Grefenstette 2018). Orthogonally, even when accurate, such
+methods cannot explain given predictions (Lipton 2018).
+A promising strategy for overcoming these issues consists
+of combining neural models and symbolic reasoning, given
+their complementary strengths and weaknesses (d’Avila
+Garcez et al. 2015; Rocktäschel and Riedel 2017; Yang, Yang,
+and Cohen 2017; Evans and Grefenstette 2018; Weber et al.
+2019). While symbolic models can generalise well from a
+small number of examples, they are brittle and prone to failure
+when the observations are noisy or ambiguous, or when the
+properties of the domain are unknown or hard to formalise,
+all of which being the case for natural language (Raedt et
+al. 2008; Garnelo and Shanahan 2019). Contrarily, neural
+models are robust to noise and ambiguity but not easily interpretable, making them unable to provide explanations or
+incorporating background knowledge (Guidotti et al. 2018).
+Recent work in neuro-symbolic systems has made progress
+towards end-to-end differentiable reasoning models that
+can be trained via backpropagation while maintaining interpretability and generalisation, thereby inheriting the best
+of both worlds. Among such systems, NTPs (Rocktäschel
+and Riedel 2017; Minervini et al. 2018) are end-to-end differentiable deductive reasoners based on Prolog’s backward
+chaining algorithm, where discrete uniﬁcation between atoms
+is replaced by a differentiable operator computing the similarities between their embedding representations.
+NTPs are especially interesting since they allow learning
+interpretable rules from data, by back-propagating the prediction errors to the rule representations. Furthermore, the
+proving process in NTPs is explainable – the proof path asso-
+
+Abstract
+Reasoning with knowledge expressed in natural language and
+Knowledge Bases (KBs) is a major challenge for Artiﬁcial Intelligence, with applications in machine reading, dialogue, and
+question answering. General neural architectures that jointly
+learn representations and transformations of text are very datainefﬁcient, and it is hard to analyse their reasoning process.
+These issues are addressed by end-to-end differentiable reasoning systems such as Neural Theorem Provers (NTPs), although
+they can only be used with small-scale symbolic KBs. In this
+paper we ﬁrst propose Greedy NTPs (GNTPs), an extension to
+NTPs addressing their complexity and scalability limitations,
+thus making them applicable to real-world datasets. This result is achieved by dynamically constructing the computation
+graph of NTPs and including only the most promising proof
+paths during inference, thus obtaining orders of magnitude
+more efﬁcient models 1 . Then, we propose a novel approach
+for jointly reasoning over KBs and textual mentions, by embedding logic facts and natural language sentences in a shared
+embedding space. We show that GNTPs perform on par with
+NTPs at a fraction of their cost while achieving competitive
+link prediction results on large datasets, providing explanations for predictions, and inducing interpretable models.
+
+Introduction
+The main focus of Artiﬁcial Intelligence is building systems
+that exhibit intelligent behaviour (Levesque 2014). Notably,
+Natural Language Understanding (NLU) and Machine Reading (MR) aim at building models and systems with the ability
+to read text, extract meaningful knowledge, and reason with
+it (Etzioni, Banko, and Cafarella 2006; Hermann et al. 2015;
+Weston et al. 2015; Das et al. 2017). This ability facilitates
+both the synthesis of new knowledge and the possibility to
+verify and update a given assertion. Traditionally, automated
+reasoning applied to text requires natural language processing
+tools that compile it into the structured form of a KB (Niklaus
+et al. 2018). However, the compiled KBs tend to be incomplete, ambiguous, and noisy, impairing the application of
+∗
+
+Equal contribution
+Corresponding author
+‡
+Now at DeepMind
+c 2020, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+1
+The Code and supplementary material are available online at
+https://github.com/uclnlp/gntp.
+†
+
+5182
+
+

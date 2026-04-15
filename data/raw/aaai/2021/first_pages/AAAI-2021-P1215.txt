@@ -1,0 +1,94 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+Secure Bilevel Asynchronous Vertical Federated Learning
+with Backward Updating
+Qingsong Zhang1,2 , Bin Gu 3,4 , Cheng Deng1,∗ , and Heng Huang3,5∗
+1
+
+School of Electronic Engineering, Xidian University, Xi’an 710071, China; 2 JD Tech, Beijing 100176, China.
+3
+JD Finance America Corporation, Mountain View, CA, USA; 4 MBZUAI, United Arab Emirates
+5
+Electrical and Computer Engineering, University of Pittsburgh, PA, USA
+{qszhang1995, jsgubin, chdeng.xd, henghuanghh}@gmail.com
+Abstract
+
+Vertical federated learning (VFL) attracts increasing attention
+due to the emerging demands of multi-party collaborative modeling and concerns of privacy leakage. In the real VFL applications, usually only one or partial parties hold labels, which
+makes it challenging for all parties to collaboratively learn
+the model without privacy leakage. Meanwhile, most existing
+VFL algorithms are trapped in the synchronous computations,
+which leads to inefficiency in their real-world applications. To
+address these challenging problems, we propose a novel VFL
+framework integrated with new backward updating mechanism and bilevel asynchronous parallel architecture (VFB2 ),
+under which three new algorithms, including VFB2 -SGD, SVRG, and -SAGA, are proposed. We derive the theoretical
+results of the convergence rates of these three algorithms under both strongly convex and nonconvex conditions. We also
+prove the security of VFB2 under semi-honest threat models.
+Extensive experiments on benchmark datasets demonstrate
+that our algorithms are efficient, scalable and lossless.
+
+Introduction
+Federated learning (McMahan et al. 2016; Smith et al. 2017;
+Kairouz et al. 2019) has emerged as a paradigm for collaborative modeling with privacy-preserving. A line of recent
+works (McMahan et al. 2016; Smith et al. 2017) focus on
+the horizontal federated learning, where each party has a subset of samples with complete features. There are also some
+works (Gascón et al. 2016; Yang et al. 2019b; Dang et al.
+2020) studying the vertical federated learning (VFL), where
+each party holds a disjoint subset of features for all samples.
+In this paper, we focus on VFL that has attracted much attention due to its wide applications to emerging multi-party
+collaborative modeling with privacy-preserving.
+Currently, there are two mainstream methods for VFL, including homomorphic encryption (HE) based methods and
+exchanging the raw computational results (ERCR) based
+methods. The HE based methods (Hardy et al. 2017; Cheng
+et al. 2019) leverage HE techniques to encrypt the raw data
+and then use the encrypted data (ciphertext) for training
+model with privacy-preserving. However, there are two major
+drawbacks of HE based methods. First, the complexity of
+∗
+
+Corresponding Authors
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+10896
+
+homomorphic mathematical operation on ciphertext field is
+very high, thus HE is extremely time consuming for modeling
+(Liu, Ng, and Zhang 2015; Liu et al. 2019). Second, approximation is required for HE to support operations of non-linear
+functions, such as Sigmoid and Logarithmic functions, which
+inevitably causes loss of the accuracy for various machine
+learning models using non-linear functions (Kim et al. 2018;
+Yang et al. 2019a). Thus, the inefficiency and inaccuracy of
+HE based methods dramatically limit their wide applications
+to realistic VFL tasks.
+ERCR based methods (Zhang et al. 2018; Hu et al. 2019;
+Gu et al. 2020b) leverage labels and the raw intermediate computational results transmitted from the other parties to compute stochastic gradients, and thus use distributed stochastic
+gradient descent (SGD) methods to train VFL models efficiently. Although ERCR based methods circumvent aforementioned drawbacks of HE based methods, existing ERCR
+based methods are designed with only considering that all
+parties have labels, which is not usually the case in real-world
+VFL tasks. In realistic VFL applications, usually only one
+or partial parties (denoted as active parties) have the labels,
+and the other parties (denoted as passive parties) can only
+provide extra feature data but do not have labels. When these
+ERCR based methods are applied to the real situation with
+both active and passive parties, the algorithms even cannot
+guarantee the convergence because only active parties can
+update the gradient of loss function based on labels but the
+passive parties cannot, i.e. partial model parameters are not
+optimized during the training process. Thus, it comes to the
+crux of designing the proper algorithm for solving real-world
+VFL tasks with only one or partial parties holding labels.
+Moreover, algorithms using synchronous computation
+(Gong, Fang, and Guo 2016; Zhang et al. 2018) are inefficient when applied to real-world VFL tasks, especially, when
+computational resources in the VFL system are unbalanced.
+Therefore, it is desired to design the efficient asynchronous
+algorithms for real-world VFL tasks. Although there have
+been several works studying asynchronous VFL algorithms
+(Hu et al. 2019; Gu et al. 2020b), it is still an open problem to
+design asynchronous algorithms for solving real-world VFL
+tasks with only one or partial parties holding labels.
+In this paper, we address these challenging problems by
+proposing a novel framework (VFB2 ) integrated with the
+novel backward updating mechanism (BUM) and bilevel
+
+

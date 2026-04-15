@@ -1,0 +1,84 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Leveraging Constraint Violation Signals For Action-Constrained
+Reinforcement Learning
+Janaka Chathuranga Brahmanage, Jiajing Ling, Akshat Kumar
+School of Computing and Information Systems, Singapore Management University.
+{janakat.2022, jjling.2018}@phdcs.smu.edu.sg, akshatkumar@smu.edu.sg
+
+Abstract
+In many RL applications, ensuring an agent’s actions adhere
+to constraints is crucial for safety. Most previous methods in
+Action-Constrained Reinforcement Learning (ACRL) employ
+a projection layer after the policy network to correct the action.
+However projection-based methods suffer from issues like the
+zero gradient problem and higher runtime due to the usage of
+optimization solvers. Recently methods were proposed to train
+generative models to learn a differentiable mapping between
+latent variables and feasible actions to address this issue. However, generative models require training using samples from
+the constrained action space, which itself is challenging. To
+address such limitations, first, we define a target distribution
+for feasible actions based on constraint violation signals, and
+train normalizing flows by minimizing the KL divergence between an approximated distribution over feasible actions and
+the target. This eliminates the need to generate feasible action
+samples, greatly simplifying the flow model learning. Second,
+we integrate the learned flow model with existing deep RL
+methods, which restrict it to exploring only the feasible action
+space. Third, we extend our approach beyond ACRL to handle state-wise constraints by learning the constraint violation
+signal from the environment. Empirically, our approach has
+significantly fewer constraint violations while achieving similar or better quality in several control tasks than previous best
+methods.
+
+Code — https://github.com/rlr-smu/cv-flow
+
+1
+
+Introduction
+
+Reinforcement learning has been successfully applied to
+solve a variety of problems, ranging from mastering Atari
+games (Mnih et al. 2015; Van Hasselt, Guez, and Silver 2016)
+to controlling robotics (Pham, De Magistris, and Tachibana
+2018; Thananjeyan et al. 2021) and fortifying system security (Adawadkar and Kulkarni 2022; Khoury and Nassar 2020), among others. In many real-world applications,
+agents have to take actions within a feasible action space
+defined by some constraints at every RL step. This scenario falls under the domain of action-constrained reinforcement learning (ACRL) (Brahmanage, Ling, and Kumar 2023;
+Kasaura et al. 2023). In ACRL, action constraints typically
+take an analytical form based on state and action features
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+15614
+
+P2
+(e.g., i=1 |si ai | <= 1 with si , ai as features) rather than
+being expressed using a predefined cost function.
+Representative applications of ACRL include robotic control (Kasaura et al. 2023; Lin et al. 2021; Pham, De Magistris, and Tachibana 2018) and resource allocation in supplydemand matching (Bhatia, Varakantham, and Kumar 2019),
+where kinematic limitations and resource restrictions are effectively modeled using action constraints derived from system specifications. When action constraints are not directly
+available, they can be approximated using state-based cost
+functions or offline datasets of valid and invalid trajectories.
+In such cases, action constraints can be inferred from environmental data (Dalal et al. 2018) or via inverse constraint
+RL (Malik et al. 2021).
+Since action constraints with a closed form can be relatively easy to evaluate for each action, one natural approach is
+to use a projection to generate feasible actions that satisfy the
+constraints, which involves solving a math program (Amos
+and Kolter 2017; Bhatia, Varakantham, and Kumar 2019;
+Dalal et al. 2018; Lin et al. 2021; Pham, De Magistris, and
+Tachibana 2018). The projection-based approach can either
+result in a zero gradient problem (Lin et al. 2021) or an expensive overhead due to solving an optimization program (Brahmanage, Ling, and Kumar 2023) or both. When dealing with
+non-convex action constraints or large action spaces, there
+is a significant reduction in training speed, which we also
+validate empirically.
+Recently, (Brahmanage, Ling, and Kumar 2023) learn
+a smooth and invertible mapping between a simple latent
+space and the feasible action space given states using conditional normalizing flows (Dinh, Sohl-Dickstein, and Bengio
+2016) and integrate it with Deep Deterministic Policy Gradient (DDPG) (Lillicrap et al. 2016). This approach effectively avoids the zero gradient problem common in standard
+projection-based methods as there is no coupling between the
+policy network and projection layer anymore. However, a key
+drawback is the necessity to generate feasible actions in advance for training the flow, which is challenging for complex
+constraints since specialized methods such as Hamiltonian
+Monte-Carlo (HMC), decision diagrams are required to sample from the feasible action space (Brahmanage, Ling, and
+Kumar 2023).
+In addition to ACRL, generative models are also used
+for improving exploration and utilizing off-policy data in
+
+

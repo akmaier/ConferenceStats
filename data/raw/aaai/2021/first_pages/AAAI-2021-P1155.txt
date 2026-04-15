@@ -1,0 +1,137 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+Shuffling Recurrent Neural Networks
+Michael Rotman and Lior Wolf
+The School of Computer Science, Tel Aviv University
+rotmanmi@post.tau.ac.il, wolf@cs.tau.ac.il
+
+Abstract
+
+In this work, we propose an alternative RNN framework.
+Instead of using a learned set of parameters to determine
+the transition between subsequent hidden states, our method
+uses a parameter-free shift mechanism, in order to distinguish
+between inputs fed at different times. This shift mechanism
+forms an orthogonal matrix operation, and is, therefore, not
+prone to the gradient explosion or to its vanishing. Furthermore, the various time steps are treated in a uniform manner,
+leading to an efficient and perhaps more balanced solution.
+This allows us, for example, to solve problems with much
+larger sequence lengths than reported in the literature.
+Our experiments show that our Shuffling Recurrent Neural
+Network (SRNN) is indeed able to tackle long-term memorization tasks successfully, and shows competitive results, in
+comparison to the current state of the art of multiple tasks.
+SRNN is elegant, easy to implement, efficient, and insensitive
+to its hyperparameters.
+
+We propose a novel recurrent neural network model, where the
+hidden state ht is obtained by permuting the vector elements
+of the previous hidden state ht−1 and adding the output of a
+learned function β (xt ) of the input xt at time t. In our model,
+the prediction is given by a second learned function, which is
+applied to the hidden state s (ht ). The method is easy to implement, extremely efficient, and does not suffer from vanishing
+nor exploding gradients. In an extensive set of experiments,
+the method shows competitive results, in comparison to the
+leading literature baselines. We share our implementation at
+https://github.com/rotmanmi/SRNN.
+
+Introduction
+Recurrent Neural Networks (RNN) architectures have been
+successful in solving sequential or time dependent problems.
+Such methods maintain a latent representation, commonly
+referred to as the “hidden state”, and apply the same learned
+functions repeatedly to the input at each time step, as well as
+to the current hidden state.
+A well-known challenge with RNNs is that of exploding
+or vanishing gradients. The various methods devised in order
+to solve this problem can be roughly divided into two groups.
+The first group utilizes a gating mechanism to stabilize the
+gradient flow between subsequent hidden states (Hochreiter
+and Schmidhuber 1997; Cho et al. 2014), whereas the second
+group focuses on preserving the norm of the hidden states
+by employing constraints on the family of matrices used as
+the network’s parameters (Arjovsky, Shah, and Bengio 2016;
+Henaff, Szlam, and LeCun 2016).
+An alternative view of the problem of exploding and vanishing gradients considers it as the symptom of a deeper issue
+and not as the root cause. Current RNN architectures perform
+a matrix multiplication operation, with learned weights, over
+previously seen hidden states during each time step. Therefore, inputs appearing in different times are processed using
+different powers of the weight matrices (with interleaving
+non-linearities): the first input of a sequence of length T is
+processed by the same learned sub-network T times, whereas
+the last input at time T is processed only once. This creates
+an inherent gap in the way that each time step influences the
+network weights during training.
+
+Background and Related Work
+RNNs have been the architecture of choice, when solving
+sequential tasks. The most basic structure, which we refer
+to as the vanilla RNN, updates at each time a hidden state
+vector ht using an input xt ,
+ht = σ (W1 ht−1 + W2 xt ) ≡ σ(zt ) ,
+
+(1)
+
+where σ is a non-linear activation function, such as tanh or
+T
+ReLU. Given a sequence of length T , {xt }t=1 , computing
+∂L
+the gradients of a loss function, L, w.r.t to W1 , ∂W
+, requires
+1
+T
+
+backpropagation throughout all the hidden states {ht }t=1 ,
+T
+T
+X
+X
+∂L
+∂L ∂ht
+∂L 0
+=
+=
+σ (zt )ht−1 ,
+∂W1
+∂h
+∂W
+∂h
+t
+1
+t
+t=1
+t=1
+
+(2)
+
+PT
+Qt0 ∂hi+1
+∂L
+∂L ∂ht0
+t0
+where ∂h
+= t0 =t+1 ∂h
+and ∂h
+i=t ∂hi =
+∂ht =
+t
+t0 ∂ht
+Qt0
+0
+i=t σ (zi )W1 . Depending on the maximal eigenvalue of
+∂L
+W1 , the repeated multiplication by W1 in ∂h
+may lead to
+t
+∂L
+exponential growth or decay in ∂W1 when T  1.
+Many of the successful RNN methods utilize a gating
+mechanism, where the hidden state ht can be either suppressed or scaled, depending on a function of the previous
+hidden state and the input. Among these solutions, there
+is the seminal Long-Short Term Memory network (LSTM)
+
+Copyright © 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+9428
+
+

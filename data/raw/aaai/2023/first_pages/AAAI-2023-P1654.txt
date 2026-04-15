@@ -1,0 +1,88 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Safe Reinforcement Learning via Shielding under Partial Observability
+Steven Carr1 , Nils Jansen2 , Sebastian Junges2 , Ufuk Topcu1
+1
+
+The University of Texas at Austin
+Radboud University, Nijmegen, The Netherlands
+stevencarr@utexas.edu, n.jansen@science.ru.nl, sjunges@cs.ru.nl, utopcu@utexas.edu
+2
+
+Abstract
+Safe exploration is a common problem in reinforcement learning (RL) that aims to prevent agents from making disastrous
+decisions while exploring their environment. A family of approaches to this problem assume domain knowledge in the
+form of a (partial) model of this environment to decide upon
+the safety of an action. A so-called shield forces the RL agent
+to select only safe actions. However, for adoption in various
+applications, one must look beyond enforcing safety and also
+ensure the applicability of RL with good performance. We
+extend the applicability of shields via tight integration with
+state-of-the-art deep RL, and provide an extensive, empirical
+study in challenging, sparse-reward environments under partial observability. We show that a carefully integrated shield
+ensures safety and can improve the convergence rate and final
+performance of RL agents. We furthermore show that a shield
+can be used to bootstrap state-of-the-art RL agents: they remain safe after initial learning in a shielded setting, allowing
+us to disable a potentially too conservative shield eventually.
+
+1
+
+Introduction
+
+Reinforcement learning (RL) (Sutton and Barto 1998) is a
+technique for decision-making in uncertain environments.
+An RL agent explores its environment by taking actions
+and perceiving feedback signals, usually rewards and observations on the system state. With success stories such as
+AlphaGo (Silver et al. 2016) RL nowadays reaches into areas such as robotics (Kober, Bagnell, and Peters 2013) or
+autonomous driving (Sallab et al. 2017).
+A significant limitation of RL in safety-critical environments is the high cost of failure. An RL agent explores the
+effects of actions – often selected randomly, such as in stateof-the-art policy-gradient methods (Peters and Schaal 2006) –
+and will thus inevitably select actions that potentially cause
+harm to the agent or its environment. Thus, typical applications for RL are games (Mnih et al. 2013) or assume the
+ability to learn on high-fidelity simulations of realistic scenarios (Tao et al. 2019). The problem of unsafe exploration has
+triggered research on the safety of RL (Garcıa and Fernández
+2015). Safe RL may refer to (1) changing (“engineering”) the
+reward function (Laud and DeJong 2003) to encourage the
+agent to choose safe actions, (2) adding a second cost function
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+14748
+
+(“constraining”) (Moldovan and Abbeel 2012), or (3) blocking (“shielding”) unsafe actions at runtime (Alshiekh et al.
+2018). This paper falls into the last category.
+Safe RL in partially observable environments suffers from
+uncertainty both in the agent’s actions and perception. Such
+problems, typically modeled as partially observable Markov
+decision processes (POMDPs) (Kaelbling, Littman, and Cassandra 1998), require histories of observations to extract a
+sufficient understanding of the environment. Recent deep RL
+approaches for POMDPs, including those that employ recurrent neural networks (Hausknecht and Stone 2015; Wierstra et al. 2007), learn from these histories and can generate
+high-quality policies with sufficient data. However, these approaches do not guarantee safety during or after learning.
+While shielding for Markov decision processes (MDPs) is
+rather well-studied (Könighofer et al. 2017; Alshiekh et al.
+2018; Fulton and Platzer 2018; Bouton et al. 2019), there is—
+to the best of our knowledge—no approach that integrates
+shielding with deep RL.
+We contribute a thorough study, implementation, and experimental evaluation on integrating state-of-the-art RL for
+POMDPs with shields. We demonstrate effects and insights
+using several typical examples and provide detailed information on RL performance as well as videos showing the
+exploration and training process. In particular, we integrate
+various RL algorithms from Tensorflow (Guadarrama et al.
+2018) with a shield that guarantees safety regarding so-called
+reach-avoid specifications, a special case of temporal logic
+constraints (Pnueli 1977). The computation of the shields is
+based on satisfiability solving (Junges, Jansen, and Seshia
+2021) and requires only a partial model of the environment.
+Specifically, we need to know all potential transitions in the
+POMDP, while probabilities and rewards may remain unspecified (Raskin et al. 2007).
+Approach. Fig. 1 shows the outline of the safe RL setting.
+The gray box shows a typical RL procedure. The environment
+in the partially observable setting is described by a POMDP
+model that may not be fully known. A shield in this setting
+(implicitly) requires access to a form of state estimation to
+account for a safety specification. This estimator uses the
+partial model of the environment to track in which states the
+model may be, based on the observed history. We see the
+shield and the state estimator as two knowledge interfaces
+
+

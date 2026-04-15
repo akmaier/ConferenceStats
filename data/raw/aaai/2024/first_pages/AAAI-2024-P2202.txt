@@ -1,0 +1,90 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+LimeAttack: Local Explainable Method for Textual Hard-Label Adversarial Attack
+Hai Zhu1 3 * , Qingyang Zhao2 , Weiwei Shang1 , Yuren Wu3 , Kai Liu4
+1
+
+University of Science and Technology of China
+2
+Xidian University
+3
+Ping An Technology
+4
+Lazada
+SA21218029@mail.ustc.edu.cn,21151213588@stu.xidian.edu.cn,wwshang@ustc.edu.cn,leifive@163.com,baiyang.lk@alibabainc.com
+Abstract
+Natural language processing models are vulnerable to adversarial examples. Previous textual adversarial attacks adopt
+model internal information (gradients or confidence scores) to
+generate adversarial examples. However, this information is
+unavailable in the real world. Therefore, we focus on a more
+realistic and challenging setting, named hard-label attack, in
+which the attacker can only query the model and obtain a discrete prediction label. Existing hard-label attack algorithms
+tend to initialize adversarial examples by random substitution
+and then utilize complex heuristic algorithms to optimize the
+adversarial perturbation. These methods require a lot of model
+queries and the attack success rate is restricted by adversary
+initialization. In this paper, we propose a novel hard-label attack algorithm named LimeAttack, which leverages a local
+explainable method to approximate word importance ranking,
+and then adopts beam search to find the optimal solution. Extensive experiments show that LimeAttack achieves the better
+attacking performance compared with existing hard-label attack under the same query budget. In addition, we evaluate
+the effectiveness of LimeAttack on large language models
+and some defense methods, and results indicate that adversarial examples remain a significant threat to large language
+models. The adversarial examples crafted by LimeAttack are
+highly transferable and effectively improve model robustness
+in adversarial training.
+
+Introduction
+Deep Neural Networks (DNNs) are widely applied in the
+natural language processing field and have achieved great
+success (Kim 2014; Devlin et al. 2019; Minaee et al. 2021;
+Hochreiter and Schmidhuber 1997). However, DNNs are vulnerable to adversarial examples, which are correctly classified
+samples altered by some slight perturbations (Jin et al. 2020;
+Papernot et al. 2017; Kurakin, Goodfellow, and Bengio 2016).
+These adversarial perturbations are imperceptible to humans
+but can mislead the model. Adversarial examples seriously
+threaten the robustness and reliability of DNNs, especially in
+some security-critical applications (e.g., autonomous driving
+and toxic text detection (Yang et al. 2021; Kurakin, Goodfellow, and Bengio 2018)). Therefore, adversarial examples
+have attracted enormous attention on adversarial attacks and
+* Corresponding author.
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+19759
+
+defenses in computer vision, natural language processing and
+speech (Szegedy et al. 2013; Carlini and Wagner 2018; Yu
+et al. 2022). It is more challenging to craft textual adversarial
+examples due to the discrete nature of language along with
+the presence of lexical, semantic, and fluency constraints.
+According to different scenarios, textual adversarial attacks
+can be briefly divided into white-box attacks, score-based
+attacks and hard-label attacks. In a white-box setting, the
+attacker utilizes the model’s parameters and gradients to generate adversarial examples (Goodman, Zhonghou et al. 2020;
+Jiang et al. 2020). Score-based attacks only adopt class probabilities or confidence scores to craft adversarial examples (Jin
+et al. 2020; Li et al. 2020; Ma, Shi, and Guan 2020; Zhu,
+Zhao, and Wu 2023). However, these attack methods perform poorly in reality due to DNNs being deployed through
+application programming interfaces (APIs), and the attacker
+having no access to the model’s parameters, gradients or probability distributions of all labels (Ye et al. 2022b). In contrast,
+under a hard-label scenario, the model’s internal structures,
+gradients, training data and even confidence scores are unavailable. The attacker can only query the black-box victim
+model and get a discrete prediction label, which is more
+challenging and realistic. Additionally, most realistic models
+(e.g., HuggingFace API, OpenAI API) usually have a limit
+on the number of calls. In reality, the adversarial examples
+attack setting is hard-label with tiny model queries.
+Some hard-label attack algorithms have been proposed (Yu
+et al. 2022; Ye et al. 2022b; Maheshwary, Maheshwary, and
+Pudi 2021; Ye et al. 2022a). They follow two-stages strategies: i) generate low-quality adversarial examples by randomly replacing several original words with synonyms, and
+then ii) adopt complex heuristic algorithms (e.g., genetic algorithm) to optimize the adversary perturbation. Therefore,
+these attack methods usually require a lot of queries and the
+attack success rate and quality of adversarial examples are
+limited by adversary initialization. On the contrary, scorebased attacks calculate the word importance based on the
+change in confidence scores after deleting one word. Word
+importance ranking improves attack efficiency by preferring
+to attack words that have a significant impact on the model’s
+predictions (Jin et al. 2020). However, score-based attacks
+cannot calculate the word importance in a hard-label setting
+because deleting one token hardly changes the discrete prediction label. Therefore, we want to investigate such a problem:
+
+

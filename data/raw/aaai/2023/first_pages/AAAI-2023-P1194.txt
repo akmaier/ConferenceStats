@@ -1,0 +1,90 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+BridgeTower: Building Bridges between Encoders
+in Vision-Language Representation Learning
+†
+
+†
+
+Xiao Xu1, 2 * , Chenfei Wu2 , Shachar Rosenman3 , Vasudev Lal3 , Wanxiang Che1 , Nan Duan2
+1
+
+Research Center for Social Computing and Information Retrieval, Harbin Institute of Technology
+2
+Microsoft Research Asia
+3
+Intel Labs, Cognitive Computing Research
+{xxu,car}@ir.hit.edu.cn, {chenfei.wu,nanduan}@microsoft.com, {shachar.rosenman,vasudev.lal}@intel.com
+Abstract
+Vision-Language (VL) models with the T WO -T OWER architecture have dominated visual-language representation learning in recent years. Current VL models either use lightweight
+uni-modal encoders and learn to extract, align and fuse both
+modalities simultaneously in a deep cross-modal encoder, or
+feed the last-layer uni-modal representations from the deep
+pre-trained uni-modal encoders into the top cross-modal encoder. Both approaches potentially restrict vision-language
+representation learning and limit model performance. In this
+paper, we propose B RIDGE T OWER, which introduces multiple bridge layers that build a connection between the top
+layers of uni-modal encoders and each layer of the crossmodal encoder. This enables effective bottom-up cross-modal
+alignment and fusion between visual and textual representations of different semantic levels of pre-trained uni-modal
+encoders in the cross-modal encoder. Pre-trained with only
+4M images, B RIDGE T OWER achieves state-of-the-art performance on various downstream vision-language tasks. In particular, on the VQAv2 test-std set, B RIDGE T OWER achieves
+an accuracy of 78.73%, outperforming the previous state-ofthe-art model M ETER by 1.09% with the same pre-training
+data and almost negligible additional parameters and computational costs. Notably, when further scaling the model,
+B RIDGE T OWER achieves an accuracy of 81.15%, surpassing models that are pre-trained on orders-of-magnitude larger
+datasets. Code and checkpoints are available at https://github.
+com/microsoft/BridgeTower.
+
+1
+
+Introduction
+
+Vision-Language (VL) tasks aim to perceive, comprehend
+and fuse both visual and textual information in our complex
+multi-modal world and then produce cross-modal representations to address difficult cross-modal challenges, such as
+visual question answering, visual entailment, and image-text
+retrieval (Goyal et al. 2017; Xie et al. 2019; Young et al.
+2014). Recently, by pre-training on large-scale image-text
+pairs, cross-modal representations have been improved considerably (Su et al. 2020; Lu et al. 2019; Chen et al. 2020;
+Zhang et al. 2021; Radford et al. 2021; Wang et al. 2021c; Li
+et al. 2021a; Dou et al. 2022; Wang et al. 2022b; Alayrac et al.
+2022). Many elaborate Vision-Language Pre-training (VLP)
+* Contribution during internship at Microsoft. † Contact Person
+
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+10637
+
+objectives are proposed for mining cross-modal knowledge
+from image-text pairs, such as Masked Language Modeling
+(MLM) and Image-Text Matching (ITM).
+Most existing VL models can be unified into the T WO T OWER architecture, which consists of a visual encoder, a
+textual encoder, and a cross-modal encoder. The models differ in the design of the three encoders. Benefiting from the
+rapid progress and prominent performance of Vision Transformer (ViT) (Dosovitskiy et al. 2021) on various vision
+tasks, recent VL models can adopt ViT as a cross-modal or
+visual encoder without using region features from heavy and
+time-consuming pre-trained object detectors.
+ViLT (Kim, Son, and Kim 2021) adopts linear projection
+and word embedding as lightweight uni-modal encoders, and
+uses ViT as the cross-modal encoder to extract, align and
+fuse the features of both modalities simultaneously. While
+parameter-efficient, it may be difficult for ViLT to learn intraand cross-modal interactions concurrently, and thus its performance lags behind state-of-the-art performance on downstream VL tasks. M ETER (Dou et al. 2022) uses ViT and
+RoBERTa (Liu et al. 2019b) as pre-trained uni-modal encoders and feeds the last-layer uni-modal representations
+directly into the top cross-modal encoder. Although M ETER
+achieves performance competitive with the previous regionbased state-of-the-art model VinVL (Zhang et al. 2021), it
+ignores and wastes different levels of semantic knowledge
+contained in different layers of pre-trained uni-modal encoders. Furthermore, the abstract representations from the
+last layer of pre-trained uni-modal encoders could be challenging for the top cross-modal encoder to learn cross-modal
+alignment and fusion (Lu et al. 2019; Tan and Bansal 2019).
+It has been demonstrated that different layers encode different types of information in both vision (Zeiler and Fergus
+2014; Dosovitskiy et al. 2021; Du et al. 2020; Raghu et al.
+2021; Naseer et al. 2021) and language models (Peters et al.
+2018b; Liu et al. 2019a; Jawahar, Sagot, and Seddah 2019).
+Dosovitskiy et al. (2021) and Raghu et al. (2021) find that
+lower layers of ViT attend both locally and globally, while
+higher layers primarily incorporate global information. Jawahar, Sagot, and Seddah (2019) find that the intermediate
+layers of BERT (Devlin et al. 2019) encode a rich hierarchy
+of linguistic information, starting with surface features at the
+bottom, syntactic features in the middle, and then semantic
+features at the top. Therefore, it makes perfect sense to utilize
+
+

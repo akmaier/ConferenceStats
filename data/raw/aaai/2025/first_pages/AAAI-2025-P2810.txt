@@ -1,0 +1,100 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Transformer Layers as Painters
+Qi Sun* 2,3 , Marc Pickett* †1 , Aakash Kumar Nain1 , Llion Jones2
+1
+Emergence AI
+Sakana AI, Japan
+3
+Institute of Science Tokyo, Japan
+{mpickett,anain}@emergence.ai, {qisun, llion}@sakana.ai
+2
+
+Abstract
+Despite their nearly universal adoption for large language
+models, the internal workings of transformers are not well
+understood. We aim to better understand the impact of removing or reorganizing information throughout the layers of
+a pretrained transformer. Such an understanding could both
+yield better usage of existing models as well as to make architectural improvements to produce new variants. We present a
+series of empirical studies on frozen models that show that the
+lower and final layers of pretrained transformers differ from
+middle layers, but that middle layers have a surprising amount
+of uniformity. We further show that some classes of problems
+have robustness to skipping layers, running the layers in an
+order different from how they were trained, or running the
+layers in parallel. Our observations suggest that even frozen
+pretrained models may gracefully trade accuracy for latency
+by skipping layers or running layers in parallel.
+
+Code — https://github.com/floatingbigcat/transformer_
+layers_as_painters
+
+1
+
+Introduction
+
+The scale of transformer-based Large Language Models
+(LLMs), in the billions of parameters, makes it difficult to
+directly understand the models’ behaviour after training. At
+the same time, each layer of a pretrained transformer has
+an identical architecture as the other layers, with the only
+difference being a layer’s position in the hierarchy, and the
+values of the layer’s parameters (Vaswani et al. 2017).
+We find it helpful to think of the middle layers of a transformer by making an analogy to an assembly line of painters.
+The canvas (input) is passed along a series of painters. Some
+painters specialize in birds, while others are better at painting
+wheels. Each painter receives the canvas from the painter below her, then she decides whether to add a few strokes to the
+painting or just pass it along to the painter above her (using
+the residual connections). In this analogy, each painter uses
+the same “vocabulary” for understanding paintings, so that a
+painter may receive the painting from a painter earlier in the
+assembly line without catastrophe. The painters may also be
+* These authors contributed equally.
+†
+
+Corresponding author.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+25219
+
+reordered without complete catastrophe (even if parts of the
+background get painted after foreground objects, occluding
+them), and the painters may even all add their strokes at the
+same time (in parallel).
+This analogy isn’t meant to be a rigorous theory, but rather
+a tool for thinking about a transformer’s layers. Inspired by
+this analogy, we test how well some hypotheses hold. In this
+paper we perform experiments that help address the following
+questions:
+1. Do layers use the same representation space? (§3.1)
+2. Are all the layers necessary? (§3.2)
+3. Are middle layers all doing the same function? (§3.3)
+4. Does the layer order matter? (§3.4)
+5. Can we run the layers in parallel? (§3.5)
+6. Does order matter for some tasks more than others? (§3.6)
+7. Does looping help parallelized layers? (§3.7)
+8. Which variants harm performance the least? (§3.8)
+To answer these questions we perform a series of experiments
+on pretrained LLMs. These include experimenting with variations on the standard transformer execution strategy, and
+measuring the impact of these variations on the models’ performance across a variety of benchmarks for both decoderonly (Llama) and encoder-only (BERT) models. Note that
+our experiments never involve finetuning or otherwise adjusting the models’ parameters (with the caveat that the GLUE
+evaluation standard procedure includes a finetuning step for
+our BERT-Large model)
+
+2
+
+Models and Benchmarks
+
+Our experiments are primarily on two transformer models:
+Llama2 (Touvron et al. 2023), and on BERT-Large (Devlin
+et al. 2019). (However, we also include results for Mistral-7B
+(Jiang et al. 2023) and Pythia-6.9B (Biderman et al. 2023a) in
+Appendix A.5 that support the generalization of our results.)
+Llama2 is decoder-only. We focus on Llama2-7B, which has
+7 billion parameters and 32 layers (each layer having 202 million parameters), but also include some scaling experiments
+with the 13B (40 layers) and 70B (80 layers) models. BERT
+is encoder-only with 24 layers and 340 million parameters.
+We used the standard pretrained checkpoints for these models. In all our experiments the models are frozen: we never
+modified the parameters of these models through fine-tuning
+
+

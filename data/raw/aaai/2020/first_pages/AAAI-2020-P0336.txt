@@ -1,0 +1,87 @@
+The Thirty-Fourth AAAI Conference on Artiﬁcial Intelligence (AAAI-20)
+
+Relatedness and TBox-Driven Rule Learning in Large Knowledge Bases
+Giuseppe Pirrò1
+1
+
+Department of Computer Science, Sapienza University of Rome
+Via Salaria 113, 00198, Rome, Italy
+pirro@di.uniroma1.it
+
+and are useful in a variety of tasks including KB completion (Chen et al. 2016), ontology enrichment (d’Amato et al.
+2016), fact -checking (Shi and Weninger 2016; Fionda and
+Pirrò 2018), and storage optimization (Gayathri and Kumar
+2015). Rules can be used to construct relatedness explanations (Pirrò 2019) that allow to (visually) understand data
+correlations; as an example, one may infer that a profession
+typically involves a specialization in a particular ﬁeld.
+We present RARL (Relatedness-Aware Rule Learning), a
+rule learning approach, which combines a relatedness-driven
+TBox traversal algorithm for candidate rule generation (§
+3.1) with an algorithm for candidate veriﬁcation and rule
+conﬁdence assessment in the ABox (§ 3.2, § 3.3). Given a
+rule head pred(D, R), candidate rule bodies (§ 2.1) are generated as TBox paths that start from one of the domains
+D of pred and end into one of its ranges R. An example of candidate rule body for spouse(Person, Person) is
+parent
+child
+the TBox path Person−−→ Person−−−→ Person (Fig. 1
+(b)). To prune the candidate search space, RARL considers bounded-length bodies only including the top-k semantically related predicates to pred (§ 2.2). However, not all candidate bodies are veriﬁed, that is, have bindings in the ABox
+and not all of them offer the same conﬁdence. RARL leverages an algorithm based on positive/negative examples for
+candidate veriﬁcation and conﬁdence assessment (§ 2.3). We
+show (§ 4) that RARL is scalable and ﬁnds good rules, especially on schema-rich KBs like DBpedia, Yago, and Freebase.
+RARL has been inspired by Ontological Path Finding
+(OPF) (Chen et al. 2016) for candidate generation. However, OPF generates an enormous amount of candidates, especially in schema-rich KBs like DBpedia. As an example, on the TBox in Fig. 1 (b) and for the input predicate
+spouse, OPF would not be able to distinguish between
+the candidates child(x, y) ∧ parent(y, z) and lyrics(x, y) ∧
+deathPlace(y, z), while our approach, which is driven by a
+relatedness criterion, will discard the second candidate since
+lyrics and deathPlace have a much lower degree of relatedness to the predicate spouse than child or parent. We
+were inspired by RuDiK (Ortona, Meduri, and Papotti 2018)
+for the usage of examples. However, while RuDiK focuses
+on learning the smallest number of rules satisfying the ex-
+
+Abstract
+We present RARL, an approach to discover rules of the
+form body ⇒ head in large knowledge bases (KBs) that typically include a set of terminological facts (TBox) and a set
+of TBox-compliant assertional facts (ABox). RARL’s main
+intuition is to learn rules by leveraging TBox-information
+and the semantic relatedness between the predicate(s) in the
+atoms of the body and the predicate in the head. RARL
+uses an efﬁcient relatedness-driven TBox traversal algorithm,
+which given an input rule head, generates the set of most
+semantically related candidate rule bodies. Then, rule conﬁdence is computed in the ABox based on a set of positive
+and negative examples. Decoupling candidate generation and
+rule quality assessment offers greater ﬂexibility than previous
+work.
+
+1
+
+Introduction
+
+Knowledge Bases (KBs) like Yago, Wikidata, and DBpedia
+contain millions of facts (ABox) structured with the help of
+an underlying schema (TBox), which in its essential form
+allows to deﬁne entity types and their hierarchy along with
+the domain and range of properties. Fig. 1 (a) shows part of
+the DBpedia T-Box, where the class Artist is a subClassOf
+Person and the predicate director has as a domain Film and
+as a range Person. Fig. 1 (c) shows an excerpt of A-Box
+conforming to the TBox. KBs are automatically populated
+thus being inherently incomplete (Darari et al. 2018) and
+prone to errors. As an example, the fact (Virginia Kelley,
+spouse, Roger Clinton) is missing in DBpedia. One way
+to overcome these issues is to deﬁne declarative logical rules
+like:
+child(x, y) ∧ parent(y, z) ⇒ spouse(x, z)
+
+(1)
+
+where spouse(X, Z) is the rule head (a single atom) and
+child(X, Y)∧parent(Y, Z) is the rule body (a conjunction
+of atoms). The rule states that some X is the spouse of
+some Z if some child Y of X has as a parent Z and allows to infer, among the others, the above mentioned missing fact. Rules capture common correlations in the data
+c 2020, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+2975
+
+

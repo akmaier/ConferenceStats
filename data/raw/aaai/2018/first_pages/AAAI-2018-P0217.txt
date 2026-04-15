@@ -1,0 +1,78 @@
+The Thirty-Second AAAI Conference
+on Artificial Intelligence (AAAI-18)
+
+Optimised Maintenance of
+Datalog Materialisations
+Pan Hu, Boris Motik, Ian Horrocks
+Department of Computer Science, University of Oxford
+Oxford, United Kingdom
+ﬁrstname.lastname@cs.ox.ac.uk
+
+expensive. Systems thus typically use an incremental maintenance algorithm, which aims to avoid repeating most of
+the work. Fact insertion can be effectively handled using
+the seminaı̈ve algorithm (Abiteboul, Hull, and Vianu 1995),
+but deletion is much more involved since one has to check
+whether deleted facts have derivations that persist after the
+update. The Delete/Rederive (DRed) algorithm (Gupta, Mumick, and Subrahmanian 1993; Staudt and Jarke 1996), the
+Backward/Forward (B/F) algorithm (Motik et al. 2015), and
+the Counting algorithm (Gupta, Mumick, and Subrahmanian
+1993) are well-known solutions to this problem.
+The DRed algorithm handles deletion by ﬁrst overdeleting all facts that depend on the removed explicit facts,
+and then rederiving the facts that still hold after overdeletion. The rederivation stage further involves rederiving all
+overdeleted facts that have alternative derivations, and then
+recomputing the consequences of the rederived facts until a ﬁxpoint is reached. The algorithm and its variants
+have been extensively used in practice (Urbani et al. 2013;
+Ren and Pan 2011). In contrast to DRed, the B/F algorithm
+searches for alternative derivations immediately (rather than
+after overdeletion) using a combination of backward and forward chaining. This makes deletion exact and avoids the potential inefﬁciency of overdeletion. In practice, B/F often,
+but not always, outperforms DRed (Motik et al. 2015).
+Both DRed and B/F search for derivations of deleted facts
+by evaluating rules ‘backwards’: for each rule whose head
+matches the fact being deleted, they evaluate the partially instantiated rule body as a query; each query answer thus corresponds to a derivation. This has two consequences. First,
+one can examine rule instances that ﬁre both before and after the update, which is redundant. Second, evaluating rules
+‘backwards’ can be inherently more difﬁcult than matching the rules during initial materialisation: our experiments
+show that this step can, in some cases, prevent effective materialisation maintenance even for very small updates.
+In contrast, the Counting algorithm (Gupta, Mumick, and
+Subrahmanian 1993) does not evaluate rules ‘backwards’,
+but instead tracks the number of distinct derivations of each
+fact: a counter is incremented when a new derivation for the
+fact is found, and it is decremented when a derivation no
+longer holds. A fact can thus be deleted when its counter
+drops to zero, without the potentially costly ‘backward’ rule
+evaluation. The algorithm can also be made optimal in the
+
+Abstract
+To efﬁciently answer queries, datalog systems often materialise all consequences of a datalog program, so the materialisation must be updated whenever the input facts change.
+Several solutions to the materialisation update problem have
+been proposed. The Delete/Rederive (DRed) and the Backward/Forward (B/F) algorithms solve this problem for general datalog, but both contain steps that evaluate rules ‘backwards’ by matching their heads to a fact and evaluating the
+partially instantiated rule bodies as queries. We show that
+this can be a considerable source of overhead even on very
+small updates. In contrast, the Counting algorithm does not
+evaluate the rules ‘backwards’, but it can handle only nonrecursive rules. We present two hybrid approaches that combine DRed and B/F with Counting so as to reduce or even
+eliminate ‘backward’ rule evaluation while still handling arbitrary datalog programs. We show empirically that our hybrid algorithms are usually signiﬁcantly faster than existing
+approaches, sometimes by orders of magnitude.
+
+1
+
+Introduction
+
+Datalog (Abiteboul, Hull, and Vianu 1995) is a rule language that is widely used in modern information systems.
+Datalog rules can declaratively specify tasks in data analysis applications (Luteberget, Johansen, and Steffen 2016;
+Piro et al. 2016), allowing application developers to focus on the objective of the analysis—that is, on specifying
+what needs to be computed rather than how to compute it
+(Markl 2014). Datalog can also capture OWL 2 RL (Motik
+et al. 2009) ontologies possibly extended with SWRL rules
+(Horrocks et al. 2004). It is implemented in systems such
+as WebPIE (Urbani et al. 2012), VLog (Urbani, Jacobs,
+and Krötzsch 2016), Oracle’s RDF Store (Wu et al. 2008),
+OWLIM (Bishop et al. 2011), and RDFox (Nenov et al.
+2015), and it is extensively used in practice.
+When performance is critical, datalog systems usually
+precompute the materialisation (i.e., the set of all consequences of a program and the explicit facts) in a preprocessing step so that all queries can later be evaluated directly over the materialisation. Recomputing the materialisation from scratch whenever the explicit facts change can be
+c 2018, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+1871
+
+

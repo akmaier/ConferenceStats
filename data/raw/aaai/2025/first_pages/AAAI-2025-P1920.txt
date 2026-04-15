@@ -1,0 +1,88 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+KernelMatmul: Scaling Gaussian Processes to Large Time Series
+Tilman Hoffbauer1 , Holger Hoos1,2,3 , Jakob Bossek4
+1
+
+2
+
+Chair for AI Methodology, RWTH Aachen University, Germany
+Leiden Institute of Advanced Computer Science, Leiden University, The Netherlands
+3
+University of British Columbia, Canada
+4
+Chair for Machine Learning and Optimisation, Paderborn University, Germany
+tilman.hoffbauer@rwth-aachen.de
+Abstract
+
+estimate. As such, the application of GPs to time series
+seems beneficial, but there is one important restriction: For
+inference of the posterior distribution, we need to perform
+costly linear algebra operations on the kernel matrix, which
+incur a computational complexity of Θ(N 3 ) and a memory
+requirement of Θ(N 2 ) for N samples when using the traditional approach to inference with the Cholesky decomposition (Rasmussen and Williams 2006). This quickly becomes
+infeasible for large N .
+Thus, other inference schemes are required for analysing
+large time series using GPs. Often, this includes approximations: We can approximate the posterior of the GP, e.g., using variational inference (Hensman, Matthews, and Ghahramani 2015), or the prior kernel matrix, e.g., using structured
+kernel interpolation (Wilson and Nickisch 2015). In this
+work, we will focus on accelerating inference using conjugate gradients (CG) (Gardner et al. 2018), which replaces the
+Cholesky decomposition by an iterative solver and mainly
+requires one central operation: The multiplication of the kernel matrix by an arbitrary right-hand side (RHS). Thus we
+can avoid storing the kernel matrix in memory and instead
+compute it on-the-fly. Further, we add a sparsity assumption,
+assuming that the covariance of distant samples is zero.
+Our core contribution is KernelMatmul, an implementation of the kernel matrix multiplication operator with key
+benefits:
+
+Time series forecasting requires reliable uncertainty estimates. Gaussian process regression provides a powerful
+framework for modelling this in a probabilistic fashion. However, its application to large time series is challenging, due
+to its cubic time complexity and quadratic memory requirement. In this work, we present KernelMatmul, a novel method
+that accelerates Gaussian process inference and thus facilitates scaling of Gaussian process regression to large, irregularly sampled and multi-output time series. Leveraging conjugate gradients in combination with sparsity approximation,
+KernelMatmul achieves time and memory complexity linear
+in the number of samples. We thoroughly benchmark our new
+method against multiple baselines to demonstrate its benefits
+and limitations, both in efficiency and accuracy.
+
+Implementation —
+https://github.com/Turakar/kernel-matmul
+Experiments —
+https://github.com/Turakar/kernel-matmul-benchmark
+
+1
+
+Introduction
+
+Time series data is common in our modern society. Examples include environmental sensors, medical monitoring
+data, machine operation, and traffic measurements (Chandola and Vatsavai 2010; Dürichen et al. 2015; Chandola and
+Vatsavai 2011; Godahewa et al. 2021). These time series
+contain a wealth of information about the underlying processes. When performing predictions on these time series,
+we require not only an estimate of the expected value but
+also of the prediction confidence. Many predictions become
+uncertain the further away we move from our initial data due
+to unforeseen influences (e.g., weather changes).
+Gaussian processes (GPs) provide us with a mathematically rigorous way to model these uncertainties (Rasmussen
+and Williams 2006). To this end, a probabilistic method is
+employed. GPs model the covariance between samples to
+obtain a prior distribution. The covariance matrix over all
+samples is called the kernel matrix. Given this prior, a predictive posterior distribution can be obtained from existing
+observations by Bayesian principles; this distribution is multivariate normal and provides both a mean and a confidence
+
+• on-the-fly computation of the kernel matrix to reduce the
+Θ(N 2 ) memory requirement to Θ(N );
+• an (optional) sparsity assumption suitable for large time
+series, reducing the computational complexity of kernel
+matrix multiplication from Θ(N 2 ) to Θ(N );
+• GPU acceleration using CUDA (NVIDIA 2023b), which
+partially hides the latency of on-the-fly computation behind the global memory latency.
+These benefits are implemented by a single CUDA kernel
+with accompanying Python bindings that performs the kernel matrix multiplication and is easily integrated into existing frameworks, such as GPyTorch (Gardner et al. 2018).
+After the introduction of the background (Section 2) and
+a discussion of related work (Section 3), we introduce KernelMatmul (Section 4). Our work includes a benchmark of
+multiple approaches to kernel matrix multiplication performance (including KeOps (Charlier et al. 2021)). This bench-
+
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+17223
+
+

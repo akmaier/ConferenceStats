@@ -1,0 +1,86 @@
+The Thirty-Third AAAI Conference on Artificial Intelligence (AAAI-19)
+
+Gradient-Based Inference for
+Networks with Output Constraints
+Jay Yoon Lee,1∗ Sanket Vaibhav Mehta,1 Michael Wick,2∗
+Jean-Baptiste Tristan,2 Jaime Carbonell1
+1
+
+School of Computer Science, Carnegie Mellon University, Pittsburgh, PA
+2
+Oracle Labs, Burlington, MA
+1
+{jaylee, svmehta, jgc}@cs.cmu.edu
+2
+{michael.wick, jean.baptiste.tristan}@oracle.com
+
+Abstract
+
+prediction for one subset of the outputs to beneficially influence another.
+Unfortunately, there is no guarantee that the neural network will learn these constraints from the training data
+alone, especially if the training data volume is limited. Although in some cases, the outputs of state-of-the-art systems
+mostly obey the constraints for the test-set of the data on
+which they are tuned, in other cases they do not. In practice,
+the quality of neural networks are much lower when run on
+data in the wild (e.g., because small shifts in domain or genre
+change the underlying data distribution). In such cases, the
+problem of constraint violations becomes more significant.
+This raises the question: how should we enforce hard constraints on the outputs of a neural network? We could perform expensive combinatorial discrete search over a large
+output space, or manually construct a list of post-processing
+rules for the particular problem domain of interest. Though,
+we might do even better if we continue to “train” the neural
+network at test-time to learn how to satisfy the constraints on
+each input. Such a learning procedure is applicable at testtime because learning constraints requires no labeled data:
+rather, we only require a function that measures the extent
+to which a predicted output violates a constraint.
+In this paper, we present gradient-based inference (GBI),
+an inference method for neural networks that strongly favors respecting output constraints by adjusting the network’s
+weights at test-time, for each input. Given an appropriate function that measures the extent of a constraint violation, we can express the hard constraints as an optimization problem over the continuous weights and apply backpropagation to tune them. That is, by iteratively adjusting
+the weights so that the neural network becomes increasingly
+likely to produce an output configuration that obeys the desired constraints. Much like scoped-learning, the algorithm
+customizes the weights for each example at test-time (Blei,
+Bagnell, and McCallum 2002), but does so in a way to satisfy the constraints.
+We study GBI on three tasks: semantic role labeling
+(SRL), syntactic constituency parsing and a synthetic sequence transduction problem and find that the algorithm performs favorably on all three tasks. In summary, our contributions are that we:
+
+Practitioners apply neural networks to increasingly complex
+problems in natural language processing, such as syntactic
+parsing and semantic role labeling that have rich output structures. Many such structured-prediction problems require deterministic constraints on the output values; for example, in
+sequence-to-sequence syntactic parsing, we require that the
+sequential outputs encode valid trees. While hidden units
+might capture such properties, the network is not always
+able to learn such constraints from the training data alone,
+and practitioners must then resort to post-processing. In this
+paper, we present an inference method for neural networks
+that enforces deterministic constraints on outputs without
+performing rule-based post-processing or expensive discrete
+search. Instead, in the spirit of gradient-based training, we
+enforce constraints with gradient-based inference (GBI): for
+each input at test-time, we nudge continuous model weights
+until the network’s unconstrained inference procedure generates an output that satisfies the constraints. We study the efficacy of GBI on three tasks with hard constraints: semantic
+role labeling, syntactic parsing, and sequence transduction. In
+each case, the algorithm not only satisfies constraints, but improves accuracy, even when the underlying network is stateof-the-art.
+
+1
+
+Introduction
+
+Suppose we have trained a sequence-to-sequence (seq2seq)
+network (Cho et al. 2014; Sutskever, Vinyals, and Le 2014;
+Kumar et al. 2016) to perform a structured prediction task
+such as syntactic constituency parsing (Vinyals et al. 2015).
+We would like to apply this trained network to novel, unseen examples, but still require that the network’s outputs
+obey an appropriate set of problem specific hard-constraints;
+for example, that the output sequence encodes a valid parse
+tree. Enforcing these constraints is important because downstream tasks, such as relation extraction or coreference resolution typically assume that the constraints hold. Moreover, the constraints impart informative hypothesis-limiting
+restrictions about joint assignments to multiple output units,
+and thus enforcing them holistically might cause a correct
+∗
+
+corresponding authors
+Copyright c 2019, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+4147
+
+

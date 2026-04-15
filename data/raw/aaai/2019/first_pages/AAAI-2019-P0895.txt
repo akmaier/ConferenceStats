@@ -1,0 +1,106 @@
+The Thirty-Third AAAI Conference on Artificial Intelligence (AAAI-19)
+
+Sentence-Wise Smooth
+Regularization for Sequence to Sequence Learning
+Chengyue Gong,†∗ Xu Tan,§ Di He,† Tao Qin§
+†
+
+Peking University
+Microsoft Research
+§
+{xuta,taoqin}@microsoft.com, † {cygong,di he}@pku.edu.cn
+§
+
+Abstract
+
+tasks, such as exposure bias (Wiseman and Rush 2016;
+Wu et al. 2018; Guo et al. 2019), loss-evaluation mismatch
+(Wiseman and Rush 2016; Vijayakumar et al. 2016), and
+myopic bias (He et al. 2017).
+In this paper, we investigate the MLE loss for sequence
+to sequence tasks from an optimization and algorithmic perspective. According to our empirical study, we find that for
+a well-trained model, the probabilities of individual tokens
+(i.e., per-token probabilities) in the target sequence for a
+given source sequence sometimes vary dramatically across
+time steps. We conduct an analysis on WMT14 EnglishGerman validation set to explore the relationship between
+the smoothness1 of probabilities and BLEU scores, as shown
+in Figure 1(a). As can be seen, for source-target pairs with
+same/similar MLE loss, the smoother the per-token probabilities are, the higher BLEU score is. Intuitively speaking, for
+source-target sequence pairs with the same/similar MLE loss,
+the sequence pair with non-smooth probabilities indicates
+that it has more small and large per-token probabilities. First,
+if the probability of certain target token is relatively low, the
+model is likely to make a wrong prediction for this token and
+thus generates a bad sequence during inference. Second, if
+the probability of certain target token is extremely large, i.e.,
+larger than 0.9, which is enough to ensure correct prediction,
+there is no need to continue optimizing this token and it’s better to leave the efforts of the model to other low-probability
+tokens.
+Besides, we wonder where the non-smooth problem comes
+from and then study the components of tokens with low
+probability in the train set. As is well-known, rare words are
+hard to learn (Gong et al. 2018) and low probabilities may just
+come from rare words. However, as shown in Figure 1(b), we
+find that nearly 6% of low-probability tokens are rare words,
+and this ratio almost equals to the ratio of rare words in the
+whole dataset, which demonstrates low-probability tokens do
+not prefer rare words more than popular words.2 We further
+partition the low-probability tokens into different POS tags
+and find that the major part are nouns, determiners, pronouns,
+
+Maximum-likelihood estimation (MLE) is widely used in sequence to sequence tasks for model training. It uniformly
+treats the generation/prediction of each target token as multiclass classification, and yields non-smooth prediction probabilities: in a target sequence, some tokens are predicted with
+small probabilities while other tokens are with large probabilities. According to our empirical study, we find that the
+non-smoothness of the probabilities results in low quality of
+generated sequences. In this paper, we propose a sentence-wise
+regularization method which aims to output smooth prediction probabilities for all the tokens in the target sequence. Our
+proposed method can automatically adjust the weights and
+gradients of each token in one sentence to ensure the predictions in a sequence uniformly well. Experiments on three
+neural machine translation tasks and one text summarization
+task show that our method outperforms conventional MLE
+loss on all these tasks and achieves promising BLEU scores
+on WMT14 English-German and WMT17 Chinese-English
+translation task.
+
+1
+
+Introduction
+
+Sequence to sequence learning has achieved great success
+in many natural language processing (NLP) tasks such as
+machine translation (Bahdanau, Cho, and Bengio 2014; Cho
+et al. 2014; Wu et al. 2016; Vaswani et al. 2017; Gehring et
+al. 2017; He et al. 2018; Song et al. 2018; Shen et al. 2018),
+text summarization (Rush et al. 2015; Shen et al. 2016) and
+dialog systems (Serban et al. 2016). The most popular model
+architecture for sequence to sequence learning is the encoderdecoder framework, which learns a probabilistic mapping
+P (y|x) from a source sequence x to a target sequence y.
+During training, maximum-likelihood estimation (MLE)
+is widely used to learn the model parameters. Since y =
+{y1 , y2 , · · · , yn } is a sequence of tokens, by decomposing
+P (y|x) using the chain rule, MLE becomes to minimize the
+average of the
+Pnnegative log probabilities of individual target
+tokens − n1 i=1 log P (yi |y<i , x; θ) over all (x, y) pairs in
+training data, where θ is the model parameter. While MLE
+training objective sounds reasonable in general, it has several potential issues in the context of sequence to sequence
+
+1
+
+Here we simply use variance to represent the smoothness for
+clearness and simplicity at the beginning of the paper. The formal
+definition of the smoothness obeys the definition in Section 3.2.
+2
+We simply set the top 10% frequent words as popular words
+and denote the rest as rare words. Other reasonable thresholds still
+come to similar conclusion.
+
+∗
+The work was conducted when the first author was an intern at
+Microsoft.
+Copyright c 2019, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+6449
+
+

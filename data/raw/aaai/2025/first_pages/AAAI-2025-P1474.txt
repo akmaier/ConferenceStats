@@ -1,0 +1,224 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Trigger3 : Refining Query Correction via Adaptive Model Selector
+Kepu Zhang,1 Zhongxiang Sun,1 Xiao Zhang,1, * Xiaoxue Zang,2
+Kai Zheng,2 Yang Song,2 Jun Xu1
+1
+
+Gaoling School of Artificial Intelligence, Renmin University of China
+2
+Kuaishou Technology Co., Ltd.
+{kepuzhang, sunzhongxiang, zhangx89}@ruc.edu.cn
+{zangxiaoxue,zhengkai,yangsong}@kuaishou.com, junxu@ruc.edu.cn
+
+Abstract
+In search scenarios, user experience can be hindered by erroneous queries due to typos, voice errors, or knowledge gaps.
+Therefore, query correction is crucial for search engines. Current correction models, usually small models trained on specific data, often struggle with queries beyond their training
+scope or those requiring contextual understanding. While the
+advent of Large Language Models (LLMs) offers a potential
+solution, they are still limited by their pre-training data and
+inference cost, particularly for complex queries, making them
+not always effective for query correction. To tackle these, we
+propose Trigger3, a large-small model collaboration framework that integrates the traditional correction model and
+LLM for query correction, capable of adaptively choosing
+the appropriate correction method based on the query and the
+correction results from the traditional correction model and
+LLM. Trigger3 first employs a correction trigger to filter out
+correct queries. Incorrect queries are then corrected by the
+traditional correction model. If this fails, an LLM trigger is
+activated to call the LLM for correction. Finally, for queries
+that no model can correct, a fallback trigger decides to return the original query. Extensive experiments demonstrate
+Trigger3 outperforms correction baselines while maintaining
+efficiency.
+
+1
+
+Original
+OriginalQuery
+Query
+拉连⽜仔裤
+拉连⽜仔裤
+Original
+Query
+(Pull-on
+(Pull-onjeans)
+jeans)
+Lofe 房⼦
+(Lofe house)
+
+Original
+OriginalQuery
+Query
+垂掉天竺葵的扦插
+垂掉天竺葵的扦插
+Original
+Query
+(Hang
+(Hangthe
+thegeranium
+geraniumcuttings)
+cuttings)
+垂掉天竺葵的扦插
+(Hang the geranium cuttings)
+
+Small
+SmallModel
+ModelCorrected
+CorrectedQuery
+Query
+拉链⽜仔裤
+拉链⽜仔裤
+Small Model Corrected Query
+(Zipper
+(Zipperjeans)
+jeans)
+租房⼦
+(rent a house)
+
+Small
+SmallModel
+ModelCorrected
+CorrectedQuery
+Query
+垂钓天竺葵的扦插
+垂钓天竺葵的扦插
+Small Model Corrected Query
+(Fishing
+(Fishingfor
+forgeranium
+geraniumcuttings)
+cuttings)
+垂钓天竺葵的扦插
+(Fishing for geranium cuttings)
+
+LLM
+LLMCorrected
+CorrectedQuery
+Query
+拉链⽜仔裤
+拉链⽜仔裤
+LLM Corrected Query
+(Zipper
+(Zipperjeans)
+jeans)
+Loft 房⼦
+(Loft house)
+
+LLM
+LLMCorrected
+CorrectedQuery
+Query
+垂吊天竺葵的扦插
+垂吊天竺葵的扦插
+LLM Corrected Query
+(Hanging
+(Hanginggeranium
+geraniumcuttings)
+cuttings)
+垂吊天竺葵的扦插
+(Hanging geranium cuttings)
+
+(a) Query correction that re- (b) Query correction that requires common sense.
+quires context understanding.
+Original
+OriginalQuery
+Query
+原省海灯节
+原省海灯节
+Original
+Query
+(Yuan
+(YuanProvince
+ProvinceLantern
+LanternRite)
+Rite)
+原省海灯节
+(Yuan Province Lantern Rite)
+Small
+SmallModel
+ModelCorrected
+CorrectedQuery
+Query
+源省海灯节
+源省海灯节
+Small
+Model
+Corrected
+Query
+(Source
+(SourceProvince
+ProvinceLantern
+LanternRite)
+Rite)
+源省海灯节
+(Source Province Lantern Rite)
+
+Correct
+Correct Query
+Query
+原神海灯节
+原神海灯节
+Correct
+Query
+(Genshin
+Impact
+(Genshin
+ImpactLantern
+LanternRite)
+Rite)
+原神海灯节
+(Genshin Impact Lantern Rite)
+LLM
+LLMCorrected
+CorrectedQuery
+Query
+元宵节
+元宵节
+LLM
+Corrected
+Query
+(Lantern
+(LanternFestival)
+Festival)
+元宵节
+(Lantern Festival)
+
+(c) Query correction that requires specific domain knowledge.
+
+Figure 1: Examples of query correction, where the red characters are the original errors, the blue characters are the results of corrected but incorrect, and the green characters are
+the correct result. The small model is traditional correction
+model GECToR and the LLM is Qwen1.5-7B-Chat.
+
+Introduction
+
+In online search scenarios, users may input incorrect queries
+due to insufficient knowledge, voice input, etc., resulting
+in errors such as typos, missing characters, homophones,
+and similar shapes (Ye et al. 2023; Pande et al. 2022). If
+we do not correct the queries and use the original queries
+for searching, the results may significantly deviate from the
+user’s needs. Therefore, to improve the user’s search experience, search engines must implement query correction services that automatically detect and correct errors in queries.
+
+In the field of query correction, the existing mainstream
+correction models can be divided into Seq2Seq and Seq2Edit
+methods. The Seq2Seq model (Shao et al. 2024; Xue et al.
+2021) treats the correction task as a machine translation task,
+that is, translating the incorrect query into the correct query;
+the Seq2Edit model (Zhang et al. 2022) treats the correction task as a sequence labeling task, correcting errors by
+marking insertions, deletions, etc. In this paper, we refer to
+these two types of traditional correction models as small
+models. Nowadays, Large Language Models (LLMs) have
+demonstrated robust semantic comprehension in numerous
+tasks (Brown et al. 2020; Ouyang et al. 2022), making them
+a viable option for query correction. When using the small
+
+* Corresponding author: Xiao Zhang (zhangx89@ruc.edu.cn).
+Work partially done at Engineering Research Center of NextGeneration Intelligent Search and Recommendation, Ministry of
+Education. Work done when Kepu Zhang and Zhongxiang Sun
+were interns at Kuaishou.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+13260
+
+

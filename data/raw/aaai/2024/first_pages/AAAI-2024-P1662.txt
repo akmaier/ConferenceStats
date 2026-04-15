@@ -1,0 +1,86 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Leaving the Nest:
+Going beyond Local Loss Functions for Predict-Then-Optimize
+Sanket Shah1 , Bryan Wilder2 , Andrew Perrault3 , Milind Tambe1
+1
+
+Harvard University
+Carnegie Mellon University
+3
+Ohio State University
+sanketshah@g.harvard.edu, bwilder@andrew.cmu.edu, perrault.17@osu.edu, milind_tambe@harvard.edu
+2
+
+Abstract
+Predict-then-Optimize is a framework for using machine learning to perform decision-making under uncertainty. The central
+research question it asks is, “How can we use the structure of
+a decision-making task to tailor ML models for that specific
+task?” To this end, recent work has proposed learning taskspecific loss functions that capture this underlying structure.
+However, current approaches make restrictive assumptions
+about the form of these losses and their impact on ML model
+behavior. These assumptions both lead to approaches with
+high computational cost, and when they are violated in practice, poor performance. In this paper, we propose solutions
+to these issues, avoiding the aforementioned assumptions and
+utilizing the ML model’s features to increase the sample efficiency of learning loss functions. We empirically show that our
+method achieves state-of-the-art results in four domains from
+the literature, often requiring an order of magnitude fewer
+samples than comparable methods from past work. Moreover,
+our approach outperforms the best existing method by nearly
+200% when the localness assumption is broken.
+
+1
+
+Introduction
+
+Predict-then-Optimize (PtO) (Donti, Amos, and Kolter 2017;
+Elmachtoub and Grigas 2021) is a framework for using machine learning (ML) to perform decision-making under uncertainty. As the name suggests, it proceeds in two steps—first,
+an ML model is used to make predictions about the uncertain
+quantities of interest, then second, these predictions are aggregated and used to parameterize an optimization problem
+whose solution provides the decision to be made. Many realworld applications require both prediction and optimization,
+and have been cast as PtO problems. For example, recommender systems need to predict user-item affinity to determine which titles to display (Wilder, Dilkina, and Tambe
+2019), while portfolio optimization uses stock price predictions to construct high-performing portfolios (Bengio 1997).
+In the context of AI for Social Good, PtO has been used
+to plan intervention strategies by predicting how different
+subgroups will respond to interventions (Wang et al. 2022).
+The central research question of PtO is, “How can we use
+the structure of an optimization problem to learn predictive
+models that perform better for that specific decision-making
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+14902
+
+task?". In this paper, we refer to the broad class of methods used to achieve this goal as Decision-Focused Learning
+(DFL). Recently, multiple papers have proposed learning
+task-specific loss functions for DFL (Chung et al. 2022; Lawless and Zhou 2022; Shah et al. 2022). The intuition for these
+methods can be summarized in terms of the Anna Karenina
+principle—while perfect predictions lead to perfect decisions,
+different kinds of imperfect predictions have different impacts on downstream decision-making. Such loss functions,
+then, attempt to use learnable parameters to capture how
+bad different kinds of prediction errors are for the decisionmaking task of interest. For example, a Mean Squared Error
+(MSE) loss may be augmented with tunable parameters to assign different weights to different true labels. Then, a model
+trained on such a loss is less likely to make the kinds of errors
+that affect the quality of downstream decisions.
+Learning task-specific loss functions poses two major challenges. First, learning the relationship between predictions
+and decisions is challenging. To make learning this relationship more tractable, past approaches learn different loss functions for each instance of the decision-making task, each
+of which locally approximates the behavior of the optimization task. However, the inability to leverage training samples
+across different such instances can make learning loss functions sample inefficient, especially for approaches that require
+a large number of samples to learn. This is especially problematic because creating the dataset for learning these loss
+functions is the most expensive part of the overall approach.
+In this paper, rather than learning separate loss functions for
+each decision-making instance, we learn a mapping from the
+feature space of the predictive model to the parameters of
+different local loss functions. This ‘feature-based parameterization’ gives us the best of both worlds—we retain the
+simplicity of learning local loss functions while still being
+able to generalize across different decision-making instances.
+In addition to increasing efficiency, this reparameterization
+also ensures that the learned loss functions are Fisher Consistent—a fundamental theoretical property that ensures that,
+in the limit of infinite data and model capacity, optimizing
+for the loss function leads to optimal decision-making. Past
+methods for learning loss functions do not satisfy even this
+basic theoretical property!
+The second challenge with learning loss functions is that it
+presents a chicken-and-egg problem—to obtain the distribu-
+
+

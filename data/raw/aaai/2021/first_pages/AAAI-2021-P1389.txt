@@ -1,0 +1,103 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+Policy-Guided Heuristic Search with Guarantees
+Laurent Orseau,1 Levi H. S. Lelis2
+1
+
+2
+
+DeepMind, UK
+Department of Computing Science, Alberta Machine Intelligence Institute (Amii), University of Alberta, Canada
+lorseau@google.com, levi.lelis@ualberta.ca
+
+Abstract
+The use of a policy and a heuristic function for guiding search
+can be quite effective in adversarial problems, as demonstrated
+by AlphaGo and its successors, which are based on the PUCT
+search algorithm. While PUCT can also be used to solve singleagent deterministic problems, it lacks guarantees on its search
+effort and it can be computationally inefficient in practice.
+Combining the A* algorithm with a learned heuristic function
+tends to work better in these domains, but A* and its variants
+do not use a policy. Moreover, the purpose of using A* is
+to find solutions of minimum cost, while we seek instead to
+minimize the search loss (e.g., the number of search steps).
+LevinTS is guided by a policy and provides guarantees on
+the number of search steps that relate to the quality of the
+policy, but it does not make use of a heuristic function. In this
+work we introduce Policy-guided Heuristic Search (PHS), a
+novel search algorithm that uses both a heuristic function and
+a policy and has theoretical guarantees on the search loss that
+relates to both the quality of the heuristic and of the policy.
+We show empirically on the sliding-tile puzzle, Sokoban, and
+a puzzle from the commercial game ‘The Witness’ that PHS
+enables the rapid learning of both a policy and a heuristic function and compares favorably with A*, Weighted A*, Greedy
+Best-First Search, LevinTS, and PUCT in terms of number of
+problems solved and search time in all three domains tested.
+
+1
+
+Introduction
+
+1
+
+In this work we are interested in tackling single-agent deterministic problems. This class of problems includes numerous real-world applications such as robotics, planning
+and pathfinding, computational biology (Edelkamp, Schroedl,
+and Koenig 2010), protein design (Allouche et al. 2019), and
+program synthesis (Cropper and Dumancic 2020).
+AlphaGo (Silver et al. 2017), and descendants such as
+MuZero (Schrittwieser et al. 2020) combine a learned value
+function with a learned policy in the PUCT search algorithm (Rosin 2011; Kocsis and Szepesvári 2006), which is
+a Monte-Carlo tree search algorithm (Chang et al. 2005;
+Coulom 2007), to tackle stochastic and adversarial games
+with complete information, and also a few single-agent
+games. The policy guides the search locally by favoring the
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+1
+An extended version of this paper can be found at http://arxiv.
+org/abs/2103.11505.
+
+12382
+
+most promising children of a node, whereas the value function ranks paths globally, thus complementing each other.
+PUCT, based on UCT (Kocsis and Szepesvári 2006) and
+PUCB (Rosin 2011), is indeed designed for adversarial and
+stochastic games such as Go and Chess, and UCT and PUCB
+come with a guarantee that the value function converges to
+the true value function in the limit of exploration—however
+this guarantee may not hold when replacing actual rewards
+with an estimated value, as is done in the mentioned works.
+Although these algorithms perform impressively well for
+some adversarial games, it is not clear whether the level of
+generality of PUCT makes it the best fit for difficult deterministic single-agent problems where a planning capability is
+necessary, such as the PSPACE-hard Sokoban problem (Culberson 1999). The more recent algorithm MuZero (Schrittwieser et al. 2020) adapts AlphaZero to single-agent Atari
+games, but these games are mostly reactive and MuZero
+performs poorly on games that require more planning like
+Montezuma’s Revenge—although this may arguably pertain
+to MuZero needing to learn a model of the environment.
+In the context of single-agent search the value function is
+known as a heuristic function and it estimates the cost-to-go
+from a given state to a solution state. McAleer et al. (2019)
+used MCTS to learn a heuristic function—but not a policy—
+to tackle the Rubik’s cube, but later replaced MCTS entirely
+with weighted A* (Pohl 1970; Ebendt and Drechsler 2009),
+which is a variant of the A* algorithm (Hart, Nilsson, and
+Raphael 1968) that trades off solution quality for search time.
+They observe that “MCTS has relatively long runtimes and
+often produces solutions many moves longer than the length
+of a shortest path” (Agostinelli et al. 2019), and tackle a few
+more problems such as the sliding tile puzzle and Sokoban.
+Levin Tree Search (LevinTS) (Orseau et al. 2018) uses a
+learned policy to guide its search in single-agent problems
+and comes with an upper bound on the number of search
+steps that accounts for the quality of the policy.
+In this work we combine the policy-guided search of the
+LevinTS algorithm with the heuristic-guided search of A* in
+an algorithm we call Policy-guided Heuristic Search (PHS).
+PHS retains the upper bound of LevinTS—we also prove an
+almost matching lower bound—but we extend this guarantee
+to the use of a heuristic function, showing that an accurate
+heuristic can greatly reduce the number of search steps.
+We compare our algorithm with several policy-guided and
+
+

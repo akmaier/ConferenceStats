@@ -1,0 +1,97 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+Machine Learning for Online Algorithm Selection under Censored Feedback
+Alexander Tornede, 1 Viktor Bengs, 2 Eyke Hüllermeier 2
+1
+
+Department of Computer Science, Paderborn University
+2
+Institute for Informatics, LMU Munich
+alexander.tornede@upb.de, viktor.bengs@lmu.de, eyke@lmu.de
+
+Abstract
+In online algorithm selection (OAS), instances of an algorithmic problem class are presented to an agent one after another,
+and the agent has to quickly select a presumably best algorithm from a fixed set of candidate algorithms. For decision
+problems such as satisfiability (SAT), quality typically refers
+to the algorithm’s runtime. As the latter is known to exhibit
+a heavy-tail distribution, an algorithm is normally stopped
+when exceeding a predefined upper time limit. As a consequence, machine learning methods used to optimize an algorithm selection strategy in a data-driven manner need to
+deal with right-censored samples, a problem that has received
+little attention in the literature so far. In this work, we revisit multi-armed bandit algorithms for OAS and discuss their
+capability of dealing with the problem. Moreover, we adapt
+them towards runtime-oriented losses, allowing for partially
+censored data while keeping a space- and time-complexity
+independent of the time horizon. In an extensive experimental
+evaluation on an adapted version of the ASlib benchmark, we
+demonstrate that theoretically well-founded methods based on
+Thompson sampling perform specifically strong and improve
+in comparison to existing methods.
+
+1
+
+Introduction
+
+Algorithm selection (AS) considers the automatic selection
+of an algorithm most suitable for solving an instance of an
+algorithmic problem class, such as the boolean satisfiability
+problem (SAT) or the traveling salesperson problem (TSP).
+Suitability is often quantified in terms of a loss function
+(or performance measure), such as solution quality or the
+algorithm’s runtime — we shall focus on the latter in the
+remainder of this work. AS is motivated by the phenomenon
+of performance complementarity, roughly stating that the best
+algorithm within a pool of candidate algorithms will typically
+vary from instance to instance (Wolpert and Macready 1997;
+Kerschke et al. 2019).
+Considering AS in an online setting, i.e., online algorithm
+selection (OAS), the problem can be posed as an iterative decision making problem, where instances arrive and decisions
+have to be made in an online manner. This setting suggests
+modeling the task as a contextual multi-armed bandit problem (Chu et al. 2011). In contrast to standard AS, one usually
+Copyright © 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+10370
+
+does not assume an upfront training dataset, consisting of
+loss function measurements for some of the algorithms on
+some training instances. Instead, in the online setting, the
+algorithm is provided feedback in the form of an evaluation
+of the loss function for the selected algorithm on the current
+instance, after the selection has been made.
+In practice, algorithm runtime distributions often exhibit a
+heavy-tail property (Gomes, Selman, and Crato 1997), meaning that some algorithms can take extremely long to terminate on some instances. To avoid an online AS system from
+stalling, it is common to run algorithms with a timeout after
+which the algorithm is forcefully terminated if it did not solve
+the instance before. Correspondingly, one may end up with
+unsolved instances and right-censored runtimes (Kleinbaum
+and Klein 2010): although the true runtime is not known
+precisely, it is known to exceed the timeout. Needless to say,
+learning algorithms should try to exploit such censored data,
+which nevertheless provide a kind of “weak supervision”. Although different forms of the OAS problem have been studied
+quite intensively in the literature (cf. Section 3), censoring
+has hardly been considered so far.
+To alleviate this situation, we revisit well-known linear
+contextual bandit algorithms for the OAS problem under
+censored data and and discuss their weaknesses. Thereupon,
+we present theoretically grounded adaptations of these algorithms, incorporating improvements toward learning from
+censored data and employing selection criteria tailored toward runtime-based loss functions from the field of AS. In an
+extensive experimental study, we show that our approaches
+improve in terms of performance upon comparable existing
+approaches while featuring a time- and space-complexity independent of the time horizon. All code including detailed
+documentation and the technical appendix can be found on
+Github (cf. Section 7).
+
+2
+
+The Online Algorithm Selection Problem
+
+The online algorithm selection problem is an iterative decision making problem, which comprises a problem instance
+space I featuring instances of an algorithmic problem class,
+and a set of candidate algorithms A, which can solve such
+instances. The instances arrive iteratively over time, so that,
+at each time step t, an algorithm spht , it q “ at P A has to be
+chosen by the algorithm selector
+s:HˆI ÑA
+(1)
+
+

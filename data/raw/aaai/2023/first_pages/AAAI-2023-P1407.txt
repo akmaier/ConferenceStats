@@ -1,0 +1,90 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Structured Case-Based Reasoning for
+Inference-Time Adaptation of Text-to-SQL Parsers
+Abhijeet Awasthi, Soumen Chakrabarti, Sunita Sarawagi
+Department of Computer Science and Engineering
+Indian Institute of Technology Bombay, Mumbai, India
+{awasthi,soumen,sunita}@cse.iitb.ac.in
+
+Abstract
+Inference-time adaptation methods for semantic parsing are
+useful for leveraging examples from newly-observed domains
+without repeated fine-tuning. Existing approaches typically
+bias the decoder by simply concatenating input-output example pairs (cases) from the new domain at the encoder’s input in
+a Seq-to-Seq model. Such methods cannot adequately leverage
+the structure of logical forms in the case examples. We propose StructCBR, a structured case-based reasoning approach,
+which leverages subtree-level similarity between logical forms
+of cases and candidate outputs, resulting in better decoder decisions. For the task of adapting Text-to-SQL models to unseen
+schemas, we show that exploiting case examples in a structured manner via StructCBR offers consistent performance
+improvements over prior inference-time adaptation methods
+across five different databases. To the best of our knowledge,
+we are the first to attempt inference-time adaptation of Textto-SQL models, and harness trainable structured similarity
+between subqueries.
+
+Introduction
+Natural language interfaces to databases (Zelle and Mooney
+1996; Tang and Mooney 2000; Popescu, Etzioni, and Kautz
+2003) enable access to structured information for users who
+are not familiar with languages like SQL by parsing user
+provided text-queries into executable SQLs. Text-to-SQL semantic parsing is a challenging task that not only demands
+robust natural language understanding but simultaneously
+requires reasoning over the schema structure of the databases.
+Databases containing similar information (e.g. census in various countries) may be designed using diverse schema structures, thus making it hard for the model to generalize across
+schemas unseen during training. Hence, Text-to-SQL models
+often struggle to parse text queries for a new schema in a zeroshot manner (Suhr et al. 2020; Lee, Polozov, and Richardson
+2021; Hazoom, Malik, and Bogin 2021). In practice, a small
+number of Text-to-SQL examples in the target schema are
+often essential for successful model adaptation. However,
+finetuning a Text-to-SQL model for each new database is
+not generally practical, for the following reasons: (i) Huge
+variation in database schema makes it tedious to collect sufficiently large finetuning datasets for each schema, while
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+12536
+
+finetuning on small datasets is unavoidably fraught with over–
+fitting, catastrophic forgetting, and instability w.r.t. random
+seeds. (ii) Finetuning may take considerable time, preventing
+fast incorporation of new data into the model. (iii) Often,
+a single large-footprint model serves multiple clients with
+diverse databases at the same time. Fine-tuning a separate
+model for each database is considered too resource-intensive
+in such multi-tenant scenarios.
+Therefore, we focus on fast online adaptation of Textto-SQL models without parameter updates, until the next
+cycle of finetuning is deemed feasible. Recently, case-based
+reasoning (CBR), which utilizes a memory of past labeled
+examples as cases, has emerged as a promising paradigm of
+inference-time adaptation without finetuning (Das et al. 2020,
+2021; Pasupat, Zhang, and Guu 2021; Gupta et al. 2021).
+CBR has been found effective for tasks like knowledge graph
+completion (KGC) (Das et al. 2020), question answering over
+knowledge bases (KBQA) (Das et al. 2021), task-oriented
+semantic parsing (Pasupat, Zhang, and Guu 2021; Gupta
+et al. 2021), translation (Khandelwal et al. 2021), and
+text-based games (Atzeni et al. 2022). However, many prior
+CBR approaches designed around Seq2Seq architectures
+simply concatenate input-output cases with the current input
+at the encoder (Das et al. 2021; Pasupat, Zhang, and Guu
+2021; Gupta et al. 2021). These methods do not leverage the
+structure of logical forms (query plan trees) in case examples.
+In response, we propose StructCBR, a structured CBR
+approach that directly exploits sub-tree level similarities
+between the candidate outputs and the case examples
+for adapting a Text-to-SQL model to a new schema. We
+start with SmBoP (Rubin and Berant 2021), a recent
+semi-auto-regressive architecture that decodes query trees
+bottom-up, respecting the structure of SQL grammar
+production rules, instead of left-to-right token-level decoding
+in Seq2Seq models (Guo et al. 2019; Wang et al. 2020;
+Scholak et al. 2021; Scholak, Schucher, and Bahdanau
+2021). We implement a novel structured case memory
+lookup module to boost scores of promising candidate
+trees using sub-tree level similarity with case trees under
+similar input context. This similarity is trainable. We show
+that explicitly-learned structured memory lookup leads
+to more accurate transfer from cases, compared to prior
+inference-time adaptation methods such as ConcatCBR and
+
+

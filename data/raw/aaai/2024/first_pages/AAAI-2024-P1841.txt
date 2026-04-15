@@ -1,0 +1,93 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Risk-Conditioned Reinforcement Learning: A Generalized Approach for Adapting
+to Varying Risk Measures
+Gwangpyo Yoo1 , Jinwoo Park2 , Honguk Woo1 *
+1
+
+Department of Computer Science and Engineering, Sungkyunkwan University
+2
+Department of Artificial Intelligence, Sungkyunkwan University
+necrocathy@skku.edu, pjw971022@skku.edu, hwoo@skku.edu
+
+Abstract
+In application domains requiring mission-critical decisionmaking, such as finance and robotics, the optimal policy derived by reinforcement learning (RL) often hinges on a preference for risk management. Yet, the dynamic nature of risk
+measures poses considerable challenges to achieving generalization and adaptation of risk-sensitive policies in the context
+of RL. In this paper, we propose a risk-conditioned RL framework that enables rapid policy adaptation to varying risk measures via a unified risk representation, Weighted Value-at-Risk
+(WV@R). To sample risk measures that avoid undue optimism,
+we construct a risk proposal network employing a conditional
+adversarial auto-encoder and a normalizing flow. This network
+establishes coherent representations for risk measures, ensuring the monotonicity of the quantile representations of risk
+measures. Through experiments with locomotion, finance, and
+self-driving scenarios, we show that our framework is capable
+of adapting to a range of risk measures, achieving comparable performance to the baselines individually trained for
+each measure. The framework often outperforms the baselines,
+especially in the cases when exploration is required during
+training but risk-aversion is favored during evaluation.
+
+1
+
+Introduction
+
+Reinforcement learning (RL) offers a promising approach
+to various sequential decision-making problems found in
+real-world applications, including robotics, finance, and autonomous driving. This is achieved by maximizing the rewards obtained from these environments. Many of these tasks
+inherently possess uncertainty, and the behavior of RL agents
+varies depending on the evaluation criteria used to measure
+this uncertainty. We refer to this (aleatoric) uncertainty as risk
+and to the evaluation criteria that consider this uncertainty as
+risk measures. We also refer to the risk measure’s degree of
+optimism as risk preference. For example, conditional value
+at risk (CV@R) with confidence α ∈ [0, 1] is a risk measure
+calculated by taking the average from the most pessimistic
+return to the α-th quantile.
+The choice of an appropriate risk measure is crucial in that
+it influences the agent’s behavior, which can lead to undesired outcomes such as physical harm. However, determining
+* Honguk Woo is the corresponding author.
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+16513
+
+the appropriate risk measure is challenging because a universal solution may not exist. Moreover, optimal risk measures
+can vary significantly across different applications or among
+individual users. For instance, in the area of autonomous driving, the selection of risk measures should take into account
+various factors such as time constraints, fuel levels, and the
+specific needs of passengers. A self-driving agent for delivery
+service might prioritize a risk measure that emphasizes time
+constraints, whereas a family-oriented service, especially one
+transporting young children, might place a premium on safety
+above all else. In the realm of finance, risk measures should
+be chosen according to interest rates, prevailing market conditions, and a client’s unique risk preferences (Acerbi, Nordio,
+and Sirtori 2001; Acerbi and Simonetti 2002; Adam, Houkari,
+and Laurent 2008; He, Jin, and Zhou 2015; BCBS 2009). For
+example, when the base rate increases, individuals tend to be
+risk-averse and vice versa.
+For an RL agent to adapt to varying risk measures, it should
+be conditioned based on varying risk measures rather than
+being optimized for a single specific risk measure. Choi et al.
+(2021) proposed RCDSAC, a risk-conditioned RL framework,
+which adapts to specific ranges of risk measures, defined by
+simple parameters. However, the ranges of risk measures that
+RCDSAC can accommodate are relatively specific, thereby
+limiting its applicability. For example, CV@R and median
+are considered essential risk measures in both finance and
+non-finance areas (Zhang et al. 2018; Pruzzo, Cantet, and
+Fioretti 2003; Jabr 2005; Rahimi and Ghezavati 2018; BCBS
+2009), but RCDSAC is not designed to handle these risk
+measures simultaneously.
+Our goal is to expand the range of risk measures for
+risk-conditioned RL agents, based on the weighted value
+at risks (WV@R). WV@R represents a comprehensive set
+of risk measures with varying degrees of importance from
+the most pessimistic to the most optimistic returns. It is defined as the weighted integral over the quantile function of
+returns (He, Jin, and Zhou 2015). This universality allows
+risk-conditioned agents to simultaneously handle diverse risk
+measures.
+To train a risk-conditioned agent using WV@R within the
+context of RL, it is crucial to appropriately represent risk
+measures as inputs to the agent’s neural network. To access
+the RL loss with respect to these risk measures, it is also
+required to conditionally sample risk measures from WV@R
+
+

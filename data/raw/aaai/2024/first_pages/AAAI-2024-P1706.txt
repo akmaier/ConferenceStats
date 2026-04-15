@@ -1,0 +1,102 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+z-SignFedAvg: A Unified Stochastic Sign-Based Compression for Federated
+Learning
+Zhiwei Tang1,2 , Yanmeng Wang1,2 , Tsung-Hui Chang1,2
+1
+
+School of Science and Engineering, The Chinese University of Hong Kong, Shenzhen, China
+2
+Shenzhen Research Institute of Big Data, Shenzhen, China
+
+Abstract
+Federated Learning (FL) is a promising privacy-preserving
+distributed learning paradigm but suffers from high communication cost when training large-scale machine learning models.
+Sign-based methods, such as SignSGD, have been proposed
+as a biased gradient compression technique for reducing the
+communication cost. However, sign-based algorithms could
+diverge under heterogeneous data, which thus motivated the development of advanced techniques, such as the error-feedback
+method and stochastic sign-based compression, to fix this
+issue. Nevertheless, these methods still suffer from slower
+convergence rates, and none of them allows multiple local
+SGD updates like FedAvg. In this paper, we propose a novel
+noisy perturbation scheme with a general symmetric noise
+distribution for sign-based compression, which not only allows one to flexibly control the bias-variance tradeoff for the
+compressed gradient, but also provides a unified viewpoint
+to existing stochastic sign-based methods. More importantly,
+the proposed scheme enables the development of the very first
+sign-based FedAvg algorithm (z-SignFedAvg) to accelerate
+the convergence. Theoretically, we show that z-SignFedAvg
+achieves a faster convergence rate than existing sign-based
+methods and, under the uniformly distributed noise, can enjoy
+the same convergence rate as its uncompressed counterpart.
+Extensive experiments are conducted to demonstrate that the
+z-SignFedAvg can achieve competitive empirical performance
+on real datasets and outperforms existing schemes.
+
+Introduction
+We consider the Federated Learning (FL) network with one
+parameter server and n clients (McMahan et al. 2017; Li et al.
+2020), with the focus on solving the following distributed
+learning problem
+n
+
+min f (x) =
+
+x∈Rd
+
+1X
+fi (x),
+n i=1
+
+(1)
+
+where fi (·) is the local objective function for the i-th client,
+for i = 1, . . . , n. Throughout this paper, we assume that each
+fi is smooth and possibly non-convex. The local objective
+functions are generated from the local dataset owned by each
+client. When designing distributed algorithms to solve (1), a
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+15301
+
+crucial aspect is the communication efficiency since a massive number of clients need to transmit their local gradients
+to the server frequently (Li et al. 2020). As one of the most
+popular FL algorithms, the federated averaging (FedAvg)
+algorithm (McMahan et al. 2017; Konečnỳ et al. 2016) considers multiple local SGD updates with periodic communications to reduce the communication cost. Another way is
+to compress the local gradients before sending them to the
+server (Li et al. 2020; Alistarh et al. 2017; Reisizadeh et al.
+2020). Among the existing compression methods, a simple
+yet elegant technique is to take the sign of each coordinate
+of the local gradients, which requires only one bit for transmitting each coordinate. For any x ∈ R, we define the sign
+operator as: Sign(x) = 1 if x ≥ 0 and −1 otherwise.
+It has been shown recently that optimization algorithms
+with the sign-based compression can enjoy a great communication efficiency while still achieving comparable empirical
+performance as uncompressed algorithms (Bernstein et al.
+2018; Karimireddy et al. 2019; Safaryan and Richtárik 2021).
+However, for distributed learning, especially the scenarios
+with heterogeneous data, i.e., fi ̸= fj for every i ̸= j, a
+naive application of the sign-based algorithm may end up
+with divergence (Karimireddy et al. 2019; Chen et al. 2020;
+Safaryan and Richtárik 2021).
+A counterexample for sign-based distributed gradient
+descent. Consider the one-dimensional problem with two
+clients: minx∈R (x − A)2 + (x + A)2 , where A > 0 is some
+constant. For any x ∈ [−A, A], the averaged sign gradient
+at x is Sign(x − A) + Sign(x + A) = 0, i.e., the algorithm
+never moves. Similar examples are also discussed by (Chen
+et al. 2020; Safaryan and Richtárik 2021). The fundamental
+reason for this undesirable result is the uncontrollable bias
+brought by the sign-based compression.
+There are mainly two approaches to fixing this issue in the
+existing literature. The first one is the stochastic sign-based
+method, which introduces stochasticity into the sign operation (Jin et al. 2020; Safaryan and Richtárik 2021; Chen
+et al. 2020), and the second one is the Error-Feedback (EF)
+method (Karimireddy et al. 2019; Vogels, Karimireddy, and
+Jaggi 2019; Tang et al. 2019). However, these works are still
+unsatisfactory. Specifically, on one hand, both the theoretical convergence rates and empirical performance of these
+algorithms are still worse than uncompressed algorithms like
+(Ghadimi and Lan 2013; Yu, Yang, and Zhu 2019). On the
+
+

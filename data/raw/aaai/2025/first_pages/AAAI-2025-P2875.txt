@@ -1,0 +1,86 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+QJL: 1-Bit Quantized JL Transform for KV Cache Quantization with Zero
+Overhead
+Amir Zandieh1 , Majid Daliri2 , Insu Han3
+1
+
+Google Research
+New York University
+3
+KAIST
+zandieh@google.com, daliri.majid@nyu.edu, insu.han@kaist.ac.kr
+2
+
+Abstract
+Serving LLMs requires substantial memory due to the storage
+requirements of Key-Value (KV) embeddings in the KV cache,
+which grows with sequence length. An effective approach to
+compress KV cache is quantization. However, traditional quantization methods face significant memory overhead due to the
+need to store quantization constants (at least a zero point and a
+scale) in full precision per data block. Depending on the block
+size, this overhead can add 1 or 2 bits per quantized number.
+We introduce QJL, a new quantization approach that consists
+of a Johnson-Lindenstrauss (JL) transform followed by signbit quantization. In contrast to existing methods, QJL eliminates memory overheads by removing the need for storing
+quantization constants. We propose an asymmetric estimator
+for the inner product of two vectors and demonstrate that applying QJL to one vector and a standard JL transform without
+quantization to the other provides an unbiased estimator with
+minimal distortion. We have developed an efficient implementation of the QJL sketch and its corresponding inner product
+estimator, incorporating a lightweight CUDA kernel for optimized computation. When applied across various LLMs and
+NLP tasks to quantize the KV cache to only 3 bits, QJL demonstrates a more than fivefold reduction in KV cache memory
+usage without compromising accuracy, all while achieving
+faster runtime.
+
+Code — https://github.com/amirzandieh/QJL
+Extended version — https://arxiv.org/pdf/2406.03482
+
+Introduction
+Large language models (LLMs) have garnered significant
+attention and demonstrated remarkable success in recent
+years. Their applications span various domains, including
+chatbot systems (Achiam et al. 2023; Team 2024a) to textto-image (Ramesh et al. 2022; Team 2023a, 2022), text-tovideo synthesis (Team 2024c), coding assistant (Team 2023b)
+and even multimodal domain across text, audio, image, and
+video (OpenAI 2024). The Transformer architecture with
+self-attention mechanism (Vaswani et al. 2017) is at the heart
+of these LLMs as it enables capturing intrinsic pairwise correlations across tokens in the input sequence. The ability of
+LLMs grows along with their model size (Kaplan et al. 2020),
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+25805
+
+which leads to computational challenges in terms of huge
+memory consumption.
+Deploying auto-regressive transformers during the generation phase is costly because commercial AI models must
+simultaneously serve millions of end users while meeting
+strict latency requirements. One significant challenge is the
+substantial memory needed to store all previously generated
+key-value (KV) embeddings in cache to avoid recomputations. This has become a major memory and speed bottleneck, especially for long context lengths. Additionally, the
+GPU must load the entire KV cache from its main memory to shared memory for each token generated, resulting in
+low arithmetic intensity and leaving most GPU threads idle.
+Therefore, reducing the KV cache size while maintaining
+accuracy is crucial.
+There are several approaches to address this challenge.
+One method involves reducing the number of heads in the
+KV cache using multi-query attention (Shazeer 2019) and
+multi-group attention (Ainslie et al. 2023), but these require
+fine-tuning the pre-trained models or training from scratch.
+Another line of work tries to reduce the KV cache size by
+pruning or evicting unimportant tokens (Zhang et al. 2024b;
+Liu et al. 2024a; Xiao et al. 2023; Zandieh et al. 2024). Additionally, some recent works tackle the issue from a system
+perspective, such as offloading (Sheng et al. 2023) or using virtual memory and paging techniques in the attention
+mechanism (Kwon et al. 2023).
+A simple yet effective approach is to quantize the floatingpoint numbers (FPN) in the KV cache using fewer bits. Several quantization methods have been proposed specifically
+for the KV cache (Yue et al. 2024; Yang et al. 2024; Dong
+et al. 2024; Kang et al. 2024; Zhang et al. 2024a). Most recently, KIVI (Liu et al. 2024b) and KVQuant (Hooper et al.
+2024) proposed per-channel quantization for the key cache
+to achieve better performance. However, all existing quantization methods for the KV cache face significant “memory
+overhead” issues. Specifically, all these methods group the
+data into blocks, either channel-wise or token-wise, and calculate and store quantization constants (at least a zero point
+and a scale) for each group. Depending on the group size, this
+overhead can add approximately 1 or 2 additional bits per
+quantized number, which results in significant computational
+overhead. In this work, our goal is to develop an efficient,
+data-oblivious quantization method, based on sketching tech-
+
+

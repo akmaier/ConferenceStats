@@ -1,0 +1,113 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Speedup Techniques for Switchable Temporal Plan Graph Optimization
+He Jiang, Muhan Lin, Jiaoyang Li
+Carnegie Mellon University
+{hejiangrivers, muhanlin, jiaoyangli}@cmu.edu
+
+Abstract
+Multi-Agent Path Finding (MAPF) focuses on planning
+collision-free paths for multiple agents. However, during the
+execution of a MAPF plan, agents may encounter unexpected
+delays, which can lead to inefficiencies, deadlocks, or even
+collisions. To address these issues, the Switchable Temporal Plan Graph provides a framework for finding an acyclic
+Temporal Plan Graph with the minimum execution cost under
+delays, ensuring deadlock- and collision-free execution. Unfortunately, existing optimal algorithms, such as Mixed Integer Linear Programming and Graph-Based Switchable Edge
+Search (GSES), are often too slow for practical use. This
+paper introduces Improved GSES, which significantly accelerates GSES through four speedup techniques: stronger admissible heuristics, edge grouping, prioritized branching, and
+incremental implementation. Experiments conducted on four
+different map types with varying numbers of agents demonstrate that Improved GSES consistently achieves over twice
+the success rate of GSES and delivers up to a 30-fold speedup
+on instances where both methods successfully find solutions.
+
+1
+
+0
+
+1
+
+2
+
+0
+
+1
+3
+4
+Execution cost = 7
+
+(a) Grid
+
+5
+
+(b) TPG
+
+0
+
+1
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+Execution cost = 11
+
+(c) Delayed TPG
+
+Figure 1: (a) shows an example of a MAPF problem. In the
+initial MAPF plan, Agent 1 moves from A to H (red arrows)
+and visits G first. Agent 2 moves from E to D (blue arrows)
+and visits G after Agent 1. (b) shows the TPG of the initial plan. Each row of vertices encodes an agent’s path with
+superscripts 1, 2 differentiating agents. The black arrow encodes the precedence that agent 2 can only visit G2 after
+agent 1 arrives H 1 . The bold number near a vertex v i shows
+the earliest possible time for agent i to arrive at this vertex.
+The execution cost below the TPG shows the overall cost of
+these two agents. (c) shows the TPG with a 2-timestep delay
+at vertex A1 , which is encoded by two dashed vertices.
+
+Introduction
+
+Multi-Agent Path Finding (MAPF) (Stern et al. 2019) focuses on planning collision-free paths for multiple agents to
+navigate from their starting locations to destinations. However, during execution, unpredictable delays can arise due
+to mechanical differences, accidental events, or sim-to-real
+gaps. For instance, in autonomous vehicle systems, a pedestrian crossing might force a vehicle to stop, delaying its
+movements and potentially causing subsequent vehicles to
+halt as well. If such delays are not managed properly, they
+can lead to inefficiencies, deadlocks, or even collisions.
+To address these issues, the Temporal Plan Graph (TPG)
+framework was first introduced to ensure deadlock- and
+collision-free execution (Hönig et al. 2016; Ma, Kumar, and
+Koenig 2017). TPG encodes and enforces the order in which
+agents visit the same location using a directed acyclic graph,
+where directed edges represent precedence. However, the
+strict precedence constraints often lead to unnecessary waiting. For example, as shown in Figure 1c, a delay by Agent
+1 causes Agent 2 to wait unnecessarily at vertex F 2 because
+TPG enforces the original order of visiting G. In such cases,
+
+switching the visiting order of these two agents would allow
+Agent 2 to proceed first, avoiding unnecessary delays.
+To capture this idea, Berndt et al. (2024) introduced the
+notion of a switchable edge that can be settled in one of
+two directions, each representing one possible visiting order of two agents at a location. Then, they proposed the
+Switchable Temporal Plan Graph (STPG), a superclass of
+TPG that contains a set of switchable edges. By gradually
+settling these switchable edges, STPG allows the search for
+a Temporal Plan Graph (TPG) that encodes optimal visiting orders to minimize total travel time under delays. However, both Berndt’s original solution based on Mixed Integer Linear Programming (MILP) and the subsequent Graph-
+
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+23212
+
+

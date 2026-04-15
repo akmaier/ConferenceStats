@@ -1,0 +1,125 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Auditing and Enforcing Conditional Fairness via Optimal Transport
+Mohsen Ghassemi* 1 , Alan Mishler* 1 , Niccolò Dalmasso* 1 , Luhao Zhang* 2 ,
+Vamsi K. Potluru1 , Tucker Balch1 , Manuela Veloso1
+1
+J.P.Morgan AI Research
+Department of Applied Mathematics and Statistics, Johns Hopkins University
+{mohsen.ghassemi, alan.mishler, niccolo.dalmasso}@jpmchase.com, luhao.zhang@jhu.edu
+2
+
+Abstract
+Conditional demographic parity (CDP) is a measure of the
+demographic parity of a predictive model or decision process
+when conditioning on an additional feature or set of features.
+Many algorithmic fairness techniques exist to target demographic parity, but CDP is much harder to achieve, particularly
+when the conditioning variable has many levels and/or when
+the model outputs are continuous. The problem of auditing
+and enforcing CDP is understudied in the literature. In light of
+this, we propose novel measures of conditional demographic
+disparity (CDD) which rely on statistical distances borrowed
+from the optimal transport literature. We further design and
+evaluate regularization-based approaches based on these CDD
+measures. Our methods, FairBiT and FairLeap, allow us to target CDP even when the conditioning variable has many levels.
+When model outputs are continuous, our methods target full
+equality of the conditional distributions, unlike other methods
+that only consider first moments or related proxy quantities.
+We validate our approaches on real-world datasets.
+
+1
+
+Introduction
+
+Algorithmic decision-making has an increasing impact on
+individuals’ lives, in areas such as finance, healthcare, and
+hiring. The growing field of algorithmic fairness aims to
+define, measure, and prevent discrimination in such systems.
+Much of the early work in algorithmic fairness adopted as
+a fairness criterion demographic parity (DP) (aka statistical
+parity), which requires the outputs of a model or decision
+process to be statistically independent of a sensitive feature
+such as race, gender, or disability status (Calders, Kamiran,
+and Pechenizkiy 2009; Kamiran and Calders 2010; Kamiran, Karim, and Zhang 2012). Demographic parity remains
+arguably the most widely studied fairness criterion to date
+(Hort et al. 2024), but it can permit an algorithm to behave
+in intuitively unfair ways (Dwork et al. 2012; Hardt, Price,
+and Srebro, Nathan 2016). Consider the hypothetical loan approval process summarized in Table 1. The overall approval
+rate is 50% for both male and female applicants, but within
+each income level, males are more likely to get approved. If
+applicants within income levels are equally qualified, then
+this process appears to discriminate against females.
+* These authors contributed equally.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+16808
+
+Conditional demographic parity (CDP) instead requires
+independence of the output and the sensitive feature conditional on a legitimate or explanatory feature or set of features,
+such as income in the loan example (Zliobaite, Kamiran, and
+Calders 2011; Kamiran, Žliobaitė, and Calders 2013). One
+way to achieve CDP is to use only the legitimate features as
+model inputs, but this may result in unacceptably poor predictive performance. When the legitimate features have a small
+number of levels, CDP can also be satisfied by maintaining
+a separate model for each subgroup defined by values of the
+legitimate feature and applying a method that targets DP to
+each subgroup. However, this approach may be infeasible
+when the legitimate feature has many levels.
+To our knowledge, there is only one existing method designed to target conditional demographic parity even in the
+presence of many-valued legitimate features and/or continuous outputs (Xu et al. 2020). This method uses a regularizer
+that is derived from a particular characterization of conditional independence. We show, however, that except when
+the regularizer is exactly zero, minimizing this quantity does
+not provide guarantees with respect to the actual disparities.
+Additionally, quantifying (un)fairness in the sense of conditional demographic parity remains underexplored in the
+literature. As it is generally impossible to exactly satisfy
+a fairness criterion without sacrificing model performance
+(Corbett-Davies et al. 2017; Zhao and Gordon 2019), it is
+crucial to define appropriate measures of conditional demographic disparity (CDD), i.e. to quantify violations of CDP
+for the purposes of model comparison and selection.
+
+Income Level
+High Income
+Medium Income
+Low Income
+Overall
+
+Approval Rate
+
+Applicants
+
+Male
+
+Female
+
+Male
+
+Female
+
+80%
+60%
+40%
+50%
+
+60%
+40%
+20%
+50%
+
+10%
+30%
+60%
+100%
+
+60%
+30%
+10%
+100%
+
+Table 1: Toy example illustrating a process which satisfies
+demographic parity but not conditional demographic parity.
+Males and females have the same marginal (“Overall”) loan
+approval rate (50%), but within each income level, males
+have higher approval rates than females.
+
+

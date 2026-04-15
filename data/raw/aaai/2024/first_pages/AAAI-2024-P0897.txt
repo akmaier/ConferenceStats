@@ -1,0 +1,92 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Automatic Core-Guided Reformulation via Constraint Explanation and Condition
+Learning
+Kevin Leo1 , Graeme Gange1 , Maria Garcia de la Banda1,2 , Mark Wallace1
+1
+
+2
+
+Department of Data Science & AI (DSAI), Monash University, Australia
+ARC Training Centre in Optimisation Technologies, Integrated Methodologies, and Applications (OPTIMA), Australia
+kevin.leo@monash.edu, grame.gange@monash.edu, maria.garciadelabanda@monash.edu, mark.wallace@monash.edu
+
+Abstract
+
+A promising model-to-model transformation method is
+that of (Leo et al. 2020), which takes advantage of advances
+made by Lazy Clause Generation (Ohrimenko, Stuckey, and
+Codish 2007) and MaxSAT core-guided solvers (Andres
+et al. 2012; Morgado, Dodaro, and Marques-Silva 2014) to
+improve a common class of models: those with an additive
+(or separable) objective function, i.e. a sum of terms, each
+with a single variable. Constraint Programming (CP) and
+SAT solvers often underperform for models of this class because sums do not yield much propagation. MaxSAT solvers
+can avoid this by detecting and exploiting cores: subsets of
+terms that cannot collectively take their lower bounds. (Leo
+et al. 2020)’s method uses information from these detected
+cores to identify terms that can yield better bounds when
+grouped. It then adds new variables that group those terms,
+and reformulates the objective to use those variables.
+While the above method automatically identifies sets of
+objective terms that cannot collectively take their lower
+bounds, all remaining (and very challenging) steps were
+manual. These include identifying which instance constraints blocked the lower bounds from being assigned to
+those terms, and what properties of the instance data caused
+those constraints to be posted. Further, this knowledge needs
+to be lifted from the instance level to the model level. All
+these manual steps require a significant degree of knowledge
+of both the model and the underlying domain.
+This paper closes the gap by showing how to automate
+each of these challenging stages, building up to a fullyautomatic method that constructs reformulated models similar to those manually developed in (Leo et al. 2020).
+
+SAT and propagation solvers often underperform for optimisation models whose objective sums many single-variable
+terms. MaxSAT solvers avoid this by detecting and exploiting cores: subsets of these terms that cannot jointly take
+their lower bounds. Previous work demonstrated that manual analysis of cores can help define model reformulations
+likely to speed up solving for many model instances. This
+paper presents a method to automate this process. For each
+selected core the method identifies the instance constraints
+that caused it; infers the model constraints and parameters
+that explain how these instance constraints were formed; and
+learns the conditions that made those model constraints generate cores, while others did not. It then uses this information
+to reformulate the objective. The empirical evaluation shows
+this method can produce useful reformulations. Importantly,
+the method can be useful in other situations that require explaining a set of constraints.
+
+1
+
+Introduction
+
+Combinatorial problems are often tackled using a modelling+solving approach, whose first step is to model the
+problem’s parameters, variables, constraints and objective
+function (if any) using a modelling language such as
+AMPL (Fourer, Gay, and Kernighan 1987), OPL (Van Hentenryck 1999), Essence (Frisch et al. 2007) or M INI ZINC (Nethercote et al. 2007). Each instantiation of the model
+parameters with input data yields a model instance, which is
+then compiled to the format required by the selected solver
+to find its solutions. This compilation step uses sophisticated methods to generate a flattened instance (often written in a leaner formalism such as Essence’ (Rendl 2010) and
+F LAT Z INC (Nethercote et al. 2007)) that is no longer intuitive for humans but is efficient for the selected solver. This
+approach gives users expressive and intuitive languages to
+model their problems, and frees them from knowing how to
+best map models onto solving algorithms. Further, modelto-model transformation methods exist to improve a model
+for many/all its instances, rather than just the one being flattened (e.g., (Hentenryck et al. 2005; Charnley, Colton, and
+Miguel 2006; Mears et al. 2015; Leo et al. 2013)).
+
+2
+
+Background
+
+Constraints: A constraint optimisation model M [∆] is a tuple (X[∆], C[∆], D[∆], f [∆]), where for every element δ
+of the model’s parameter space ∆ mapping each parameter
+to its value, X[δ] is a set of variables, C[δ] a set of constraints over X[δ], D[δ] a domain mapping each variable
+x ∈ X[δ] to set of values D[δ](x), and f [δ] an objective
+function over X[δ]. C[δ] is logically interpreted as the conjunction of its elements, and D[δ](x) as the conjunction of
+unary constraints on x ∈ X[δ]. Thus, M [δ] denotes instance
+(X[δ], C[δ], D[δ], f [δ]). A literal of M [δ] is a unary constraint whose variable is in X[δ]. To solve instance M [δ], CP
+solvers first apply constraint propagation to reduce domain
+
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+8065
+
+

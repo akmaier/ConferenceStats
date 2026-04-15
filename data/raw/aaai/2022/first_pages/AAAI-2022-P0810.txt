@@ -1,0 +1,81 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+Detecting Misclassification Errors in Neural Networks
+with a Gaussian Process Model
+Xin Qiu 1 , Risto Miikkulainen 1, 2
+1
+
+Cognizant AI Labs
+The University of Texas at Austin
+qiuxin.nju@gmail.com, risto@cognizant.com
+2
+
+Abstract
+
+Nguyen, Yosinski, and Clune 2015; Goodfellow, Shlens, and
+Szegedy 2014; Amodei et al. 2016). In a practical setting, it
+is beneficial to have a detector that can raise a red flag whenever the predictions are likely to be wrong. A human observer can then evaluate such predictions, making the classification system safer.
+Such a detector can be constructed by first developing
+quantitative metrics for measuring the reliability of predictions under different circumstances, and then setting a
+warning threshold based on users’ preferred precision-recall
+tradeoff. Existing such methods can be categorized into
+three types based on their focus: error detection, which
+aims to detect the natural misclassifications made by the
+classifier (Hendrycks and Gimpel 2017; Jiang et al. 2018;
+Corbière et al. 2019); out-of-distribution (OOD) detection,
+which identifies samples that are from different distributions
+compared to training data (Liang, Li, and Srikant 2018; Lee
+et al. 2018a; Devries and Taylor 2018); and adversarial sample detection, which filters out samples from adversarial attacks (Lee et al. 2018b; Wang et al. 2019; Aigrain and Detyniecki 2019).
+Among these categories, error detection, also called misclassification detection (Jiang et al. 2018) or failure prediction (Corbière et al. 2019), is the most challenging (Aigrain
+and Detyniecki 2019) and most underexplored. For instance,
+Hendrycks and Gimpel (2017) defined a baseline error detection score using the maximum class probability after the
+softmax layer. Although this baseline is a good starting
+point, it is ineffective in some cases, indicating that there is
+room for improvement (Hendrycks and Gimpel 2017). Jiang
+et al. (2018) proposed Trust Score, which measures the similarity between the original classifier and a modified nearestneighbor classifier. The main limitation of this method is
+scalability: the Trust Score may provide no or negative improvement over the baseline for high-dimensional data. ConfidNet (Corbière et al. 2019) builds a separate NN model to
+learn the true class probablity, i.e. softmax probability for
+the ground-truth class. However, ConfidNet itself is a standard NN, so its detection scores may be unreliable or misleading: A random input may generate a random detection
+score, and ConfidNet does not indicate uncertainty of these
+detection scores. Moreover, none of these methods can differentiate natural classifier errors from risks caused by OOD
+or adversarial samples; if a detector could do that, it would
+
+As neural network classifiers are deployed in real-world applications, it is crucial that their failures can be detected reliably. One practical solution is to assign confidence scores
+to each prediction, then use these scores to filter out possible
+misclassifications. However, existing confidence metrics are
+not yet sufficiently reliable for this role. This paper presents
+a new framework that produces a quantitative metric for detecting misclassification errors. This framework, RED, builds
+an error detector on top of the base classifier and estimates
+uncertainty of the detection scores using Gaussian Processes.
+Experimental comparisons with other error detection methods on 125 UCI datasets demonstrate that this approach is
+effective. Further implementations on two probabilistic base
+classifiers and two large deep learning architecture in vision
+tasks further confirm that the method is robust and scalable.
+Third, an empirical analysis of RED with out-of-distribution
+and adversarial samples shows that the method can be used
+not only to detect errors but also to understand where they
+come from. RED can thereby be used to improve trustworthiness of neural network classifiers more broadly in the future.
+
+1
+
+Introduction
+
+Classifiers based on Neural Networks (NNs) are widely deployed in many real-world applications (LeCun, Bengio,
+and Hinton 2015; Anjos et al. 2015; Alghoul et al. 2018;
+Shahid, Rappon, and Berta 2019). Although good prediction accuracies are achieved, it is usually not clear whether
+a particular prediction can be trusted, which is a severe issue especially in safety-critical domains such as healthcare
+(Selişteanu et al. 2018; Gupta et al. 2007; Shahid, Rappon,
+and Berta 2019), finance (Dixon, Klabjan, and Bang 2017),
+and automated driving (Janai et al. 2017; Hecker, Dai, and
+Van Gool 2018).
+One way to estimate trustworthiness of a classifier prediction is to use its inherent confidence-related score, e.g., the
+maximum class probability (Hendrycks and Gimpel 2017),
+entropy of the softmax outputs (Williams and Renals 1997),
+or difference between the highest and second highest activation outputs (Monteith and Martinez 2010). However, these
+scores are unreliable and may even be misleading: Predictions often have high-confidence but are nevertheless incorrect (Provost, Fawcett, and Kohavi 1998; Guo et al. 2017;
+Copyright c 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+8017
+
+

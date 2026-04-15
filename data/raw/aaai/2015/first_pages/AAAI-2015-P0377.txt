@@ -1,0 +1,91 @@
+Proceedings of the Twenty-Ninth AAAI Conference on Artificial Intelligence
+
+Incremental Update of Datalog Materialisation:
+The Backward/Forward Algorithm
+Boris Motik, Yavor Nenov, Robert Piro and Ian Horrocks
+Department of Computer Science, Oxford University
+Oxford, United Kingdom
+firstname.lastname@cs.ox.ac.uk
+
+Abstract
+
+much harder. Fact insertion can be efficiently handled using the standard seminaı̈ve algorithm (Abiteboul, Hull, and
+Vianu 1995): datalog (without negation-as-failure) is monotonic, so one can just ‘continue’ materialisation from E + ;
+hence, in this paper we usually assume that E + = ∅. In contrast, fact deletion is much more involved since one must
+identify and retract all facts in I not derivable from E \ E − .
+Gupta and Mumick (1995) presents an extensive overview
+of the existing approaches to incremental update, which can
+be classified into two groups.
+The approaches in the first group keep track of auxiliary information during materialisation to efficiently delete
+facts. In particular, truth maintenance systems (Doyle 1979;
+de Kleer 1986) track dependencies between facts; many can
+handle nonmonotonic datalog extensions, but their space and
+time overheads are often prohibitive on large datasets. Alternatively, one can count the derivations of facts during
+materialisation, and then delete facts when their derivation
+counter drops to zero (Gupta, Katiyar, and Mumick 1992);
+however, Nicolas and Yazdanian (1983) show in Section 6.2
+that this technique may not correctly handle recursive rules.
+Urbani et al. (2013) applied this technique (with its inherent
+limitation regarding recursion) to the Semantic Web.
+The approaches in the second group do not gather any
+additional information. The Delete/Rederive (DRed) algorithm (Gupta, Mumick, and Subrahmanian 1993; Staudt and
+Jarke 1996) generalises approaches by Harrison and Dietrich
+(1992), Küchenhoff (1991), and Urpı́ and Olivé (1992) and
+is the state of the art in this group. The DRed algorithm first
+overestimates and deletes all facts in I that might need to be
+deleted due to removing E − , and then it rederives the facts
+still derivable from E \ E − . The DRed algorithm has been
+adapted to RDF data (Barbieri et al. 2010; Urbani et al. 2013;
+Ognyanov and Velkov 2014) and incremental ontology classification (Ren and Pan 2011; Kazakov and Klinov 2013).
+
+Datalog-based systems often materialise all consequences
+of a datalog program and the data, allowing users’ queries
+to be evaluated directly in the materialisation. This process,
+however, can be computationally intensive, so most systems
+update the materialisation incrementally when input data
+changes. We argue that existing solutions, such as the wellknown Delete/Rederive (DRed) algorithm, can be inefficient
+in cases when facts have many alternate derivations. As a possible remedy, we propose a novel Backward/Forward (B/F)
+algorithm that tries to reduce the amount of work by a combination of backward and forward chaining. In our evaluation,
+the B/F algorithm was several orders of magnitude more efficient than the DRed algorithm on some inputs, and it was
+never significantly less efficient.
+
+1
+
+Introduction
+
+Datalog (Abiteboul, Hull, and Vianu 1995) is a widely
+used rule language capable of expressing recursive dependencies. A prominent application of datalog is answering
+queries over ontology-enriched data: datalog can capture
+OWL 2 RL (Motik et al. 2012) ontologies extended with
+SWRL (Horrocks et al. 2004) rules, so modern Semantic
+Web systems often use datalog ‘behind the scenes’.
+When the performance of query answering is critical, datalog systems often materialise (i.e., compute and explicitly
+store) all consequences of datalog rules and the data in a
+preprocessing step so that users’ queries can then be evaluated directly over the stored facts; systems such as Owlgres
+(Stocker and Smith 2008), WebPIE (Urbani et al. 2012), Oracle’s RDF store (Wu et al. 2008), OWLIM SE (Bishop et al.
+2011), and RDFox (Motik et al. 2014) all use this technique.
+Materialisation is computationally intensive, so recomputing
+all consequences whenever input data changes is usually unacceptable, and most systems employ an incremental maintenance algorithm: given a datalog program Π, a set E of explicitly given facts, materialisation I = Π∞ (E) of E w.r.t.
+Π, and sets of facts E − and E + to be deleted and added, respectively, such an algorithm uses the precomputed set I to
+compute Π∞ ((E \ E − ) ∪ E + ) more efficiently. Note that
+we consider only updates of explicitly given facts: changing
+derived facts does not have a unique semantics and is usually
+
+The overdeletion phase of the DRed algorithm can be a
+source of inefficiency. As a simple example, let Π contain
+rules (1)–(3), and let E = {A(a), B(a)}.
+C1 (x) ← A(x)
+(1)
+C1 (x) ← B(x)
+(2)
+Ci (x) ← Ci−1 (x) for i ∈ {2, . . . , n}
+(3)
+Let I = Π∞ (E) be the materialisation of E w.r.t. Π, and
+let E − = {A(a)}. Each fact Ci (a) ∈ I is derived once
+
+Copyright c 2015, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+1560
+
+

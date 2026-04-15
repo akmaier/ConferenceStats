@@ -1,0 +1,94 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Sequence Accumulation and Beyond:
+Infinite Context Length on Single GPU and Large Clusters
+Weigao Sun1 * , Yongtuo Liu2 , Xiaqiang Tang3 , Xiaoyu Mo4 *
+1
+
+Shanghai AI Laboratory
+University of Amsterdam
+3
+The Hong Kong University of Science and Technology (Guangzhou)
+4
+Nanyang Technological University
+sunweigao@outlook.com, y.liu6@uva.nl, xtang771@connect.hkust-gz.edu.cn, xiaoyu006@e.ntu.edu.sg
+2
+
+Abstract
+Linear sequence modeling methods, such as linear attention,
+state space modeling, and linear RNNs, have recently been
+recognized as potential alternatives to softmax attention thanks
+to their linear complexity and competitive performance. However, although their linear-memory advantage during training
+enables dealing with long sequences, it is still hard to handle
+extremely long sequences with very limited computational
+resources. In this paper, we propose Sequence Accumulation
+(SA) which leverages the common recurrence feature of linear
+sequence modeling methods to manage infinite context length
+even on a single GPU. Specifically, SA divides long input
+sequences into fixed-length sub-sequences and accumulates
+intermediate states sequentially, which reaches only constantmemory consumption. Additionally, we further propose Sequence Accumulation with Pipeline Parallelism (SAPP), to
+train large models with infinite context length, without incurring any additional synchronization costs in the sequence
+dimension. Extensive experiments with a wide range of context lengths are conducted to validate the effectiveness of SA
+and SAPP on both single and multiple GPUs. Results show
+that SA and SAPP enable the training of infinite context length
+on even very limited resources, and are well compatible with
+the out-of-the-box distributed training techniques.
+
+Introduction
+The attention mechanism (Vaswani et al. 2017; Qu et al.
+2024) is recognized as a crucial component for effective
+sequence modeling. However, softmax attention has a complexity that grows quadratically with context length, making
+it inherently costly. Although recent advancements (Dao et al.
+2022; Dao 2023; Shah et al. 2024) have enabled the scaling
+of softmax attention to longer sequences by optimizing intermediate computations for hardware, these approaches still
+necessitate the storage of key and value vectors. Managing
+this "KV cache" can become cumbersome when dealing with
+extremely long sequences.
+Meanwhile, linear sequence modeling techniques, such as
+linear attention (Katharopoulos et al. 2020; Qin et al. 2022a;
+Yang et al. 2023; Qin et al. 2024c; Shen et al. 2024), state
+space modeling (SSM) (Gu and Dao 2023; Dao and Gu
+2024), and linear RNNs (Peng et al. 2023, 2024; Qin et al.
+* Corresponding Authors
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+20725
+
+2024d), have recently emerged as compelling alternatives to
+the conventional softmax-attention-based transformer architecture. These approaches are characterized by their linear
+complexity in both training computation and memory usage,
+which also eliminates the need for the KV cache, allowing for
+constant-memory inference. Although these methods originate from different technical backgrounds, recent works (Qin
+et al. 2024a; Yang et al. 2024) underscore the commonalities
+among these models, leading to the development of common techniques that boost the efficiency of linear sequence
+modeling methods.
+Although the linear sequence modeling methods show
+the advantages of linear complexity and competitive performance, they still face challenges when modeling extremely
+long sequences with limited GPU resources. This is due to
+their linear-memory complexity with respect to the context
+length during training. To model extremely long sequences,
+previous methods rely on sequence or context parallelism
+techniques. However, sequence or context parallelism does
+not change the linear-memory complexity of linear sequence
+models, which also requires a lot more GPU resources and
+introduces heavy communication overheads.
+In the paper, we propose Sequence Accumulation (SA)
+for linear sequence modeling methods to achieve constantmemory training. In this way, SA can enable infinite context length modeling even on a single GPU. Specifically,
+SA works by dividing a long input sequence into multiple
+sub-sequences (abbreviated as sub-seqs) and sequentially accumulating the intermediate states from each sub-seq into
+a single state. SA offers a distinct advantage when training
+with extremely long context lengths on limited computational
+resources. Additionally, we further propose Sequence Accumulation with Pipeline Parallelism (SAPP) to integrate SA
+with PP for training large models with infinite context length.
+SAPP accumulates intermediate states across model partitions on different devices without incurring any additional
+synchronization costs in the sequence dimension.
+Through experiments conducted both on a single GPU and
+across multiple GPUs, we demonstrate the effectiveness of
+SA and SAPP on managing extremely long context lengths.
+Additionally, we evaluate the compatibility of SAPP with
+other parallel training strategies such as data parallelism (DP),
+tensor parallelism (TP), and context parallelism (CP), on a
+cluster with multiple nodes. The key contributions of this
+
+

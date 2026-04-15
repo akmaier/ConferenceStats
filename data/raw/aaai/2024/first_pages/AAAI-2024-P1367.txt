@@ -1,0 +1,111 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+From Past to Future: Rethinking Eligibility Traces
+Dhawal Gupta1 * , Scott M. Jordan2 , Shreyas Chaudhari1 ,
+Bo Liu3 , Philip S. Thomas1 , Bruno Castro da Silva1
+1
+
+University of Massachusetts,
+2
+University of Alberta,
+3
+Amazon
+{dgupta, schaudhari, pthomas, bsilva}@cs.umass.edu, sjordan@ualberta.ca, boliucs@amazon.com
+Abstract
+In this paper, we introduce a fresh perspective on the challenges of credit assignment and policy evaluation. First, we
+delve into the nuances of eligibility traces and explore instances where their updates may result in unexpected credit assignment to preceding states. From this investigation emerges
+the concept of a novel value function, which we refer to as
+the bidirectional value function. Unlike traditional state value
+functions, bidirectional value functions account for both future
+expected returns (rewards anticipated from the current state
+onward) and past expected returns (cumulative rewards from
+the episode’s start to the present). We derive principled update
+equations to learn this value function and, through experimentation, demonstrate its efficacy in enhancing the process
+of policy evaluation. In particular, our results indicate that
+the proposed learning approach can, in certain challenging
+contexts, perform policy evaluation more rapidly than TD( )—
+a method that learns forward value functions, v ⇡ , directly.
+Overall, our findings present a new perspective on eligibility
+traces and potential advantages associated with the novel value
+function it inspires, especially for policy evaluation.
+
+v (St) St+1
+v (St 1)
+
+v (St) St+1
+
+St
+
+v (St 1)
+
+v (St 2) St 1
+
+v (St 2) St 1
+
+v (St 3) St 2
+
+St 3
+
+v (St 3) St 2
+(b)
+
+St 3
+
+…
+
+…
+
+(a)
+
+St
+
+Figure 1: Implementation of the backward view via TD( ),
+adapted from Sutton and Barto (2018). Arrow sizes denote the
+magnitude of updates: (a) Expected update direction of past
+state values under the backward view, or TD( ). (b) Potential
+misalignment in updates due to reliance on outdated gradient
+memory for past states (especially when using non-linear
+function approximation), which deviated from (a).
+
+Introduction
+
+Reinforcement Learning (RL) offers a robust framework for
+tackling complex sequential decision-making problems. The
+growing relevance of RL in diverse applications—–from controlling nuclear reactors (Radaideh et al. 2021; Park et al.
+2022) to guiding atmospheric balloons (Bellemare et al. 2020)
+and optimizing data centers (Li et al. 2019)—– underscores
+the need for more efficient solutions. Central to these solutions is addressing the credit assignment problem, which
+involves determining which actions most contributed to a
+particular outcome—a key challenge in sequential decisionmaking. The outcome of actions in RL may be delayed, posing a challenge in correctly attributing credit to the most
+relevant prior states and actions. This often requires a large
+number of samples or interactions with the environment. In
+real-world settings, this might be a constraint as system interactions are often risky or costly. Minimizing the sample
+and computational complexity of existing algorithms not
+only addresses these challenges but also facilitates the wider
+adoption of RL in various future applications.
+* Corresponding author
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+12253
+
+Addressing the credit assignment problem given a temporal sequence of states and actions has been and continues to
+be an active area of research. A key concept in addressing
+this challenge is the Temporal Difference (TD) methods (Sutton 1984). In the context of TD methods, the backward view
+(Sutton and Barto 2018) offers an intuitive approach under
+which the agent aims to adjust the value of previous states
+to align with recent observations. As depicted in Figure 1(a),
+observing a positive outcome at a given time step, t, prompts
+the agent to increase the value estimates of all preceding
+states. This adjustment incorporates a level of discounting,
+accounting for the diminishing influence of distant preceding
+states on the observed outcome. This approach assumes that
+every prior state should share credit for the resultant outcome.
+One advantage of the backward view, discussed later, is that
+it can be efficiently implemented online and incrementally.
+The TD( ) method is a widely adopted algorithmic implementation of the backward view (Sutton 1984). Initially introduced for settings involving linear parameterizations of the
+value function, it has become standard in policy evaluation
+RL problems. However, as the complexity of RL problems
+increases with novel applications, there has been a shift to-
+
+

@@ -1,0 +1,82 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Zero-Cost Operation Scoring in Differentiable Architecture Search
+Lichuan Xiang1 * , Łukasz Dudziak2 * , Mohamed S. Abdelfattah3 *
+Thomas Chau2 , Nicholas D. Lane2,4 , Hongkai Wen1,2
+1
+University of Warwick, UK
+Samsung AI Center Cambridge, UK
+3
+Cornell University, USA
+4
+University of Cambridge, UK
+{l.xiang.2, hongkai.wen}@warwick.ac.uk
+{l.dudziak, thomas.chau, nic.lane}@samsung.com
+mohamed@cornell.edu
+2
+
+Abstract
+We formalize and analyze a fundamental component of differentiable neural architecture search (NAS): local “operation scoring” at each operation choice. We view existing
+operation scoring functions as inexact proxies for accuracy,
+and we find that they perform poorly when analyzed empirically on NAS benchmarks. From this perspective, we introduce a novel perturbation-based zero-cost operation scoring (Zero-Cost-PT) approach, which utilizes zero-cost proxies that were recently studied in multi-trial NAS but degrade significantly on larger search spaces, typical for differentiable NAS. We conduct a thorough empirical evaluation on a number of NAS benchmarks and large search
+spaces, from NAS-Bench-201, NAS-Bench-1Shot1, NASBench-Macro, to DARTS-like and MobileNet-like spaces,
+showing significant improvements in both search time and
+accuracy. On the ImageNet classification task on the DARTS
+search space, our approach improved accuracy compared to
+the best current training-free methods (TE-NAS) while being over 10× faster (total searching time 25 minutes on a
+single GPU), and observed significantly better transferability on architectures searched on the CIFAR-10 dataset with
+an accuracy increase of 1.8 pp. Our code is available at:
+https://github.com/zerocostptnas/zerocost operation score.
+
+Introduction
+One of the biggest problems in neural architecture search
+(NAS) is the computational cost – even training a single deep
+network can require enormous computational resources, and
+many NAS methods need to train tens, if not hundreds, of networks in order to converge to a good architecture (Real et al.
+2019; Luo et al. 2018; Dudziak et al. 2020). A related problem concerns search space size—a larger NAS search space
+would typically contain better architectures but requires a
+longer searching time (Real et al. 2019). Differentiable architecture search (DARTS) was first proposed to tackle those
+challenges, showcasing promising results when searching
+for a network in a set of over 1018 possible variations (Liu,
+Simonyan, and Yang 2019). Unfortunately, DARTS has significant robustness issues, as demonstrated through many
+* These authors contributed equally.
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+10453
+
+recent works (Zela et al. 2020; Shu, Wang, and Cai 2020;
+Yu et al. 2020). It also requires a careful selection of hyperparameters, making it somewhat difficult to adapt to a new
+task. Recently, (Wang et al. 2021) showed that operation
+selection in DARTS based on the magnitude of architectural parameters (α) is fundamentally wrong and will always
+simply select skip connections over other more meaningful
+operations. They proposed an alternative operation selection
+method based on perturbation, where the importance of an
+operation is determined by the decrease of the supernet’s validation accuracy when it is removed. Then the most important
+operations are selected by exhaustively comparing them with
+other alternatives on each single edge of the supernet until
+the final architecture is found.
+In a parallel line of work that aims to speed up NAS, proxies are often used instead of training accuracy to quickly obtain an indication of performance without expensive full training for each searched model. Conventional proxies typically
+consist of a reduced form of training with fewer epochs, less
+data or a smaller DNN architecture (Zhou et al. 2020). Most
+recently, zero-cost proxies, which are extreme types of NAS
+proxies that do not require any training, have gained interest
+with empirically outperforming conventional training-based
+proxies and deliver outstanding results on common NAS
+benchmarks (Abdelfattah et al. 2021; Mellor et al. 2021).
+However, their efficient usage on a large search space, typical
+for differentiable NAS, has been shown to be more challenging and remains an open problem (Mellor et al. 2021).
+The objective of our paper is to shed some light onto the
+implicit proxies that are used for operation scoring in differentiable NAS, and to discover new proxies in this setting that
+have the potential of improving both search speed and quality.
+We decompose differentiable NAS into its two constituent
+parts: (1) supernet training and (2) operation scoring. We
+focus on the second component and formalize the concept
+of “operation scoring” that happens during local operation
+selection at each edge in a supernet. Through this lens, we are
+able to empirically compare the efficacy of existing differentiable NAS operation scoring functions. We find that existing
+methods act as a proxy for accuracy and perform poorly on
+NAS benchmarks. Consequently, we propose new operation
+scoring functions based on zero-cost proxies that outperform
+
+

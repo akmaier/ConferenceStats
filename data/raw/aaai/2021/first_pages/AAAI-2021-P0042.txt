@@ -1,0 +1,85 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+Bringing UMAP Closer to the Speed of Light with GPU Acceleration
+Corey J. Nolet1,2 , Victor Lafargue1 , Edward Raﬀ2,3 , Thejaswi Nanditale1 , Tim Oates2 ,
+John Zedlewski1 , Joshua Patterson1
+1 Nvidia
+2 University of Maryland Baltimore County
+3 Booz Allen Hamilton
+
+Abstract
+
+(Carter et al. 2019). This combination of features and quality
+of results has made UMAP a widely used and popular tool.
+The wide array of applications and use of UMAP makes
+it desirable to produce faster versions of the algorithm. This
+is compounded by an increasing demand for exploratory and
+interactive visualization (Carter et al. 2019; Pezzotti et al.
+2018; Chatzimparmpas, Martins, and Kerren 2020; Obermayer et al. 2020), that necesitates a lower latency in results.
+GPUs are a strong candidate for acheiving faster implementation by trading per-core clock speeds for signﬁcantly more
+cores, provided that they can be utilized eﬀectively in parallel
+computation. A direct conversion of UMAP to the GPU already exists in the GPUMAP (Pachev and Lupo 2017) project
+but, due to technical details, is not always faithful in reproducing the same quality of results. In this work, we show that
+applying a few general techniques can produce a version that
+is both faster and faithful in its results.
+This paper contributes three components to the growing
+ecosystem (Okuta et al. 2017; Raschka, Patterson, and Nolet
+2020; Johnson, Douze, and Jégou 2019; Paszke et al. 2019)
+of GPU-accelerated tools for data science in Python. First,
+we contribute a near drop-in replacement of the UMAPlearn Python library, which has been GPU-accelerated endto-end in CUDA/C++. The speedup of this new implementation is evaluated against the current state-of-the-art, including UMAP-learn on the CPU and an existing GPU port of
+UMAP. Second, we contribute a GPU-accelerated near-dropin replacement of the trustworthiness score, which is often
+used to evaluate the extent to which manifold learning algorithms preserve local neighborhood structure. Finally, we
+contribute a distributed version of UMAP and provide empirical evidence of its eﬀectiveness.
+The remainder of our paper is organized as follows.
+We will discuss related work in Section 2, with a brief
+review of UMAP in Section 3. Our approach to implementing UMAP for the GPU is detailed in Section 4,
+with code available as part of the RAPIDS cuML library
+(https://github.com/rapidsai/cuml). Our results show up to
+100× speedups in Section 5, followed by our conclusions in
+Section 6.
+
+The Uniform Manifold Approximation and Projection
+(UMAP) algorithm has become widely popular for its ease of
+use, quality of results, and support for exploratory, unsupervised, supervised, and semi-supervised learning. While many
+algorithms can be ported to a GPU in a simple and direct
+fashion, such eﬀorts have resulted in ineﬃcient and inaccurate versions of UMAP. We show a number of techniques that
+can be used to make a faster and more faithful GPU version of
+UMAP, and obtain speedups of up to 100x in practice. Many
+of these design choices/lessons are general purpose and may
+inform the conversion of other graph and manifold learning
+algorithms to use GPUs. Our implementation has been made
+publicly available as part of the open source RAPIDS cuML
+library (https://github.com/rapidsai/cuml).
+
+1
+
+Introduction
+
+Like other manifold learning algorithms, the Uniform Manifold Approximation and Projection algorithm
+(UMAP) (McInnes, Healy, and Melville 2018) relies upon
+the manifold hypothesis (Feﬀerman, Mitter, and Narayanan
+2016) to preserve local neighborhood structure by modeling
+high-dimensional data in a low-dimensional space. This is
+in contrast to linear dimensionality reduction techniques like
+PCA, which aim only to preserve global Euclidean structure
+(He et al. 2005). UMAP produces low-dimensional embeddings that are useful for both visual analytics and downstream
+machine learning tasks. Unlike other manifold learning algorithms, such as IsoMap (Tenenbaum, De Silva, and Langford 2000), Locally Linear Embeddings (LLE) (Roweis and
+Saul 2000), Laplacian Eigenmaps (Belkin and Niyogi 2002),
+and t-Distributed Stochastic Neighbor Embeddings (T-SNE)
+(Maaten and Hinton 2008), UMAP has native support for supervised, unsupervised, and semi-supervised metric learning. Since its introduction in 2018, it has found use in exploratory data analysis applications (Ordun, Purushotham,
+and Raﬀ 2020; Wander et al. 2020; Obermayer et al. 2020;
+Oden 2020), as well as bioinformatics, cancer research (Andor et al. 2018), single-cell genomics(Travaglini et al. 2019;
+Becht et al. 2018; Clara-Parabricks 2020), and the interpretation of highly non-linear models like deep neural networks
+
+2
+
+Copyright © 2021, Association for the Advancement of Artiﬁcial
+Intelligence (www.aaai.org). All rights reserved.
+
+Related Work
+
+AI and ML research often strikes a balance in scientiﬁc
+exploration and software engineering, with well-engineered
+418
+
+

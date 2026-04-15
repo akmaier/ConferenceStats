@@ -1,0 +1,81 @@
+The Thirty-Fourth AAAI Conference on Artiﬁcial Intelligence (AAAI-20)
+
+On the Discrepancy between the Theoretical Analysis and Practical
+Implementations of Compressed Communication for Distributed Deep Learning
+Aritra Dutta, El Houcine Bergou,∗ Ahmed M. Abdelmoniem,
+Chen-Yu Ho, Atal Narayan Sahu, Marco Canini, Panos Kalnis
+KAUST
+
+A major drawback of distributed training across parallel
+workers is that training time can negatively suffer from high
+communication costs, especially at large scale, due to the
+transmission of stochastic gradients. To alleviate this problem,
+several lossy compression techniques have been proposed
+(Seide et al. 2014; Dettmers 2016; Alistarh et al. 2017; Wen
+et al. 2017; Alistarh et al. 2018; Bernstein et al. 2018; Tang
+et al. 2018; Wangni et al. 2018; Horváth et al. 2019).
+Two main classes of compression approaches are sparsiﬁcation and quantization. Sparsiﬁcation communicates only
+a subset of gradient elements. For instance, this is obtained
+by selecting uniformly at random k% elements or the top
+k% elements by magnitude (Alistarh et al. 2018). Quantization, on the other hand, represents gradient elements with
+lower precision, thus using fewer bits for each element. For
+instance, this is done by transmitting only the sign of each
+element (Bernstein et al. 2018), or by randomized rounding
+to a discrete set of values (Alistarh et al. 2017).
+In theory, such methods can reduce the amount of communication and their analysis reveal that they provide convergence guarantees (under certain analytic assumptions). Further, such methods preserve model accuracy across a range
+of settings in practice.
+However, we observe a discrepancy between the theoretical analysis and practical implementation of existing compression methods. To the best of our knowledge, the theoretical analysis of every prior method appears to assume
+that compression is applied to the gradient values of the
+entire model. However, from our study of existing implementations (Zhang et al. 2017; Shi, Wang, and Chu 2017;
+Lim, Andersen, and Kaminsky 2019; Shi, Chu, and Li 2019;
+Horváth et al. 2019) and experience with implementing compression methods, we observe that compression is applied
+layer by layer, as illustrated in Figure 1. In fact, based on
+the existing programming interfaces in modern distributed
+machine learning toolkits such as PyTorch (pytorch.org ) and
+TensorFlow (tensorﬂow.org ), a layer-wise implementation is
+typically most straightforward because wait-free backpropagation (Zhang et al. 2017) – where gradients are sent as soon
+as they are available – is a commonly used optimization.
+Importantly, layer-wise compression in general differs
+from entire-model compression (though for certain quantiza-
+
+Abstract
+Compressed communication, in the form of sparsiﬁcation or
+quantization of stochastic gradients, is employed to reduce
+communication costs in distributed data-parallel training of
+deep neural networks. However, there exists a discrepancy
+between theory and practice: while theoretical analysis of
+most existing compression methods assumes compression is
+applied to the gradients of the entire model, many practical
+implementations operate individually on the gradients of each
+layer of the model.
+In this paper, we prove that layer-wise compression is, in theory, better, because the convergence rate is upper bounded
+by that of entire-model compression for a wide range of biased and unbiased compression methods. However, despite the
+theoretical bound, our experimental study of six well-known
+methods shows that convergence, in practice, may or may not
+be better, depending on the actual trained model and compression ratio. Our ﬁndings suggest that it would be advantageous
+for deep learning frameworks to include support for both layerwise and entire-model compression.
+
+1
+
+Introduction
+
+Despite the recent advances in deep learning and its widespread transformative successes, training deep neural networks (DNNs) remains a computationally-intensive and timeconsuming task. The continuous trends towards larger volumes of data and bigger DNN model sizes require to scale out
+training by parallelizing the optimization algorithm across a
+set of workers. The most common scale out strategy is data
+parallelism where each worker acts on a partition of input
+data. In each iteration of the optimization algorithm – typically the stochastic gradient descent (SGD) algorithm – every
+worker processes a mini-batch of the input data and produces
+corresponding stochastic gradients. Then, gradients from all
+workers are aggregated to produce an update to model parameters to be applied prior to the next iteration. The gradient
+aggregation process involves network communication and is
+supported via a parameter-server architecture or collective
+communication routines (e.g., all reduce).
+∗
+This author is also with INRA, France and has an equal contribution with the ﬁrst author.
+c 2020, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+3817
+
+

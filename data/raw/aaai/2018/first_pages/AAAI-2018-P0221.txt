@@ -1,0 +1,98 @@
+The Thirty-Second AAAI Conference
+on Artificial Intelligence (AAAI-18)
+
+Stream Reasoning in Temporal Datalog
+Alessandro Ronca, Mark Kaminski,
+Bernardo Cuenca Grau, Boris Motik, Ian Horrocks
+Department of Computer Science, University of Oxford, UK
+{alessandro.ronca, mark.kaminski, bernardo.cuenca.grau, boris.motik, ian.horrocks}@cs.ox.ac.uk
+
+only keep a limited history of previously received input facts
+in memory to perform computations. These challenges have
+been addressed by extending traditional database query languages with window constructs, which declaratively specify
+the ﬁnite part of the input stream relevant to the answers at
+the current time (Arasu, Babu, and Widom 2006).
+In recent years, there has been an increasing interest in
+extending traditional stream management systems with logical, rule-based, reasoning capabilities (Barbieri et al. 2010;
+Calbimonte, Corcho, and Gray 2010; Anicic et al. 2011;
+Le-Phuoc et al. 2011; Zaniolo 2012; Özçep, Möller, and
+Neuenstadt 2014; Beck et al. 2015; Dao-Tran, Beck, and
+Eiter 2015). Rules can be very useful in stream processing
+applications for capturing complex analysis tasks in a declarative way, as well as for representing background knowledge
+about the application domain.
+
+Abstract
+In recent years, there has been an increasing interest in extending traditional stream processing engines with logical,
+rule-based, reasoning capabilities. This poses signiﬁcant theoretical and practical challenges since rules can derive new
+information and propagate it both towards past and future
+time points; as a result, streamed query answers can depend
+on data that has not yet been received, as well as on data that
+arrived far in the past. Stream reasoning algorithms, however,
+must be able to stream out query answers as soon as possible,
+and can only keep a limited number of previous input facts
+in memory. In this paper, we propose novel reasoning problems to deal with these challenges, and study their computational properties on Datalog extended with a temporal sort
+and the successor function—a core rule-based language for
+stream reasoning applications.
+
+1
+
+Example 1. Consider a number of wind turbines scattered
+throughout the North Sea. Each turbine is equipped with a
+sensor, which continuously records temperature levels of key
+devices within the turbine and sends those readings to a data
+centre monitoring the functioning of the turbines. Temperature levels are streamed by sensors using a ternary predicate
+Temp, whose arguments identify the device, the temperature
+level, and the time of the reading. A monitoring task in the
+data centre is to track the activation of cooling measures in
+each turbine, record temperature-induced malfunctions and
+shutdowns, and identify parts at risk of future malfunction.
+This task is captured by the following set of rules:
+
+Introduction
+
+Query processing over data streams is a key aspect of Big
+Data applications. For instance, algorithmic trading relies on
+real-time analysis of stock tickers and ﬁnancial news items
+(Nuti et al. 2011); oil and gas companies continuously monitor and analyse data coming from their wellsites in order
+to detect equipment malfunction and predict maintenance
+needs (Cosad et al. 2009); network providers perform realtime analysis of network ﬂow data to identify trafﬁc anomalies and DoS attacks (Münz and Carle 2007).
+In stream processing, an input data stream is seen as
+an unbounded, append-only, relation of timestamped tuples,
+where timestamps are either added by the external device
+that issued the tuple or by the stream management system receiving it (Babu and Widom 2001; Babcock et al.
+2002). The analysis of the input stream is performed using a standing query, the answers to which are also issued
+as a stream. Most applications of stream processing require
+near real-time analysis using limited resources, which poses
+signiﬁcant challenges to stream management systems. On
+the one hand, systems must be able to compute query answers over the partial data received so far as if the entire
+(inﬁnite) stream had been available; furthermore, they must
+stream query answers out with the minimum possible delay.
+On the other hand, due to memory limitations, systems can
+
+Temp(x, high, t) → Flag(x, t)
+Flag(x, t) ∧ Flag(x, t + 1) → Cool (x, t + 1)
+Cool (x, t) ∧ Flag(x, t + 1) → Shdn(x, t + 1)
+Shdn(x, t) → Malfunc(x, t − 2)
+Shdn(x, t) ∧ Near (x, y) → AtRisk (y, t)
+AtRisk (x, t) → AtRisk (x, t + 1)
+
+(1)
+(2)
+(3)
+(4)
+(5)
+(6)
+
+Rule (1) ‘ﬂags’ a device whenever a high temperature reading is received. Rule (2) says that two consecutive ﬂags on
+a device trigger cooling measures. Rule (3) says that an additional consecutive ﬂag after activating cooling measures
+triggers a pre-emptive shutdown. By Rule (4), a shutdown is
+due to a malfunction that occurred when the ﬁrst ﬂag leading
+to shutdown was detected. Finally, Rules (5) and (6) identify
+
+c 2018, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+1941
+
+

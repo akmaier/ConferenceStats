@@ -1,0 +1,82 @@
+Proceedings of the Twenty-Ninth AAAI Conference on Artificial Intelligence
+
+Handling owl:sameAs via Rewriting
+Boris Motik, Yavor Nenov, Robert Piro and Ian Horrocks
+Department of Computer Science, Oxford University
+Oxford, United Kingdom
+forename.lastname@cs.ox.ac.uk
+
+Abstract
+
+technique for theorem proving with equality (Baader and
+Nipkow 1998; Nieuwenhuis and Rubio 2001). In the OWL 2
+RL setting, rewriting consists of choosing one representative
+from each set of equal resources, and replacing all remaining resources in the set with the representative. Variants of
+this idea have been implemented in many of the above mentioned systems, and they have been shown to be very effective on practical data sets (Kolovski, Wu, and Eadon 2010).
+Although the idea of rewriting is well known, ensuring
+its correctness (i.e., ensuring that the answer to an arbitrary
+SPARQL query is the same with and without rewriting) is
+not straightforward. In this paper we identify two problems
+that, we believe, have been commonly overlooked in existing implementations. First, whenever a resource r is rewritten in the data, r must also be rewritten in the rules; hence,
+the rule set cannot be assumed to be fixed during the course
+of materialisation, which is particularly problematic if computation is parallelised. Second, it is a common assumption
+that SPARQL queries can be efficiently evaluated over the
+materialisation by rewriting them, evaluating them over the
+rewritten triples, and then ‘expanding’ the answer set (i.e.,
+substituting all representative resources with equal ones in
+all possible ways). However, such an approach can be incorrect when SPARQL queries are evaluated under bag semantics, or when they contain builtin functions.
+We address both issues in this paper and make the following contributions. In Section 3 we discuss the problems
+related to owl:sameAs in more detail and show how they can
+lead to both increased computation costs and incorrect query
+answers. In Section 4 we present an algorithm that generalises OWL 2 RL materialisation, can also handle SWRL
+rules (Horrocks et al. 2004), rewrites rules as well as data
+triples, and is lock-free (Herlihy and Shavit 2008). The latter
+means that at least one thread always makes progress, ensuring that the system is less susceptible to adverse thread
+scheduling decisions and thus scales better to many threads.
+In Section 5 we show how to modify SPARQL query processing so as to guarantee correctness. Finally, in Section 6
+we present a preliminary evaluation of an implementation
+of our algorithms in the open-source RDFox system. We
+show that rewriting can reduce the number of materialised
+triples by a factor of up to 7.8, and can reduce materialisation time by a factor of up to 31.1 on a single thread, with
+the time saving being largely due to the elimination of dupli-
+
+Rewriting is widely used to optimise owl:sameAs reasoning in materialisation based OWL 2 RL systems. We investigate issues related to both the correctness and efficiency of
+rewriting, and present an algorithm that guarantees correctness, improves efficiency, and can be effectively parallelised.
+Our evaluation shows that our approach can reduce reasoning
+times on practical data sets by orders of magnitude.
+
+1
+
+Introduction
+
+RDF (Manola and Miller 2004) and SPARQL (Harris and
+Seaborne 2013) are increasingly being used to store and access semistructured data. An OWL ontology (Motik, PatelSchneider, and Parsia 2012) is often used to enhance query
+answers with tuples implied by the ontology and data, and
+the OWL 2 RL profile was specifically designed to allow
+for tractable rule-based query answering (Motik et al. 2012).
+In practice, the latter often involves using a forward chaining procedure in which the materialisation (i.e., all consequences) of the ontology and data is computed in a preprocessing step, allowing queries to be evaluated directly over
+the materialised triples. This technique is used by systems
+such as Owlgres (Stocker and Smith 2008), WebPIE (Urbani
+et al. 2012), Oracle’s RDF store (Wu et al. 2008), OWLIM
+SE (Bishop et al. 2011), and RDFox (Motik et al. 2014a).
+One disadvantage of materialisation is that the preprocessing step can be costly w.r.t. both the computation and the
+storage of entailed triples. This problem is exacerbated when
+materialisation requires equality reasoning—that is, when
+the owl:sameAs property is used to state equalities between
+resources. OWL 2 RL/RDF (Motik et al. 2012, Section 4.3)
+axiomatises the semantics of owl:sameAs using rules such
+as hs0 , p, oi ← hs, p, oi ∧ hs, owl:sameAs, s0 i that, for each
+pair of equal resources r and r0 , ‘copy’ all triples between
+r and r0 . It is well known that such ‘copying’ can severely
+impact both the materialisation size and time (Kolovski, Wu,
+and Eadon 2010); what is less obvious is that the increase in
+computation time due to duplicate derivations may be even
+more serious (see Section 3).
+In order to address this problem, materialisation based
+systems often use some form of rewriting—a well-known
+Copyright c 2015, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+231
+
+

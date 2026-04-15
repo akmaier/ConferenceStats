@@ -1,0 +1,93 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+Towards Robust Off-Policy Learning for Runtime Uncertainty
+Da Xu,1 Yuting Ye, 2 Chuanwei Ruan, 3 Bo Yang 4
+1
+Walmart Labs
+University of California, Berkeley
+3
+Instacart
+4
+LinkedIn
+daxu5180@gmail.com, yeyt@berkeley.edu, ruanchuanwei@gmail.com, by9ru@virginia.edu
+2
+
+Abstract
+Off-policy learning plays a pivotal role in optimizing and
+evaluating policies prior to the online deployment. However,
+during the real-time serving, we observe varieties of interventions and constraints that cause inconsistency between the
+online and offline settings, which we summarize and term
+as runtime uncertainty. Such uncertainty cannot be learned
+from the logged data due to its abnormality and rareness nature. To assert a certain level of robustness, we perturb the
+off-policy estimators along an adversarial direction in view of
+the runtime uncertainty. It allows the resulting estimators to be
+robust not only to observed but also unexpected runtime uncertainties. Leveraging this idea, we bring runtime-uncertainty
+robustness to three major off-policy learning methods: the
+inverse propensity score method, reward-model method, and
+doubly robust method. We theoretically justify the robustness
+of our methods to runtime uncertainty, and demonstrate their
+effectiveness using both the simulation and the real-world
+online experiments.
+
+Introduction
+The offline optimization and evaluation have been studied
+intensively in the past few years, as deploying a sub-optimal
+policy for real-time experiments can be costly and even risky
+(Dudík, Langford, and Li 2011; Bottou et al. 2013; Swaminathan and Joachims 2015a; Athey and Wager 2017). Nevertheless, it is arguably true that off-policy learning can barely
+represent real-world scenarios except for a few ideal settings.
+In particular, real-time policy deployments are inevitably subject to various interventions and constraints that can not be
+unaccounted for in standard off-policy learning. We categorize these unexpected events as runtime uncertainty since
+they are brought about by some anomalous events of the
+online execution mechanism. Examples include:
+1. in e-commerce recommendation, the product displacement is sometimes subject to real-time business factors
+such as trending popularity;
+2. in personalized online advertisement, during peak hours,
+the policy execution may be replaced by the backup plan
+if the response-time agreement can not be satisfied;
+Copyright © 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+10101
+
+3. in autonomous driving, the self-driving vehicle can be hit
+by accidents, harsh weather, or intrusions that limit the
+ability to carry out the designed policy.
+We conclude that the impacts of runtime uncertainty are often
+reflected in the changes to the policy’s execution. In the above
+examples, one may expect the following consequences: 1).
+the original exposure probabilities are adjusted by the instant
+trends of the items; 2). the exceeding web traffic will be
+directed to the rollback setting, e.g., non-personalized policy,
+rather than calling the online inference service of the designed
+policy; 3). the emergency mechanism, e.g., emergent brake,
+is triggered and takes over the running policy.
+In stark contrast to the issue of a non-stationary environment where the underlying reward mechanism changes over
+time (Bubeck and Slivkins 2012), runtime uncertainty may
+not alter the reward mechanism. Additionally, runtime uncertainty does not cause distribution change or missing observation of the contextual features, so our problem clearly
+distinguishes from the setting of distribution-robust and
+confounding-robust policy optimization (see Section for
+detail). The major challenge here is that the designed policy
+cannot be executed as-is due to unexpected events on the executors, which leads to discrepancies between the online and
+offline settings. It is implausible to remove or characterize
+these exceptional uncertainties by learning from the logged
+data, since they are abnormal and intractable by nature. As a
+consequence, the runtime uncertainty raises a novel problem
+for off-policy learning, which to the best of our knowledge,
+has not been studied.
+Our strategy is to incorporate a certain level of robustness
+against potential runtime uncertainty via an offline max-min
+learning. We search for an adversarial scenario where runtime
+uncertainties induce the worst impact on a value function of
+interest. Since runtime uncertainties act on policy’s execution,
+we adversarially perturb the logging policy in search for the
+worst case as if additional runtime uncertainties have played
+a role. Then we identify the candidate policy with the best
+offline performance under this worst case. Specifically, for
+any candidate policy π, let V̂ (π, πu ) be the estimated reward,
+e.g., via inverse-propensity score weighting, assuming that
+the logged feedback was generated under πu (u represents
+some perturbation mechanism). The key is to introduce an
+uncertainty set Uα (π0 ) that surrounds the logging policy π0 ,
+constructed by such as the `2 , `∞ or Wasserstein balls with
+
+

@@ -1,0 +1,97 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+A Highly-Parameterized Ensemble to Play Gin Rummy
+Masayuki Nagai, Kavya Shrivastava, Kien Ta, Steven Bogaerts, Chad Byers
+DePauw University
+Greencastle, IN 46135, U.S.A.
+{masayukinagai 2022, kshrivastava 2023, kienta 2022, stevenbogaerts, cbyers}@depauw.edu
+
+Abstract
+
+only draws a card when it can immediately form a meld, considers only the minimization of deadwood in forming melds,
+and knocks as soon as possible.
+Building upon the work in (Mark 2017), self tracks each
+card’s current state in the round from its own perspective.
+(Recall in Section 1 that a “game” consists of multiple
+“rounds”.) For cards known by self to be held by a player,
+the state includes which player holds the card, where it came
+from (initial deal, stock, or discard pile), and whether opp
+also knows about the card. For discarded cards, the state includes which is on top, which are irretrievable, and which
+player discarded the card.
+The remaining cards are in the unknown state. In that
+case we also estimate the probability p(c) that c is in the
+stock pile. Since an unknown card must be either in stock
+or in opp’s hand, the probability that c is in opp’s hand is
+1 − p(c). As the round progresses, adjustments to p(c) for
+various c are made by observing opp’s actions.
+Let St and Ot represent the set of cards in stock and the
+set of cards in opp’s hand that self has not seen, respectively,
+at turn t. The set Ut of cards in the unknown state can be
+formed by Ut = St ∪ Ot . At the start of a round, |S0 | = 31
+and |U0 | = 41, since self only knows about its own hand and
+the single card in the discard pile. We therefore initialize the
+probabilities: ∀c ∈ U0 , p(c) = |S0 |/|U0 | = 31/41.
+For a given card c, define an adjacent card as one of the
+same rank, or 1-2 ranks away of the same suit. Let Ac be the
+set of cards adjacent to c that have state unknown. When
+self observes certain actions involving c, adjacency updates
+are made to the estimated probabilities of the cards in Ac .
+If opp draws face-up card c, opp likely already has some
+of the cards in Ac . Self therefore decreases the estimated
+probability that the cards in Ac are in stock, corresponding
+to an increased expectation that they are in opp’s hand:
+∀a ∈ Ac , p(a) ← p(a) − p(a) · β
+for a parameter1 β in (0, 1).
+Similarly, opp may show disinterest in a card c, either by
+declining to draw it when face-up, or by discarding it. In
+either case, we may expect opp to be less likely to have cards
+in Ac . Thus we increase our estimate that they are in stock:
+∀a ∈ Ac , p(a) ← p(a) + (1 − p(a)) · β
+
+This paper describes the design and training of a computer
+Gin Rummy player. The system includes three main components to make decisions about drawing cards, discarding, and
+ending the game, with numerous parameters controlling behavior. In particular, an ensemble approach is explored in the
+discard decision. Finally, three sets of parameter tuning and
+performance experiments are analyzed.
+
+1
+
+Introduction
+
+Gin Rummy is a two-player card game played over a series of rounds. A round begins with each player receiving
+10 cards from a standard deck. One additional card is placed
+face-up to form the initial discard pile, with the remaining
+placed face-down to form the stock pile. Players alternate
+turns, drawing a card from either pile and then discarding a
+card face-up in the discard pile, attempting to form melds in
+their hand. A meld can be either a rank meld with 3+ cards
+of the same rank, or a run meld with 3+ cards of the same
+suit and consecutive ranks (with aces low). Unmelded cards
+are called deadwood, with a cost equivalent to rank, with
+aces worth 1 point and face cards worth 10. A player with
+10 or fewer deadwood points can knock by revealing their
+melds to the opponent. The total deadwood points of unmelded cards in each player’s hand is calculated. The player
+with the least deadwood wins the round, with significant additional bonuses for having 0 deadwood (going gin) or having less deadwood than a knocking player (an undercut). For
+more details about rules, see (McLeod 2020).
+This paper describes a computer player for Gin Rummy.
+We begin with a discussion of the system’s tracking of the
+state of the round. Next, the measures of obtainability and
+meldability are presented. We then describe the system components, and finally three sets of parameter tuning and performance experiments.
+
+2
+
+Tracking the State of a Round
+
+Let self represent the computer player and opp the opponent.
+In this paper, opp is always the same: the simple player that
+
+1
+β is actually a temporary placeholder for a more expressive
+parameterization (Section 5).
+
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+15614
+
+

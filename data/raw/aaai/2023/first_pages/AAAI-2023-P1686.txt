@@ -1,0 +1,95 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Monitoring Model Deterioration with Explainable Uncertainty Estimation via
+Non-parametric Bootstrap
+Carlous Mougan* 1 , Dan Saattrup Nielsen* 2
+1
+
+University of Southampton, United Kingdom
+2
+The Alexandra Institute, Denmark
+c.mougan@southampton.ac.uk, dan.nielsen@alexandra.dk
+
+Abstract
+Monitoring machine learning models once they are deployed
+is challenging. It is even more challenging to decide when
+to retrain models in real-case scenarios when labeled data is
+beyond reach, and monitoring performance metrics becomes
+unfeasible. In this work, we use non-parametric bootstrapped
+uncertainty estimates and SHAP values to provide explainable
+uncertainty estimation as a technique that aims to monitor
+the deterioration of machine learning models in deployment
+environments, as well as determine the source of model deterioration when target labels are not available. Classical methods
+are purely aimed at detecting distribution shift, which can lead
+to false positives in the sense that the model has not deteriorated despite a shift in the data distribution. To estimate model
+uncertainty we construct prediction intervals using a novel
+bootstrap method, which improves previous state-of-the-art
+work. We show that both our model deterioration detection
+system as well as our uncertainty estimation method achieve
+better performance than the current state-of-the-art. Finally,
+we use explainable AI techniques to gain an understanding
+of the drivers of model deterioration. We release an open
+source Python package, doubt, which implements our proposed methods, as well as the code used to reproduce our
+experiments.
+
+Introduction
+Monitoring machine learning models in production is not
+an easy task. There are situations when the true label of the
+deployment data is available, and performance metrics can
+be monitored. But there are cases where it is not, and performance metrics are not so trivial to calculate once the model
+has been deployed. Model monitoring aims to ensure that a
+machine learning application in a production environment
+displays consistent behavior over time.
+Being able to explain or remain accountable for the performance or the deterioration of a deployed model is crucial, as
+a drop in model performance can affect the whole business
+process (Mougan, Kanellos, and Gottron 2021), potentially
+having catastrophic consequences1 . Once a deployed model
+has deteriorated, models are retrained using previous and
+* These authors contributed equally.
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+1
+The Zillow case is an example of consequences of model
+performance degradation in an unsupervised monitoring scenario,
+
+15037
+
+new input data in order to maintain high performance. This
+process is called continual learning (Diethe et al. 2018) and
+it can be computationally expensive and put high demands on
+the software engineering system. Deciding when to retrain
+machine learning models is paramount in many situations.
+Traditional machine learning systems assume that training
+data has been generated from a stationary source, but data
+is not static, it evolves. This problem can be seen as a distribution shift, where the data distributions of the training
+set and the test set differ. Detecting distribution shifts has
+been a longstanding problem in the machine learning (ML)
+research community (Shimodaira 2000; Sugiyama, Krauledat, and Müller 2007; Sugiyama and Müller 2005; Tasche
+2017; Zadrozny 2004; Stolzenberg and Relles 1997; Heckman 1990; Cortes et al. 2008; Huang et al. 2006; He et al.
+2014), as it is one of the main sources of model performance
+deterioration (Candela et al. 2009). Furthermore, data scientists in machine learning competitions claim that finding the
+train/validation split that better resembles the test (evaluation)
+distribution is paramount to winning a Kaggle competition
+(Guschin et al. 2018).
+However, despite the fact that a shift in data distribution
+can be a source of model deterioration, the two are not identical. Indeed, if we shift a random noise feature we have caused
+a change in the data distribution, but we should not expect
+the performance of a model to decline when evaluated on
+this shifted dataset. Thus, we emphasize here that our focus
+is on model deterioration and not distribution shift, despite
+the correlation between the two.
+Established ways of monitoring distribution shift when the
+real target distribution is not available are based on statistical
+changes either the input data (Diethe et al. 2018; Rabanser,
+Günnemann, and Lipton 2019) or on the model output (Garg
+et al. 2021). These statistical tests correctly detect univariate
+changes in the distribution but are completely independent
+of the model performance and can therefore be too sensitive, indicating a change in the covariates but without any
+degradation in the model performance. This can result in
+false positives, leading to unnecessary model retraining. It is
+worth noting that several authors have stated the clear need to
+identify how non-stationary environments affect the behavior
+of models (Diethe et al. 2018).
+see https://edition.cnn.com/2021/11/09/tech/zillow-ibuying-homezestimate/index.html (Online accessed January 26, 2022).
+
+

@@ -1,0 +1,83 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Towards Efficient Low-Order Hybrid Optimizer for Language Model Fine-Tuning
+Minping Chen1 , You-Liang Huang1 , Zeyi Wen* 1,2
+1
+
+The Hong Kong University of Science and Technology (Guangzhou)
+2
+The Hong Kong University of Science and Technology
+{mchen779, yhuang142}@connect.hkust-gz.edu.cn, wenzeyi@ust.hk
+
+Abstract
+
+In response to this challenge, several approaches have
+been proposed. In-context learning (ICL) (Brown et al.
+2020) makes an inference with only forward passes based on
+the input prompts (i.e., labeled samples). However, the context sizes of most PLMs are limited and the predictive accuracy of ICL is often much worse than fine-tuning (Brown
+et al. 2020). Another type of method, namely parameterefficient fine-tuning (PEFT) (Houlsby et al. 2019; Li and
+Liang 2021; Hu et al. 2022), only updates a small number
+of model parameters while approaching similar predictive
+accuracy of full fine-tuning methods, but it still needs to
+store numerous activations (intermediate results of the forward pass) as the trainable parameters are dispersed across
+the entire model. To address these problems, MeZO (Malladi et al. 2024) proposes a memory-efficient zeroth-order
+(ZO) optimizer to estimate the gradients based on finite differences of function values with just two forward passes,
+thus saving a significant amount of memory. Despite its benefits in memory efficiency, MeZO suffers from a significant
+accuracy degradation compared with full fine-tuning using
+first-order optimizers on various tasks and needs substantially more training steps to converge (Malladi et al. 2024).
+We observe that MeZO only requires the same memory as
+inference, and the free/unused memory is wasted when the
+GPUs are solely occupied to maximize the computation efficiency during fine-tuning. For example, we find that when
+using an A800 GPU to fine-tune OPT-13B with MeZO, it
+exhibits over 10GB of free memory. It would be beneficial
+to use this free memory to mitigate MeZO’s accuracy drop
+and convergence issues. To this end, we propose Low-order
+Hybrid Optimizer (LoHO), which exploits the memory efficiency of ZO optimizers and the optimization quality of
+FO.1 LoHO is equipped with two hybrid optimization strategies, i.e., inter-layer hybrid optimization and intra-layer hybrid optimization. The inter-layer hybrid optimization employs an FO optimizer for fine-tuning a PLM’s several layers, while a ZO optimizer updates its rest layers, avoiding
+unnecessary gradient propagation with the suitable setting
+of the FO layers. Different from inter-layer hybrid optimization, intra-layer hybrid optimization selects some parame-
+
+As the size of language models notably grows, fine-tuning
+the models becomes more challenging: fine-tuning with firstorder optimizers (e.g., SGD and Adam) requires high memory consumption, while fine-tuning with a memory-efficient
+zeroth-order optimizer (MeZO) has a significant accuracy
+drop and slower convergence rate. In this work, we propose a
+Low-order Hybrid Optimizer (LoHO) which merges zerothorder (ZO) and first-order (FO) optimizers for fine-tuning.
+LoHO is empowered with inter-layer hybrid optimization and
+intra-layer hybrid optimization, which boosts the accuracy of
+MeZO while keeping memory usage within a budget. The
+inter-layer hybrid optimization exploits the FO optimizer in
+deep layers and the ZO optimizer in shallow ones, therefore
+avoiding unnecessary gradient propagation to improve memory efficiency. The intra-layer hybrid optimization updates a
+proportion of parameters in a layer by the ZO optimizer, and
+the rest by the FO optimizer, taking advantage of gradient
+sparsity for high efficiency implementation. Our experimental results across common datasets on different pre-trained
+backbones (i.e., RoBERTa-large, OPT-13B and OPT-30B)
+demonstrate that LoHO can significantly improve the predictive accuracy and convergence rate of MeZO, while controlling the memory footprint during fine-tuning. Moreover,
+LoHO can achieve comparable performance with first-order
+fine-tuning using substantially fewer memory resources.
+
+Introduction
+Fine-tuning with first-order (FO) optimizers, such as
+Adam (Kingma and Ba 2014) and AdamW (Loshchilov and
+Hutter 2018), has been the standard paradigm to adapt pretrained language models (PLMs) to the specific downstream
+tasks (Liu et al. 2019; Raffel et al. 2020; Zhang et al. 2023).
+However, with the growth of the number of model parameters, the increasing memory requirement for fine-tuning
+with these first-order optimizers becomes a bottleneck, as
+the back-propagation process is memory-consuming due to
+the storage of gradients, optimizer states, and activations.
+For example, Malladi et al. (2024) demonstrate that full
+fine-tuning an OPT-13B model with Adam requires approximately 12 times the memory cost as the inference.
+
+1
+
+In this paper, we classify zeroth-order optimizers and firstorder optimizers as low-order optimizers to distinguish them from
+high-order optimizers, i.e., second-order optimizers.
+
+* Corresponding Author
+
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+23605
+
+

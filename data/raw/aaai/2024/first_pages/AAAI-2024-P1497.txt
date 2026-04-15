@@ -1,0 +1,84 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Multi-Architecture Multi-Expert Diffusion Models
+Yunsung Lee2 * , JinYoung Kim3 * , Hyojun Go3 * ,
+Myeongho Jeong4 , Shinhyeok Oh1 , Seungtaek Choi4
+1
+
+Riiid AI Research
+Wrtn Technologies
+3
+Twelvelabs
+4
+Yanolja
+sung@wrtn.io, seago0828@gmail.com, gohyojun15@gmail.com
+myeongho.jeong@yanolja.com, shinhyeok.oh@riiid.co seungtaek.choi@yanolja.com
+2
+
+Abstract
+In this paper, we address the performance degradation of efficient diffusion models by introducing Multi-architecturE
+Multi-Expert diffusion models (MEME). We identify the need
+for tailored operations at different time-steps in diffusion processes and leverage this insight to create compact yet highperforming models. MEME assigns distinct architectures to
+different time-step intervals, balancing convolution and selfattention operations based on observed frequency characteristics. We also introduce a soft interval assignment strategy
+for comprehensive training. Empirically, MEME operates 3.3
+times faster than baselines while improving image generation quality (FID scores) by 0.62 (FFHQ) and 0.37 (CelebA).
+Though we validate the effectiveness of assigning more optimal architecture per time-step, where efficient models outperform the larger models, we argue that MEME opens a new
+design choice for diffusion models that can be easily applied
+in other scenarios, such as large multi-expert models.
+
+Introduction
+Diffusion models (Sohl-Dickstein et al. 2015; Song and Ermon 2019; Ho, Jain, and Abbeel 2020) are a promising approach for generative modeling, and they are likely to play
+an increasingly important role in diverse domains, including
+image (Dhariwal and Nichol 2021; Rombach et al. 2022;
+Balaji et al. 2022), audio (Kong et al. 2021; Kim, Kim, and
+Yoon 2022), video (Ho et al. 2022b,a; Zhou et al. 2022), and
+3D generation (Poole et al. 2022; Seo et al. 2023). However, despite their impressive performance, diffusion models
+suffer from high computation costs, which stem from the
+following two orthogonal factors: (i) the lengthy iterative denoising process, and (ii) the cumbersome denoiser networks.
+Though there have been several efforts to overcome such limitations (Song, Meng, and Ermon 2021; Bao et al. 2022; Lu
+et al. 2022; Meng et al. 2022; Song et al. 2023), most of these
+efforts have focused only on resolving the first factor, such
+that the cumbersome denoisers still limit their applicability
+to real-world scenarios. A few efforts reduce the size of the
+denoisers based on post-training low-bit quantization (Shang
+* These authors contributed equally.
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+13427
+
+et al. 2022) and distillation (Yang et al. 2022), as we illustrated in Fig. 1b, but they usually achieve such efficiency by
+compromising on accuracy.
+In this paper, we thus aim to build a diffusion model that is
+compact yet comparable in performance to the large models.
+For this purpose, we first ask a research question “why the
+traditional diffusion models require such massive parameters?”. (Choi et al. 2022; Go et al. 2023) suggests that the
+difficulty of learning diffusion models is that they have to
+learn all the different tasks at many different time-steps. One
+step further, from a frequency perspective, (Yang et al. 2022)
+theoretical explains that diffusion models should learn too
+many different features in varying time-steps, where diffusion models tend to initially form low-frequency components
+(e.g., overall image contour) and subsequently fill in highfrequency components (e.g., detailed textures). However, as
+they assume the denoiser network to be a linear filter, which
+is not practical, we aim to investigate empirical evidence
+to support this claim. Specifically, we analyze the per-layer
+Fourier spectrum for the input xt at each diffusion time-step
+t, finding that there are significant and consistent variations in
+the relative log amplitudes of the Fourier-transformed feature
+maps as t progresses. This finding indicates that the costly
+training of large models indeed involves learning to adapt to
+the different frequency characteristics at each time-step t.
+One way to leverage this finding is to assign distinct timestep intervals to multiple diffusion models (Go et al. 2022;
+Balaji et al. 2022), referred to as the multi-expert strategy, in
+order for models to be specialized in the assigned time-step
+intervals as shown in Fig. 1c. However, since (Go et al. 2022)
+utilized the multi-expert strategy for the conditioned generation with guidance and (Balaji et al. 2022) focused on high
+performance, the architecture efficiency is not considered.
+Most importantly, to the best of our knowledge, previous
+works have constructed diffusion models with a single architecture, missing the possibility of optimal architectures that
+better solve the task at each time-step of diffusion.
+To this end, we propose to assign different models with
+different architectures for each different time-step interval, whose base operations vary according to their respective frequency ranges, which we dub Multi-architecturE
+Multi-Expert diffusion models (MEME) (Fig. 1d). Specifi-
+
+

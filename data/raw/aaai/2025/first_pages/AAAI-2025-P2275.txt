@@ -1,0 +1,87 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+LazyDiT: Lazy Learning for the Acceleration of Diffusion Transformers
+Xuan Shen1 * , Zhao Song2 , Yufa Zhou3 , Bo Chen4 , Yanyu Li1 , Yifan Gong1 , Kai Zhang2 , Hao Tan2 ,
+Jason Kuen2 , Henghui Ding5 , Zhihao Shu6 , Wei Niu6 , Pu Zhao1† , Yanzhi Wang1† , Jiuxiang Gu2†
+1
+
+Northeastern University
+2
+Adobe Research
+3
+University of Pennsylvania
+4
+Middle Tennessee State University
+5
+Fudan University
+6
+University of Georgia
+{shen.xu, p.zhao, yanz.wang}@northeastern.edu, wniu@uga.edu, jigu@adobe.com
+Abstract
+
+the versatility and potential of transformers in advancing
+generative tasks across different media. Despite the notable
+scalability advantages of transformers, diffusion transformers face major efficiency challenges. The high deployment
+costs and the slow inference speeds create the significant
+barriers to their practical applications (Zhan et al. 2024a,c,
+2021; Wu et al. 2022; Li et al. 2022; Yang et al. 2023a),
+which motivates us to explore their acceleration methods.
+The increased sampling cost in diffusion models stems
+from two main components: the numerous timesteps required and the computational expense associated with each
+inference step. To improve sampling efficiency, existing
+methods generally fall into two categories: reducing the total
+number of sampling steps (Song, Meng, and Ermon 2020;
+Liu et al. 2022; Bao et al. 2022; Zhan et al. 2024b) or lowering the computational cost per step (Yang et al. 2023b; He
+et al. 2023). Several works (Yin et al. 2024; Luo et al. 2024;
+Salimans and Ho 2022) employ distillation techniques to reduce the number of sampling steps. Conversely, works (Li
+et al. 2023b; Kim et al. 2023; Fang, Ma, and Wang 2023;
+Li et al. 2023a) utilize compression techniques to streamline diffusion models. Recently, some studies have introduced caching mechanisms into the denoising process (Ma,
+Fang, and Wang 2024; Wimbauer et al. 2023) to accelerate
+the sampling. However, previous compression approaches of
+diffusion models have primarily focused on optimizing UNet, leaving transformer-based models largely unexplored.
+Leveraging characteristic of uniquely structured, prior
+compression works (Zhang et al. 2024; Raposo et al. 2024;
+Fan, Grave, and Joulin 2019; Kong et al. 2022, 2023; Zhang
+et al. 2022; Li et al. 2023c; Zhao et al. 2024; Shen et al.
+2024d,a,c,b, 2023b) have concentrated on techniques such
+as layer pruning and width pruning. However, we observe
+that removing certain layers results in a significant performance drop. This indicates the redundancy in diffusion
+transformers primarily occurs between sampling steps rather
+than the model architecture. This finding forms basis for exploring methods to reduce frequency of layer usage, aiming
+to decrease computational costs and accelerate the diffusion.
+In this paper, we propose LazyDiT, a cache-based approach designed to dynamically reduce computational costs
+
+Diffusion Transformers have emerged as the preeminent
+models for a wide array of generative tasks, demonstrating superior performance and efficacy across various applications.
+The promising results come at the cost of slow inference, as
+each denoising step requires running the whole transformer
+model with a large amount of parameters. In this paper, we
+show that performing the full computation of the model at
+each diffusion step is unnecessary, as some computations can
+be skipped by lazily reusing the results of previous steps. Furthermore, we show that the lower bound of similarity between
+outputs at consecutive steps is notably high, and this similarity can be linearly approximated using the inputs. To verify
+our demonstrations, we propose the LazyDiT, a lazy learning framework that efficiently leverages cached results from
+earlier steps to skip redundant computations. Specifically,
+we incorporate lazy learning layers into the model, effectively trained to maximize laziness, enabling dynamic skipping of redundant computations. Experimental results show
+that LazyDiT outperforms the DDIM sampler across multiple
+diffusion transformer models at various resolutions. Furthermore, we implement our method on mobile devices, achieving better performance than DDIM with similar latency.
+
+1
+
+Introduction
+
+Diffusion models (Ho, Jain, and Abbeel 2020; Rombach
+et al. 2022a; Song et al. 2020; Song and Ermon 2019; Dhariwal and Nichol 2021; Zhan et al. 2024b) have become dominant in image generation research, attributable to their remarkable performance. U-Net (Ronneberger, Fischer, and
+Brox 2015) is a widely used backbone in diffusion models, while transformers (Vaswani et al. 2017) are increasingly proving to be a strong alternative. Compared to U-Net,
+transformer-based diffusion models have demonstrated superior performance in high-fidelity image generation (Peebles and Xie 2023; Bao et al. 2023), and their efficacy extends to video generation as well (Lu et al. 2023; Chen et al.
+2023; Lab and etc. 2024; Zheng et al. 2024). This highlights
+* Work partially done during internship at Adobe Research
+†
+
+Corresponding Author
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+20409
+
+

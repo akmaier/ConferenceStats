@@ -1,0 +1,99 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+Learning Not to Regret
+David Sychrovský1,2 , Michal Šustr2,5 , Elnaz Davoodi3 ,
+Michael Bowling4 , Marc Lanctot3 , Martin Schmid1,5
+1
+
+Department of Applied Mathematics, Charles University
+Artificial Intelligence Center, Czech Technical University
+3
+Google DeepMind
+4
+Department of Computing Science, University of Alberta
+5
+EquiLibre Technologies
+sychrovsky@kam.mff.cuni.cz, michal.sustr@aic.fel.cvut.cz, schmid@equilibretechnologies.com
+2
+
+Abstract
+The literature on game-theoretic equilibrium finding predominantly focuses on single games or their repeated play. Nevertheless, numerous real-world scenarios feature playing a game
+sampled from a distribution of similar, but not identical games,
+such as playing poker with different public cards or trading
+correlated assets on the stock market. As these similar games
+feature similar equilibra, we investigate a way to accelerate
+equilibrium finding on such a distribution. We present a novel
+“learning not to regret” framework, enabling us to meta-learn
+a regret minimizer tailored to a specific distribution. Our key
+contribution, Neural Predictive Regret Matching, is uniquely
+meta-learned to converge rapidly for the chosen distribution
+of games, while having regret minimization guarantees on any
+game. We validated our algorithms’ faster convergence on a
+distribution of river poker games. Our experiments show that
+the meta-learned algorithms outpace their non-meta-learned
+counterparts, achieving more than tenfold improvements.
+
+Introduction
+Regret minimization, a fundamental concept in online convex optimization and game theory, plays an important role
+in decision-making algorithms (Nisan et al. 2007). In games,
+a common regret minimization framework is to cast each
+player as an independent online learner. This learner interacts repeatedly with the game, which is represented by a
+black-box environment and encompasses the strategies of all
+other players or the game’s inherent randomness. When all
+the learners employ a regret minimizer, their average strategy converges to a coarse correlated equilibrium (Hannan
+1957; Hart and Mas-Colell 2000). Furthermore, in two-player
+zero-sum games, the average strategy converges to a Nash
+equilibrium (Nisan et al. 2007). Regret minimization has
+become the key building block of many algorithms for finding Nash equilibria in imperfect-information games (Bowling
+et al. 2015; Moravcik et al. 2017; Brown and Sandholm 2018;
+Brown et al. 2020; Brown and Sandholm 2019b; Schmid et al.
+2021).
+While these algorithms made progress in single game playing, in many real-world scenarios, players engage in more
+than just one isolated game. For instance, they might play
+poker with various public cards, solve dynamical routing
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+15202
+
+problems, or trade correlated assets on the stock market.
+These games, while similar, are not identical and can be
+thought of as being drawn from a distribution. Despite its
+relevance, this setting has been largely unexplored, with a
+few recent exceptions such as (Harris et al. 2022; Zhang et al.
+2022).
+In this work, we shift focus to this distributional setting.
+The black-box environment which the learners interact with
+corresponds to a game sampled from a distribution. This perspective aligns with the traditional regret minimization framework, but with an added twist: the game itself is sampled.
+Our goal is to reduce the expected number of interactions
+needed to closely approximate an equilibrium of the sampled
+game. This is crucial both for online gameplay and offline
+equilibrium learning, as fewer steps directly translate to a
+faster algorithm.
+In either the single-game or distributional settings, the
+worst-case convergence of regret minimizers against a strict
+adversary cannot occur at a rate faster than O(T −1/2 ) (Nisan
+et al. 2007). However in practice, algorithms often converge
+much faster than the worst-case bound suggests. Consider
+CFR+ (Tammelin 2014), which empirically converges at the
+rate of O(T −1 ) in poker games1 despite having the same
+O(T −1/2 ) worst case guarantees (Burch 2018). Another example of variations in practical performance is discounted
+CFR with three parameters (DCF Rα,β,γ ), where the authors
+reported that they “found the optimal choice of α, β and γ
+varied depending on the specific game” (Brown and Sandholm 2019a).
+These empirical observations are in line with no-free
+lunch theorems for optimization, which state that no learning algorithm can dominate across all domains (Wolpert and
+Macready 1997). Thus to improve performance on a domain,
+it is necessary to use a specialized algorithm, at the expense
+of deteriorating the performance outside of this domain.
+A popular approach to find such algorithms is the
+meta-learning paradigm, namely a variant of “learning to
+1
+The strong empirical performance of the algorithm was one
+of the key reasons behind essentially solving Limit Texas Holdem
+poker, one of the largest imperfect information games to be solved to
+this day (Bowling et al. 2015). CFR+ required only 1, 579 iterations
+to produce the final strategy, far less than what the worst-case bound
+suggests.
+
+

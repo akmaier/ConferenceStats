@@ -1,0 +1,79 @@
+Proceedings of the Thirty-First AAAI Conference on Artificial Intelligence (AAAI-17)
+
+ESPACE: Accelerating Convolutional Neural Networks
+via Eliminating Spatial and Channel Redundancy
+†
+
+Shaohui Lin,†‡ Rongrong Ji,†‡∗ Chao Chen,†‡ Feiyue Huang,
+Fujian Key Laboratory of Sensing and Computing for Smart City, Xiamen University, 361005, China
+‡
+School of Information Science and Engineering, Xiamen University, 361005, China
+
+BestImage Lab, Tencent Technology (Shanghai) Co.,Ltd, China
+shaohuilin007@gmail.com, rrji@xmu.edu.cn, silentcc@icloud.com, garyhuang@tencent.com
+Sutskever, and Hinton 2012) with about 600,000 nodes costs
+240MB storage (including 61M parameters) and requires
+729M FLOP2 to classify one image with size 224 × 224.
+Such cost is further intensiﬁed in deeper CNNs, e.g. a 16layer-VGGNet (Simonyan and Zisserman 2014) with 1.5M
+nodes costs 528MB storage (including 144M parameters)
+and requires about 15B FLOP to classify one image.
+Under such circumstance, the existing CNNs cannot be
+directly deployed to scenarios that require fast processing
+and compact storage, such as streaming or real-time applications. On one hand, CNNs with million-scale parameters typically tend to be over parameterized and heavily
+computed (Denil et al. 2013). Therefore, not all parameters and operations (e.g. convolution or non-linear activation) are essentially necessary in producing a discriminative decision. On the other hand, it is quantitatively shown in
+(Ba and Caruana 2014) that, neither shallow nor simpliﬁed
+CNNs provide comparable performance to deep CNNs with
+billion-scale online operations. Therefore, to accelerate online CNNs predictions without signiﬁcantly decreasing the
+decision accuracy, a natural thought is to discover and discard redundant parameters and operations in deep CNNs.
+Accelerating CNNs has attracted a few research attention
+very recently, most of which focus on accelerating the convolutional layer, which is the most time-consuming part of
+CNNs. In the literature, the related works can be further categorized into four groups, i.e. designing compact convolutional ﬁlters, parameters quantization, parameters pruning
+and tensor decomposition.
+Designing compact convolutional ﬁlters. Using a compact ﬁlter for convolution can directly reduce the computation cost. The key idea is to replace the loose and
+over-parametric ﬁlters with compact blocks to improve the
+speed, which signiﬁcantly accelerate CNNs like GoogLeNet
+(Szegedy et al. 2015), ResNet (He et al. 2015) on several benchmarks. Decomposing 3 × 3 convolution with two
+1 × 1 convolutions was used in (Szegedy, Loffe, and Vanhoucke 2016), which achieved state-of-the-art acceleration
+performance on object recognition. SqueezeNet (Iandola,
+Moskewicz, and Ashraf 2016) was proposed to replace 3 × 3
+convolution with 1 × 1 convolution, which created a com-
+
+Abstract
+Recent years have witnessed an extensive popularity of convolutional neural networks (CNNs) in various computer vision and artiﬁcial intelligence applications. However, the performance gains have come at a cost of substantially intensive computation complexity, which prohibits its usage in
+resource-limited applications like mobile or embedded devices. While increasing attention has been paid to the acceleration of internal network structure, the redundancy of visual
+input is rarely considered. In this paper, we make the ﬁrst
+attempt of reducing spatial and channel redundancy directly
+from the visual input for CNNs acceleration. The proposed
+method, termed ESPACE (Elimination of SPAtial and Channel rEdundancy), works by the following three steps: First,
+the 3D channel redundancy of convolutional layers is reduced
+by a set of low-rank approximation of convolutional ﬁlters.
+Second, a novel mask based selective processing scheme is
+proposed, which further speedups the convolution operations
+via skipping unsalient spatial locations of the visual input.
+Third, the accelerated network is ﬁne-tuned using the training data via back-propagation. The proposed method is evaluated on ImageNet 2012 with implementations on two widelyadopted CNNs, i.e. AlexNet and GoogLeNet. In comparison to several recent methods of CNN acceleration, the proposed scheme has demonstrated new state-of-the-art acceleration performance by a factor of 5.48× and 4.12× speedup
+on AlexNet and GoogLeNet, respectively, with a minimal decrease in classiﬁcation accuracy.
+
+Introduction
+In recent years, convolutional neural networks (CNNs) have
+demonstrated impressive performance in various computer
+vision and artiﬁcial intelligence applications, such as object
+recognition (Krizhevsky, Sutskever, and Hinton 2012)(Simonyan and Zisserman 2014)(Lecun et al. 1998)(Szegedy
+et al. 2015)(He et al. 2015), object detection (Girshick et
+al. 2014)(Girshick 2015)(Ren et al. 2015), and image retrieval (Gong et al. 2014b). The cutting-edge CNNs are
+computationally intensive, in which the speed limitation
+mainly resorts to the convolution operations in the convolutional layers1 . For example, an 8-layer AlexNet (Krizhevsky,
+c 2017, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+1
+In this paper, we focus on the acceleration of the convolutional
+layers, as it takes up over 80% running time in most existing CNNs,
+
+i.e. AlexNet, GoogLeNet and VGGNet.
+2
+FLOP: The number of Floating-point operation to classify one
+image with CNNs.
+
+1424
+
+

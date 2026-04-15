@@ -1,0 +1,88 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Taming Continuous Posteriors for Latent Variational Dialogue Policies
+Marin Vlastelica1 , Patrick Ernst2 , Gyuri Szarvas2
+1
+
+Autonomous Learning Group, Max Planck Institute for Intelligent Systems, Tübingen, Germany
+2
+Amazon Development Center Germany GmbH, Berlin, Germany
+marin.vlastelica@tuebingen.mpg.de, {peernst, szarvasg}@amazon.de
+
+Abstract
+Utilizing amortized variational inference for latent-action reinforcement learning (RL) has been shown to be an effective
+approach in Task-oriented Dialogue (ToD) systems for optimizing dialogue success. Until now, categorical posteriors
+have been argued to be one of the main drivers of performance.
+In this work we revisit Gaussian variational posteriors for
+latent-action RL and show that they can yield even better performance than categoricals. We achieve this by introducing
+an improved variational inference objective for learning continuous representations without auxiliary learning objectives,
+which streamlines the training procedure. Moreover, we propose ways to regularize the latent dialogue policy, which helps
+to retain good response coherence. Using continuous latent
+representations our model achieves state of the art dialogue
+success rate on the MultiWOZ benchmark, and also compares
+well to categorical latent methods in response coherence.
+
+1
+
+Introduction
+
+Task-oriented Dialogue (ToD) systems have reached a degree of maturity, which enables them to engage with human
+users and assist them in various tasks. They are able to steer
+natural-language conversations in order to complete users’
+goals, such as booking restaurants, querying weather forecasts and resolving customer service issues. At their core, the
+behavior of these systems is controlled by a dialogue policy,
+which receives user inputs in the form of utterances and additional features or states. Template-based methods (Walker
+et al. 2007; Inaba and Takahashi 2016) leverage ranking or
+classification approaches to select the most fitting response
+from a pre-defined set of responses, i.e. templates. While
+template-based methods offer better control over the dialogue policy behavior, they are less versatile due to their
+dependency on template sets. Moreover, constructing comprehensive template sets is a challenge in itself (Gao, Galley,
+and Li 2019). In retrieval-based approaches (Yan, Song, and
+Wu 2016; Henderson et al. 2019; Tao et al. 2019) candidate responses are not pre-defined, but are retrieved from
+massive dialogue corpora, e.g. by executing ad-hoc search
+queries a priori. Generative models do not require such additional inputs as prior knowledge. They enable end-to-end
+(E2E) learning of dialogue policies and have the potential
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+13673
+
+to generate diverse responses by leveraging a large vocabulary (Serban et al. 2017; Zhao, Zhao, and Eskenazi 2017; Gu
+et al. 2018). Even though such fully data-driven approaches
+offer great versatility and a faster adoption, they may exhibit degenerate behavior by generating incomprehensible
+utterances. This is apparent in multi-turn dialogues, which
+span hundreds of words, while the success signal is only observed at the end of dialogues. Reinforcement learning (RL)
+based approaches are able to optimize for such long-term,
+sparse rewards and have been applied in this setup. Previous approaches prominently applied word-level RL (Lewis
+et al. 2017; Kottur et al. 2017), where the action space is defined over the entire vocabulary. The response utterances are
+then generated auto-regressively by consecutive next-word
+predictions. Unfortunately, the use of large action spaces often impedes the convergence of policy learning algorithms,
+which makes it hard to ensure coherent responses. Prior work
+makes use of latent-action RL to address the dimensionality
+problem by utilizing variational inference approaches (Zhao,
+Xie, and Eskenazi 2019; Lubis et al. 2020). These methods
+rely on a supervised learning stage, where latent action representations are learned over response utterances, followed by
+fine-tuning via reinforcement learning in the latent space.
+In this paper we follow this paradigm, but extend prior
+work substantially by introducing the TCUP approach, which
+aims to Tame ContinUous Posteriors for latent variational dialogue policies. TCUP makes the following contributions: (i)
+A new formulation of the variational inference objective for
+learning continuous latent response representations without
+auxiliary learning objectives. (ii) A more robust approach for
+learning from ToD data in an offline RL setup, which utilizes
+the fact that we are dealing with expert dialogue trajectories.
+Using the MultiWOZ benchmark (Budzianowski et al. 2018),
+we show that TCUP is able to improve the state-of-the-art
+performance across different metrics. In addition to MultiWOZ’s context-to-text metrics and following Lubis et al.
+(2020), we demonstrate the benefits of the learned continuous latent representations quantitatively, using a clustering
+analysis.
+
+2
+
+Preliminaries
+
+Latent-action reinforcement learning methods are trained in
+two stages: In the first stage, which we denote as SL Stage,
+an encoder-decoder architecture is trained using a supervised
+
+

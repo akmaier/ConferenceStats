@@ -1,0 +1,90 @@
+The Thirty-Eighth AAAI Conference on Artificial Intelligence (AAAI-24)
+
+On the Role of Server Momentum in Federated Learning
+Jianhui Sun1 * , Xidong Wu2 * , Heng Huang3 , Aidong Zhang1
+1
+Computer Science, University of Virginia, VA, USA
+Electrical and Computer Engineering, University of Pittsburgh, PA, USA
+3
+Computer Science, University of Maryland College Park, MD, USA
+js9gu@virginia.edu, xidong_wu@outlook.com, heng@umd.edu, aidong@virginia.edu
+2
+
+Abstract
+Federated Averaging (FedAvg) is known to experience convergence issues when encountering significant clients system
+heterogeneity and data heterogeneity. Server momentum has
+been proposed as an effective mitigation. However, existing
+server momentum works are restrictive in the momentum formulation, do not properly schedule hyperparameters and focus only on system homogeneous settings, which leaves the
+role of server momentum still an under-explored problem. In
+this paper, we propose a general framework for server momentum, that (a) covers a large class of momentum schemes
+that are unexplored in federated learning (FL), (b) enables a
+popular stagewise hyperparameter scheduler, (c) allows heterogeneous and asynchronous local computing. We provide
+rigorous convergence analysis for the proposed framework.
+To our best knowledge, this is the first work that thoroughly
+analyzes the performances of server momentum with a hyperparameter scheduler and system heterogeneity. Extensive
+experiments validate the effectiveness of our proposed framework. Due to page limit, we leave all proofs to the full version
+https://arxiv.org/abs/2312.12670.
+
+1
+
+Introduction
+
+Federated Averaging (FedAvg) (McMahan et al. 2017), which
+runs multiple epochs of Stochastic Gradient Descent (SGD)
+locally in each client and then averages the local model updates once in a while on the server, is probably the most
+popular algorithm to solve many federated learning (FL)
+problems, mainly due to its low communication cost and
+appealing convergence property.
+Though it has seen great empirical success, vanilla FedAvg
+experiences an unstable and slow convergence when encountering client drift, i.e., the local client models move away
+from globally optimal models due to client heterogeneity
+(Karimireddy et al. 2020). On the server side, FedAvg is in
+spirit similar to an SGD with a constant learning rate one and
+updates the global model relying only on the averaged model
+update from the current round, thus extremely vulnerable to
+client drift. Note that in non-FL settings, SGD in its vanilla
+form has long been replaced by some momentum scheme
+(e.g. heavy ball momentum (SHB) and Nesterov’s accelerated gradient (NAG)) in many tasks, as momentum schemes
+* These authors contributed equally.
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+15164
+
+achieve an impressive training time saving and generalization
+performance boosting compared to competing optimizers
+(Sutskever et al. 2013; Wilson et al. 2017), which promises a
+great potential to apply momentum in FL settings as well. Incorporating server momentum essentially integrates historical
+aggregates into the current update, which could conceptually
+stabilize the global update against dramatic local drifts.
+Though various efforts have been made to understand the
+role of server momentum in FL, e.g. (Hsu, Qi, and Brown
+2019; Rothchild et al. 2020), it is still largely an underexplored problem due to the following reasons:
+(1) Lack of diversity in momentum schemes. Most existing
+server momentum works only focus on SHB (e.g. FedAvgM
+(Hsu, Qi, and Brown 2019)). It is unclear whether many momentum schemes that outperformed SHB in non-FL settings
+can also perform better in FL, and there is no unified analysis
+for momentum schemes other than SHB.
+(2) No hyperparameter schedule. Properly scheduling hyperparameters is key to train deep models more efficiently
+and an appropriate selection of server learning rate ηt is also
+important in obtaining optimal convergence rate (Yang, Fang,
+and Liu 2021). Existing works either still employ a constant
+server learning rate one or consider a ηt schedule that is uncommonly used in practice, e.g., polynomially decay (i.e.,
+ηt ∝ t1α ) (Khanduri et al. 2021). Moreover, it is known that
+increasing momentum factor β is also a critical technique in
+deep model training (Sutskever et al. 2013; Smith, Kindermans, and Le 2018), while to our best knowledge, there is no
+prior work considering time-varying β in FL.
+(3) Ignoring client system heterogeneity. Existing works
+make unrealistic assumptions on system homogeneity and
+client synchrony, e.g., clients are sampled uniformly at random, all participating clients synchronize at each round t, and
+all clients run identical number of local epochs, none of which
+holds in most cross device FL deployments (Kairouz et al.
+2021). System heterogeneity (i.e., the violation of above assumptions), alongside with data heterogeneity, is also a main
+source client drift (Karimireddy et al. 2020). Thus, ignoring
+it would provide an incomplete understanding of the role of
+server momentum.
+To address the above limitations, we propose a novel formulation which we refer to as Federated General Momentum
+(FedGM). FedGM includes the following hyperparameters,
+learning rate η, momentum factor β, and instant discount fac-
+
+

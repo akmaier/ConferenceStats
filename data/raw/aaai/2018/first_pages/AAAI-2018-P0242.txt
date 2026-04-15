@@ -1,0 +1,78 @@
+The Thirty-Second AAAI Conference
+on Artificial Intelligence (AAAI-18)
+
+Automatic Segmentation
+of Data Sequences
+Liangzhe Chen, Sorour E. Amiri, B. Aditya Prakash
+Department of Computer Science, Virginia Tech.
+Email: {liangzhe, esorour, badityap}@cs.vt.edu
+
+Abstract
+Segmenting temporal data sequences is an important problem which helps in understanding data dynamics in multiple applications such as epidemic surveillance, motion capture sequences, etc. In this paper, we give DASSA, the ﬁrst
+self-guided and efﬁcient algorithm to automatically ﬁnd a
+segmentation that best detects the change of pattern in data
+sequences. To avoid introducing tuning parameters, we design DASSA to be a multi-level method which examines segments at each level of granularity via a compact data structure called the segment-graph. We build this data structure
+by carefully leveraging the information bottleneck method
+with the MDL principle to effectively represent each segment.
+Next, DASSA efﬁciently ﬁnds the optimal segmentation via
+a novel average-longest-path optimization on the segmentgraph. Finally we show how the outputs from DASSA can
+be naturally interpreted to reveal meaningful patterns.
+We ran DASSA on multiple real datasets of varying sizes and
+it is very effective in ﬁnding the time-cut points of the segmentations (in some cases recovering the cut points perfectly)
+as well as in ﬁnding the corresponding changing patterns.
+
+1
+
+Introduction
+
+Given a data-sequence of Ebola infections, can we quickly
+tell when the characteristics of infected people change,
+possibly due to a mutation? In this paper, we study the
+problem of automatically segmenting sequences of multidimensional data point (with categorical and/or real-valued
+features like age, gender, speed etc.) so as to capture relevant
+trends and changes. The data observations can be unevenly
+distributed temporally and repeated multiple times in the sequence, naturally generalizing multi-variate time-series.
+Such segmentations can be helpful in many real applications, as they may shed light on the underlying dynamics and
+patterns, thereby helping in modeling, anomaly detection,
+and also visualization. Consider epidemiological surveillance, where tracking disease propagation (Thompson, Comanor, and Shay 2006) can enhance the chance of a successful intervention and increase the situation awareness. For
+example, automatically ﬁnding changes in patient characteristics in a sequence of infected cases can help us point to
+c 2018, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+
+changes in the disease itself. In Fig. 1(a), in a series of ﬂuinfections, DASSA ﬁnds that the disease infects elder, richer
+people ﬁrst, and then spreads to younger people with lower
+income. Similarly, ﬁguring out the changes in how words are
+used together in user tweets (due to changes in users’ health
+status) can help in estimating disease incidence (Chen et al.
+2014). See Fig. 1(b): in a series of ﬂu-related tweets, we observe a transition between word usage in each segment from
+infection to recovery. Our motivation in this paper is to design a general-purpose scalable segmentation algorithm for
+data sequences.
+Informal Problem: Given a multi-dimensional data sequence, automatically ﬁnd a time segmentation s.t. consecutive segments are not similarly informative.
+Surprisingly, despite its importance, this general problem
+has not been studied widely (see related work in Sec. 5).
+Such a problem cannot be trivially converted to one in time
+series, and has many challenges. The main properties we
+want a good solution to satisfy are:
+P1 (Generality): No prior assumption on either data types
+or data distributions. The algorithm should work well regardless even if the data is skewed, or not forming clusters
+or not drawn from a known distribution.
+P2 (Self-Guided): Automatically ﬁnd the appropriate number and identity of cut-points without user input.
+P3 (Efﬁciency): Finish within reasonable time for real
+datasets.
+In this paper, we present an algorithm DASSA (DAta Sequence Segmentation Automatically), which satisﬁes all the
+three properties. To this end, we introduce three main ideas
+which may be useful for other segmentation problems as
+well: (a) looking at all possible segmentations efﬁciently using the so-called segment-graph; (b) compressing data in
+each segment based on temporal data distributions using
+Information Bottleneck and Minimum Description Length;
+and (c) using a novel path optimization to ﬁnd the best segmentation, which automatically regularizes the number of
+segments and total segment difference. Via extensive experiments ranging from epidemiological, social to motion capture datasets we show how DASSA can recover high-quality
+segmentations, and meaningful patterns in practice. To the
+best of our knowledge, we are the ﬁrst to present an efﬁcient,
+self-guided method for the purpose of segmenting general
+data sequences.
+
+2844
+
+

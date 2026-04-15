@@ -1,0 +1,95 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+DUO: Diverse, Uncertain, On-Policy Query Generation and Selection
+for Reinforcement Learning from Human Feedback
+Xuening Feng1 , Zhaohui Jiang1 , Timo Kaufmann2, 3 , Puchen Xu1 ,
+Eyke Hüllermeier2, 3, 4 , Paul Weng5 * , Yifei Zhu1
+1
+
+UM-SJTU Joint Institute, Shanghai Jiao Tong University, Shanghai, China
+2
+Institute for Informatics, LMU Munich, Munich, Germany
+3
+Munich Center of Machine Learning, Munich, Germany
+4
+German Research Center for Artificial Intelligence
+5
+Data Science Research Center, Duke Kunshan University, Kunshan, China
+{cindyfeng2019,jiangzhaohui,xupuchen,yifei.zhu}@sjtu.edu.cn,
+{timo.kaufmann,eyke}@ifi.lmu.de, paul.weng@duke.edu
+
+Abstract
+Defining a reward function is usually a challenging but critical
+task for the system designer in reinforcement learning, especially when specifying complex behaviors. Reinforcement
+learning from human feedback (RLHF) emerges as a promising approach to circumvent this. In RLHF, the agent typically
+learns a reward function by querying a human teacher using
+pairwise comparisons of trajectory segments. A key question
+in this domain is how to reduce the number of queries necessary to learn an informative reward function, since asking
+a human teacher too many queries is impractical and costly.
+To tackle this question, most existing methods mainly focus
+on improving exploration, introducing data augmentation or
+designing sophisticated training objectives for RLHF, while
+the potential of query generation and selection schemes have
+not been fully exploited. In this paper, we propose DUO, a
+novel method for diverse, uncertain, on-policy query generation and selection in RLHF. Our method produces queries
+that are (1) more relevant for policy training (via an on-policy
+criterion), (2) more informative (via a principled measure of
+epistemic uncertainty), and (3) diverse (via a clustering-based
+filter). Experimental results on a variety of locomotion and
+robotic manipulation tasks demonstrate that our method can
+outperform state-of-the-art RLHF methods given the same total budget of queries while being robust to possibly irrational
+teachers.
+
+1
+
+Introduction
+
+In reinforcement learning (RL), the reward function is typically specified to convey the task objective to the agent and
+provide guidance for learning to accomplish the task. A wellformulated reward function is fundamental for successful task
+learning. However, how to define a proper reward function remains an open problem (Amodei et al. 2016; Zhu et al. 2020),
+especially for complex tasks with large or continuous state
+and action spaces. Specifically, while a sparse reward function is easy to define, it can hardly guide the agent to reach
+the goal effectively. In contrast, denser reward functions can
+provide more informative learning signals but take significant
+* Corresponding author
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+16604
+
+effort for the system designer to formulate and may suffer
+from reward hacking (Skalse et al. 2022), where the agent
+learns to achieve high return despite undesirable behavior by
+exploiting flaws in the incorrectly-defined reward function.
+To tackle the difficulty of defining a reward function, various directions have been explored in the past, including
+inverse reinforcement learning (Arora and Doshi 2021), imitation learning (Hussein et al. 2017), reward learning from
+demonstrations (Ibarz et al. 2018), and reinforcement learning from human feedback (RLHF) (Kaufmann et al. 2023).
+Compared with other directions, RLHF has recently drawn
+much attention due to its simplicity, scalability, and promising
+empirical results in many domains, such as control (Christiano et al. 2017), image generation (Lee et al. 2023), and
+language model alignment (Ouyang et al. 2022; OpenAI
+2022).
+In RLHF, instead of specifying a reward function explicitly,
+it proposes to learn the reward function from human preference feedback while simultaneously updating a policy via
+RL training using the learned reward function. In this setting,
+preference feedback is generally acquired by generating and
+selecting queries to be asked to a human teacher (oracle). The
+most typical query is a pairwise comparison of trajectories
+(Christiano et al. 2017; Lee, Smith, and Abbeel 2021; Lee
+et al. 2021), which we also focus on in this work.
+A key question in RLHF is that of query efficiency, i.e.,
+how to generate and select informative queries so that a good
+policy can be learned with fewer queries. Existing RLHF
+methods (Christiano et al. 2017; Lee, Smith, and Abbeel
+2021; Park et al. 2022) directly take inspiration from common
+active learning approaches by selecting queries based on an
+estimate of the model uncertainty about the oracle’s response.
+The rationale is that such queries are more informative and
+would help learn a good reward function faster. However, they
+still require a lot of queries to solve complex tasks, leaving
+much room for efficiency improvement.
+By carefully examining the existing RLHF studies, we
+identify three limitations that commonly impede query efficiency. First, many RLHF methods select queries comparing
+off-policy trajectory segments regardless of their probability of being generated by the current policy. Unfortunately,
+
+

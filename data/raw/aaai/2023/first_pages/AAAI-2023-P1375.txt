@@ -1,0 +1,86 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Out-of-Distribution Generalization by Neural-Symbolic Joint Training
+Anji Liu2 , Hongming Xu3 , Guy Van den Broeck2 , Yitao Liang1,3
+1
+Institute for Artificial Intelligence, Peking University
+Computer Science Department, University of California, Los Angeles
+3
+Beijing Institute of General Artificial Intelligence (BIGAI)
+{liuanji, guyvdb}@cs.ucla.edu, xuhongming@bigai.ai, yitaol@pku.edu.cn
+2
+
+Abstract
+
+types of distribution shift of the input (e.g., longer numbers)
+since the NN only needs to accurately predict the digit of
+MNIST images and the addition rules are invariant to input
+length.
+Some prior work has success in addressing such an integration (Dai and Muggleton 2021). However, they often require abundant prior knowledge. Specifically, most of them
+require the ground-truth symbolic knowledge to be provided (Yang, Ishay, and Lee 2020; Manhaeve et al. 2018).
+In other word, such success has not been transferred to the
+setting where priors on task semantics are limited or not
+provided. We identify two challenges that hinder the development of neural-symbolic models in this more generalized
+setting. First, the lack of bidirectional supervision between
+the neural and symbolic models poses great difficulties for
+reliably learning meaningful symbolic features z. Specifically, an under-trained neural network cannot produce accurate grounded facts for the symbolic model to learn logic
+rules, and conversely, the symbolic model cannot provide effective supervision to refine the neural model. Existing approaches alleviate this problem by either providing strong
+priors on the symbolic rules (Dai and Muggleton 2021;
+Yang, Ishay, and Lee 2020) or learning symbolic models implicitly (Wang et al. 2019; Amos and Kolter 2017), which
+cannot deliver reliable reasoning results when facing out-ofdistribution samples. Next, even if supervision signals can
+be properly propagated between the neural and symbolic
+models, it is still possible that the NN predicts spurious features, leading to bad generalization performance (an example is provided in Sec. 6).
+This paper makes an initial attempt to solve these crucial
+yet under-explored problems. Both aforementioned challenges are mainly attributed to the gigantic set of candidate
+rules considered by the symbolic model. In one direction, a
+large number of plausible rules result in noisy update signals
+to the NN. In the other direction, it is hard to search for good
+symbolic rules from a vast candidate set. Instead of adding
+prior knowledge to shrink the rule space, we propose to control the symbolic model’s complexity by gradually adding
+plausible candidate rules with a symbolic search step. That
+is, the model is first initialized with a few “general” rules.
+After eliminating candidates that are very unlikely to hold,
+we invoke the symbolic search algorithm to extend and specialize the remaining rules. This process continues until the
+
+This paper develops a novel methodology to simultaneously
+learn a neural network and extract generalized logic rules.
+Different from prior neural-symbolic methods that require
+background knowledge and candidate logical rules to be provided, we aim to induce task semantics with minimal priors.
+This is achieved by a two-step learning framework that iterates between optimizing neural predictions of task labels
+and searching for a more accurate representation of the hidden task semantics. Notably, supervision works in both directions: (partially) induced task semantics guide the learning of
+the neural network and induced neural predictions admit an
+improved semantic representation. We demonstrate that our
+proposed framework is capable of achieving superior outof-distribution generalization performance on two tasks: (i)
+learning multi-digit addition, where it is trained on short sequences of digits and tested on long sequences of digits; (ii)
+predicting the optimal action in the Tower of Hanoi, where
+the model is challenged to discover a policy independent of
+the number of disks in the puzzle.
+
+1
+
+Introduction
+
+The recent rejuvenation of neural-symbolic synthesis
+demonstrates that we can significantly benefit from a tight
+integration of low-level perception and high-level reasoning
+in tasks featuring out-of-distribution (OOD) generalization
+(Manhaeve et al. 2018; Xu et al. 2018; Li and Srikumar
+2019). It is especially the case on tasks whose semantics are
+(implicitly) encoded as symbolic rules. Take the multi-digit
+addition example shown in Fig. 1(left) as an example. Given
+two numbers represented by a sequence of MNIST images,
+the goal is to predict the sum of both numbers. Following
+the orange arrows, it is possible to train neural nets (NNs) to
+predict the sum directly. When the test sums are i.i.d. w.r.t.
+the training samples, this task poses no challenge for NNs either. However, the prediction accuracy could degrade if NNs
+are provided with OOD samples (e.g., unseen combination
+of digits or numbers with greater length). In contrast, from
+a neural-symbolic perspective, we can adopt NNs to extract
+invariant features z (in this case, the digit of every MNIST
+image) first, and then employ logic rules for multi-digit addition to predict the sum. This model is more robust to various
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+12252
+
+

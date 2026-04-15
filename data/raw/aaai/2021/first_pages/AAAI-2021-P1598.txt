@@ -1,0 +1,86 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+Accelerating Neural Machine Translation with
+Partial Word Embedding Compression
+Fan Zhang1,2 , Mei Tu2 , Jinyao Yan1∗
+1
+
+State Key Laboratory of Media Convergence and Communication, Communication University of China
+2
+Samsung Research China – Beijing (SRC-B)
+zhang.fan@samsung.com, mei.tu@samsung.com, jyan@cuc.edu.cn
+Abstract
+
+the word embedding matrix size accounted for 36.6% of the
+whole model. Moreover, the impact of the large vocabulary
+size is more than that. In the softmax layer, when projecting
+the output of the top hidden layer (which is also called the
+context vector) onto a probability distribution over all the
+words in the vocabulary, an extremely high computational
+complexity is required. Meanwhile, an output embedding
+matrix with the same size of the target word embedding matrix is also required. Fortunately, based on the same shape of
+the two matrices, early studies (Inan, Khosravi, and Socher
+2016; Press and Wolf 2016) reuse the target word embedding to project the context vector, which is proved to perform
+well in NMT models. But the high computational complexity to compute word probabilities still remains to be solved.
+In auto-regressive sequence generation configure, this operation of probability calculation even runs a couple of times
+to generate the whole sequence, which causes a much higher
+computational complexity. For instance, to generate a 10word sequence with vocabulary size 30,000, the total FLOPs
+(Hunger 2005) of the softmax layer reaches 307.2 million.
+When deploying this model to a low resource environment,
+the translation speed will be quite slow.
+Based on vector quantization (VQ) (Burton, Shore, and
+Buck 1983; Gersho and Gray 2012), many variant works
+greatly reduce the word embedding size by sharing parameters. This gives us the inspiration that we only need to
+project the context vector by the shared parameters when
+adopting these works in the softmax layer. This operation
+requires less computational complexity. However, previous
+VQ works (Shu and Nakayama 2017; Shi and Yu 2018) only
+focus on the compression of word embedding rather than the
+output embedding in the softmax layer. Parameter sharing in
+the softmax layer leads to two potential problems - parameter oscillation problem and ambiguity problem. Another big
+challenge in VQ works is how to maintain the quality of
+the model after compression. When the embedding matrix
+is directly compressed into a much smaller one, a big information gap occurs and thus may harm the model quality.
+To address the above issues, we propose a simple but very
+effective method, the Partial Vector Quantization (P-VQ), to
+reduce the computational complexity in the softmax layer
+with partial word embedding compression. We tie the target word embedding matrix and the output embedding matrix following Inan, Khosravi, and Socher (2016). The tied
+
+Large model size and high computational complexity prevent
+the neural machine translation (NMT) models from being deployed to low resource devices (e.g. mobile phones). Due to
+the large vocabulary, a large storage memory is required for
+the word embedding matrix in NMT models, in the meantime, high latency is introduced when constructing the word
+probability distribution. Based on reusing the word embedding matrix in the softmax layer, it is possible to handle the
+two problems brought by large vocabulary at the same time.
+In this paper, we propose Partial Vector Quantization (P-VQ)
+for NMT models, which can both compress the word embedding matrix and accelerate word probability prediction
+in the softmax layer. With P-VQ, the word embedding matrix is split into two low dimensional matrices, namely the
+shared part and the exclusive part. We compress the shared
+part by vector quantization and leave the exclusive part unchanged to maintain the uniqueness of each word. For acceleration, in the softmax layer, we replace most of the multiplication operations with the efficient looking-up operations
+based on our compression to reduce the computational complexity. Furthermore, we adopt curriculum learning and compact the word embedding matrix gradually to improve the
+compression quality. Experimental results on the Chineseto-English translation task show that our method can reduce
+74.35% of parameters of the word embedding and 74.42%
+of the FLOPs of the softmax layer. Meanwhile, the average
+BLEU score on the WMT test sets only drops 0.04.
+
+Introduction
+Based on the encoder-decoder framework, the neural machine translation (NMT) (Bahdanau, Cho, and Bengio 2014)
+has developed rapidly in recent years. However, large model
+size and high computational complexity prevent the NMT
+models from being deployed to low resource devices (e.g.,
+mobile phones). In NMT models, to represent the discrete
+words, the word embedding has become a basic component
+which automatically learns the word representations during
+training. Due to the large vocabulary, the word embedding
+matrix requires large storage memory, which dominates the
+NMT model size. Take the standard Transformer model as
+an example. When the total vocabulary size reaches 50,000,
+∗
+
+Corresponding author: jyan@cuc.edu.cn
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+14356
+
+

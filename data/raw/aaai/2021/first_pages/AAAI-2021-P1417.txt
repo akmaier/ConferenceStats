@@ -1,0 +1,95 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+Flexible Non-Autoregressive Extractive Summarization with Threshold:
+How to Extract a Non-Fixed Number of Summary Sentences
+Ruipeng Jia,1,2 Yanan Cao,1,2 Haichao Shi,1,2 Fang Fang,1,2∗ Pengfei Yin,1,2 Shi Wang3∗
+1
+
+Institute of Information Engineering, Chinese Academy of Sciences
+School of Cyber Security, University of Chinese Academy of Sciences
+3
+Institute of Computing Technology, Chinese Academy of Sciences
+{jiaruipeng, caoyanan, shihaichao, fangfang0703, yinpengfei}@iie.ac.cn
+wangshi@ict.ac.cn
+2
+
+Abstract
+Sentence-level extractive summarization is a fundamental yet
+challenging task, and recent powerful approaches prefer to
+pick sentences sorted by the predicted probabilities until the
+length limit is reached, a.k.a. “Top-K Strategy”. This length
+limit is fixed based on the validation set, resulting in the lack
+of flexibility. In this work, we propose a more flexible and
+accurate non-autoregressive method for single document extractive summarization, extracting a non-fixed number of summary sentences without the sorting step. We call our approach
+ThresSum as it picks sentences simultaneously and individually from the source document when the predicted probabilities exceed a threshold. During training, the model enhances
+sentence representation through iterative refinement and the
+intermediate latent variables receive some weak supervision
+with soft labels, which are generated progressively by adjusting the temperature with a knowledge distillation algorithm.
+Specifically, the temperature is initialized with high value and
+drops along with the iteration until a temperature of 1. Experimental results on CNN/DM and NYT datasets have demonstrated the effectiveness of ThresSum, which significantly
+outperforms BERTSUMEXT with a substantial improvement
+of 0.74 ROUGE-1 score on CNN/DM.
+
+Introduction
+Encoder-decoder mechanism is widely used for single document extractive summarization. The encoder is to encode
+one sentence into vector representation, while the popular
+decoder with top-k strategy can be divided into three steps:
+predict the probability scores of those sentence vectors, sort
+sentences in descending order in line with the probability
+scores, and pick sentences until exceeding the length limit.
+(Nallapati, Zhai, and Zhou 2017; Xiao and Carenini 2019;
+Liu and Lapata 2019; Xu et al. 2020). However, there are still
+two inherent obstacles for sentence-level extractive summarization:
+1) Redundant phrases between selected sentences. The
+naive approach for the first prediction step of decoder is to
+make independent binary decisions for each sentence, leading
+to the absence of overlap or redundancy modeling between
+∗
+
+Corresponding authors: Fang Fang and Shi Wang
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+13134
+
+the selected target sentences (Xu et al. 2020; Zhong et al.
+2020). The first natural solution is to introduce an autoregressive decoder (Chen and Bansal 2018; Jadhav and Rajan 2018;
+Liu and Lapata 2019; Xu et al. 2020), extracting sentences
+one by one and allowing different sentences to influence
+each other. Secondly, reinforcement learning is introduced
+for decoder to consider the semantics of the entire target summary (Narayan, Cohen, and Lapata 2018; Dong et al. 2018;
+Bae et al. 2019), which combines the maximum-likelihood
+cross-entropy loss with the rewards from policy gradient to
+directly optimize the evaluation metric for the summarization
+task. The third popular solution is to build summarization
+system with a two-stage decoder (Aliguliyev 2009; Galanis
+and Androutsopoulos 2010; Zhang et al. 2019a; Zhong et al.
+2020), with the first stage to extract some fragments of the
+original text and the second stage to select or modify on the
+basis of these fragments. Unfortunately, all these approaches
+with an autoregressive decoder are unstable, for there are the
+train-inference gap and error propagation when extracting
+sentences one by one.
+2) Fixed number or proportion of summary sentences.
+SummaRuNNer (Nallapati, Zhai, and Zhou 2017) first sets a
+“sort” step after the “predict” step, and “pick” sorted sentences
+until the length limit is reached (a.k.a. “Top-K Strategy”),
+which has been a popular method employed by the following
+models (Narayan, Cohen, and Lapata 2018; Zhang et al. 2018;
+Zhang, Wei, and Zhou 2019; Liu and Lapata 2019; Xu et al.
+2020; Wang et al. 2020). While a flexible extractor should
+generate a non-fixed number of summary sentences based
+on source document length, topics, or other aspects. The
+reasonable approach is to pick sentences whose predicted
+probability is over a threshold. However, it may not be an
+optimal stratety since the training data is very imbalanced
+in terms of summary-membership of sentences (Nallapati,
+Zhai, and Zhou 2017). Furthermore, Mendes et al. (2019)
+introduces the length variable into the decoder and Zhong
+et al. (2020) can choose any number of sentences by matching
+candidate summary in semantic space. But the decoders of
+these two solutions are either autoregressive or two-stage.
+To address the above two obstacles, we introduce ThresSum, a heuristic approach to strengthen the encoder by enhancing sentence representation through iterative refinement
+and simplify the decoder by removing the “sort” step:
+
+

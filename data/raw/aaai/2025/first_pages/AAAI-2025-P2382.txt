@@ -1,0 +1,82 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Dimension Reduction with Locally Adjusted Graphs
+Yingfan Wang* , Yiyang Sun* , Haiyang Huang* , Cynthia Rudin
+Duke University
+{yingfan.wang, yiyang.sun, haiyang.huang, cynthia.rudin}@duke.edu
+
+Abstract
+Dimension reduction (DR) algorithms have proven to be
+extremely useful for gaining insight into large-scale highdimensional datasets, particularly finding clusters in transcriptomic data. The initial phase of these DR methods often involves converting the original high-dimensional data into a
+graph. In this graph, each edge represents the similarity or
+dissimilarity between pairs of data points. However, this graph
+is frequently suboptimal due to unreliable high-dimensional
+distances and the limited information extracted from the highdimensional data. This problem is exacerbated as the dataset
+size increases. If we reduce the size of the dataset by selecting
+points for a specific sections of the embeddings, the clusters
+observed through DR are more separable since the extracted
+subgraphs are more reliable. In this paper, we introduce LocalMAP, a new dimensionality reduction algorithm that dynamically and locally adjusts the graph to address this challenge. By dynamically extracting subgraphs and updating the
+graph on-the-fly, LocalMAP is capable of identifying and separating real clusters within the data that other DR methods
+may overlook or combine. We demonstrate the benefits of
+LocalMAP through a case study on biological datasets, highlighting its utility in helping users more accurately identify
+clusters for real-world problems.
+
+Code — https://github.com/williamsyy/LocalMAP
+Appendix — https://arxiv.org/abs/2412.15426
+
+1
+
+Introduction
+
+Dimension reduction (DR) is an important data visualization
+strategy for understanding the structure of complicated highdimensional datasets. DR is used extensively in image, text,
+and biomedical datasets, particularly -omics (Cao et al. 2019;
+Becht et al. 2019; Amezquita et al. 2020; Dries et al. 2021;
+Atitey, Motsinger-Reif, and Anchang 2024; Böhm, Berens,
+and Kobak 2023; Mu, Bhat, and Viswanath 2017; Raunak,
+Gupta, and Metze 2019). Beginning in the original highdimensional space, DR methods typically first abstract the
+data into a graph, with each edge representing either similarity (positive edge) or dissimilarity (negative edge). This graph
+is then used to optimize the low-dimensional embedding by
+* These authors contributed equally.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+21357
+
+applying attractive forces along the positive edges and repulsive forces along the negative edges. Clearly, the quality of
+the graph, which connects the original high-dimensional data
+to the low-dimensional embedding, is critical to this process.
+However, given the complex nature of high-dimensional data,
+it is challenging to construct a graph that accurately represents all patterns and structures within the data, and graphs
+are usually sub-optimal.
+In this work, we provide two key insights as to why the
+graphs could be flawed. First, we found that high-dimensional
+distances become less informative due to the curse of dimensionality, where measurements of similarity and dissimilarity
+determined using high-dimensional distances do not necessarily reflect similarities and dissimilarities along the data manifold. This issue is more pronounced in DR methods that select
+a small group of nearest neighbors (NNs) to form positive
+edges of the graph and apply strong attractive forces along
+these edges. When a “false” positive edge is constructed
+based on an inaccurate similarity measure between a pair of
+points that are actually dissimilar, strong attractive forces will
+pull them closer. If there are many such false positive edges,
+the DR method will generate overlapping clusters without
+clear boundaries, even if the data have distinct clusters. Since
+DR methods are unsupervised, the user would not be able to
+determine that distinct clusters exist – they would be blurred
+together in the DR result. As we show in this work, eliminating these false positive edges can dramatically improve DR
+projections.
+Our second insight is that missing edges (lack of negative
+“further pair” edges between far points in high-dimensional
+space) also contribute to unwanted overlapping of clusters,
+since such edges help to define boundaries between clusters.
+However, as the scale of the dataset increases, the set of negative edges become both insufficient and less effective, as
+discussed in Section 4. Some of the most important applications of DR (single cell, transcriptomics) generate large
+high-dimensional datasets with many clusters, so it is important that there are enough further pair (FP) edges to separate
+them.
+Based on the two insights discussed above, we propose
+LocalMAP, a new DR algorithm that dynamically and locally
+adjusts the graph during dimension reduction to address the
+aforementioned issues with graph construction. LocalMAP
+detects false positive edges and removes them, using ideas
+
+

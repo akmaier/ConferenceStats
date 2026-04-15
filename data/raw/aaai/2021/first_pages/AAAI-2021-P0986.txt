@@ -1,0 +1,111 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+Elastic Consistency: A Practical Consistency Model
+for Distributed Stochastic Gradient Descent
+Giorgi Nadiradze,1 Ilia Markov, 1 Bapi Chatterjee, 1 Vyacheslav Kungurtsev, 2 Dan Alistarh 1
+1
+IST Austria
+Czech Technical University in Prague
+giorgi.nadiradze@ist.ac.at, ilia.markov@ist.ac.at, bapi.chatterjee@ist.ac.at, vyacheslav.kungurtsev@fel.cvut.cz,
+dan.alistarh@ist.ac.at
+2
+
+Abstract
+
+non-convex case, it will converge towards a point of zero
+gradient (Ghadimi and Lan 2013). In supervised learning, f
+is usually the total error of a given parameter ~x on a given
+dataset D. For each sample s in D, the classification error is
+encoded viaP
+the loss `(s, ~x). Training minimizes the function
+1
+f (~x) = m
+x), where m is the size of the dataset,
+s∈D `(s, ~
+e is an
+and the gradient at a randomly chosen datapoint G
+unbiased estimator of ∇f .
+Due to the size of datasets, it is common to distribute the
+optimization process across multiple processors. A standard
+way of parallelizing SGD is to process a batch of samples in
+parallel, dividing the computation of gradient updates among
+processors. Assume for simplicity that each processor is allotted one sample, whose corresponding gradient it computes
+with respect to the current parameter ~xt . Processors then sum
+their stochastic gradients, and update their local parameters
+by the resulting sum, leading to the following global iteration:
+
+One key element behind the progress of machine learning in
+recent years has been the ability to train machine learning
+models in large-scale distributed shared-memory and messagepassing environments. Most of these models are trained employing variants of stochastic gradient descent (SGD) based
+optimization. In this paper, we introduce a general consistency
+condition covering communication-reduced and asynchronous
+distributed SGD implementations. Our framework, called elastic consistency, decouples the system-specific aspects of the
+implementation from the SGD convergence requirements, giving a general way to obtain convergence bounds for a wide
+variety of distributed SGD methods used in practice. Elastic consistency can be used to re-derive or improve several
+previous convergence bounds in message-passing and sharedmemory settings, but also to analyze new models and distribution schemes. In particular, we propose and analyze a new
+synchronization-avoiding scheme for distributed SGD, and
+show that it can be used to efficiently train deep convolutional
+models for image classification.
+
+p
+
+~xt+1 = ~xt −
+
+Introduction
+
+(2)
+
+e i is the stochastic gradient obtained at the processor i
+where G
+at the given step, and p is the batch size, equal to the number
+of processors. Since this sum is the same at every processor,
+this procedure yields the same, perfectly consistent, parameter at each processor at the end of every parallel iteration. The
+Pp e i
+average (1/p) i=1 G
+(~xt ) is still a stochastic gradient, but
+with lower variance than gradients at single samples, which
+can lead to better convergence (Bubeck et al. 2015). Since
+samples are now processed in parallel, the number of samples
+processed per second should in theory be multiplied by p.
+However, in practice, maintaining perfect consistency of
+the parameter ~xt can negate the benefits of parallelization.
+Keeping the parameters perfectly consistent has a communication cost: since the size of gradient updates is linear in
+the size of the parameter, the resulting communication may
+easily become a system bottleneck for models with millions
+of parameters (Krizhevsky, Sutskever, and Hinton 2012; Alistarh et al. 2017). Consistency also induces a synchronization
+cost, since processors need to synchronize in a barrier-like
+fashion upon each iteration update, which can occur every
+few milliseconds. For this reason, there have been several proposals for relaxing the consistency requirements of SGD-like
+iterations, under various system constraints. These proposals
+
+Machine learning models can match or surpass humans on
+specialized tasks such as image classification (Krizhevsky,
+Sutskever, and Hinton 2012; He et al. 2016), speech recognition (Seide et al. 2014), or complex games (Silver et al. 2016).
+One key tool behind this progress is the stochastic gradient
+descent (SGD) family of methods (Robbins and Monro 1951),
+which are by and large the method of choice for training largescale machine learning models. Essentially, SGD can serve
+to minimize a d-dimensional function f : Rd → R, assumed
+to be differentiable. We commonly assume that we are given
+access to (possibly noisy) gradients of this function, denoted
+e Sequential SGD will start at a randomly chosen point
+by G.
+~x0 , say 0d , and converge towards a minimum of the function
+by iterating the following procedure:
+e xt )
+~xt+1 = ~xt − αG(~
+
+α X ei
+G (~xt ),
+p i=1
+
+(1)
+
+where ~xt is the current estimate of the optimum, also called
+the parameter and α is the learning rate. If the function is
+convex, this procedure is known to converge to the minimum of the function (Bubeck et al. 2015), whereas in the
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+9037
+
+

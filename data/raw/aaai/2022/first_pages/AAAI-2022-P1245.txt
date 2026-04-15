@@ -1,0 +1,84 @@
+The Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22)
+
+Semantic Parsing in Task-Oriented Dialog
+with Recursive Insertion-Based Encoder
+Elman Mansimov and Yi Zhang
+AWS AI Labs
+{mansimov, yizhngn}@amazon.com
+
+Abstract
+We introduce Recursive INsertion-based Encoder (RINE), a
+novel approach for semantic parsing in task-oriented dialog.
+Our model consists of an encoder network that incrementally
+builds the semantic parse tree by predicting the non-terminal
+label and its positions in the linearized tree. At the generation time, the model constructs the semantic parse tree by
+recursively inserting the predicted non-terminal labels at the
+predicted positions until termination. RINE achieves stateof-the-art exact match accuracy on low- and high-resource
+versions of the conversational semantic parsing benchmark
+TOP, outperforming strong sequence-to-sequence models and
+transition-based parsers. We also show that our model design
+is applicable to nested named entity recognition task, where
+it performs on par with state-of-the-art approach designed for
+that task. Finally, we demonstrate that our approach is 2−3.5×
+faster than the sequence-to-sequence model at inference time.
+
+Introduction
+Task-oriented dialog systems are playing an increasingly important role in modern business and social lives of people
+by facilitating information access and automation of routine
+tasks through natural language conversations. At the core of
+such dialog systems, a natural language understanding component interprets user input utterances into a meaning representation. While the traditional intent-slot based approach can
+go a long way, such flat meaning representation falls short of
+capturing the nuances of natural languages, where phenomena such as conjunction, negation, co-reference, quantification and modification call for a hierarchically structured representation, as illustrated by recent work (Gupta et al. 2018;
+Bonial et al. 2020; Cheng et al. 2020; Andreas et al. 2020).
+Commonly adopted tree- or directed acyclic graph-based
+structures resemble traditional frameworks for syntactic or
+semantic parsing of natural language sentences.
+The hierarchical representation of Gupta et al. (2018) motivated the extension of neural shift-reduce parsers (Dyer et al.
+2016; Einolghozati et al. 2019), neural span-based parsers
+(Stern, Andreas, and Klein 2017; Pasupat et al. 2019) and
+sequence-to-sequence (seq2seq) (Sutskever, Vinyals, and Le
+2014; Vaswani et al. 2017; Rongali et al. 2020) models for
+handing compositional queries in task-oriented dialog. Due
+Copyright © 2022, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+11067
+
+to the state-of-the-art performance of these models, there has
+been limited work designing structured prediction models
+that have a stronger inductive bias for semantic parsing of
+task-oriented dialog utterances.
+In this paper, we propose the Recursive Insertion-based
+Encoder) (RINE; pronounced ”Ryan”), that incrementally
+builds the semantic parse tree by inserting the non-terminal
+intent/slot labels into the utterance. The model is trained as
+a discriminative model that predicts labels with their corresponding positions in the input. At generation time, the model
+constructs the semantic parse tree by recursively inserting the
+predicted label at the predicting position until the termination.
+Unlike seq2seq models (Rongali et al. 2020; Zhu et al. 2020;
+Aghajanyan et al. 2020; Babu et al. 2021), our approach does
+not contain a separate decoder which generates the linearized
+semantic parse tree.
+We extensively evaluate our proposed approach on lowresource and high-resource versions of the popular conversational semantic parsing dataset TOP (Gupta et al. 2018; Chen
+et al. 2020). We compare our model against a state-of-the-art
+transition-based parser RNNG (Gupta et al. 2018; Einolghozati et al. 2019) and seq2seq models (Rongali et al. 2020;
+Zhu et al. 2020; Aghajanyan et al. 2020; Babu et al. 2021)
+adapted to this task. We show that our approach achieves
+the state-of-the-art performance on both low-resource and
+high-resource settings TOP. In particular, RINE achieves up
+to an 13% absolute improvement in exact match in the
+low-resource setting. We also demonstrate that our approach
+is 2 − 3.5× faster than strong sequence-to-sequence model
+at inference time.
+While we focus on semantic parsing in task-oriented dialog, we demonstrate that our model design is applicable to
+other structured prediction tasks, such as nested named entity recognition (nested NER). We empirically show that our
+model with no specific tuning performs on par with state-ofthe-art machine reading comprehension approach for nested
+NER (Li et al. 2020) that was explicitly designed for that
+task.
+
+Proposed Approach
+First, we introduce the problem of semantic parsing in taskoriented dialog and give a general description of our approach
+in Section . Then in Section , we give a detailed description
+of the forward pass and loss calculation in our model. Finally
+
+

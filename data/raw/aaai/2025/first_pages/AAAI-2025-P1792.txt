@@ -1,0 +1,100 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+Cross-Validated Off-Policy Evaluation
+Matej Cief1,2 , Branislav Kveton3 , Michal Kompan2
+1
+
+2
+
+Brno University of Technology
+Kempelen Institute of Intelligent Technologies
+3
+Adobe Research*
+
+Abstract
+We study estimator selection and hyper-parameter tuning in
+off-policy evaluation. Although cross-validation is the most
+popular method for model selection in supervised learning,
+off-policy evaluation relies mostly on theory, which provides
+only limited guidance to practitioners. We show how to use
+cross-validation for off-policy evaluation. This challenges a
+popular belief that cross-validation in off-policy evaluation is
+not feasible. We evaluate our method empirically and show
+that it addresses a variety of use cases.
+
+Code — https://github.com/navarog/cross-validated-ope
+Extended version — https://arxiv.org/abs/2405.15332
+
+1
+
+Introduction
+
+Off-policy evaluation (OPE, Li et al. 2010) is a framework
+for estimating the performance of a policy without deploying
+it online. It is useful in domains where online A/B testing is
+costly or too dangerous. For example, deploying an untested
+algorithm in recommender systems or advertising can lead to
+a loss of revenue (Li et al. 2010; Silver et al. 2013), and in
+medical treatments, it may have a detrimental effect on the
+patient’s health (Hauskrecht and Fraser 2000). A popular approach to off-policy evaluation is inverse propensity scoring
+(IPS, Robins, Rotnitzky, and Zhao 1994). As this method is
+unbiased, it approaches a true policy value with more data.
+However, when the data logging policy has a low probability of choosing some actions, IPS-based estimates have
+a high variance and often require a large amount of data to
+be useful in practice (Dudik et al. 2014). Therefore, other
+lower-variance methods have emerged. These methods often
+have hyper-parameters, such as a clipping constant to truncate
+large propensity weights (Ionides 2008). Some works provide theoretical insights (Ionides 2008; Metelli, Russo, and
+Restelli 2021) for choosing hyper-parameters, while there are
+none for many others.
+In supervised learning, data-driven techniques for hyperparameter tuning, such as cross-validation, are more popular
+than theory-based techniques, such as the Akaike information criterion (Bishop 2006). The reason is that they perform
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+* The work was done at AWS AI Labs.
+
+16073
+
+better on large datasets, which are standard today. Unlike in
+supervised learning, the ground truth value of the target policy
+is unknown in off-policy evaluation. A common assumption
+is that standard machine learning approaches for model selection would fail because there is no unbiased and low-variance
+approach to compare estimators (Su, Srinath, and Krishnamurthy 2020). Therefore, only a few works studied estimator
+selection for off-policy evaluation, and no general solution
+exists (Saito et al. 2021; Udagawa et al. 2023).
+Despite common beliefs, we show that cross-validation in
+off-policy evaluation can be done comparably to supervised
+learning. In supervised learning, we do not know the true data
+distribution, but we are given samples from it. Each sample
+is an unbiased and high-variance representation of this distribution. Nevertheless, we can still get an accurate estimate
+of true generalization when averaging the model error over
+these samples in cross-validation. Similarly, we do not know
+the true reward distribution in off-policy evaluation, but we
+are given high-variance samples from it. The difference is
+that these samples are biased because they are collected by a
+different policy. However, we can use an unbiased estimator,
+such as IPS, on a held-out validation set to get an unbiased
+estimate of any policy value. Then, as with supervised learning, we get an estimate of the estimator’s performance. Our
+contributions are:
+• We propose an easy-to-use estimator selection procedure
+for off-policy evaluation based on cross-validation that
+requires only data collected by a single policy.
+• We analyze the loss of our procedure and how it relates to
+the true loss if the ground truth policy value was known.
+We use this insight to reduce its variance.
+• We empirically evaluate the procedure on estimator selection and hyper-parameter tuning problems using nine
+real-world datasets. The procedure is more accurate than
+prior techniques and computationally efficient.
+
+2
+
+Off-Policy Evaluation
+
+A contextual bandit (Langford, Strehl, and Wortman 2008)
+is a popular model of an agent interacting with an unknown
+environment. The interaction in round i starts with the agent
+observing a context xi ∈ X , which is drawn i.i.d. from an
+unknown distribution p, where X is the context set. Then
+the agent takes an action ai ∼ π(· | xi ) from the action set
+
+

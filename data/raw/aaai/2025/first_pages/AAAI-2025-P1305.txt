@@ -1,0 +1,91 @@
+The Thirty-Ninth AAAI Conference on Artificial Intelligence (AAAI-25)
+
+K-ON: Stacking Knowledge On the Head Layer of Large Language Model
+Lingbing Guo1,2 , Yichi Zhang1,2 , Zhongpu Bo3 , Zhuo Chen1,2 , Mengshu Sun3 ,
+Zhiqiang Zhang3 , Wen Zhang4,2 * , Huajun Chen1,2,5*
+1
+
+College of Computer Science and Technology, Zhejiang University
+2
+ZJU-Ant Group Joint Lab of Knowledge Graph
+3
+Ant Group
+4
+School of Software Technology, Zhejiang University
+5
+Zhejiang Key Laboratory of Big Data Intelligent Computing
+{lbguo, zhangyichi2022, zhang.wen, huajunsir}@zju.edu.cn
+
+Abstract
+
+Most existing methods compromise on this dilemma and
+apply LLMs only to simple KG tasks (Yang et al. 2023;
+Guan et al. 2024; Pan et al. 2023, 2024), such as verifying
+the correctness of a triplet (Zhang et al. 2023) or predicting
+the target from a limited number of candidates (Yao et al.
+2023). In contrast, we propose K-ON to employ K head layers for predicting entities at one shot and stack knowledge on
+these heads by entity-level contrastive learning.
+As shown in Figure 1b, K-ON adapts K different head
+layers from the original LLM head, where the k-th head is
+responsible for predicting the k-th token for all entities. For
+example, an entity Matt Damon is tokenized into K input
+token IDs t0:K−1 , with t0 representing Matt and tK−1 being
+the last token Damon or padding token. We then extract the
+the probability of the first token from the first head layer, and
+so forth. For the other entities that may serve as negative
+examples in contrastive learning, we can reuse the K-step
+probability estimations to extract their scores.
+The risk underlying the prediction of the next K tokens
+is over-optimization. The model may over-optimize for predicting just the next K tokens, dropping the fact that these
+tokens form the target entity. For instance, while minimizing
+cross-entropy loss for the first token, with Matt as the positive label, many negative entries (tokens) are not constituent
+elements of an entity. Moreover, increasing the probability
+of Matt does not always equate to maximizing the probability of Matt Damon. To tackle this issue, K-ON employs an
+entity-level contrastive loss, which treats the K-step predictions as an integrity and estimates the joint probabilities.
+Another risk in next-K-token prediction is distribution
+corruption. In the original schema, the probability of the second token “Damon” is conditioned on the first token “Matt”.
+However, this conditioning is absent in the next-K-tokens
+schema. Such discrepancy may degrade the performance as
+well as inference ability of the original LLM.
+To address this issue, we propose head trajectory tuning
+(HTT) to align the distribution trajectories between the original LLM’s prediction and the next-K-token predictions. We
+first leverage a conditional attention layer to process the hidden states from K head layers to reconstruct the sequential dependencies between different steps. Then, we compute a standard sequence prediction loss with the original
+LLM head layer as target. Finally, we can align the output
+probability sequence of our next-k-token predictions with
+
+Recent advancements in large language models (LLMs) have
+significantly improved various natural language processing
+(NLP) tasks. Typically, LLMs are trained to predict the next
+token, aligning well with many NLP tasks. However, in
+knowledge graph (KG) scenarios, entities are the fundamental units and identifying an entity requires at least several tokens. This leads to a granularity mismatch between KGs and
+natural languages. To address this issue, we propose K-ON,
+which integrates KG knowledge into the LLM by employing
+multiple head layers for next k-step prediction. K-ON can
+not only generate entity-level results in one step, but also enables contrastive loss against entities, which is the most powerful tool in KG representation learning. Experimental results
+show that K-ON outperforms state-of-the-art methods that incorporate text and even the other modalities.
+
+Introduction
+Large language models (LLMs) are trained on vast amounts
+of corpora and store world knowledge within billions of
+neurons (Achiam et al. 2023; Touvron et al. 2023). Despite
+of the prosperity in LLM-based applications, unleashing its
+power for knowledge graph (KG) tasks remains challenging.
+Tokens are the basic elements for language models, but it
+needs to take at least several tokens to describe and identify
+different entities in a KG. Creating new token identifiers for
+each entity and learning them during fine-tuning is an alternative choice, however, which is extremely time-consuming
+and may negatively affect the native performance of LLMs.
+In this paper, we explore how to effectively and efficiently
+use multiple tokens to describe entities in a given KG. Evidently, directly optimizing the sequence prediction objective will results in the out-of-KG problem as LLM lacks
+awareness of the KG’s entities, while enumerating all entities in the input instruction is unrealistic. Take Figure 1a
+as an example, the task is to predict the target entity Matt
+Damon given the incomplete triplet (The Bourne Identity
+(2002 film), starring, ?). The vanilla learning schema is inefficient because generating a single entity requires multiple
+steps and cannot be parallelized across entities.
+* Corresponding Authors.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+11745
+
+

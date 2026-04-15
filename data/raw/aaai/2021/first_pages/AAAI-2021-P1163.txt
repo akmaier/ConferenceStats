@@ -1,0 +1,90 @@
+The Thirty-Fifth AAAI Conference on Artificial Intelligence (AAAI-21)
+
+MetaAugment: Sample-Aware Data Augmentation Policy Learning
+Fengwei Zhou∗ , Jiawei Li∗ , Chuanlong Xie∗ , Fei Chen, Lanqing Hong, Rui Sun, Zhenguo Li†
+Huawei Noah’s Ark Lab
+{zhoufengwei, li.jiawei, xie.chuanlong, chen.f, honglanqing, sun.rui3, li.zhenguo}@huawei.com
+
+Abstract
+Automated data augmentation has shown superior performance in image recognition. Existing works search for datasetlevel augmentation policies without considering individual
+sample variations, which are likely to be sub-optimal. On the
+other hand, learning different policies for different samples
+naively could greatly increase the computing cost. In this paper,
+we learn a sample-aware data augmentation policy efficiently
+by formulating it as a sample reweighting problem. Specifically, an augmentation policy network takes a transformation
+and the corresponding augmented image as inputs, and outputs
+a weight to adjust the augmented image loss computed by a
+task network. At training stage, the task network minimizes
+the weighted losses of augmented training images, while the
+policy network minimizes the loss of the task network on a
+validation set via meta-learning. We theoretically prove the
+convergence of the training procedure and further derive the
+exact convergence rate. Superior performance is achieved on
+widely-used benchmarks including CIFAR-10/100, Omniglot,
+and ImageNet.
+
+Introduction
+Data augmentation is widely used to increase the diversity of training data in order to improve model generalization (Krizhevsky, Sutskever, and Hinton 2012; Srivastava,
+Greff, and Schmidhuber 2015; Han, Kim, and Kim 2017;
+DeVries and Taylor 2017; Zhang et al. 2017; Yun et al. 2019).
+Automated data augmentation that searches for data-driven
+augmentation policies improves the performance of deep
+models in image recognition compared with the manually
+designed ones. A data augmentation policy is a distribution of
+transformations, according to which training samples are augmented. Reinforcement learning (Cubuk et al. 2019a; Zhang
+et al. 2020), population-based training (Ho et al. 2019), and
+Bayesian optimization (Lim et al. 2019) have been employed
+to learn augmentation policies from target datasets. Despite
+the difference of search algorithms, these approaches search
+for policies at the dataset level, i.e., all samples in the dataset
+are augmented with the same policy. For an image recognition task, left translation may be suitable for the image where
+∗
+
+Equal Contribution
+Corresponding Author
+Copyright c 2021, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+†
+
+11097
+
+the target object is on the right, but may not be suitable for
+the image where the target object is on the left (see Figure 4).
+According to this observation, dataset-level polices may give
+rise to various noises such as noisy labels, misalignment,
+or image distortion, since different samples vary greatly in
+object scale, position, color, illumination, etc.
+To increase data diversity while avoiding noises, it is appealing to learn a sample-aware data augmentation policy,
+i.e., learning different distributions of transformations for
+different samples. However, it is time-consuming to evaluate
+a large number of distributions and non-trivial to determine
+the relation among the distributions. Augmenting training
+samples with the corresponding policies, we consider the
+augmented sample loss as a random variable and train a
+task network to minimize the expectation of the augmented
+sample loss. From this perspective, learning a sample-aware
+policy can be regarded as reweighting the augmented sample
+losses and the computing cost can be greatly reduced.
+In this paper, we propose an efficient method, called
+MetaAugment, to learn a sample-aware data augmentation
+policy by formulating it as a sample reweighting problem. An
+overview of the proposed method is illustrated in Figure 1.
+Given a transformation and the corresponding augmented
+image feature, extracted by a task network, an augmentation policy network outputs the weight of the augmented
+image loss. The task network is optimized by minimizing the
+weighted training loss, while the goal of the policy network
+is to improve the performance of the task network on a validation set via adjusting the weights of the losses. This is a
+bilevel optimization problem (Colson, Marcotte, and Savard
+2007) which is hard to be optimized. We leverage the mechanism of meta-learning (Finn, Abbeel, and Levine 2017; Li
+et al. 2017; Ren et al. 2018; Wu et al. 2018; Liu, Simonyan,
+and Yang 2019; Shu et al. 2019) to solve this problem. The
+motivation is based on the ability of meta-learning to extract
+useful knowledge from related tasks. During training, classification for each batch of samples is treated as a task. The
+policy network acts as a meta-learner to adapt the task network with the augmented samples such that it can perform
+well on a batch of validation samples. Instead of learning
+an initialization for fast adaptation in downstream tasks, the
+policy network learns to augment while guiding the actual
+training process of the task network. We also propose a novel
+transformation sampler that samples transformations accord-
+
+

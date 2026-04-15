@@ -1,0 +1,93 @@
+Proceedings of the Thirty-First AAAI Conference on Artificial Intelligence (AAAI-17)
+
+Low-Rank Factorization of
+Determinantal Point Processes
+Mike Gartrell∗
+
+Ulrich Paquet†
+
+Noam Koenigstein
+
+Microsoft
+mike.gartrell@acm.org
+
+Microsoft
+ulripa@microsoft.com
+
+Microsoft
+noamko@microsoft.com
+
+is the size of the item catalog. There has been some work focused on learning DPPs from observed data consisting of example subsets (Affandi et al. 2014; Gillenwater et al. 2014;
+Kulesza and Taskar 2011b; Mariet and Sra 2015), which is
+a challenging learning task that is conjectured to be NPhard (Kulesza and Taskar 2012). Some approaches have involved learning a nonparametric full-rank L matrix (Gillenwater et al. 2014; Mariet and Sra 2015) that does not constrain L to take a particular parametric form. Full-rank DPPs
+scale poorly to large item catalogs, since operations such
+as sampling, learning, and prediction in a full-rank DPP
+costs approximately O(M 3 ). This issue may be resolved
+for some operations (learning and/or sampling) by factorizing L as a Kronecker product of multiple smaller kernel matrices (Mariet and Sra 2016b), by approximate sampling techniques (Anari, Oveis Gharan, and Rezaei 2016;
+Li, Jegelka, and Sra 2016a; 2016b), or by deﬁning an alternative probabilistic submodular model that scales to large
+M , as recently proposed in (Tschiatschek, Djolonga, and
+Krause 2016). In contrast, we present a method for learning a simple low-rank factorization of L, which scales much
+better than full-rank DPP approaches and in some cases
+provides better test log-likelihood. The scalability improvements allow us to train our model on larger datasets that are
+infeasible with a full-rank DPP, while also opening the door
+to computing online recommendations or predictions as required for many real-world applications. We also show that
+a low-rank factorization of L allows us to use a straightforward learning algorithm, such as stochastic gradient ascent,
+that is generally not viable for full-rank DPPs due to issues
+associated with projected gradient ascent required for fullrank DPP learning (Gillenwater et al. 2014).
+
+Abstract
+Determinantal point processes (DPPs) have garnered attention as an elegant probabilistic model of set diversity. They
+are useful for a number of subset selection tasks, including
+product recommendation. DPPs are parametrized by a positive semi-deﬁnite kernel matrix. In this work we present a
+new method for learning the DPP kernel from observed data
+using a low-rank factorization of this kernel. We show that
+this low-rank factorization enables a learning algorithm that is
+nearly an order of magnitude faster than previous approaches,
+while also providing for a method for computing product recommendation predictions that is far faster (up to 20x faster
+or more for large item catalogs) than previous techniques that
+involve a full-rank DPP kernel. Furthermore, we show that
+our method provides equivalent or sometimes better test loglikelihood than prior full-rank DPP approaches.
+
+1
+
+Introduction
+
+Subset selection problems arise in a number of applications,
+including recommendation (Gillenwater et al. 2014), document summarization (Kulesza and Taskar 2011b; Lin and
+Bilmes 2012), and Web search (Kulesza and Taskar 2011a).
+In these domains, we are concerned with selecting a good
+subset of high-quality items that are distinct. For example, a
+recommended subset of products presented to a user should
+have high predicted ratings for that user while also being diverse, so that we increase the chance of capturing the user’s
+interest with at least one of the recommended products.
+Determinantal point processes (DPPs) offer an attractive
+model for such tasks, since they jointly model set diversity
+and item quality or popularity, while offering a compact parameterization and efﬁcient algorithms for performing inference. A distribution over sets that encourages diversity is of
+particular interest when recommendations are complementary; for example, when a shopping basket contains a laptop
+and a carrier bag, a complementary addition to the basket
+would typically be a laptop cover, rather than another laptop.
+DPPs are probabilistic submodular models can be parameterized by a M ×M positive semi-deﬁnite L matrix, where M
+
+In addition to the applications mentioned above, DPPs
+have been used for a variety of machine learning tasks (Affandi, Fox, and Taskar 2013; Affandi et al. 2013; Chao et al.
+2015; Gillenwater, Kulesza, and Taskar 2012; Kulesza and
+Taskar 2010; 2012; Kwok and Adams 2012; Mariet and Sra
+2016a; Snoek, Zemel, and Adams 2013). We focus on the
+recommendation task of “basket completion” in this work,
+where we compute predictions for the next item that should
+be added to a shopping basket, given a set of items already
+present in the basket. In Section 2 we provide some background on DPPs, discuss how we implement learning and
+regularization, and describe how we efﬁciently compute pre-
+
+∗
+
+Currently at Criteo.
+Currently at DeepMind.
+c 2017, Association for the Advancement of Artiﬁcial
+Copyright 
+Intelligence (www.aaai.org). All rights reserved.
+†
+
+1912
+
+

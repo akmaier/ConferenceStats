@@ -1,0 +1,88 @@
+The Thirty-Seventh AAAI Conference on Artificial Intelligence (AAAI-23)
+
+Quantization-Aware Interval Bound Propagation for Training Certifiably Robust
+Quantized Neural Networks
+Mathias Lechner1 , Ðord̄e Žikelić2 , Krishnendu Chatterjee2 , Thomas A. Henzinger2 , Daniela Rus1
+1
+
+2
+
+Massachusetts Institute of Technology (MIT)
+Institute of Science and Technology Austria (ISTA)
+mlechner@mit.edu
+
+Abstract
+We study the problem of training and certifying adversarially
+robust quantized neural networks (QNNs). Quantization is a
+technique for making neural networks more efficient by running them using low-bit integer arithmetic and is therefore
+commonly adopted in industry. Recent work has shown that
+floating-point neural networks that have been verified to be
+robust can become vulnerable to adversarial attacks after quantization, and certification of the quantized representation is
+necessary to guarantee robustness. In this work, we present
+quantization-aware interval bound propagation (QA-IBP), a
+novel method for training robust QNNs. Inspired by advances
+in robust learning of non-quantized networks, our training
+algorithm computes the gradient of an abstract representation
+of the actual network. Unlike existing approaches, our method
+can handle the discrete semantics of QNNs. Based on QAIBP, we also develop a complete verification procedure for
+verifying the adversarial robustness of QNNs, which is guaranteed to terminate and produce a correct answer. Compared
+to existing approaches, the key advantage of our verification
+procedure is that it runs entirely on GPU or other accelerator
+devices. We demonstrate experimentally that our approach
+significantly outperforms existing methods and establish the
+new state-of-the-art for training and certifying the robustness
+of QNNs.
+
+Introduction
+Quantized neural networks (QNNs) are neural networks that
+represent their weights and compute their activations using
+low-bit integer variables. QNNs significantly improve the latency and computational efficiency of inferencing the network
+for two reasons. First, the reduced size of the weights and
+activations allows for a much more efficient use of memory
+bandwidth and caches. Second, integer arithmetic requires
+less silicon area and less energy to execute than floatingpoint operations. Consequently, dedicated hardware for running QNNs can be found in GPUs, mobile phones, and autonomous driving computers.
+Adversarial attacks are a well-known vulnerability of neural networks that raise concerns about their use in safetycritical applications (Szegedy et al. 2013; Goodfellow, Shlens,
+and Szegedy 2014). These attacks are norm-bounded input
+perturbations that make the network misclassify samples,
+Copyright © 2023, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+14964
+
+despite the original samples being classified correctly and
+the perturbations being barely noticeable by humans. For
+example, most modern image classification networks can
+be fooled when changing each pixel value of the input image by a few percent. Consequently, researchers have tried
+to train networks that are provably robust against such attacks. The two most common paradigms of training robust
+networks are adversarial training (Madry et al. 2018), and
+abstract interpretation-based training (Mirman, Gehr, and
+Vechev 2018; Wong and Kolter 2018). Adversarial training
+and its variations perturb the training samples with gradient
+descent-based adversarial attacks before feeding them into
+the network (Madry et al. 2018; Zhang et al. 2019; Wu, Xia,
+and Wang 2020; Lechner et al. 2021). While this improves
+the robustness of the trained network empirically, it provides
+no formal guarantees of the network’s robustness due to the
+incompleteness of gradient descent-based attacking methods, i.e., gradient descent might not find all attacks. Abstract
+interpretation-based methods avoid this problem by overapproximating the behavior of the network in a forward pass
+during training. In particular, instead of directly training the
+network by computing gradients with respect to concrete samples, these algorithms compute gradients of bounds obtained
+by propagating abstract domains. While the learning process
+of abstract interpretation-based training is much less stable
+than a standard training procedure, it provides formal guarantees about the network’s robustness. The interval bound
+propagation (IBP) method (Gowal et al. 2019) effectively
+showed that the learning process with abstract interpretation
+can be stabilized when gradually increasing the size of the
+abstract domains throughout the training process.
+Previous work has considered adversarial training and IBP
+for floating-point arithmetic neural networks, however robustness of QNNs has received comparatively much less attention. Since it was demonstrated by (Giacobbe, Henzinger,
+and Lechner 2020) that neural networks may become vulnerable to adversarial attacks after quantization even if they
+have been verified to be robust prior to quantization, one
+must develop specialized training and verification procedures
+in order to guarantee robustness of QNNs. Previous works
+have proposed several robustness verification procedures for
+QNNs (Giacobbe, Henzinger, and Lechner 2020; Baranowski
+et al. 2020; Henzinger, Lechner, and Žikelić 2021), but none
+of them consider algorithms for learning certifiably robust
+
+
