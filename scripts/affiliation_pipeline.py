@@ -217,6 +217,8 @@ def clean_affiliation(text: str) -> str:
     text = re.sub(r"\s*\|\s*", " | ", text)
     text = re.sub(r"\s*,\s*,+", ", ", text)
     for stopper in [
+        " Correspondence to:",
+        " Proceedings of the",
         " As rank minimization",
         " As a simple example",
         " Abstract",
@@ -231,13 +233,81 @@ def clean_affiliation(text: str) -> str:
     return text
 
 
+def looks_like_affiliation(text: str) -> bool:
+    lowered = normalize_space(text).casefold()
+    if not lowered:
+        return False
+    if re.match(r"^\d+(?:\.\d+)*\s", lowered):
+        return False
+    if re.search(
+        r"\b(abstract|introduction|proceedings|copyright|section|theorem|lemma|algorithm|figure|table|we propose|we show|in this paper|recent work|consider the problem)\b",
+        lowered,
+    ):
+        return False
+    if "et al." in lowered and not re.search(r"\b(university|institute|college|research|openai|google|yahoo)\b", lowered):
+        return False
+    keywords = [
+        "university",
+        "institute",
+        "college",
+        "academy",
+        "school",
+        "department",
+        "dept",
+        "research",
+        "laboratory",
+        "lab",
+        "center",
+        "centre",
+        "inc",
+        "corp",
+        "openai",
+        "google",
+        "yahoo",
+        "microsoft",
+        "amazon",
+        "facebook",
+        "meta",
+        "capital fund management",
+        "berkeley",
+        "cornell",
+        "carnegie mellon",
+        "uc ",
+    ]
+    if any(keyword in lowered for keyword in keywords):
+        return True
+    if infer_country(text) != "UNKNOWN":
+        return True
+    if "," in text and re.search(r"\b[A-Z][a-z]+(?:,\s*[A-Z]{2})?\b", text):
+        return True
+    return False
+
+
 def read_preamble(path: Path) -> str:
     text = path.read_text(encoding="utf-8", errors="replace")
-    return text.split("Abstract", 1)[0]
+    # Many ICML/PMLR papers place numbered affiliation footnotes below the
+    # abstract block on page 1, so stopping at "Abstract" loses the only
+    # structured affiliation text we have. Keep a bounded first-page prefix
+    # instead of a hard abstract cut.
+    return text[:8000]
 
 
 def preamble_lines(preamble: str):
     return [line.strip() for line in preamble.splitlines() if line.strip()]
+
+
+def affiliation_footer_region(preamble: str) -> str:
+    lines = preamble_lines(preamble)
+    if not lines:
+        return preamble
+    proceedings_idx = next((i for i, line in enumerate(lines) if "Proceedings of the" in line), None)
+    correspondence_idx = next((i for i, line in enumerate(lines) if "Correspondence to:" in line), None)
+    if proceedings_idx is None and correspondence_idx is None:
+        return preamble
+    anchor = min(index for index in [proceedings_idx, correspondence_idx] if index is not None)
+    start = max(0, anchor - 6)
+    end = proceedings_idx if proceedings_idx is not None else len(lines)
+    return "\n".join(lines[start:end])
 
 
 def split_inline_numbered_segments(text: str):
@@ -254,9 +324,7 @@ def split_numbered_affiliations(preamble: str, author_names):
     pending_labels = []
 
     for line in lines:
-        if "@" in line or line.lower().startswith("abstract"):
-            break
-        if any(name in line for name in author_names):
+        if any(name in line for name in author_names) and not looks_like_affiliation(line):
             continue
         if re.fullmatch(r"(?:\d+\s*)+", line):
             pending_labels.extend(re.findall(r"\d+", line))
@@ -267,14 +335,14 @@ def split_numbered_affiliations(preamble: str, author_names):
             continue
 
         first = segments[0]
-        if pending_labels and not re.match(r"^\d+\s+", first):
+        if pending_labels and not re.match(r"^\d+\s+", first) and looks_like_affiliation(first):
             label = pending_labels.pop(0)
             mapping.setdefault(label, first)
             segments = segments[1:]
 
         for segment in segments:
             match = re.match(r"^(\d+)\s+(.+)$", segment)
-            if match:
+            if match and looks_like_affiliation(match.group(2)):
                 mapping.setdefault(match.group(1), match.group(2).strip(" ,;"))
 
     return {label: value for label, value in mapping.items() if len(value) >= 3}
@@ -324,7 +392,7 @@ def author_symbol_map(preamble: str, author_names):
 
 
 def parse_numbered_variant(preamble: str, author_names):
-    numbered_affiliations = split_numbered_affiliations(preamble, author_names)
+    numbered_affiliations = split_numbered_affiliations(affiliation_footer_region(preamble), author_names)
     labels_by_author = author_label_map(preamble, author_names)
     assigned = {}
     if numbered_affiliations and labels_by_author:
@@ -393,16 +461,14 @@ def parse_stacked_variant(preamble: str, author_names):
 
 
 def parse_shared_variant(preamble: str, author_names):
-    lines = preamble_lines(preamble)
+    lines = preamble_lines(affiliation_footer_region(preamble))
     if not author_names:
         return {}
 
     affiliation_lines = []
     for line in lines:
         lowered = line.lower()
-        if "@" in line or lowered.startswith("abstract"):
-            break
-        if any(name in line for name in author_names):
+        if any(name in line for name in author_names) and not looks_like_affiliation(line):
             continue
         if re.fullmatch(r"(?:\d+\s*)+", line):
             continue
@@ -427,13 +493,12 @@ def parse_shared_variant(preamble: str, author_names):
     end = max(author_positions)
     block = []
     for line in lines[end + 1 :]:
-        if "@" in line or line.lower().startswith("abstract"):
-            break
         if re.match(r"^[†‡§*∗]\s*", line):
             continue
         if line in author_names:
             break
-        block.append(line)
+        if looks_like_affiliation(line):
+            block.append(line)
 
     affiliation = clean_affiliation(" ".join(block))
     if affiliation == "UNKNOWN":
