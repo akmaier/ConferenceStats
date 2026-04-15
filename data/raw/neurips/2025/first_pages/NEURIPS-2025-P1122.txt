@@ -1,0 +1,95 @@
+In Search of Adam’s Secret Sauce
+Antonio Orvieto ∗
+ELLIS Institute Tübingen, MPI-IS
+Tübingen AI Center, Germany
+
+Robert M. Gower
+CCM, Flatiron Institute, Simons Foundation
+New York, US
+
+Abstract
+Understanding the remarkable efficacy of Adam when training transformer-based
+language models has become a central research topic within the optimization
+community. To gain deeper insights, several simplifications of Adam have been
+proposed, such as the signed gradient and signed momentum methods. In this work,
+we conduct an extensive empirical study — training over 1,500 language models
+across different data configurations and scales — comparing Adam to several
+known simplified variants. We find that signed momentum methods are faster than
+SGD, but consistently underperform relative to Adam, even after careful tuning
+of momentum, clipping setting and learning rates. However, our analysis reveals
+a compelling option that preserves near-optimal performance while allowing for
+new insightful reformulations: constraining the Adam momentum parameters to be
+equal, β1 = β2 . Beyond robust performance, this choice affords new theoretical
+insights, highlights the “secret sauce” on top of signed momentum, and grants a
+precise statistical interpretation: we show that Adam in this setting implements a
+natural online algorithm for estimating the mean and variance of gradients—one
+that arises from a mean-field Gaussian variational inference perspective.
+
+Introduction
+
+In recent years, the surge of extremely large-scale and
+expensive-to-pretrain language models has further pushed the
+community to better understand Adam’s performance and to propose faster, efficient, and robust alternatives. Towards achieving
+this goal, contemporary studies [Kunstner et al., 2023, Bernstein
+and Newhouse, 2024] have brought up a close similarity between the performance of Adam and SignSGD [Bernstein et al.,
+2018] with momentum. While such results are extremely valuable to forward our understanding, they are not precise enough :
+already at a scale of 160M parameters we found that extensive
+tuning of Signum (SignSGD with momentum), while closing
+96% of the perplexity gap between SGD and Adam, results in a
+25% effective slowdown (Figure 1).
+∗
+
+( )
+
++
+,
+
++,
+
+)
+)
+)
+
++
++
+
++
++
+
++
++ #
+
++ #
++ #
+
+)( . +
+
+Despite a decade of research into efficient and performant adaptive optimizers for deep learning, the de facto choice for largescale training today remains Adam [Kingma and Ba, 2014],
+especially for training language models (LMs) [Grattafiori
+et al., 2024, Liu et al., 2024]. At the root of this choice is
+the peculiar geometry of optimization landscapes induced by
+the transformer architecture [Noci et al., 2022, Zhang et al.,
+2024a], as well as the noisy/unbalanced nature of tokenized
+text data [Zhang et al., 2020a, Kunstner et al., 2024].
+
+25%
+slower
+
+)
+
+1
+
++ #
+
+Figure 1: Pretraining on SlimPajama with Chinchilla-optimal [Hoffmann et al., 2022] scaling. Both momentum and learning rates for Signum
+are extensively tuned (§3). While
+Signum closes 96% of the perplexity
+gap between Adam and SGD with momentum (Table 1), still results in a 25%
+slowdown : Adam achieves the same
+performance with 3/4 of the budget.
+
+antonio@tue.ellis.eu.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

@@ -1,0 +1,54 @@
+Compress & Cache: Vision token compression for
+efficient generation and retrieval
+
+Adrian Bulat∗ 1,2 Yassine Ouali∗1 Georgios Tzimiropoulos1,3
+1
+Samsung AI Cambridge 2 Technical University of Iasi 3 QMUL
+
+Abstract
+This work aims to compress the vision tokens of an LVLM into a representation
+that is simultaneously suitable for (a) generative and (b) discriminative tasks, (c) is
+nearly lossless, and (d) storage-efficient. To this end, we propose C&C, a novel
+compression method that leverages the LVLM itself for task-agnostic visual token
+compression. Unlike prior methods that perform token reduction on-the-fly, our
+approach offloads computation to a dedicated, upfront indexing stage, effectively
+decoupling compression from generation. This enables learning more powerful
+representations for generation during inference. At the core of C&C is a “doubleforward pass” training strategy. During the first forward pass, the LLM (of the
+LVLM) creates a bottleneck by compressing the dense visual tokens into a few
+summary tokens. Subsequently, the second forward pass processes the language
+instruction(s) alongside the summary tokens, used as a direct replacement for the
+image ones. The training of C&C is guided by two key losses: an autoregressive
+loss applied after the second pass that provides a direct optimization objective for
+reconstructing the original information flow, and a contrastive loss applied after the
+first pass to bolster the representational strength of the summary tokens, particularly
+for discriminative tasks. Moreover, we propose stage-specific adapters for further
+enhancing performance. C&C produces highly informative compressed representations. An in-depth ablation study confirms the efficacy of our approach. For
+generative tasks, we achieve a 2× higher compression rate without compromising
+capabilities, setting a new state-of-the-art. For discriminative tasks, we establish
+new state-of-the-art results on image retrieval and compositionality benchmarks.
+
+1
+
+Introduction
+
+Large Vision Language Models (LVLMs) are LLMs [8, 19] that, in addition to text, are capable of
+integrating and processing visual information as input context [24]. Being able to reason across both
+vision and language, they are suitable for a wide range of use cases such as image captioning, VQA,
+and multimodal chatbots. A key bottleneck for their efficient deployment is the large number of input
+visual tokens, which often dominate the sequence length compared to the language instruction(s).
+Recent efforts to improve their efficiency have primarily focused on on-the-fly token compression [27,
+47, 3, 16]. These approaches aim to prune or dynamically condense visual tokens during the online
+inference process for a given input image and query. While beneficial for single-pass efficiency, these
+methods operate without a dedicated upfront compression or caching stage and thus limit the capacity
+of the compressor. Moreover, in the context of retrieval-augmented generation (RAG), they are not
+aligned with a typical RAG setting, whereby the image and documents are available a priori.
+In this work, we explore a different paradigm for LVLM visual token compression that leverages
+offline processing and caching. Instead of performing token reduction during every inference step,
+we propose to perform a computationally more intensive compression step once for a given image
+∗
+
+Denotes equal contribution.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

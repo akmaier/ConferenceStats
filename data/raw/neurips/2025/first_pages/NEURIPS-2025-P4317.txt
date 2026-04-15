@@ -1,0 +1,65 @@
+Spotlight Attention: Towards Efficient LLM
+Generation via Non-linear Hashing-based KV Cache
+Retrieval
+Wenhao Li
+Xiamen University
+
+Yuxin Zhang
+Xiamen University
+
+Ziyang Gong
+Shanghai Jiao Tong University
+
+Gen Luo
+Shanghai AI Laboratory
+
+Haiyuan Wan
+Shanghai AI Laboratory
+
+Fei Chao
+Xiamen University
+
+Rongrong Ji∗
+Xiamen University
+
+Abstract
+Reducing the key-value (KV) cache burden in Large Language Models (LLMs)
+significantly accelerates inference. Dynamically selecting critical KV caches
+during decoding helps maintain performance. Existing methods use random linear
+hashing to identify important tokens, but this approach is inefficient due to the
+orthogonal distribution of queries and keys within two narrow cones in LLMs. We
+introduce Spotlight Attention, a novel method that employs non-linear hashing
+functions to optimize the embedding distribution of queries and keys, enhancing
+coding efficiency and robustness. We also developed a lightweight, stable training
+framework using a Bradley-Terry ranking-based loss, enabling optimization of the
+non-linear hashing module on GPUs with 16GB memory in 8 hours. Experimental
+results show that Spotlight Attention drastically improves retrieval precision while
+shortening the length of the hash code at least 5× compared to traditional linear
+hashing. Finally, we exploit the computational advantages of bitwise operations
+by implementing specialized CUDA kernels, achieving hashing retrieval for 512K
+tokens in under 100µs on a single A100 GPU, with end-to-end throughput up to
+3× higher than vanilla decoding. All the training and evaluation stuff can be found
+at https://github.com/wenhaoli-xmu/spotlight.
+
+1
+
+Introduction
+
+Large Language Models (LLMs) are propelling groundbreaking advancements in various natural
+language tasks, significantly enhancing applications such as content creation and chat assistance.
+Generally, the inference process of LLMs can be divided into (1) the pre-filling phase calculates the
+key-value (KV) cache for input tokens in the prompt prior to autoregressive generation, and (2) the
+decoding phase auto-regressively generates tokens, producing one token per forward pass based on
+the KV cache. Among them, the decoding phase serves as the primary inference bottleneck due to
+the frequent exchanges between on-board and on-chip memory for model parameters and KV cache,
+which limits GPU scalability [3] more so than the pre-filling phase that processes input prompts in
+parallel. For example, deploying LLaMA2-7B [21] on an A100 GPU for a single request achieves
+nearly 100% GPU utilization during the pre-filling phase but drops to below 10% on average during
+decoding, which largely restrains the inference efficiency of LLMs.
+∗
+
+Corresponding author
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

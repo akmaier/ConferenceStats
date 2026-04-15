@@ -1,0 +1,67 @@
+VLM in a flash:
+I/O-Efficient Sparsification of Vision-Language Model
+via N EURON C HUNKING
+Kichang Yang∗
+Seoul National University
+kichang96@snu.ac.kr
+
+Seonjun Kim∗
+Seoul National University
+cyanide17@snu.ac.kr
+
+Minjae Kim
+Seoul National University
+aingo03304@snu.ac.kr
+
+Nairan Zhang
+Meta
+nairanzhang@meta.com
+
+Chi Zhang
+Amazon
+zhanbchi@amazon.com
+
+Youngki Lee†
+Seoul National University
+youngkilee@snu.ac.kr
+
+Abstract
+Edge deployment of large Vision-Language Models (VLMs) increasingly relies
+on flash-based weight offloading, where activation sparsification is used to reduce
+I/O overhead. However, conventional sparsification remains model-centric, selecting neurons solely by activation magnitude and neglecting how access patterns
+influence flash performance. We present N EURON C HUNKING, an I/O-efficient
+sparsification strategy that operates on chunks—groups of contiguous neurons in
+memory—and couples neuron importance with storage access cost. The method
+models I/O latency through a lightweight abstraction of access contiguity and
+selects chunks with high utility, defined as neuron importance normalized by estimated latency. By aligning sparsification decisions with the underlying storage
+behavior, Neuron Chunking improves I/O efficiency by up to 4.65× and 5.76× on
+Jetson Orin Nano and Jetson AGX Orin, respectively. The code is available at
+https://github.com/snuhcs/vlm-flash.
+
+1
+
+Introduction
+
+Recent vision–language models (VLMs) demonstrate strong multimodal reasoning and real-time
+language interaction with visual scenes. Deploying these models on edge devices is becoming
+essential for applications such as augmented reality (AR) and autonomous robotics that require
+on-device inference for robustness to limited connectivity and privacy [5, 53]. These systems must
+process video frames continuously without frame drops while maintaining interactive latency.
+The scalability of on-device inference is fundamentally constrained by memory capacity. Edge
+platforms provide far less memory than what modern VLMs require. Jetson Orin Nano, for example,
+offers only 8 GB of memory, while LLaVA-OneVision-7B [18] requires 16 GB (fp16) for weights
+alone. Recent systems [2, 3, 10, 36, 49] and inference engines [1, 9] address this mismatch through
+weight offloading, which stores model parameters in external flash memory and loads them on
+demand during inference. This method allows large models to execute on small devices but introduces
+substantial I/O latency, which often dominates total inference time.
+Activation sparsification has been widely explored to mitigate this latency [2, 44, 49]. The approach
+loads only the weights corresponding to neurons with high importance (e.g., magnitude of activation
+∗
+†
+
+Equal contribution
+Corresponding author
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

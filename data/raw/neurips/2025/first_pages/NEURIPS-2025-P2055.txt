@@ -1,0 +1,62 @@
+Improving Bilinear RNNs with Closed-loop Control
+
+Jiaxi Hu1
+
+Yongqi Pan1 *
+1
+
+Jusen Du2 Disen Lan2 Xiaqiang Tang1
+Yuxuan Liang1
+Weigao Sun2
+
+Qingsong Wen3
+
+The Hong Kong University of Science and Technology (Guangzhou)
+2
+Shanghai AI Laboratory 3 Squirrel Ai Learning, USA
+
+Abstract
+Recent efficient sequence modeling methods such as Gated DeltaNet, TTT, and
+RWKV-7 have achieved performance improvements by supervising the recurrent
+memory management through Delta learning rule. Unlike previous state-space models (e.g., Mamba) and gated linear attentions (e.g., GLA), these models introduce
+interactions between the recurrent state and the key vector, structurally resembling
+bilinear systems. In this paper, we first introduce the concept of Bilinear RNNs with
+a comprehensive analysis on the advantages and limitations of these models. Then,
+based on closed-loop control theory, we propose a novel Bilinear RNN variant
+named Comba, which adopts a scalar-plus-low-rank state transition, with both state
+feedback and output feedback corrections. We also implement a hardware-efficient
+chunk-wise parallel kernel in Triton and train models with 340M/1.3B parameters
+on large-scale corpus. Comba demonstrates superior performance and computation
+efficiency in both language and vision modeling.
+https://github.com/fla-org/flash-linear-attention.
+“Learning without thinking misleads.”
+
+1
+
+Introduction
+
+– Confucius, 479 BC
+
+Autoregressive Transformers [95] have become a foundation of modern AI, primarily due to the
+efficient parallel computation made possible by softmax-based self-attention. This mechanism enables
+effective memory scaling by directly appending key and value vectors into the KV cache, which
+contributes to strong performance on tasks such as in-context learning and long-context retrieval.
+However, this design also comes with challenges, including quadratic time complexity and unbounded
+memory growth during inference [59], which limits the model’s scalability for long-sequence tasks.
+To address these, numerous improvements have been introduced, including sliding window attention
+[8, 25], sparse attention techniques [64, 111, 103], and efficient KV cache management [59].
+Meanwhile, efficient sequence-mixing approaches such as gated linear attention [112, 79, 22, 107,
+105, 5] and selective state space models (SSMs) [38, 26, 84] offer a compelling alternative. These
+models aim to establish a linear key-value associative memory [105, 34] register with constant
+states and data-(in)dependent gating (α, β), as presented by St = α(t) St−1 + β(t) vt kt⊺ . The
+inherent recurrent structure of these models enables them to maintain constant memory overhead and
+O(1) time complexity during inference. Despite these models originating from distinct theoretical
+frameworks, for example, early linear attentions [53, 82] like Linformer [98] attempt to reformulate
+quadratic attention computation as O = ϕ(Q)(ϕ(K)⊺ V ) with kernel mapping ϕ, while original
+SSMs [39, 42] like S4 [41] intent to parameterize a continuous dynamical system to a discrete form,
+recent literature [22, 7, 52, 6] have unified these models to the concept of Linear RNNs.
+Corresponding authors (yuxliang@outlook.com, sunweigao@outlook.com). * Work done during Yongqi
+Pan’s internship at Hong Kong University of Science and Technology (Guangzhou).
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

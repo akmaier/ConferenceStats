@@ -1,0 +1,52 @@
+DynaPipe: Dynamic Layer Redistribution for Efficient
+Serving of LLMs with Pipeline Parallelism
+
+Hongxin Xu∗1 , Tianyu Guo∗1 , Xianwei Zhang† 1
+1
+CSE, Sun Yat-Sen University
+{xuhx56,guoty9}@mail2.sysu.edu.cn,zhangxw79@mail.sysu.edu.cn
+
+Abstract
+To accelerate large language model (LLM) inference, pipeline parallelism partitions model layers into sequential stages, each assigned to a different device for
+concurrent execution. However, this method often suffers from pipeline bubbles
+caused by imbalanced computation in the tail stage. While upstream stages focus
+solely on layer-forward operations, the final stage must also handle additional
+post-processing tasks like sampling, which introduces significant latency. This
+discrepancy in workload leads to pipeline misalignment, forcing upstream stages to
+idle and degrading overall performance. Existing frameworks typically distribute
+layers evenly across stages without accounting for computational load differences.
+To address this, we propose DynaPipe, a dynamic layer redistribution scheme
+that adaptively balances computation by predicting execution latency in real time.
+Moreover, we introduce an asynchronous key-value (KV) cache migration coordinator to enable non-blocking layer redistribution during inference. Experiments
+on representative LLMs demonstrate that DynaPipe reduces average end-to-end
+request latency by 8% to 41% across diverse workloads, outperforming state-ofthe-art pipeline parallelism systems. Our implementation is publicly available at
+https://github.com/xhx1022/DynaPipe.
+
+1
+
+Introduction
+
+The rise of large language models (LLMs) [1, 2, 3] has become a cornerstone of modern artificial
+intelligence, empowering a wide range of application fields, from conversational agents [4, 5] and
+intelligent coding assistants [6, 7] to retrieval-augmented generation systems [8, 9, 10]. Despite their
+impressive capabilities, deploying LLM at scale presents significant challenges, primarily due to
+their immense computational and memory demands. As model sizes grow from billions to hundreds
+of billions of parameters, inference costs rise exponentially, rendering single-device execution
+impractical. This has spurred extensive researches and engineering efforts aimed at developing
+efficient distributed inference strategies [11, 12, 13, 14, 15].
+Among these strategies, Tensor Parallelism (TP) [12, 16, 17] and Pipeline Parallelism (PP) [18, 19, 20]
+have emerged as two dominant methods, now widely adopted in industrial-scale LLM serving systems
+[21, 22]. TP partitions the computation within each layer across multiple devices, but its scalability
+can be often restricted by substantial inter-device communication overhead, particularly in bandwidthconstrained scenarios. In contrast, PP divides the model layers into sequential stages, each assigned
+to a different device. Thus, PP processes multiple micro-batches in a pipelined manner, improving
+throughput by reducing communication overhead and enabling better overlap of computations across
+stages.
+∗
+†
+
+Equal contribution
+Corresponding author.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

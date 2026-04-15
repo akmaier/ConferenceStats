@@ -1,0 +1,55 @@
+Tensor-Parallelism with
+Partially Synchronized Activations
+
+Itay Lamprecht†‡ Asaf Karnieli† Yair Hanani† Niv Giladi◦∗ Daniel Soudry‡
+†
+Intel, Israel
+‡
+Department of Electrical and Computer Engineering - Technion, Haifa, Israel
+◦
+AWS AI Labs
+{itay.lamprecht, yair.hanani}@intel.com
+{ngiladi}@amazon.com
+{asafkarnieli, daniel.soudry}@gmail.com
+
+Abstract
+Training and inference of Large Language Models (LLMs) with tensor-parallelism
+requires substantial communication to synchronize activations. Our findings suggest that with a few minor adjustments to current practices, LLMs can be trained
+without fully synchronizing activations, reducing bandwidth demands. We name
+this “Communication-Aware Architecture for Tensor-parallelism” (CAAT-Net).
+We train a 7B parameter CAAT-Net model and show that tensor-parallel communication can be reduced by up to 50% with no significant drop in pretraining accuracy
+across nearly all evaluated benchmarks. We also experiment with smaller 130M
+and 1.1B models to show the robustness and scalability of our method. We find that,
+in some scenarios, validation loss can even improve when reducing communication.
+Finally, we demonstrate how CAAT-Net accelerates both training and inference
+workloads across various settings and model sizes.
+
+1
+
+Introduction
+
+As Large Language Model (LLM) training continues to scale, often requiring the use of hundreds
+or even thousands of devices, the need for efficient distributed training and inference techniques
+is constantly growing. Tensor-parallelism [1] is a critical component in the training of many wellknown LLMs, such as GPT-3 [2], Llama [3, 4], and BLOOM [5], enabling the efficient utilization of
+hardware resources to support models with billions of parameters. By partitioning weight tensors
+across multiple devices, tensor-parallelism allows each device to store only a fraction of the model’s
+weights during computation. This significantly reduces the memory footprint per device, making it
+feasible to train extremely large models on hardware with limited memory capacity. The efficiency of
+tensor-parallelism in reducing training memory has made it a cornerstone technique for distributed
+training. During inference, where the LLM response time is critical, distributing the computation
+over multiple devices using tensor-parallelism can significantly reduce latency.
+Much of the total time spent training or using LLMs is consumed by the communication overhead
+inherent in tensor-parallelism, which arises from the need to synchronize activation or gradient
+tensors. Specifically, synchronization is done by all-reduce operations, where tensors from all devices
+are summed into a single tensor, which is copied to all devices. This operation occurs multiple times
+in each forward and backward pass and constitutes a substantial fraction of the total workload time.
+A recent approach to addressing this issue is pipelining communication and computation [6] in such a
+way that the communication is overlapped with the computation and the footprint of communication
+is reduced. However, this approach is limited: when tensor-parallelism is expanded to use more
+∗
+
+This work was done while the author was at Intel.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

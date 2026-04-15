@@ -1,0 +1,58 @@
+Shape it Up! Restoring LLM Safety during Finetuning
+
+ShengYun Peng1
+
+Pin-Yu Chen2 Jianfeng Chi3 Seongmin Lee1
+1
+Georgia Tech 2 IBM Research 3 Meta
+{speng65,seongmin,polo}@gatech.edu
+pin-yu.chen@ibm.com
+jianfengchi@meta.com
+
+Duen Horng Chau1
+
+Abstract
+Finetuning large language models (LLMs) enables user-specific customization but
+introduces important safety risks: even a few harmful examples can compromise
+safety alignment. A common mitigation strategy is to update the model more
+strongly on examples deemed safe, while downweighting or excluding those flagged
+as unsafe. However, because safety context can shift within a single example,
+updating the model equally on both harmful and harmless parts of a response is
+suboptimal — an atomic treatment we term static safety shaping. In contrast, we
+propose dynamic safety shaping (DSS), a dynamic shaping framework that uses
+fine-grained safety signals to reinforce learning from safe segments of a response
+while suppressing unsafe content. To enable such fine-grained control during
+finetuning, we introduce a key insight: guardrail models, traditionally used for
+filtering, can be repurposed to evaluate partial responses, tracking how safety risk
+evolves throughout the response, segment by segment. This leads to the Safety
+Trajectory Assessment of Response (STAR), a token-level signal that enables
+shaping to operate dynamically over the training sequence. Building on this, we
+present ⋆DSS, a DSS method guided by STAR scores that robustly mitigates
+finetuning risks and delivers substantial safety improvements across diverse threats,
+datasets, and model families, all without compromising capability on intended
+tasks. We encourage future safety research to build on dynamic shaping principles
+for stronger mitigation against evolving finetuning risks. Our code is publicly
+available at https://github.com/poloclub/star-dss.
+. This paper includes potentially offensive red-teaming data and model-generated content.
+
+1
+
+Introduction
+
+Finetuning-as-a-service allows users to upload custom datasets and deploy personalized LLMs for
+specialized tasks, which is an encouraged practice across both open-source [1, 2] and commercial
+platforms [3, 4]. However, this growing flexibility introduces critical safety risks: even safety-aligned
+LLMs can be compromised when exposed to harmful or poorly curated finetuning data, whether
+uploaded intentionally or by mistake [5, 6]. Recent studies [7, 8] show that safety alignment can be
+subverted through finetuning on just a few adversarially crafted examples [9], on narrowly scoped
+tasks like generating insecure code [10], and even on benign datasets [9, 11, 12].
+In this paper, we introduce safety shaping — a unified framework to mitigate such LLM finetuning
+risks — by leveraging external safety signals to update model weights during finetuning, which
+includes data inspection [13–15], safety-aware finetuning [16–21], and representation engineering [22–
+25]. The majority of existing methods practice static safety shaping: they treat each training example
+as an atomic unit and make a binary keep-or-drop decision. However, because static methods update
+on the entire sample, they remain vulnerable to examples that turn unsafe mid-sequence (Fig. 1),
+allowing harmful content to influence training and ultimately undermining safety, which makes static
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

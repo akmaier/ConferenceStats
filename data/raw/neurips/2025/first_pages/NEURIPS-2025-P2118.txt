@@ -1,0 +1,57 @@
+First Attentions Last: Better Exploiting First
+Attentions for Efficient Transformer Training
+
+Gyudong Kim1 Hyukju Na1 Jin Hyeon Kim1 Hyunsung Jang2 Jaemin Park2
+Jaegi Hwang2 Namkoo Ha2 Seungryong Kim3† Young Geun Kim1†
+1
+2
+3
+Korea University
+LIG Nex1 Co., Ltd.
+KAIST AI
+
+Abstract
+As training billion-scale transformers becomes increasingly common, employing multiple
+distributed GPUs along with parallel training methods has become a standard practice. However,
+existing transformer designs suffer from significant communication overhead, especially in
+Tensor Parallelism (TP), where each block’s MHA–MLP connection requires an all-reduce
+communication. Through our investigation, we show that the MHA-MLP connections can be
+bypassed for efficiency, while the attention output of the first layer can serve as an alternative
+signal for the bypassed connection. Motivated by the observations, we propose FAL (First
+Attentions Last), an efficient transformer architecture that redirects the first MHA output to the
+MLP inputs of the following layers, eliminating the per-block MHA-MLP connections. This
+removes the all-reduce communication and enables parallel execution of MHA and MLP on a
+single GPU. We also introduce FAL+, which adds the normalized first attention output to the
+MHA outputs of the following layers to augment the MLP input for the model quality. Our
+evaluation shows that FAL reduces multi-GPU training time by up to 44%, improves single-GPU
+throughput by up to 1.18×, and achieves better perplexity compared to the baseline GPT. FAL+
+achieves even lower perplexity without increasing the training time than the baseline. Codes
+are available at: https://casl-ku.github.io/FAL/
+
+1
+
+Introduction
+
+As transformers continue to grow following scaling law trends [1], Large Language Models (LLMs)
+such as GPT [2] and LLaMA [3] demonstrate superior performance across a wide range of NLP tasks.
+Given that the large transformers usually have billions of parameters which is far exceeding a single
+GPU’s memory and computation limit, distributed training over multiple GPUs is necessary.
+Among distributed training methods, Tensor Parallelism (TP) [4] has been considered as a standard
+practice for multi-GPU training in each single-node, given its decent computation throughput and
+memory efficiency [5, 6, 7]. However, the overall efficiency of TP can still be limited by the
+communication overhead across the GPUs. For example, if the number of GPUs increases (and/or
+the interconnect speed slows down), the efficiency of TP can be significantly degraded due to the
+increased communication overhead. Hence, to further scale up transformers with more GPUs and
+diverse interconnect configurations, it is essential to mitigate the communication overhead in TP.
+One of the major sources of communication overhead in TP is the per-block communication (i.e.,
+all-reduce) required across GPUs to transfer data between two main modules in each transformer
+block: Multi Head Attention (MHA) and Multi Layer Perceptron (MLP). In TP, each GPU computes
+a part of the MHA output, but the results must be aggregated via all-reduce to form a complete
+activation before being passed to the MLP.
+†
+
+Corresponding authors (seungryong.kim@kaist.ac.kr, younggeun_kim@korea.ac.kr)
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

@@ -1,0 +1,51 @@
+Pay Attention to Small Weights
+
+Chao Zhou Tom Jacobs Advait Gadhikar Rebekka Burkholz
+CISPA Helmholtz Center for Information Security, Saarbrücken, Germany
+{chao.zhou, tom.jacobs, advait.gadhikar, burkholz}@cispa.de
+
+Abstract
+Finetuning large pretrained neural networks is known to be resource-intensive, both
+in terms of memory and computational cost. To mitigate this, a common approach is
+to restrict training to a subset of the model parameters. By analyzing the relationship
+between gradients and weights during finetuning, we observe a notable pattern:
+large gradients are often associated with small-magnitude weights. This correlation
+is more pronounced in finetuning settings than in training from scratch. Motivated
+by this observation, we propose NANOA DAM, which dynamically updates only the
+small-magnitude weights during finetuning and offers several practical advantages:
+first, the criterion is gradient-free—the parameter subset can be determined without
+gradient computation; second, it preserves large-magnitude weights, which are
+likely to encode critical features learned during pretraining, thereby reducing the
+risk of catastrophic forgetting; thirdly, it permits the use of larger learning rates
+and consistently leads to better generalization performance in experiments. We
+demonstrate this for both NLP and vision tasks.
+
+1
+
+Introduction
+
+With the advent of Transformer-based models like GPT [26], large models (LMs) [32, 20] excel
+across domains such as natural language processing (NLP) [3, 37] and computer vision (CV) [21, 41].
+They enable effective knowledge transfer via finetuning (FT) on downstream tasks, facilitating the
+development of domain-specific models.
+It is well known that fully finetuning LMs requires substantial computations and memory [33, 12].
+One of the main reasons is that the predominant optimizers, Adam [16] and its variants [22], maintain
+both first- and second-order momentum estimates for each parameter [16, 22]. For a model with
+N trainable parameters, this results in a memory footprint equivalent to storing approximately 3N
+parameters, significantly limiting scalability. To address this problem, methods such as gradient
+checkpointing [4], quantization [11], and parameter offloading [28] have been developed. Gradient
+checkpointing [4], for instance, reduces memory usage by storing intermediate feature maps and
+gradients and recomputing them during backpropagation—a trade-off that sacrifices computational
+efficiency for reduced memory demand. Similarly, 8-bit Adam [7] addresses memory overhead by
+quantizing optimizer statistics to 8-bit precision while leveraging block-wise dynamic quantization to
+maintain numerical stability, thereby minimizing performance degradation.
+Recently, projection-based methods have emerged as a promising approach to reduce memory
+overhead. For instance, GaLore [44] enables full-parameter training by projecting gradients into
+a low-rank subspace, applying Adam-like updates there, and projecting them back to the original
+space—thus reducing memory usage. However, GaLore relies on SVD decomposition of gradients, which is only applicable to layers satisfying the reversibility property [27]. MicroAdam [24]
+compresses gradients using top-k selection and mitigates performance loss via an error feedback
+mechanism inspired by distributed training. However, it still incurs memory overhead for storing
+accumulated error and introduces extra computation for quantization and feedback. In contrast, our
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

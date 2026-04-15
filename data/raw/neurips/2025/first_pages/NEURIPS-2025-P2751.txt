@@ -1,0 +1,51 @@
+MUSTAFAR: Promoting Unstructured Sparsity for
+KV Cache Pruning in LLM Inference
+
+Donghyeon Joo1 , Helya Hosseini1 , Ramyad Hadidi2 , Bahar Asgari1
+1
+Department of Computer Science, University of Maryland, 2 d-Matrix
+{dhjoo98,helia,bahar}@umd.edu, rhadidi@d-matrix.ai
+
+Abstract
+We demonstrate that unstructured sparsity significantly improves KV cache compression for LLMs, enabling sparsity levels up to 70% without compromising
+accuracy or requiring fine-tuning. We conduct a systematic exploration of pruning
+strategies and find per-token magnitude-based pruning as highly effective for both
+Key and Value caches under unstructured sparsity, surpassing prior structured
+pruning schemes. The Key cache benefits from prominent outlier elements, while
+the Value cache surprisingly benefits from a simple magnitude-based pruning despite its uniform distribution. KV cache size is the major bottleneck in decode
+performance due to high memory overhead for large context lengths. To address
+this, we use a bitmap-based sparse format and a custom attention kernel capable of
+compressing and directly computing over compressed caches pruned to arbitrary
+sparsity patterns, significantly accelerating memory-bound operations in decode
+computations and thereby compensating for the overhead of runtime pruning and
+compression. Our custom attention kernel coupled with the bitmap-based format
+delivers substantial compression of KV cache up to 45% of dense inference and
+thereby enables longer context lengths and increased tokens/sec throughput of up to
+2.23× compared to dense inference. Our pruning mechanism and sparse attention
+kernel is available at https://github.com/dhjoo98/mustafar.
+
+1
+
+Introduction
+
+In the age of Large Language Models (LLMs), advances in the machine learning domain [41, 2, 6] and
+the fast and efficient computing systems [21, 35] have led to the emergence of highly capable LLMs
+that can summarize a book [22], write a compelling story [18], code a library [53], and generally
+reason over longer contexts than ever before [7]. As LLMs are increasingly tasked with processing
+longer sequences, the memory overhead associated with key-value (KV) caching has emerged as a
+critical bottleneck to scaling context length.
+Prior work has approached the challenge of KV cache memory overhead through techniques such as
+quantization [30, 15, 48, 52], low-rank approximation [47, 4, 37, 50, 26], token-wise eviction [51,
+29, 25, 8, 1, 11], and structured pruning (e.g., channel-wise removal [44, 31]). The need to improve
+individual compression techniques has become increasingly important, especially as joint applications
+of multiple methods, such as pruning combined with token eviction [44], quantization with token-wise
+eviction [52], and low-rank approximation with quantization [4], gain popularity. However, previous
+work on KV cache pruning have been limited to structured pruning, primarily due to the difficulty of
+efficiently leveraging finer-grained (i.e., unstructured) sparsity during execution. Effective pruning of
+the KV cache entails two core challenges: (1) achieving substantial reduction in KV cache size while
+preserving model accuracy, and (2) ensuring that the runtime pruning and compression processes are
+sufficiently efficient (i.e., the associated overhead must not outweigh the latency gains introduced by
+the resulting sparsity).
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

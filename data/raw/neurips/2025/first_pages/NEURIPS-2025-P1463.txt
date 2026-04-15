@@ -1,0 +1,50 @@
+NestedFP: High-Performance, Memory-Efficient
+Dual-Precision Floating Point Support for LLMs
+
+Haeun Lee, Omin Kwon, Yeonhong Park∗, Jae W. Lee∗
+Department of Computer Science and Engineering
+Seoul National University
+{haeunlee, om0127, ilil96 jaewlee}@snu.ac.kr
+
+Abstract
+Meeting service-level objectives (SLOs) in Large Language Models (LLMs) serving is critical, but managing the high variability in load presents a significant
+challenge. Recent advancements in FP8 inference, backed by native hardware
+support, offer a potential solution: executing FP16 models by default, while switching to FP8 models during sudden load surges to achieve higher throughput at
+the cost of a slight quality degradation. Although this approach facilitates effective SLO management, it introduces additional memory overhead due to storing
+two versions of the same model. In response, this paper proposes NestedFP, an
+LLM serving technique that supports both FP16 and FP8 models in a memoryefficient manner by overlaying FP8 parameters onto FP16 parameters, allowing
+both models to share the same FP16 memory footprint. By leveraging a compact
+data format for the overlay and a specialized GEMM kernel optimized for this
+format, NestedFP ensures minimal degradation in both model quality and inference throughput across both FP8 and FP16 modes. NestedFP provides a flexible
+platform for dynamic, SLO-aware precision selection. The code is available at
+https://github.com/SNU-ARC/NestedFP.
+
+1
+
+Introduction
+
+Large Language Models (LLMs) have emerged as foundational components in modern AI systems,
+enabling a wide range of applications such as virtual assistants, text and code generation, and
+multi-modal tasks that integrate textual and visual information [1, 7, 21]. Their broad applicability
+and strong performance have driven widespread adoption, leading to substantial user demand. For
+example, OpenAI’s production-scale models process roughly 100 billion words per day [12] and
+production query rates frequently surpass 200 requests per second [17, 37].
+To accommodate such large-scale applications, research efforts have focused not only on improving
+serving throughput [16, 38] but also on meeting service-level objectives (SLOs) [2, 13, 29]. One of
+the key challenges in achieving SLOs for LLM serving lies in handling dynamic load. Request rates,
+as well as input and output sequence lengths, can fluctuate significantly over short time intervals.
+Simply overprovisioning compute resources may mitigate this issue but results in substantial system
+cost inefficiency.
+As a promising alternative, we explore an approach we call dual-precision LLM serving, which
+utilizes FP8 together with FP16, the de facto standard number format for weight parameters. While
+FP8 may incur a slight degradation in model quality, it offers up to 2× higher peak throughput
+compared to FP16 [22, 27, 28]. By operating in FP16 mode under normal conditions and switching
+to FP8 mode only during sudden load surges, we can effectively manage dynamic workloads without
+resource overprovisioning. This approach achieves a better balance between SLO attainment and
+service quality than relying solely on either FP16 or FP8.
+∗
+
+Corresponding authors
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

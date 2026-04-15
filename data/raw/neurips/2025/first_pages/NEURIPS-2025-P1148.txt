@@ -1,0 +1,66 @@
+Compress to Impress: Efficient LLM Adaptation Using
+a Single Gradient Step on 100 Samples
+
+Shiva Sreeram1∗ Alaa Maalouf2,1
+1
+
+MIT CSAIL
+
+Pratyusha Sharma1
+2
+
+Daniela Rus1
+
+University of Haifa
+
+Abstract
+Recently, Sharma et al. suggested a method called LAyer- SElective-Rank reduction
+(LASER) which demonstrated that pruning high-order components of carefully
+chosen LLM’s weight matrices can boost downstream accuracy—without any
+gradient-based fine-tuning. Yet LASER’s exhaustive, per-matrix search (each
+requiring full-dataset forward passes) makes it impractical for rapid deployment.
+We demonstrate that this overhead can be removed and find that: (i) Only a
+small, carefully chosen subset of matrices needs to be inspected—eliminating the
+layer-by-layer sweep, (ii) The gradient of each matrix’s singular values pinpoints
+which matrices merit reduction, (iii) Increasing the factorization search space by
+allowing matrices rows to cluster around multiple subspaces and then decomposing
+each cluster separately further reduces overfitting on the original training data and
+further lifts accuracy by up to 24.6 percentage points, and finally, (iv) we discover
+that evaluating on just 100 samples rather than the full training data—both for
+computing the indicative gradients and for measuring the final accuracy—suffices
+to further reduce the search time; we explain that as adaptation to downstream
+tasks is dominated by prompting style, not dataset size. As a result, we show
+that combining these findings yields a fast and robust adaptation algorithm for
+downstream tasks. Overall, with a single gradient step on 100 examples and a
+quick scan of the top candidate layers and factorization techniques, we can adapt
+LLMs to new datasets—entirely without fine-tuning.
+
+1
+
+Introduction
+
+Transformer-based large language models (LLMs) have rapidly become the backbone of modern
+natural-language systems, scaling from hundreds of millions to billions or trillions of parameters
+and achieving remarkable zero-shot and few-shot performance across a wide range of tasks Brown
+et al. [2020], Touvron et al. [2023]. Despite their success, adapting these models to domain-specific
+data remains expensive: standard fine-tuning requires back-propagation through all parameters, large
+GPU clusters, and hundreds of gradient steps. Even parameter-efficient methods such as LoRA Hu
+et al. [2022] and prompt-tuning Lester et al. [2021] still incur non-negligible compute and storage
+overhead when multiple tasks or domains must be supported simultaneously.
+A complementary approach is to explore post-training interventions that modify a pretrained model
+without gradient-based optimization. Lately, LAyer-SElective-Rank reduction (LASER) of Sharma
+et al. provided a striking result: simply pruning higher-order components of carefully chosen weight
+matrices can increase downstream accuracy—no additional data, optimizers, or training epochs
+required. Unfortunately, LASER’s exhaustive, per-matrix search demands a large-dataset forward
+pass per matrix in every layer, making it impractical for rapid deployment or on-device adaptation.
+Our contribution. In this paper we revisit LASER through the lens of efficiency. Our key insight is
+that the matrices most responsible for task adaptation can be identified without an exhaustive sweep.
+By computing the gradient of each matrix’s singular values, without ever updating model weights,
+on a small validation subset (100 data points only each computed just once) and allowing rows
+∗
+
+Correspondence: sasreera@mit.edu
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

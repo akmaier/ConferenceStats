@@ -1,0 +1,54 @@
+Dense Backpropagation Improves Training
+for Sparse Mixture-of-Experts
+
+Ashwinee Panda1∗ Vatsal Baherwani1∗ Zain Sarwar2,3 Benjamin Therien2,4
+Sambit Sahu2 Tom Goldstein1 Supriyo Chakraborty2
+1
+University of Maryland 2 Capital One 3 University of Chicago 4 Mila – Quebec AI Institute
+
+Abstract
+Mixture of Experts (MoE) pretraining is more scalable than dense Transformer
+pretraining, because MoEs learn to route inputs to a sparse set of their feedforward
+parameters. However, this means that MoEs only receive a sparse backward
+update, leading to training instability and suboptimal performance. We present
+a lightweight approximation method that gives the MoE router a dense gradient
+update while continuing to sparsely activate its parameters. Our method, which we
+refer to as Default MoE, substitutes missing expert activations with default outputs
+consisting of an exponential moving average of expert outputs previously seen over
+the course of training. This allows the router to receive signals from every expert
+for each token, leading to significant improvements in training performance. Our
+Default MoE outperforms standard TopK routing in a variety of settings without
+requiring significant computational overhead.
+
+1
+
+Introduction
+
+The sparsely activated Mixture-of-Experts (MoE) Transformer architecture [Shazeer et al., 2017] has
+been used by many industry deployments [DeepSeek-AI Team, 2024b, xAI, 2024, Databricks, 2024,
+Mistral Team, 2024, Snowflake, 2024, DeepSeek-AI Team, 2024a] because MoEs have been shown
+to scale even better than dense Transformers [Clark et al., 2022, Du et al., 2022, Lepikhin et al., 2020,
+Fedus et al., 2022]. MoEs learn a routing function that selectively activates the Top-K subset of their
+modules, or experts, most relevant to a given input. This conditionally sparse activation [Jacobs
+et al., 1991, Jordan and Jacobs, 1994] allows us to multiplicatively increase the model parameter
+count without significantly increasing the cost of training or inference. At train time, the sparse router
+enables very large MoEs to be trained with relatively little computation per token, but it also presents
+a challenge. The router does not receive a gradient update from experts that it does not activate. This
+may slow down learning, as the gradient update is unable to adjust the router to promote the optimal
+expert for each token. This can be corrected by activating all experts during training, enabling all
+experts and routing directions to be optimized at once, although this requires much more compute.
+In this work we propose DefaultMoE: a new method that strikes a middle ground between dense
+and sparse routing; our proposed router can receive and differentiate contributions from all experts,
+while the computational cost remains virtually identical to a standard Top-K router. In our proposed
+method, the router receives contributions from all experts for every token. However, a forward pass is
+only computed on the Top-K experts for each token, while other experts contribute a “default vector"
+that represents the expected output of a typical token. Our method adds minimal computational
+overhead compared to a standard Top-K router while improving performance on a range of standard
+benchmarks for 2 billion total parameter MoEs trained on 160 billion tokens.
+∗
+
+* denotes equal contribution. Correspondence to: ashwinee@umd.edu
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

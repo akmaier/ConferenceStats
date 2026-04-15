@@ -1,0 +1,50 @@
+Drag-and-Drop LLMs: Zero-Shot Prompt-to-Weights
+
+Zhiyuan Liang1∗ Dongwen Tang1 Yuhao Zhou1 Xuanlei Zhao1 Mingjia Shi1
+Wangbo Zhao1 Zekai Li1 Peihao Wang2 Konstantin Schürholt3 Damian Borth3
+Michael M. Bronstein4 Yang You1 Zhangyang Wang2∗ Kai Wang1∗
+1
+National University of Singapore, 2 UT Austin, 3 University of St. Gallen, 4 Oxford University
+
+Abstract
+Modern Parameter-Efficient Fine-Tuning (PEFT) methods such as low-rank adaptation (LoRA) reduce the cost of customizing large language models (LLMs), yet
+still require a separate optimization run for every downstream dataset. We introduce Drag-and-Drop LLMs (DnD), a prompt-conditioned parameter generator
+that eliminates per-task training by mapping a handful of unlabeled task prompts
+directly to LoRA weight updates. A lightweight text encoder distills each prompt
+batch into condition embeddings, which are then transformed by a cascaded hyperconvolutional decoder into the full set of LoRA matrices. Once trained in a diverse
+collection of prompt-checkpoint pairs, DnD produces task-specific parameters in
+seconds, yielding i) up to 12,000× lower overhead than full fine-tuning, ii) average
+gains up to 30% in performance over the strongest training LoRAs on unseen
+common-sense reasoning, math, coding, and multimodal benchmarks, and iii)
+robust cross-domain generalization despite never seeing the target data or labels.
+Our results demonstrate that prompt-conditioned parameter generation is a viable
+alternative to gradient-based adaptation for rapidly specializing LLMs. Our project
+is available at https://jerryliang24.github.io/DnD.
+
+1
+
+Introduction
+
+Large Language Models (LLMs) such as GPT-4, Llama 2/3, Qwen2.5, and DeepSeek have rapidly
+become the backbone of contemporary natural-language processing and artificial intelligence more
+broadly, thanks to their internet-scale pre-training and transformer architectures [1, 19, 63, 36]. This
+pre-training endows a single model with broad zero-shot competence across mathematics, coding,
+reasoning, and even multimodal understanding [24, 12, 62, 29]. Yet, real-world deployments rarely
+stop at zero-shot use; they demand task-specific behavior that reflects internal data, domain jargon,
+or bespoke response styles. Parameter-Efficient Fine-Tuning (PEFT) aims to satisfy this demand
+by inserting a small set of trainable weights, most prominently the low-rank adapters of LoRA [25].
+While LoRA allows to maintain the number of trainable parameters and storage overhead small by
+keeping the model frozen, the wall-clock cost remains very high: for example, adapting the lightest
+0.5 B-parameter Qwen2.5 with LoRA still occupies four A100 GPUs for half a day [63]. Moreover,
+each downstream user or dataset requires its own optimization run, which quickly becomes the
+computational bottleneck for practitioners when deploying PEFT at massive scales.
+We observe that a LoRA adapter is nothing more than a function of its training data: gradient
+descent “drags” the base weights towards a task-specific optimum (Figure 1). If that mapping from
+prompts to weights can be learned directly, we could bypass gradient descent altogether. Early
+work on parameter generation has shown that hyper-networks can synthesize billions of weights in
+minutes [51, 43, 59, 49, 53]. Yet they either ignore task conditioning or use simple binary embeddings.
+* Zhiyuan, Zhangyang, and Kai are core contributors.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

@@ -1,0 +1,66 @@
+Quartet: Native FP4 Training Can Be Optimal
+for Large Language Models
+
+Roberto L. Castro∗
+ISTA & Red Hat AI
+Jiale Chen
+ISTA
+
+Andrei Panferov∗
+ISTA
+Mahdi Nikdan
+ISTA
+
+Soroush Tabesh
+ISTA
+
+Saleh Ashkboos
+ETH Zürich
+
+Oliver Sieberling
+ETH Zürich
+Dan Alistarh
+ISTA & Red Hat AI
+
+Abstract
+Training large language models (LLMs) models directly in low-precision offers
+a way to address computational costs by improving both throughput and energy
+efficiency. For those purposes, NVIDIA’s recent Blackwell architecture facilitates
+very low-precision operations using FP4 variants. Yet, current algorithms for
+training LLMs in FP4 precision face significant accuracy degradation and often
+rely on mixed-precision fallbacks. In this paper, we investigate hardware-supported
+FP4 training and introduce a new approach for accurate, end-to-end FP4 training
+with all the major computations (i.e., linear layers) in low precision. Through
+extensive evaluations on Llama-type models, we reveal a new low-precision scaling
+law that quantifies performance trade-offs across bit-widths and training setups.
+Guided by this investigation, we design an “optimal” technique in terms of accuracyvs-computation, called Quartet. We implement Quartet using optimized CUDA
+kernels tailored for Blackwell, demonstrating that fully FP4-based training is a
+competitive alternative to FP16 half-precision and to FP8 training. Our code is
+available at https://github.com/IST-DASLab/Quartet.
+
+1
+
+Introduction
+
+Over the past decade, the capabilities of large language models (LLMs) have surged, unlocking
+state-of-the-art performance in AI reasoning, coding, and multimodal understanding. These advances
+have come at the cost of an unprecedented rise in compute costs, as the floating-point operations
+(FLOPs) required to train a frontier model have been doubling every few months [16].
+One key lever for reducing compute costs is lower-precision computation: executing the matrixmultiplication (MatMul) kernels that dominate training workloads at lower bit-widths yields
+near-linear gains in throughput and energy efficiency. On the inference side, it is known that
+4-bit quantization—or even lower—can preserve accuracy, via sophisticated calibration and rotation
+schemes [24; 2; 9]. For training, recent work has pushed the precision frontier from FP16 [33] to 8-bit
+pipelines, responsible in part for efficiency breakthroughs such as DeepSeek-V3 [31]. In this context,
+NVIDIA’s Blackwell architecture introduces efficient hardware support for even lower-precision
+microscaling formats [36] such as MXFP and NVFP, which natively support 4-bit floating-point
+operations at higher teraFLOP-per-watt efficiency: for instance, moving from 8- to 4-bit multiplies
+on the B200 GPU can almost double arithmetic throughput, while cutting energy roughly in half [35].
+Yet, today’s algorithmic support for accurate end-to-end training in such low precision is missing.
+State-of-the-art quantized training methods such as Switchback [54], Jetfire [57], HALO [3], and
+∗
+
+- Equal contribution. Correspondence to: dan.alistarh@ist.ac.at.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

@@ -1,0 +1,55 @@
+InfiniPot-V: Memory-Constrained KV Cache
+Compression for Streaming Video Understanding
+
+Minsoo Kim1† Kyuhong Shim2 Jungwook Choi1‡ Simyung Chang3‡
+1
+Hanyang University 2 Sungkyunkwan University
+3
+Qualcomm AI Research, Qualcomm Korea YH§
+{minsoo2333, choij}@hanyang.ac.kr khshim@skku.edu
+simychan@qti.qualcomm.com
+
+Abstract
+Modern multimodal large language models (MLLMs) can reason over hour-long
+video, yet their key–value (KV) cache grows linearly with time—quickly exceeding the fixed memory of phones, AR glasses, and edge robots. Prior compression
+schemes either assume the whole video and user query are available offline or must
+first build the full cache, so memory still scales with stream length. InfiniPot-V
+is the first training-free, query-agnostic framework that enforces a hard, lengthindependent memory cap for streaming video understanding. During video encoding it monitors the cache and, once a user-set threshold is reached, runs a
+lightweight compression pass that (i) removes temporally redundant tokens via
+Temporal-axis Redundancy (TaR) metric and (ii) keeps semantically significant
+tokens via Value-Norm (VaN) ranking. Across four open-source MLLMs and four
+long-video and streaming-video benchmarks, InfiniPot-V cuts peak GPU memory
+by up to 94%, sustains real-time generation, and matches or surpasses full-cache
+accuracy—even in multi-turn dialogues. By dissolving the KV cache bottleneck
+without retraining or query knowledge, InfiniPot-V closes the gap for on-device
+streaming video assistants.
+
+1
+
+Introduction
+
+Recent advances in multimodal large language models (MLLMs) have dramatically expanded the
+scope of visual reasoning. Vision–language instruction tuning now allows a single backbone to answer
+open-ended questions over long video sequences [27, 30, 48], while context-extension techniques
+such as FlashAttention-2 and RingAttention push the effective window into the million-token regime
+[7, 26, 33]. These breakthroughs underpin a new generation of streaming video assistants and
+humanoid robots that promise continuous, real-time scene understanding on mobile phones, AR
+glasses and edge robots [14, 31, 42, 37].
+Streaming video understanding (SVU) diverges from conventional offline video understanding (OVU).
+Offline models see the entire clip and user query before inference, so they can tailor every compression
+or retrieval step. In streaming, frames arrive incrementally and future queries are unknown, forcing all
+pre-query processing to be query-agnostic. In addition, device memory is fixed, yet the transformer
+emits hundreds of tokens per frame, so the key–value (KV) cache grows linearly. For example, a
+15-min, 10 fps clip processed by LLaVA-Next-Video-7B already needs demands ∼ 100 GB of KV
+storage, far beyond the tens of gigabytes available on mobile or robotic platforms [52, 19].
+†
+
+Work done during an internship at Qualcomm Technologies, Inc.
+Corresponding authors.
+§
+Qualcomm AI Research, an initiative of Qualcomm Technologies, Inc.
+‡
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

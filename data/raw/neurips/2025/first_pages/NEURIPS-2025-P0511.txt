@@ -1,0 +1,62 @@
+Generative Caching for Structurally Similar Prompts
+and Responses
+
+Sarthak Chakraborty1∗
+
+Suman Nath2
+Xuchao Zhang2
+Chetan Bansal2
+1
+Indranil Gupta
+1
+University of Illinois at Urbana-Champaign, 2 Microsoft Research
+{sc134,indy}@illinois.edu, {sumann,xuchaozhang,chetanb}@microsoft.com
+
+Abstract
+Large Language Models (LLMs) are increasingly being used to plan, reason, and
+execute tasks across diverse scenarios. In use cases like repeatable workflows
+and agentic settings, prompts are often reused with minor variations while having
+a similar structure for recurring tasks. This opens up opportunities for caching.
+However, exact prompt matching fails on such structurally similar prompts, while
+semantic caching may produce incorrect responses by ignoring critical differences.
+To address this, we introduce GenCache, a generative cache that produces variationaware responses for structurally similar prompts. GenCache identifies reusable
+response patterns across similar prompt structures and synthesizes customized
+outputs for new requests. We show that GenCache achieves 83% cache hit rate,
+while having minimal incorrect hits on datasets without prompt repetition. In
+agentic workflows, it improves cache hit rate by ∼20% and reduces end-to-end
+execution latency by ∼34% compared to standard prompt matching.
+
+1
+
+Introduction
+
+AI applications, often composed of AI agents, augment Large Language Models (LLMs) with external
+tools [28, 40, 33], enabling them to interact with their environment and solve complex, multi-step
+tasks [45, 50, 41, 2, 31, 32, 59]. Many such applications repeatedly address similar task patterns,
+naturally leading to the construction of structurally similar prompts [21]. For instance, structured
+repetitive workflows like data entry or customer service agents encounter repetitive queries with
+minor variations, or cloud operations agents frequently diagnose recurring system faults [47, 38, 58].
+Furthermore, prompt engineering techniques often format prompts with reusable templates (called
+system messages for AI agents), leading to similar prompts. Prior work has shown that caching and
+reusing prompts and their associated responses can substantially reduce latency and dollar cost in
+such repetitive workflows since the number of LLM calls is reduced [14, 63, 64, 43, 22, 21, 20, 57].
+Existing client-side LLM caches are typically designed as key-value stores [7, 11, 12]. Traditional
+exact request (or prompt) matching returns a cached value if the new prompt exactly matches a
+stored prompt key [27, 39], while semantic caches return a cached response based on the semantic
+similarity of the new request with a stored prompt key [14, 20, 21]. Semantic similarity is computed
+using vector embeddings, where two keys are considered similar if their cosine distance surpasses a
+predefined threshold.
+However, existing caching techniques fail in applications where prompt-response pairs exhibit three
+key properties: (a) Structured Regularity: prompts are not exact or semantically similar, but instead
+structurally similar, i.e. follow a consistent format (defined in §2), (b) Controlled Variability:
+prompts show minimal yet important controlled variations, and (c) Predictable Response Pattern:
+the responses also follow a predictable format, but differ across prompts, remaining correlated with
+the prompt variations. Consider a web-shopping agent [31, 59, 24] that queries an LLM to decide its
+next action from the page content and user instructions. Two example user instructions that satisfy
+∗
+
+Work done during internship at Microsoft Research.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

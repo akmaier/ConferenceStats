@@ -1,0 +1,53 @@
+Hierarchical Balance Packing: Towards Efficient
+Supervised Fine-tuning for Long-Context LLM
+Yongqiang Yao1,† , Jinru Tan3,† , Kaihuan Liang2,† , Feizhao Zhang2 , Jiahao Hu 2
+Shuo Wu2 , Yazhe Niu 4 , Ruihao Gong5,2,∗ , Dahua Lin2 , Ningyi Xu1∗
+1
+Shanghai Jiao Tong University 2 SenseTime Research 3 Central South University
+4
+The Chinese University of Hong Kong 5 Beihang University
+soundbupt@gmail.com, tanjingru@csu.edu.cn, liangkaihuan@sensetime.com
+zhangfeizhao, hujiahao1, wushuo1@sensetime.com, niuyazhe314@outlook.com,
+gongruihao@buaa.edu.cn, dhlin@sensetime.com, xuningyi@sjtu.edu.cn
+
+Abstract
+Training Long-Context Large Language Models (LLMs) is challenging, as hybrid
+training with long-context and short-context data often leads to workload imbalances. Existing works mainly use data packing to alleviate this issue, but fail to
+consider imbalanced attention computation and wasted communication overhead.
+This paper proposes Hierarchical Balance Packing (HBP), which designs a novel
+batch-construction method and training recipe to address those inefficiencies. In
+particular, the HBP constructs multi-level data packing groups, each optimized
+with a distinct packing length. It assigns training samples to their optimal groups
+and configures each group with the most effective settings, including sequential
+parallelism degree and gradient checkpointing configuration. To effectively utilize
+multi-level groups of data, we design a dynamic training pipeline specifically tailored to HBP, including curriculum learning, adaptive sequential parallelism, and
+stable loss. Our extensive experiments demonstrate that our method significantly
+reduces training time over multiple datasets and open-source models while maintaining strong performance. For the largest DeepSeek-V2 (236B) MoE model, our
+method speeds up the training by 2.4× with competitive performance. Codes will
+be released at https://github.com/ModelTC/HBP.
+
+1
+
+Introduction
+
+Large Language Models (LLMs) [1, 2, 3] have achieved state-of-the-art performance in tasks like
+machine translation, summarization, and code generation. However, many applications demand to
+process and understand long-context information [4, 5, 6], such as summarizing books, analyzing
+legal documents, or retaining context in multi-turn conversations. This underscores the necessity for
+long-context LLMs that can efficiently process long input sequences.
+As mentioned in [1], incorporating long context during the Supervised Fine-Tuning (SFT) [7]
+stage is highly necessary. On the other hand, general short-context data is also crucial to maintain
+the model’s general capabilities. However, this hybrid dataset composition introduces significant
+challenges, primarily in terms of speed and accuracy. For speed, long-context data intensifies training
+inefficiencies due to imbalanced workloads; For accuracy, long-context data can degrade performance
+on short-context tasks, affecting the model’s general capabilities. These challenges hinder the
+efficiency and effectiveness of SFT for long-context LLMs.
+The workload imbalance caused by the hybrid of long and short data arises from two main aspects: (1)
+within mini-batch imbalance [8], which is caused by excessive padding from randomized mini-batch
+∗
+
+Corresponding authors: gongruihao@buaa.edu.cn, xuningyi@sjtu.edu.cn; †: equal contribution
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

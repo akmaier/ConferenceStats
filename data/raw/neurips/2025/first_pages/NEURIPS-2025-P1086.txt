@@ -1,0 +1,56 @@
+A Simple Linear Patch Revives Layer-Pruned Large
+Language Models
+
+Xinrui Chen1 , Haoli Bai2∗, Tao Yuan2 , Ruikang Liu1 , Kang Zhao2 , Xianzhi Yu2 ,
+Lu Hou2 , Tian Guan1 , Yonghong He1 , Chun Yuan1∗
+1
+Shenzhen International Graduate School, Tsinghua University
+2
+Huawei Technologies
+baihaoli@huawei.com, yuanc@sz.tsinghua.edu.cn
+
+Abstract
+Layer pruning has emerged as a widely used technique for compressing large
+language models (LLMs). However, existing layer pruning approaches often incur
+substantial performance degradation. We identify the majority of this degradation
+to a single yet previously overlooked issue: the mismatch of activation magnitudes
+at the pruning interface. The pre-interface activations exhibit significantly different
+scales from the post-interface ones, causing the distributional shift as it propagates
+through the remaining layers. To address this issue, we introduce L INEAR PATCH, a
+lightweight and plug-and-play technique that fuses two operations into one matrix
+multiply at the pruning interface: (i) a Hadamard transformation that suppresses
+massive outliers at particular tokens and (ii) a channel-wise scaling that aligns
+activation statistics. On LLaMA-3-8B, L INEAR PATCH preserves up to 94.15% of
+the original model’s performance when pruning 5 out of 32 layers, outperforming
+the previous state of the art by 4%. The patch can be further refined with 5K
+unlabeled samples via memory-efficient offline distillation, pushing the retention
+to 95.16% within only 30 minutes on a single GPU. Code is available at https:
+//github.com/chenxinrui-tsinghua/LinearPatch.
+
+1
+
+Introduction
+
+Recent large language models (LLMs) have achieved remarkable progress toward artificial general
+intelligence [2, 25, 55, 16, 46, 31, 19, 49, 50]. However, their massive scale also incurs substantial
+computational and memory costs during deployment. To address this issue, a variety of model
+compression techniques have been proposed, including quantization [5, 52, 4, 45, 10, 33, 29] and
+pruning [3, 48, 51, 40, 24, 13].
+Among these, layer pruning has emerged as an attractive approach since it can be readily applied
+without relying on hardware-specific optimizations or low-level kernel modifications [42, 26, 8, 37,
+18]. In contrast, unstructured pruning [20, 17, 44] is difficult to accelerate efficiently due to irregular
+memory access patterns, while structured sparsity [3, 48] and N:M sparsity [17, 57] often require
+modifications to model architectures or specialized kernels. Layer pruning, on the other hand, simply
+removes redundant layers without additional dependencies. However, despite the simplicity, a critical
+challenge is the sharp drop of performance.
+In this work, we uncover a new phenomenon that explains this degradation: the mismatch of activation
+magnitudes across layers and tokens at the pruning interface. Specifically, when layers are pruned,
+the activations from the remaining layers often exhibit different scales, and the activations from
+the layer preceding the pruning interface may not align with those from the subsequent layer. This
+∗
+
+Corresponding authors.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

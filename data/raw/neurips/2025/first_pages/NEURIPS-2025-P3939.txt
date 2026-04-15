@@ -1,0 +1,58 @@
+Traversal Verification for Speculative Tree Decoding
+
+Yepeng Weng1∗ Qiao Hu2∗† Xujie Chen1 Li Liu1
+Dianwen Mei1 Huishi Qiu1 Jiang Tian1 Zhongchao Shi1
+1
+Lenovo AI Technology Center, Lenovo
+2
+National Center for Mathematics and Interdisciplinary Sciences (NCMIS), AMSS, CAS
+
+Abstract
+Speculative decoding is a promising approach for accelerating large language
+models. The primary idea is to use a lightweight draft model to speculate the
+output of the target model for multiple subsequent timesteps, and then verify
+them in parallel to determine whether the drafted tokens should be accepted or
+rejected. To enhance acceptance rates, existing frameworks typically construct
+token trees containing multiple candidates in each timestep. However, their reliance
+on token-level verification mechanisms introduces two critical limitations: First, the
+probability distribution of a sequence differs from that of individual tokens, leading
+to suboptimal acceptance length. Second, current verification schemes begin from
+the root node and proceed layer by layer in a top-down manner. Once a parent
+node is rejected, all its child nodes should be discarded, resulting in inefficient
+utilization of speculative candidates. This paper introduces Traversal Verification,
+a novel speculative decoding algorithm that fundamentally rethinks the verification
+paradigm through leaf-to-root traversal. Our approach considers the acceptance
+of the entire token sequence from the current node to the root, and preserves
+potentially valid subsequences that would be prematurely discarded by existing
+methods. We theoretically prove that the probability distribution obtained through
+Traversal Verification is identical to that of the target model, guaranteeing lossless
+inference while achieving substantial acceleration gains. Experimental results
+on various models and multiple tasks demonstrate that our method consistently
+improves acceptance length and throughput over token-level verification.
+
+1
+
+Introduction
+
+Large Language Models (LLMs) have been widely adopted due to their exceptional performance
+across various natural language processing tasks [10, 25, 34] . However, the massive parameters and
+the autoregressive generation scheme of transformer decoder-only [30] LLMs limit the generation
+speed. Speculative decoding [19, 3] is an lossless acceleration technique which employs a lightweight
+model (draft model) with fewer parameters to speculate the output tokens of the original LLM (target
+model) for several future timesteps, then feed the drafted tokens into the target model in parallel.
+After getting the probability distribution of the target model, speculative decoding determines the
+acceptance or rejection of each token based on their probabilities in both target and draft models. If a
+token is rejected, a new token will be resampled and all subsequent tokens should be discarded.
+To further improve acceleration performance, existing methods [23, 4, 21, 14, 35] generate multiple
+candidates at each drafting timestep, forming a tree of drafted tokens. However, these methods
+generally inherit the token-level verification mechanism from vanilla speculative decoding to tree
+scenarios, resulting in suboptimal acceptance lengths in tree decoding. To be more specific, firstly,
+∗
+†
+
+Equal contribution. Contact: wengyp1@lenovo.com, huqiao2020@amss.ac.cn
+Corresponding author.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

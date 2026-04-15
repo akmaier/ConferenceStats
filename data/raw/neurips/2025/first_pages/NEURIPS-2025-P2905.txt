@@ -1,0 +1,54 @@
+Mind the GAP! The Challenges of Scale in Pixel-based
+Deep Reinforcement Learning
+
+Ghada Sokar
+Google DeepMind
+gsokar@google.com
+
+Pablo Samuel Castro
+Google DeepMind
+psc@google.com
+
+Abstract
+Scaling deep reinforcement learning in pixel-based environments presents a significant challenge, often resulting in diminished performance. While recent works
+have proposed algorithmic and architectural approaches to address this, the underlying cause of the performance drop remains unclear. In this paper, we identify the
+connection between the output of the encoder (a stack of convolutional layers) and
+the ensuing dense layers as the main underlying factor limiting scaling capabilities;
+we denote this connection as the bottleneck, and we demonstrate that previous
+approaches implicitly target this bottleneck. As a result of our analyses, we present
+Global Average Pooling (GAP) as a simple yet effective way of targeting the
+bottleneck, thereby avoiding the complexity of earlier approaches.
+
+1
+
+Introduction
+
+Reinforcement Learning (RL) is widely considered one of the most effective approaches for complex
+sequential decision-making problems [Mnih et al., 2015, Vinyals et al., 2019, Bellemare et al., 2020,
+Degrave et al., 2022, Wurman et al., 2022], in particular when combined with deep neural networks
+(typically referred to as deep RL). In contrast to the so-called “scaling laws” observed in supervised
+learning (where larger networks typically result in improved performance) [Kaplan et al., 2020], it
+is difficult to scale RL networks without sacrificing performance. There has been a recent line of
+work aimed at developing techniques for effectively scaling value-based networks, such as via the use
+of mixtures-of-experts [Obando Ceron* et al., 2024], network pruning [Obando Ceron et al., 2024],
+tokenization [Sokar et al., 2025], and regularization [Nauman et al., 2024]. Most of these techniques
+tend to focus on structural modifications to standard deep RL networks by leveraging sparse-network
+training techniques from the supervised learning literature.
+Obando Ceron* et al. [2024] first demonstrated that naïvely scaling the penultimate (dense) layer in
+an RL network results in decreased performance, and proposed the use of soft mixtures-of-experts
+[SoftMoEs; Puigcerver et al., 2024] to enable improved performance from this form of scaling.
+Sokar et al. [2025] argued that the gains from SoftMoEs were mostly due to the use of tokenization.
+Relatedly, Obando Ceron et al. [2024] demonstrated that naïvely scaling the convolutional layers hurts
+performance, and showed that incremental parameter pruning yields gains that grow with the size of
+the original, unpruned, network. While effective, all these methods are non-trivial to implement and
+can result in increased computational costs.
+One unifying aspect of the aforementioned works is that they tend to be most effective on networks that
+process pixel inputs, such as when training on the Arcade Learning Environment (ALE) [Bellemare
+et al., 2013]. These networks are typically divided into an encoder ϕ consisting of a series of
+convolutional layers, followed by a series of dense layers ψ; thus, for an input x, the network output
+is given by ψ(ϕ(x)). Obando Ceron* et al. [2024] and Sokar et al. [2025] scaled the first layer of
+ψ while Obando Ceron et al. [2024] scaled all layers in ϕ. It is worth highlighting that ψ ◦ ϕ is, in
+practice, a set of weights connecting the output of ϕ(x) with the input layer of ψ.
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

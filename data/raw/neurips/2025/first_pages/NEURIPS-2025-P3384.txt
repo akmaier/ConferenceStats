@@ -1,0 +1,58 @@
+FP4 All the Way: Fully Quantized Training of LLMs
+
+Brian Chmiel ∧∗ † Maxim Fishman ∧∗ † Ron Banner ∧† Daniel Soudry ◦
+∧
+
+◦
+
+Nvidia, Israel
+Department of Electrical and Computer Engineering - Technion, Haifa, Israel
+
+{brianchmiel, maxim.fishman.d, ronbanner.RB, daniel.soudry}@gmail.com
+
+Abstract
+We demonstrate, for the first time, fully quantized training (FQT) of large language models (LLMs) using predominantly 4-bit floating-point (FP4) precision
+for weights, activations, and gradients on datasets up to 1T tokens. We extensively
+investigate key design choices for FP4, including block sizes, scaling formats,
+and rounding methods. Our analysis shows that the NVFP4 format, where each
+block of 16 FP4 values (E2M1) shares a scale represented in E4M3, provides
+optimal results. We use stochastic rounding for backward and update passes and
+round-to-nearest for the forward pass to enhance stability. Additionally, we identify
+a theoretical and empirical threshold for effective
+quantized training: when the
+√
+gradient norm falls below approximately 3 times the quantization noise, quantized training becomes less effective. Leveraging these insights, we successfully
+train a 7-billion-parameter model on 256 Intel Gaudi2 accelerators. The resulting
+FP4-trained model achieves downstream task performance comparable to a standard BF16 baseline, confirming that FP4 training is a practical and highly efficient
+approach for large-scale LLM training. A reference implementation is supplied in
+https://github.com/Anonymous1252022/fp4-all-the-way.
+
+1
+
+Introduction
+
+The rapid advancement of Large Language Models (LLMs) has led to unprecedented breakthroughs
+in natural language understanding and generation. State-of-the-art models now scale to hundreds of
+billions of parameters, enabling remarkable capabilities across diverse applications. However, this
+progress comes at a significant cost, with training and inference demanding immense computational
+power and memory bandwidth. As model sizes grow, hardware constraints become a major bottleneck,
+necessitating innovations in numerical precision and memory-efficient architectures.
+Until recently, the dominant numerical format for pretraining Large Language Models (LLMs) was
+BF16, which provided a balance between precision and efficiency. However, as model sizes and
+dataset scales have grown, researchers have explored lower-precision alternatives to improve computational efficiency and reduce memory requirements. A few pioneering studies have demonstrated that
+full training in FP8 is not only feasible but also effective. [13] showcased the potential of FP8 training
+on small-scale datasets (100B),[8] extended it to trillions of tokens dataset with a 7B parameters
+model, and [6] demonstrated FP8’s viability at an even larger scale, successfully training a massive
+671B parameter Mixture-of-Experts (MoE) model on a vast dataset, achieving state-of-the-art results.
+FP8 is quickly emerging as the new standard for large-scale LLM training. As research continues to
+push precision boundaries further, the next logical step is exploring FP4, which promises even greater
+efficiency while maintaining training stability and model accuracy.
+∗
+†
+
+Equal contribution
+Work done while at Intel.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

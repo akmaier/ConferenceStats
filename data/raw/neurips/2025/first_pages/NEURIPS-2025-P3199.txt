@@ -1,0 +1,63 @@
+Scaling Embedding Layers in Language Models
+
+Da Yu†
+
+Edith Cohen†
+Ravi Kumar†
+
+Badih Ghazi†
+Daogao Liu†
+
+Yangsibo Huang†
+
+Pritish Kamath†
+
+Chiyuan Zhang†
+
+Abstract
+We propose S CONE (Scalable, Contextualized, Offloaded, N-gram Embedding),
+a new method for extending input embedding layers to enhance language model
+performance. To avoid increased decoding costs, S CONE retains the original
+vocabulary while introducing embeddings for a set of frequent n-grams. These
+embeddings provide contextualized representation for each input token and are
+learned with a separate model during training. After training, embeddings are
+precomputed and stored in off-accelerator memory; during inference, querying
+them has minimal impact on latency due to the low complexity of embedding
+lookups. S CONE enables two new scaling strategies: increasing the number of
+n-gram embeddings and scaling the model used to learn them, both while maintaining fixed accelerator usage during inference (in terms of FLOPS and memory).
+We show that scaling both aspects enables a model with 1B accelerator-resident
+parameters to outperform a 1.9B-parameter baseline across diverse corpora, while
+using only about half the FLOPS and accelerator memory during inference.
+
+1
+
+Introduction
+
+Input embedding layers in language models map discrete tokens to continuous vector representations [Mikolov et al., 2013, Sennrich et al., 2016] before passing them to the subsequent layers. Since
+tokens are typically simple integer values, the mapping can be implemented purely as memory fetch
+operations with no additional computation needed. This allows embedding layers to be offloaded
+from the limited accelerator memory to main memory or even to secondary storage, such as solidstate drives, with minimal impact on inference speed. This is highly desirable, as main memory
+and secondary storage are significantly more cost-effective than accelerator memory (e.g., GPUs
+and TPUs) [McCallum, 2024]. These advantages motivate us to explore methods for scaling up
+embedding layers.
+However, scaling the embedding layer by simply increasing the token vocabulary size has limited
+benefits. A larger vocabulary also enlarges the output (logits) layer, whose weight matrix is tied
+to the vocabulary size and embedding dimension. Typically, predicting the next token requires
+computing logits over all tokens in the vocabulary, and prior work shows that the decoding cost
+becomes impractical once the vocabulary exceeds a few hundred thousand tokens [Wang et al., 2019,
+Zheng et al., 2021, Liang et al., 2023, Tao et al., 2024, Dagan et al., 2024]. Even if faster hardware
+or more efficient algorithms might partially offset this cost [Joulin et al., 2017, Shim et al., 2017], a
+second problem remains: scaling the token vocabulary leads to a large number of tail tokens, which
+occur infrequently in the training corpus. The embeddings of these tokens (both input and output)
+receive very few updates, resulting in lower-quality representations [Liao et al., 2021, Dou et al.,
+2024]. In Appendix D, we train GPT-2 models with vocabulary sizes ranging from 32K to 2M and
+observe performance degradation as the vocabulary size exceeds 512K. We attribute this degradation
+†
+
+Google. Correspondence to:
+
+{dayuwork,edco,pritishk,chiyuan}@google.com.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

@@ -1,0 +1,59 @@
+Block-Diagonal LoRA for Eliminating Communication
+Overhead in Tensor Parallel LoRA Serving
+
+Xinyu Wang ∗
+University of Warwick
+Coventry, UK
+
+Jonas M. Kübler
+Amazon Web Services
+Tübingen, Germany
+
+Kailash Budhathoki
+Amazon Web Services
+Tübingen, Germany
+
+Matthäus Kleindessner †
+Amazon Web Services
+Tübingen, Germany
+
+Yida Wang
+Amazon Web Services
+Santa Clara, USA
+
+Abstract
+When serving a single base LLM with several different LoRA adapters simultaneously, the adapters cannot simply be merged with the base model’s weights as
+the adapter swapping would create overhead and requests using different adapters
+could not be batched. Rather, the LoRA computations have to be separated from
+the base LLM computations, and in a multi-device setup the LoRA adapters can be
+sharded in a way that is well aligned with the base model’s tensor parallel execution, as proposed in S-LoRA. However, the S-LoRA sharding strategy encounters
+some communication overhead, which may be small in theory, but can be large in
+practice. In this paper, we propose to constrain certain LoRA factors to be blockdiagonal, which allows for an alternative way of sharding LoRA adapters that does
+not require any additional communication for the LoRA computations. We demonstrate in extensive experiments that our block-diagonal LoRA approach is similarly
+parameter efficient as standard LoRA (i.e., for a similar number of parameters it
+achieves similar downstream performance) and that it leads to significant end-toend speed-up over S-LoRA. For example, when serving on eight A100 GPUs, we
+observe up to 1.79x (1.23x) end-to-end speed-up with 0.87x (1.74x) the number of
+adapter parameters for Llama-3.1-70B, and up to 1.63x (1.3x) end-to-end speed-up
+with 0.86x (1.73x) the number of adapter parameters for Llama-3.1-8B.
+
+1
+
+Introduction
+
+Low-Rank Adaptation (LoRA) [10] is one of the most prominent methods for parameter-efficient
+fine-tuning: rather than fine-tuning all of a model’s weights, we only tune a small number of
+parameters in low-rank factorizations to be added to the model’s weight matrices. Concretely, if
+W ∈ Rdin ×dout denotes a weight matrix in the model to be fine-tuned, we replace W by W + AB,
+where A ∈ Rdin ×r , B ∈ Rr×dout with r ≪ min{din , dout } are the low-rank factors that are finetuned, while the parameters in W are frozen. If there is only one LoRA adapter (i.e., one A and B
+per weight matrix W ) trained for one task, after fine-tuning A and B we can actually replace W by
+W + AB and thus merge the adapter with the base model’s weights. This has the nice effect that the
+LoRA adapter does not introduce any additional inference latency compared to the base model (or any
+fully fine-tuned variant of it). However, if we want to serve the same base model with various different
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+∗
+†
+
+Work done during an internship at AWS Tübingen.
+Correspondence to matkle@amazon.com.
+
+

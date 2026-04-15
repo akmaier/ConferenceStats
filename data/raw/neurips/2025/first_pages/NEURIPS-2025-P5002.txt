@@ -1,0 +1,55 @@
+GSPN-2: Efficient Parallel Sequence Modeling
+
+Hongjun Wang1,2,† , Yitong Jiang1 , Collin McCarthy1 , David Wehr1 , Hanrong Ye1 , Xinhao Li3 ,
+Ka Chun Cheung1 , Wonmin Byeon1 , Jinwei Gu1 , Ke Chen1 , Kai Han2∗,
+
+1
+
+Hongxu Yin1 , Pavlo Molchanov1 , Jan Kautz1 , Sifei Liu1
+NVIDIA 2 The University of Hong Kong 3 University of California, San Diego
+
+Abstract
+Efficient vision transformer remains a bottleneck for high-resolution images and
+long-video related real-world applications. Generalized Spatial Propagation Network (GSPN) [1] addresses this by replacing quadratic self-attention with a linescan propagation scheme, bringing the cost close to linear in the number of rows or
+columns, while retaining accuracy. Despite this advancement, the existing GSPN
+implementation still suffers from (i) heavy overhead due to repeatedly launching
+GPU kernels, (ii) excessive data transfers from global GPU memory, and (iii)
+redundant computations caused by maintaining separate propagation weights for
+each channel. We introduce GSPN-2, a joint algorithm–system redesign. In particular, we eliminate thousands of micro-launches from the previous implementation
+into one single 2D kernel, explicitly pin one warp to each channel slice, and
+stage the previous column’s activations in shared memory. On the model side, we
+introduce a set of channel-shared propagation weights that replace per-channel
+matrices, trimming parameters, and align naturally with the affinity map used in
+transformer attention. Experiments demonstrate GSPN-2’s effectiveness across
+image classification and text-to-image synthesis tasks, matching transformer-level
+accuracy with significantly lower computational cost. GSPN-2 establishes a new
+efficiency frontier for modeling global spatial context in vision applications through
+its unique combination of structured matrix transformations and GPU-optimized
+implementation.
+
+1
+
+Introduction
+
+Vision transformers have underpinned nearly every state-of-the-art (SOTA) vision foundation model:
+text-to-image diffusion networks (e.g., Stable Diffusion [2]), vision-language aligners such as
+CLIP [3] and SigLIP [4], and modern detection/segmentation pipelines [5, 6] – all depend on
+their dense, token-wise attention to encode visual concepts. Since this attention operator scales
+quadratically with the number of pixels, practical deployments still cap the input—SigLIP [4], for
+instance, limits the input images to 512 × 512—to avoid prohibitive latency and memory. Recently,
+several efficient-attention variants have been proposed, such as FlashAttention [7, 8], linear attention [9, 10, 11], and state-space models [12, 13]. Among them, Generalized Spatial Propagation
+Networks (GSPN) [1] uniquely replace 2D self-attention with a line-scan approach, which reduces
+the computational complexity from quadratic to approximately linear to the image’s width or height.
+Remarkably, GSPN maintains or even surpasses baseline accuracy while achieving up to an 84×
+speed-up for 16 K-resolution diffusion inference.
+While most efficient attention backends can reuse existing matrix-multiply or scan primitives, GSPN’s
+line scan demands a completely new CUDA implementation. Standard Softmax attention breaks
+down into a series of GEMM-based matrix multiplies plus a softmax [14]. FlashAttention [7, 8]
+∗
+
+Corresponding author.
+† Hongjun Wang was an intern at NVIDIA during the project.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

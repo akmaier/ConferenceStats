@@ -1,0 +1,58 @@
+EasySpec: Layer-Parallel Speculative Decoding for
+Efficient Multi-GPU Utilization
+
+1
+
+Yize Wu1,2
+Ke Gao1
+Ling Li1,2
+Yanjun Wu1∗
+Intelligent Software Research Center, Institute of Software, CAS, Beijing, China
+2
+University of Chinese Academy of Sciences, Beijing, China
+{wuyize2021,gaoke,liling,yanjun}@iscas.ac.cn
+
+Abstract
+Speculative decoding is an effective and lossless method for Large Language Model
+(LLM) inference acceleration. It employs a smaller model to generate a draft token
+sequence, which is then verified by the original base model. In multi-GPU systems,
+inference latency can be further reduced through tensor parallelism (TP), while the
+optimal TP size of the draft model is typically smaller than that of the base model,
+leading to GPU idling during the drafting stage. We observe that such inefficiency
+stems from the sequential execution of layers, which is seemingly natural but
+actually unnecessary. Therefore, we propose EasySpec, a layer-parallel speculation
+strategy that optimizes the efficiency of multi-GPU utilization. EasySpec breaks
+the inter-layer data dependency in the draft model, enabling multiple layers to
+run simultaneously across multiple devices as “fuzzy” speculation. After each
+drafting-and-verification iteration, the draft model’s key-value cache is calibrated
+in a single forward pass, preventing long-term fuzzy-error accumulation at minimal
+additional latency. EasySpec is a training-free and plug-in method. We evaluated
+EasySpec on several mainstream open-source LLMs, using smaller versions of
+models from the same series as drafters. The results demonstrate that EasySpec can
+achieve a peak speedup of 4.17x compared to vanilla decoding, while preserving
+the original distributions of the base LLMs. Specifically, the drafting stage can be
+accelerated by up to 1.62x with a maximum speculation accuracy drop of only 7%.
+The code is available at https://github.com/Yize-Wu/EasySpec.
+
+1
+
+Introduction
+
+Transformer-based Large Language Models (LLMs) have demonstrated remarkable problem-solving
+abilities across various domains [1–5]. However, as the parameter size continues to grow, the timeconsuming process of auto-regressive decoding poses a significant barrier to deploying large models
+in latency-sensitive applications [6, 7].
+Various effective approaches [8–10] have been proposed to reduce inference latency, including
+speculative decoding [11, 12] and tensor-parallel (TP) distribution [13]. Speculative decoding employs
+a smaller model to generate a draft token sequence, and uses token-level parallelism to conduct
+non-autoregressive verification, ensuring no shifting of the original model’s output distribution. In
+contrast, TP distribution leverages cross-device parallelism by partitioning computational workloads
+across multiple devices (usually GPUs) and synchronizing the results subsequently, which is also
+lossless.
+Combining speculative decoding with TP distribution achieves even greater acceleration ratio. However, integrating a draft model into a distributed system is not trivial [7]. Since the parameter size of
+∗
+
+Corresponding author.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

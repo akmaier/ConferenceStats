@@ -1,0 +1,51 @@
+EMLoC: Emulator-based Memory-efficient
+Fine-tuning with LoRA Correction
+
+1
+
+Hsi-Che Lin1 Yu-Chu Yu1 Kai-Po Chang1,2 Yu-Chiang Frank Wang1,2
+Graduate Institute of Communication Engineering, National Taiwan University 2 NVIDIA
+r13942079@ntu.edu.tw frankwang@nvidia.com
+
+Abstract
+Open-source foundation models have seen rapid adoption and development, enabling powerful general-purpose capabilities across diverse domains. However,
+fine-tuning large foundation models for domain-specific or personalized tasks
+remains prohibitively expensive for most users due to the significant memory
+overhead beyond that of inference. We introduce EMLoC, an Emulator-based
+Memory-efficient fine-tuning framework with LoRA Correction, which enables
+model fine-tuning within the same memory budget required for inference. EMLoC
+constructs a task-specific light-weight emulator using activation-aware singular
+value decomposition (SVD) on a small downstream calibration set. Fine-tuning
+then is performed on this lightweight emulator via LoRA. To tackle the misalignment between the original model and the compressed emulator, we propose a novel
+compensation algorithm to correct the fine-tuned LoRA module, which thus can be
+merged into the original model for inference. EMLoC supports flexible compression ratios and standard training pipelines, making it adaptable to a wide range of
+applications. Extensive experiments demonstrate that EMLoC outperforms other
+baselines across multiple datasets and modalities. Moreover, without quantization,
+EMLoC enables fine-tuning of a 38B model, which originally required 95GB of
+memory, on a single 24GB consumer GPU—bringing efficient and practical model
+adaptation to individual users. Project Page: hsi-che-lin.github.io/EMLoC
+
+1
+
+Introduction
+
+General-purpose foundation models have demonstrated impressive zero-shot capabilities across a wide
+range of benchmarks [2, 6, 8, 11, 38]. For real-world deployment, such as domain-specific tasks [22,
+46] or personalized user behavior [28, 33] , further customization by fine-tuning is still required.
+However, fine-tuning typically incurs significantly more memory overhead than inference [30].
+Consequently, if users have a fixed amount of available computing resources, they will be forced
+to choose between two unfavorable options. First, they can use a small model that fits within their
+memory budget for fine-tuning as shown in Fig. 1(a), but this sacrifices the emergent capabilities [41]
+of larger models and underutilizes hardware during inference. Alternatively, they can opt for a large
+model that fully utilizes resources during inference but exceeds memory limits for fine-tuning as
+shown in Fig. 1(b), making user-specific adaptation infeasible and potentially limiting performance
+in specialized applications. This paper addresses a central research question: Is it possible to design a
+fine-tuning strategy such that users can fine-tune a model under the same memory budget as inference?
+The memory cost of fine-tuning can be broadly attributed to three components: optimizer states,
+intermediate activations, and the model parameters themselves, as marked in Fig. 1 with different
+colors. Initial efforts to reduce the memory usage of fine-tuning concentrated on the first two
+components. The first component, optimizer states, stores auxiliary information such as momentum
+and variance in the Adam optimizer [16] for each trainable parameter. This overhead can be
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

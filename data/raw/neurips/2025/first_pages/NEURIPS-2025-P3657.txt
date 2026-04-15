@@ -1,0 +1,62 @@
+Collapsing Taylor Mode Automatic Differentiation
+
+Tim Siebert∗
+Humboldt-Universität zu Berlin and
+Zuse Institute Berlin
+Berlin, Germany
+tim.siebert@hu-berlin.de
+
+Felix Dangel∗
+Vector Institute
+Toronto, Canada
+fdangel@vectorinstitute.ai
+
+Marius Zeinhofer
+ETH Zurich
+Zurich, Switzerland,
+marius.zeinhofer@sam.math.ethz.ch
+
+Andrea Walther
+Humboldt-Universität zu Berlin and
+Zuse Institute Berlin
+Berlin, Germany
+andrea.walther@math.hu-berlin.de
+
+Abstract
+Computing partial differential equation (PDE) operators via nested backpropagation
+is expensive, yet popular, and severely restricts their utility for scientific machine
+learning. Recent advances, like the forward Laplacian and randomizing Taylor
+mode automatic differentiation (AD), propose forward schemes to address this. We
+introduce an optimization technique for Taylor mode that “collapses” derivatives
+by rewriting the computational graph, and demonstrate how to apply it to general
+linear PDE operators, and randomized Taylor mode. The modifications simply
+require propagating a sum up the computational graph, which could—or should—
+be done by a machine learning compiler, without exposing complexity to users.
+We implement our collapsing procedure and evaluate it on popular PDE operators,
+confirming it accelerates Taylor mode and outperforms nested backpropagation.
+
+1
+
+Introduction
+
+Using neural networks to learn functions constrained by physical laws is a popular trend in scientific
+machine learning [4, 16, 17, 19, 24, 25, 29]. Typically, the Physics is encoded through partial
+differential equations (PDEs) that the neural net must satisfy. The associated loss functions require
+evaluating differential operators w.r.t. the net’s input, rather than weights. Evaluating these differential
+operators remains a computational challenge, especially if they contain high-order derivatives.
+Computing PDE operators. Two important fields that build on PDE operators are variational
+Monte-Carlo (VMC) simulations and Physics-informed neural networks (PINNs). VMC employs
+neural networks as ansatz for the Schrödinger equation [4, 16, 24] and demands computing the net’s
+Laplacian (the Hessian trace) for the Hamiltonian’s kinetic term. PINNs represent PDE solutions as a
+neural net and train it by minimizing the residuals of the governing equations [19, 25]. For instance,
+Kolmogorov-type equations like the Fokker-Planck and Black-Scholes equation require weighted
+second-order derivatives on high-dimensional spatial domains [17, 28]. Other PINNs for elasticity
+problems use the biharmonic operator [7, 17, 27, 31], which contains fourth-order derivatives.
+Is backpropagation all we need? Although nesting first-order automatic differentiation (AD) to
+compute high-order derivatives scales exponentially w.r.t. the degree in time and memory [27, §3.2],
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+∗
+
+Equal contribution
+
+

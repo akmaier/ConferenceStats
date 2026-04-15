@@ -1,0 +1,54 @@
+HiFC: High-efficiency Flash-based KV Cache
+Swapping for Scaling LLM Inference
+
+Inho Jeong1,2∗ Sunghyeon Woo1,3∗ Sol Namkung1 Dongsuk Jeon1†
+1
+Seoul National University 2 SK hynix 3 NAVER Cloud
+
+Abstract
+Large-language-model inference with long contexts often produces key–value
+(KV) caches whose footprint exceeds the capacity of high-bandwidth memory on
+a GPU. Prior LLM inference frameworks such as vLLM mitigate this pressure
+by swapping KV cache pages to host DRAM. However, the high cost of large
+DRAM pools makes this solution economically unattractive. Although offloading
+to SSDs can be a cost-effective way to expand memory capacity relative to DRAM,
+conventional frameworks such as FlexGen experience a substantial throughput
+drop since the data path that routes SSD traffic through CPU to GPU is severely
+bandwidth-constrained. To overcome these limitations, we introduce HiFC, a novel
+DRAM-free swapping scheme that enables direct access to SSD-resident memory
+with low latency and high effective bandwidth. HiFC stores KV pages in pseudoSLC (pSLC) regions of commodity NVMe SSDs, sustaining high throughput under
+sequential I/O and improving write endurance by up to 8×. Leveraging GPU
+Direct Storage, HiFC enables direct transfers between SSD and GPU, bypassing
+host DRAM and alleviating PCIe bottlenecks. HiFC employs fine-grained block
+mapping to confine writes to high-performance pSLC zones, stabilizing latency and
+throughput under load. HiFC achieves inference throughput comparable to DRAMbased swapping under diverse long-context workloads, such as NarrativeQA, while
+significantly lowering the memory expansion cost of a GPU server system by 4.5×
+over three years.
+
+1
+
+Introduction
+
+Large language models (LLMs) have demonstrated state-of-the-art performance across a wide range
+of tasks, including machine translation, code generation, and open-domain question answering
+[1, 2, 3, 4, 5]. However, LLM services are often hindered by significant memory requirements due to
+the storage of key–value (KV) caches [6, 7, 8, 9]. The size of this KV cache grows proportionally
+with both the number of layers and the input sequence length, leading to substantial memory usage in
+state-of-the-art LLMs. This issue becomes particularly pronounced in long-context scenarios, where
+the cumulative KV cache can easily exceed the capacity of high-bandwidth memory (HBM) on a
+GPU, resulting in out-of-memory errors or degraded throughput.
+To overcome GPU HBM capacity limits, several LLM inference frameworks [7, 10, 11, 12] swap or
+offload KV cache blocks to host DRAM. However, provisioning and maintaining large DRAM pools
+requires substantial capital investment, increases power consumption, and demands more intensive
+cooling, ultimately inflating the cost for long-context inference deployments.
+Attempts to leverage lower-cost, higher-capacity NVMe SSDs for KV cache offloading have also
+been explored recently [7, 10, 11, 13]. However, since GPUs lack a native NVMe interface, every
+∗
+†
+
+Equal contribution.
+Corresponding author.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

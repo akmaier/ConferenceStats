@@ -1,0 +1,52 @@
+Understanding and Mitigating Numerical Sources of
+Nondeterminism in LLM Inference
+Jiayi Yuan1∗ Hao Li2∗ Xinheng Ding2 Wenya Xie2 Yu-Jhe Li3
+Wentian Zhao3 Kun Wan3 Jing Shi3 Xia Hu1 Zirui Liu2
+1
+Rice University 2 University of Minnesota Twin Cities 3 Adobe Inc.
+{jy101,xia.hu}@rice.edu
+{li003703,ding0499,xie00470,zrliu}@umn.edu
+{jhel,wezhao,kuwan,jingshi}@adobe.com
+
+Abstract
+Large Language Models (LLMs) are now integral across various domains and have
+demonstrated impressive performance. Progress, however, rests on the premise
+that benchmark scores are both accurate and reproducible. We demonstrate that
+the reproducibility of LLM performance is fragile: changing system configuration, such as evaluation batch size, GPU count, and GPU version, can introduce
+significant differences in the generated responses. This issue is especially pronounced in reasoning models, where minor rounding differences in early tokens
+can cascade into divergent chains of thought, ultimately affecting accuracy. For
+instance, under bfloat16 precision with greedy decoding, a reasoning model like
+DeepSeek-R1-Distill-Qwen-7B can exhibit up to 9% variation in accuracy and
+9,000 tokens difference in response length due to differences in GPU count,
+type, and evaluation batch size. We trace the root cause of this variability to
+the non-associative nature of floating-point arithmetic under limited numerical
+precision. This work presents the first systematic investigation into how numerical
+precision affects reproducibility in LLM inference. Through carefully controlled
+experiments across various hardware, software, and precision settings, we quantify
+when and how model outputs diverge. Our analysis reveals that floating-point
+precision—while critical for reproducibility—is often neglected in evaluation
+practices. Inspired by this, we develop a lightweight inference pipeline, dubbed
+LayerCast, that stores weights in 16-bit precision but performs all computations in
+FP32, balancing memory efficiency with numerical stability. Code is available at
+https://github.com/nanomaoli/llm_reproducibility.
+
+1
+
+Introduction
+
+Large Language Models (LLMs) are increasingly being deployed in everyday scenarios, powering
+applications from chatbots [2] to automated coding tools [25] and personalized healthcare agents [6].
+As their impact grows, rigorous benchmarking and evaluation become critical to measure real
+progress and ensure reliability, safety, and fairness [7, 37]. There are two commonly used evaluation
+strategies. The first one is to use greedy decoding by setting the temperature to zero, which produces
+deterministic outputs, and reports the result from a single run. The second uses random sampling with
+a non-zero temperature and reports performance using the Pass@K metric [8], i.e., the probability
+that at least one of K independent solution attempts will succeed.
+In this paper, we highlight a commonly overlooked factor in both evaluation settings: numerical
+precision. First, for the greedy decoding setting, this factor undermines the assumption of determin∗
+
+Equal contribution
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

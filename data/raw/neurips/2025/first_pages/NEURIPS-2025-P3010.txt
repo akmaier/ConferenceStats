@@ -1,0 +1,55 @@
+Synergistic Tensor and Pipeline Parallelism
+∗
+
+Mengshi Qi 1 , Jiaxuan Peng1 , Jie Zhang, Juan Zhu, Yong Li, Huadong Ma1
+1
+State Key Laboratory of Networking and Switching Technology,
+Beijing University of Posts and Telecommunications, China
+{qms, pjx, mhd}@bupt.edu.cn
+
+Abstract
+In the machine learning system, the hybrid model parallelism combining tensor
+parallelism (TP) and pipeline parallelism (PP) has become the dominant solution for distributed training of Large Language Models (LLMs) and Multimodal
+LLMs (MLLMs). However, TP introduces significant collective communication
+overheads, while PP suffers from synchronization inefficiencies such as pipeline
+bubbles. Existing works primarily address these challenges from isolated perspectives, focusing either on overlapping TP communication or on flexible PP
+scheduling to mitigate pipeline bubbles. In this paper, we propose a new synergistic
+tensor and pipeline parallelism schedule that simultaneously reduces both types
+of bubbles. Our proposed schedule decouples the forward and backward passes
+in PP into fine-grained computation units, which are then braided to form a composite computation sequence. This compositional structure enables near-complete
+elimination of TP-related bubbles. Building upon this structure, we further design
+the PP schedule to minimize PP bubbles. Experimental results demonstrate that
+our approach improves training throughput by up to 12% for LLMs and 16% for
+MLLMs compared to existing scheduling methods. Our source code is avaiable at
+https://github.com/MICLAB-BUPT/STP.
+
+1
+
+Introduction
+
+Distributed systems [6, 23, 38, 11, 31] have become the cornerstone for the training of large-scale
+machine learning models [1, 35, 28, 4, 19, 26, 27, 20], particularly since model scales have grown
+to tens of billions of parameters. Data parallelism [12, 15, 5] is commonly employed to accelerate
+training and is most effective for relatively smaller models. As the scale of the model increases,
+researchers have turned to model parallelism [10, 32, 21], which partitions the model into smaller
+components and distributes them between multiple devices. Model parallelism primarily consists
+of two strategies: tensor parallelism (TP) [33] and pipeline parallelism (PP) [7, 23, 30]. Tensor
+parallelism partitions model weights across devices according to predefined rules, thereby reducing
+per-device memory requirements. While TP alleviates GPU memory pressure to some extent, it
+introduces additional collective communication operations within TP groups, referred to as TP
+bubbles that exhibit significant growth with increasing TP size, as shown in Figure 1. For instance, the
+TP bubbles account for 27.5% of the overall time in the configuration of TP=8 and sequence length
+of 6,144, which can significantly degrade the performance. In contrast, pipeline parallelism divides
+the model into chunks along the layer dimension, which are assigned to PP stages according to the
+PP strategy. Activations and gradients are then transmitted among PP stages during the forward and
+backward passes. This strategy enables efficient utilization of computational resources but requires
+careful synchronization between stages to minimize idle time, commonly referred to as PP bubbles.
+To mitigate TP bubble issues, existing studies [37, 8, 2, 25] aim to overlap communication with
+computation at the kernel level, such as customized CUDA kernels [2], or at the hardware level,
+∗
+
+Corresponding author: qms@bupt.edu.cn.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

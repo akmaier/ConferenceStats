@@ -1,0 +1,54 @@
+ACCO: Accumulate While You Communicate for
+Communication-Overlapped Sharded LLM Training
+
+Adel Nabli1,2
+
+Louis Fournier1∗ Pierre Erbacher1∗ Louis Serrano1
+Eugene Belilovsky2 Edouard Oyallon1
+1
+Sorbonne Université, CNRS, ISIR, Paris - France
+2
+Mila - Quebec AI Institute, Concordia University, Montréal - Québec
+edouard.oyallon@cnrs.fr
+
+Abstract
+Training LLMs relies on distributed implementations using multiple GPUs to
+compute gradients in parallel with sharded optimizers. However, synchronizing
+gradients in data parallel setups introduces communication overhead that grows
+with the number of workers, limiting parallelization efficiency. Local optimization algorithms reduce communications but incur high memory costs as they
+prevent optimizer state sharding, hindering scalability. To address this, we propose ACcumulate while COmmunicate (ACCO), a memory-efficient optimization
+algorithm for distributed LLM training. By synchronizing delayed gradients while
+computing new ones, ACCO reduces GPU idle time and supports heterogeneous
+hardware. To mitigate the convergence issues caused by delayed updates, we introduce a novel technique ensuring training dynamics align with standard distributed
+optimization. Compared to ZeRO-1, our approach is significantly faster and scales
+effectively across heterogeneous hardware.
+
+1
+
+Introduction
+
+Training Large Language Models (LLMs) with billions of parameters requires thousands of GPUs
+operating in parallel [71]. This process typically relies on distributed backpropagation [31] and
+gradient-based optimizers such as Adam [27] or AdamW [36]. However, distributed optimization at
+this scale is both memory- and communication-intensive. In standard data-parallel training, memory
+bottlenecks arise primarily from the optimizer’s internal states, especially under mixed-precision
+training. Techniques like ZeRO [55] mitigate this by sharding states across workers. Due to limited
+GPU memory and the large size of modern models, large-scale LLM training frameworks must rely
+on such sharded partitioning [64, 58, 2]. In addition to memory constraints, communication overhead
+becomes a dominant performance bottleneck, as synchronizing gradients and optimizer states across
+GPUs can exceed the time spent on actual computation [50], a problem expected to persist even with
+future hardware advances [53]. The impact of communication is further amplified by the cluster’s
+interconnect topology: effective sharding requires high-bandwidth links, and heterogeneous hardware
+or slow interconnects introduce straggler effects that slow down the entire system [15, 41].
+To mitigate these issues, various communication-efficient distributed optimization algorithms have
+been proposed, particularly in settings with limited bandwidth such as Federated Learning. Localupdate methods [66, 75, 40, 29, 14] reduce communication by splitting training into inner loops
+(local steps) and outer loops (synchronization steps). While this approach reduces frequency of
+communication, it introduces additional hyperparameters compared to standard training, scales poorly
+with the number of workers, and significantly increases memory requirements. For instance, the stateof-the-art CO2 method [69] requires memory overhead equivalent to four model copies—much more
+*
+
+Equal contributions.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

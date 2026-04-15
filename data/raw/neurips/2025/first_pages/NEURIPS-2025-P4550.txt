@@ -1,0 +1,59 @@
+Efficiently Scaling LLM Reasoning with Certaindex
+
+Yichao Fu∗1 Junda Chen∗1 Siqi Zhu1◦ Zheyu Fu1 Zhongdongming Dai1
+Yonghao Zhuang2 Yian Ma1 Aurick Qiao3 Tajana Rosing1 Ion Stoica4 Hao Zhang1
+1
+UCSD 2 Carnegie Mellon University 3 Snowflake 4 UC Berkeley
+
+Abstract
+Test-time reasoning algorithms such as chain-of-thought, self-consistency, and
+MCTS enhance LLM problem-solving but can wastefully generate many tokens
+without improving accuracy. At the same time, we observe that these algorithms
+exhibit answer stabilization: their intermediate solutions often cease to change after
+a certain point, and further investment of compute does not change their final answer.
+To quantify this phenomenon, we introduce Certaindex, an algorithm-agnostic
+metric measuring this evolving stability, signaling when further computation is
+unlikely to alter the final result. Certaindex is lightweight, can accelerate reasoning
+program inference via early exit, and further enables dynamic token allocation,
+gang scheduling, and many opportunities when integrated with real-world LLM
+serving systems. To quantify real-world benefits, we built Certaindex as a scheduler
+into Dynasor, our reasoning-aware LLM serving system, and demonstrate up to
+50% compute savings and 3.3× higher throughput in real workloads with no
+accuracy drop. Our code is available at https://github.com/hao-ai-lab/
+Dynasor.git.
+
+1
+
+Introduction
+
+Large language models (LLMs) have recently demonstrated remarkable ability in solving complex
+problems. Central to these advances are test-time scaling algorithms [1; 2; 3], which allocate
+additional inference resources to progressively enhance model accuracy. Whether the reasoning
+algorithm is externally programmed (e.g. Self-Consistency [4], MCTS [5; 6], etc.) or internalized
+in the model (Chain-of-Thought based models such as Deepseek-R1 [7]), or a combination of both
+(as used in OpenAI-o3 [8], Grok3 [9], Gemini 2.5 Pro [10]), these methods fundamentally empower
+LLMs to tackle challenging problems more effectively.
+However, we observe that LLM reasoning is highly token-inefficient, i.e., often leads to token overuse
+without further accuracy gains. This phenomenon is most observable in reasoning models: models
+like Deepseek-R1 can generate excessive amount of tokens, resulting in substantial 3x more tokens
+than it actually needs (see Figure 2). Similar token overuse behavior is also observed in recent
+studies [11; 12]. This inefficiency arises because existing reasoning algorithms lack mechanisms
+to detect diminishing returns in accuracy and terminate inference early, thereby wasting resources
+without gains in solution quality.
+To address this inefficiency, we leverage a key observation about LLM reasoning: LLMs often signal
+when they’ve “settled” on an answer during reasoning. In particular, we study reasoning models with
+Chain-of-Thought (CoT, §2.1): we force the model to periodically output a result in the middle of
+its reasoning process, and examine how these intermediate answers evolve across successive steps.
+We find these intermediate answers frequently stabilize; that is, they rarely change after a certain
+number of reasoning steps, regardless of whether the answer is ultimately correct or not. This highly
+indicates that the model itself has reached a point of “high certainty” that further computation is
+unlikely to alter the final result, justifying safe termination. Conversely, significant variance in the
+* Equal contribution.
+
+◦
+
+Work done while interning at UCSD
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

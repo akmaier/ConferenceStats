@@ -1,0 +1,60 @@
+Cost-Aware Contrastive Routing for LLMs
+
+Reza Shirkavand
+Department of Computer Science
+University of Maryland - College Park
+rezashkv@cs.umd.edu
+Peiran Yu
+Department of Computer Science and Engineering
+University of Texas at Arlington
+peiran.yu@uta.edu
+
+Shangqian Gao
+Department of Computer Science
+Florida State University
+sgao@cs.fsu.edu
+Heng Huang∗
+Department of Computer Science
+University of Maryland - College Park
+heng@cs.umd.edu
+
+Abstract
+We study cost-aware routing for large language models across diverse and dynamic
+pools of models. Existing approaches often overlook prompt-specific context, rely
+on expensive model profiling, assume a fixed set of experts, or use inefficient trialand-error strategies. We introduce Cost-Spectrum Contrastive Routing (CSCR), a
+lightweight framework that maps both prompts and models into a shared embedding
+space to enable fast, cost-sensitive selection. CSCR uses compact, fast-to-compute
+logit footprints for open-source models and perplexity fingerprints for black-box
+APIs. A contrastive encoder is trained to favor the cheapest accurate expert within
+adaptive cost bands. At inference time, routing reduces to a single k-NN lookup via
+a FAISS index, requiring no retraining when the expert pool changes and enabling
+microsecond latency. Across multiple benchmarks, CSCR consistently outperforms
+baselines, improving the accuracy–cost tradeoff by up to 25%, while generalizing
+robustly to unseen LLMs and out-of-distribution prompts.
+
+1
+
+Introduction
+
+After a burst of reinforcement-learning and specialized finetuning, the Large Language Model (LLM)
+[65, 66, 6, 86, 17] ecosystem has fractured: code models excel at generating code but hallucinate
+outside programming contexts, math-tuned variants solve AIME [46] yet mishandle open-ended
+dialogue, and instruction chatbots trade being precise for fluency. Production systems therefore host
+a pool of models with different sizes, licenses, and domain strengths, and decide at run time which
+one to call for every user prompt, or worse: burden the users with picking the model they need.
+A router (a.k.a. model selector, mixture-gate) adjudicates that choice online. It dynamically selects
+the most appropriate LLM from a pool for each input. Without it, users either over-pay by defaulting to
+the largest model or risk quality regressions by selecting cheaper ones. Current predictive routers [33,
+32, 51, 76] for a pool of LLMs fall into two broad camps: parametric routers and non-parametric
+ones.
+Parametric routing methods, such as softmax-based classifiers [24], optimize exclusively for top-1
+accuracy without explicit consideration of inference costs. Consequently, they tend to default to
+selecting expensive models and require full retraining whenever new models are introduced.
+∗
+
+This work was partially supported by NSF IIS 2347592, 2348169, DBI 2405416, CCF 2348306, CNS
+2347617, RISE 2536663.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

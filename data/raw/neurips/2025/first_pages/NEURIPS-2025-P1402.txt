@@ -1,0 +1,58 @@
+AccuQuant: Simulating Multiple Denoising Steps for
+Quantizing Diffusion Models
+
+Seunghoon Lee∗ Jeongwoo Choi∗ Byunggwan Son
+
+Jaehyeon Moon
+
+Jeimin Jeon
+
+Bumsub Ham†
+
+School of Electrical and Electronic Engineering, Yonsei University
+https://cvlab.yonsei.ac.kr/projects/AccuQuant
+
+Abstract
+We present in this paper a novel post-training quantization (PTQ) method, dubbed
+AccuQuant, for diffusion models. We show analytically and empirically that quantization errors for diffusion models are accumulated over denoising steps in a
+sampling process. To alleviate the error accumulation problem, AccuQuant minimizes the discrepancies between outputs of a full-precision diffusion model and its
+quantized version within a couple of denoising steps. That is, it simulates multiple
+denoising steps of a diffusion sampling process explicitly for quantization, accounting the accumulated errors over multiple denoising steps, which is in contrast to
+previous approaches to imitating a training process of diffusion models, namely,
+minimizing the discrepancies independently for each step. We also present an
+efficient implementation technique for AccuQuant, together with a novel objective,
+which reduces a memory complexity significantly from O(n) to O(1), where n
+is the number of denoising steps. We demonstrate the efficacy and efficiency of
+AccuQuant across various tasks and diffusion models on standard benchmarks.
+
+1
+
+Introduction
+
+Diffusion models [17, 49] have shown the effectiveness for various generation tasks, including textto-image generation [41, 43], audio generation [29], and video generation [2, 1, 12]. In the context of
+image generation, diffusion models train neural networks to denoise images progressively, corrupted
+by Gaussian noise, reversing the noise-adding process, and recovering original images. At test time,
+starting from a random noise, diffusion models perform a sampling process, where the trained neural
+networks denoise the corrupted image gradually. To generate realistic images, the sampling process
+typically involves lots of denoising steps, which is computationally demanding. To overcome this
+problem, many approaches attempt to reduce the number of denoising steps [35, 55], providing an
+efficient image generation process. Another line of research focuses on compressing neural networks
+themselves (e.g., using network quantization [25, 19] or pruning [4]) to reduce the computational
+cost for each denoising step.
+Network quantization lowers bit-widths of full-precision weights and activations into lower ones,
+enabling a fixed-point computation for efficient inference. There are mainly two approaches to
+quantizing neural networks: Quantization-aware training (QAT) and post-training quantization (PTQ).
+QAT optimizes network weights and quantization parameters (e.g., step-sizes and zero-points) jointly
+using entire training samples, which is computationally expensive, making it hard to apply QAT
+for large models (e.g., ViTs [8]). PTQ has recently gained significant attention across various
+models [37, 26, 34, 36] due to its efficiency. In contrast to QAT, PTQ calibrates quantization
+parameters only without retraining the network weights, using a small subset of training samples.
+∗
+†
+
+Equal contribution.
+Corresponding author.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

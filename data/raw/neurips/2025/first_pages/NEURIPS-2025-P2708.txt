@@ -1,0 +1,58 @@
+PaTH Attention: Position Encoding via
+Accumulating Householder Transformations
+
+Songlin Yang1 Yikang Shen2 Kaiyue Wen3 Shawn Tan2
+Mayank Mishra2 Liliang Ren4 Rameswar Panda2 Yoon Kim1
+1
+
+Massachusetts Institute of Technology 2 MIT-IBM Watson AI Lab
+3
+Stanford University 4 Microsoft
+yangsl66@mit.edu
+
+Abstract
+The attention mechanism is a core primitive in modern large language models
+(LLMs) and AI more broadly. Since attention by itself is permutation-invariant,
+position encoding is essential for modeling structured domains such as language.
+Rotary position encoding (RoPE) has emerged as the de facto standard approach
+for position encoding and is part of many modern LLMs. However, in RoPE the
+key/query transformation between two elements in a sequence is only a function of
+their relative position and otherwise independent of the actual input. This limits
+the expressivity of RoPE-based transformers. This paper describes PaTH, a flexible data-dependent position encoding scheme based on accumulated products of
+Householder(like) transformations, where each transformation is data-dependent,
+i.e., a function of the input. We derive an efficient parallel algorithm for training
+through exploiting a compact representation of products of Householder matrices, and implement a FlashAttention-style blockwise algorithm. Across both
+targeted synthetic benchmarks and moderate-scale real-world language modeling
+experiments, we find that PaTH improves upon RoPE and other recent baselines.
+Finally, we show that we can convert pretrained RoPE transformers into PaTH with
+continued pretraining.
+
+1
+
+Introduction
+
+Attention mechanisms form the backbone of transformer architectures that power contemporary AI
+systems. Attention is inherently permutation-invariant, and thus encoding positional information into
+attention is important for effective sequence modeling. Since the original sinusoidal embeddings [77],
+various position encoding schemes have been proposed over the years [16, 63, 28, 25, 45, 58, 72, inter
+alia]; see Dufter et al. [17] for a comprehensive survey. Among these, rotary position embedding
+[RoPE; 72] has emerged as the de facto standard, adopted in most recent state-of-the-art LLMs.
+RoPE works by transforming the key (kj ) and query (qi ) embeddings through a rotation matrix
+R whose rotation angle is a function of the difference in positions, resulting in the bilinear form
+i−j
+q⊤
+kj for the attention logits. The rotation matrix R itself is a block-diagonal matrix composed
+i R
+of two-by-two rotation matrices, which enables efficient computation. However, the rotation matrix
+in RoPE is data-independent and only a function of the relative position (i.e., R applied i − j times),
+which limits its expressivity; indeed, recent work [7] demonstrates that RoPE-based transformers
+are still computationally constrained to the TC0 complexity class, the complexity class of ordinary
+transformers with absolute position embeddings [49]. As a potential consequence, RoPE-based
+transformers have been empirically found to have difficulty with simple synthetic tasks that require
+a form of sequential reasoning, such as flip-flop language modeling [41] and certain state-tracking
+tasks [51]. Insofar as such simple sequential reasoning underlie real-world capabilities that we want
+The implementation of the PaTH attention layer is also made available as part of the F LASH L INEAR ATTENTION
+library [80, 79]: https://github.com/fla-org/flash-linear-attention
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

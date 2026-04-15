@@ -1,0 +1,49 @@
+Value-Guided KV Compression for LLMs via
+Approximated CUR Decomposition
+
+Ayan Sengupta∗ , Siddhant Chaudhary∗ & Tanmoy Chakraborty
+Department of Electrical Engineering
+Indian Institute of Technology Delhi, India
+ayan.sengupta@ee.iitd.ac.in, urssidd@gmail.com, tanchak@iitd.ac.in
+
+Abstract
+Key-value (KV) cache compression has emerged as a critical technique for reducing
+the memory and latency overhead of autoregressive language models during inference. Prior approaches predominantly rely on query-key attention scores to rank
+and evict cached tokens, assuming that attention intensity correlates with semantic
+importance. However, this heuristic overlooks the contribution of value vectors,
+which directly influence the attention output. In this paper, we propose CurDKV, a
+novel, value-centric KV compression method that selects keys and values based
+on leverage scores computed from CUR matrix decomposition. Our approach
+approximates the dominant subspace of the attention output softmax(QK ⊤ )V ,
+ensuring that the retained tokens best preserve the model’s predictive behavior.
+Theoretically, we show that attention score approximation does not guarantee output preservation, and demonstrate that CUR-based selection minimizes end-to-end
+attention reconstruction loss. Empirically, CurDKV achieves up to 9.6% higher accuracy than state-of-the-art methods like SnapKV and ChunkKV under aggressive
+compression budgets on LLaMA and Mistral, while maintaining compatibility with
+FlashAttention and Grouped Query Attention. In addition to improved accuracy,
+CurDKV reduces generation latency by up to 40% at high compression, offering a
+practical speed-accuracy tradeoff.
+
+1
+
+Introduction
+
+Transformer-based large language models (LLMs) have achieved remarkable performance across
+a wide range of natural language understanding and generation tasks [Yang et al., 2024, Grattafiori
+et al., 2024, Jiang et al., 2023]. However, their inference-time memory consumption remains a
+significant challenge, particularly for application requiring long-context information. A major source
+of this overhead is the Key-Value (KV) cache, which stores the key and value vectors corresponding to
+previously generated tokens. These vectors are used to compute attention outputs without recomputing
+intermediate states, but their memory footprint grows linearly with sequence length. For instance, as
+highlighted by Feng et al. [2025], LLM-8B, which generats a sequence of 2M tokens, can consume
+up to 256GB of GPU memory while storing the KV cache.
+Typically, KV cache is populated in two stages: during the prefill phase, where a long-context input
+is encoded in parallel and all token-level KV vectors are stored; and during the generation phase,
+where tokens are produced autoregressively and KV entries are appended one step at a time. In
+particular, the prefill phase dominates memory usage, especially when handling large input contexts.
+*
+
+These authors contributed equally to this work.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

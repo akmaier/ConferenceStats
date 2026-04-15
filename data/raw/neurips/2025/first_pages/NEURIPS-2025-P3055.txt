@@ -1,0 +1,56 @@
+SpaceServe: Spatial Multiplexing of Complementary
+Encoders and Decoders for Multimodal LLMs
+Zhicheng Li1,2
+Yangyu Zhang1,2
+1
+
+Shuoming Zhang1,2 Jiacheng Zhao1,2∗ Siqi Li4 Xiyu Shi1,2
+Shuaijiang Li1,2 Donglin Yu5 Zheming Yang1,2 Yuan Wen3
+Huimin Cui1,2,6
+
+State Key Lab of Processors, Institute of Computing Technology, Chinese Academy of Sciences, China
+2
+University of the Chinese Academy of Sciences
+3
+University of Aberdeen 4 Beijing University of Technology
+5
+The University of Illinois Urbana-Champaign 6 XCORESIGMA CO.,LTD.
+
+Abstract
+Recent multimodal large language models (MLLMs) marry modality-specific
+vision or audio encoders with a shared text decoder. While the encoder is computeintensive but memory-light, the decoder is the opposite, yet state-of-the-art serving
+stacks still time-multiplex these complementary kernels, idling SMs or HBM
+in turn. We introduce SpaceServe, a serving system that space-multiplexes
+MLLMs: it decouples all modality encoders from the decoder, and co-locates
+them on the same GPU using fine-grained SM partitioning available in modern runtimes. A cost-model-guided Space-Inference Scheduler (SIS) dynamically assigns
+SM slices, while a Time-Windowed Shortest-Remaining-First (TWSRFT) policy
+batches encoder requests to minimise completion latency and smooth decoder arrivals. Evaluation shows that SpaceServe reduces time-per-output-token by 4.81×
+on average and up to 28.9× on Nvidia A100 GPUs. SpaceServe is available at
+https://github.com/gofreelee/SpaceServe
+
+1
+
+Introduction
+
+Multimodal large language models (MLLMs), for example Qwen2-VL[36] and other recent
+systems[36, 3, 33, 27], have graduated from lab demos to production services that field imagegrounded questions, interpret charts, and reason over audio or video snippets. Conceptually, a MLLM
+marries the unprecedented linguistic capability of a large text-only foundation model with a set
+of modality-specific encoders that translate pixels, waveforms, or frames into the token space the
+decoder already understands. This “encoder + shared-text-decoder” blueprint is now standard across
+state-of-the-art models[3, 33, 18, 36].
+As foundation-model decoders continue to improve “for free” (e.g., via larger pre-training corpora [21,
+32, 17, 34, 9] or better post-training [26, 25, 28]), attention is shifting toward the encoders. These
+front-end components are becoming both more powerful and more complex [33, 36, 3, 27]—handling
+higher-resolution images, longer audio clips, and even variable-length video. Consequently, an
+MLLM is effectively two decoupled yet complementary neural networks: a compute-intensive,
+memory-light encoder paired with a memory-hungry, compute-light decoder. This pronounced
+resource asymmetry remains largely unaddressed by today’s serving stacks.
+Serving MLLMs inherits every headache of text-only LLM serving—tight tail-latency [15, 5] targets,
+massive KV-cache footprints [35, 29, 13], dynamic batching[7, 38], and adds a new one: modalityspecific encoders. Most production stacks [13, 41, 10, 1] remain tuned for single-modality workloads.
+Optimizations such as prefilling decoding disaggregation [11, 42], chunked prefill [1] boost through∗
+
+Corresponding author.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

@@ -1,0 +1,60 @@
+Tail-Optimized Caching for LLM Inference
+
+Wenxin Zhang
+Columbia Business School
+wz2574@columbia.edu
+
+Yueying Li
+Cornell University, Department of Computer Science
+yl3469@cornell.edu
+
+Ciamac C. Moallemi
+Columbia Business School
+ciamac@gsb.columbia.edu
+
+Tianyi Peng
+Columbia Business School
+tp2845@columbia.edu
+
+Abstract
+Prompt caching is critical for reducing latency and cost in LLM inference—OpenAI
+and Anthropic report up to 50–90% cost savings through prompt reuse. Despite
+its widespread success, little is known about what constitutes an optimal prompt
+caching policy, particularly when optimizing tail latency—a metric of central
+importance to practitioners. The widely used Least Recently Used (LRU) policy
+can perform arbitrarily poor on this metric, as it is oblivious to the heterogeneity
+of conversation lengths. To address this gap, we propose Tail-Optimized LRU,
+a simple two-line modification that reallocates KV cache capacity to prioritize
+high-latency conversations by evicting cache entries that are unlikely to affect
+future turns. Though the implementation is simple, we prove its optimality under a
+natural stochastic model of conversation dynamics, providing the first theoretical
+justification for LRU in this setting—a result that may be of independent interest to
+the caching community. Experimentally, on real conversation data WildChat [Zhao
+et al., 2024], Tail-Optimized LRU achieves up to 27.5% reduction in P90 tail Time
+to First Token latency and 23.9% in P95 tail latency compared to LRU, along with
+up to 38.9% decrease in SLO violations of 200ms. We believe this provides a
+practical and theoretically grounded option for practitioners seeking to optimize
+tail latency in real-world LLM deployments.
+
+1
+
+Introduction
+
+Prompt Caching is Essential. AI capabilities have exploded in recent years, and so has the demand.
+By December 2024, ChatGPT handled 1 billion user messages every day with 300 million weekly
+active users [OpenAI Newsroom, 2024]. To efficiently use scarce and costly GPU resources, prompt
+caching was proposed [Gim et al., 2024]: it caches the KV cache of existing queries, allowing a
+new query to skip some computation by reusing the KV cache it shares with existing queries [vLLM
+Team, 2025]. Prompt caching can reduce prefill computation thus Time to First Token (TTFT).
+This technique has been adopted by OpenAI and Anthropic, both reporting a significant amount
+(50-90%) of latency and cost reductions [OpenAI, 2024, Anthropic, 2024]. Despite the practical
+impact of prompt caching, little is known about how much existing caching policies—such as the
+Least Recently Used (LRU) policy—can be improved upon with respect to key metrics in LLM
+inference systems, which is the main motivation of this work.
+Challenges of Optimizing Tail Latency. One of such key metrics is tail latency. In real-time
+user-facing applications, companies care about high-percentile response time, e.g., 95% of requests
+complete within 200 ms. In LLM conversation-based applications, users arrive to request services
+through an alternating sequence of prompts and responses that we call turns. Each prompt, along with
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

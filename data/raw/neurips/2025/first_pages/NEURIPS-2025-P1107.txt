@@ -1,0 +1,58 @@
+Efficient Data Selection at Scale
+via Influence Distillation
+Mahdi Nikdan∗ †
+ISTA & Google Research
+
+Vincent Cohen-Addad†
+Google Research
+
+Dan Alistarh
+ISTA & Red Hat AI
+
+Vahab Mirrokni
+Google Research
+
+Abstract
+Effective data selection is critical for efficient training of modern Large Language Models (LLMs). This paper introduces Influence Distillation, a novel,
+mathematically-justified framework for data selection that employs second-order
+information to optimally weight training samples. By distilling each sample’s
+influence on a target distribution, our method assigns model-specific weights that
+are used to select training data for LLM fine-tuning, guiding it toward strong performance on the target domain. We derive these optimal weights for both Gradient
+Descent and Adam optimizers. To ensure scalability and reduce computational cost,
+we propose a landmark-based approximation: influence is precisely computed for
+a small subset of “landmark” samples and then efficiently propagated to all other
+samples to determine their weights. We validate Influence Distillation by applying
+it to instruction tuning on the Tulu V2 dataset, targeting a range of tasks including
+GSM8k, SQuAD, and MMLU, across several models from the Llama and Qwen
+families. Experiments show that Influence Distillation matches or outperforms
+state-of-the-art performance while achieving up to 3.5× faster selection.
+
+1
+
+Introduction
+
+The rise of Large Language Models (LLMs) has driven significant advances in natural language
+processing; yet, training and fine-tuning these models requires massive computational resources and
+carefully-curated datasets. One key direction towards improved training efficiency has been via data
+selection and data weighting methods [Xia et al., 2024, Yin and Rush, 2024, Antonello et al., 2020,
+Marion et al., 2023, Ankner et al., 2024, Li et al., 2023a, Ivison et al., 2025, Axiotis et al., 2024,
+Xie et al., 2023a, Engstrom et al., 2024a, Huang et al., 2024, Feng et al., 2024], which aim to curate
+training subsets that maximize a model’s effectiveness, often with respect to a particular target data
+distribution or downstream task. However, existing approaches typically rely on heuristics—such
+as perplexity-based filtering—or require expensive proxy model training or expensive embedding
+functions to generate data representations.
+More precisely, existing methods face several limitations. First, many existing methods utilize fixed,
+model-agnostic features or representations (e.g., static embeddings) that may not capture the full
+relationship between training samples and the target distribution [Yin and Rush, 2024, Antonello
+et al., 2020, Marion et al., 2023, Ankner et al., 2024]. Second, methods that update weights during
+training lack theoretical justification and can be unstable [Xie et al., 2023a, Huang et al., 2024].
+Lastly, approaches that rely on reference model training or costly embeddings are computationally
+∗
+†
+
+Work done while an intern at Google Research.
+Correspondence to mnikdan@ista.ac.at and cohenaddad@google.com.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

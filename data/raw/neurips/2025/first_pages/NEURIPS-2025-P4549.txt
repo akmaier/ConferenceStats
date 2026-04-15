@@ -1,0 +1,59 @@
+Scaling Speculative Decoding with
+L OOKAHEAD R EASONING
+Yichao Fu1
+
+Rui Ge1∗ Zelei Shao1∗ Zhijie Deng2† Hao Zhang1†
+UCSD 2 Shanghai Jiao Tong University
+
+1
+
+Abstract
+Reasoning models excel by generating long chain-of-thoughts, but decoding the
+resulting thousands of tokens is slow. Token-level speculative decoding (SD)
+helps, but its benefit is capped, because the chance that an entire γ-token guess is
+correct falls exponentially as γ grows. This means allocating more compute for
+longer token drafts faces an algorithmic ceiling – making the speedup modest and
+hardware-agnostic. We raise this ceiling with L OOKAHEAD R EASONING, which
+exploits a second, step-level layer of parallelism. Our key insight is that reasoning
+models generate step-by-step, and each step needs only to be semantically correct,
+not exact token matching. In L OOKAHEAD R EASONING, a lightweight draft
+model proposes several future steps; the target model expands each proposal in one
+batched pass, and a verifier keeps semantically correct steps while letting the target
+regenerate any that fail. Token-level SD still operates within each reasoning step,
+so the two layers of parallelism multiply. We show L OOKAHEAD R EASONING
+lifts the peak speedup of SD both theoretically and empirically. Across GSM8K,
+AIME, and other benchmarks, L OOKAHEAD R EASONING improves the speedup
+of SD from 1.4x to 2.1x while preserving answer quality, and its speedup scales
+better with additional GPU throughput. Our code is available at https://github.
+com/hao-ai-lab/LookaheadReasoning
+
+1
+
+Introduction
+
+Large reasoning models (LRMs) have recently pushed the state of the art in math problem solving
+and program synthesis by generating explicit, long Chains of Thoughts (CoT) [1]. In these models,
+an answer unfolds as a sequence of intermediate reasoning “steps”, and each step arrives token by
+token via autoregressive decoding. If a solution needs N steps and each step needs T tokens, the
+model must generate O(N T ) tokens, often running into tens of thousands of tokens and minutes of
+wall-clock time. For instance, OpenAI’s o1 model [2] may take more than 2 minutes to solve a single
+problem from the International Mathematical Olympiad (IMO) challenges.
+Speculative decoding (SD) mitigates this token-level dependency by spending additional FLOPs
+to shorten the critical path of generation: a cheap draft model proposes γ future tokens and the
+expensive target model then verifies them in parallel; if every guess matches, the decoding can fast
+forward γ + 1 positions at once. However, in the face of LRMs with long decode, two facts limit how
+far this idea can scale. First, the probability of an entire γ-token sequence is correct drops almost
+exponentially with γ (§2), so the expected number of accepted tokens quickly saturates as γ grows.
+Second, the verifier must still verify the target logits for all γ positions, and that cost grows linearly.
+This results in a speedup curve that climbs with small γ, plateaus after a few dozen tokens, and can
+even decline once the verification cost dominates. For example, in a real profiling, we observe SD’s
+speedup caps at 1.4x (Figure 2). As this ceiling is algorithmic rather than hardware-bound, this means
+∗
+†
+
+Work done during an internship at UCSD.
+Corresponding authors.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

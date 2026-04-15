@@ -1,0 +1,76 @@
+Knowing When to Stop: Efficient Context Processing
+via Latent Sufficiency Signals
+
+Roy Xie†∗ Junlin Wang†
+Bolun Sun§
+†
+
+Duke
+
+Paul Rosu†
+
+Zihao Lin∥
+‡
+
+Rice
+
+§
+
+JHU
+
+Chunyuan Deng‡
+
+Bhuwan Dhingra†
+∥
+
+UC Davis
+
+Abstract
+Large language models (LLMs) process entire input contexts indiscriminately,
+which is inefficient when the information required to answer a query is localized
+within the context. We present dynamic context cutoff, a novel method enabling
+LLMs to self-terminate processing upon acquiring sufficient task-relevant information. Through analysis of model internals, we discover that specific attention
+heads inherently encode “sufficiency signals” – detectable through lightweight
+classifiers – that predict when critical information has been processed. This reveals a new efficiency paradigm: models’ internal understanding naturally dictates
+processing needs rather than external compression heuristics. Comprehensive
+experiments across six QA datasets (up to 40K tokens) with three model families (LLaMA/Qwen/Mistral, 1B-70B) demonstrate 3.4% accuracy improvement
+while achieving 1.33× token reduction on average. Furthermore, our method
+demonstrates superior performance compared to other context efficiency methods
+at equivalent token reduction rates. Additionally, we observe an emergent scaling
+phenomenon: while smaller models require probing for sufficiency detection, larger
+models exhibit intrinsic self-assessment capabilities through prompting. Code is
+available at https://github.com/ruoyuxie/when-to-stop.
+
+1
+
+Introduction
+
+Large language models (LLMs) demonstrate remarkable capabilities across diverse tasks, yet
+Given the documents, could you tell me which
+company has the largest total liabilities?
+their indiscriminate processing of entire input
+contexts creates inefficiencies. LLMs process
+<Doc 1>, <Doc 2> ... TechNova Corporation
+every token with equal computational priority,
+reports the highest total liabilities at $15.8
+regardless of its actual relevance to the task [25].
+billion as of December 31, 2023. The CEO of
+TechNova, Jane Doe, emphasized the ...
+This brute-force approach leads to fundamental inefficiencies: models waste computation on
+I got it - it is TechNova!
+irrelevant context while simultaneously struggling with the “lost-in-the-middle” phenomenon, Figure 1: Our method enables language models
+where critical information becomes diluted in
+to perform early termination by detecting suffilengthy inputs [16, 6]. For instance, when an- ciency signals in key attention heads, reducing
+swering a simple factual question, models may
+the amount of processed content while preservprocess an entire document even after gathering
+ing performance.
+sufficient information in the first few sentences.
+The human cognitive system offers an instructive contrast. When solving problems, people dynamically assess information sufficiency – we stop processing once we gather enough evidence, ignoring
+redundant details [4]. On the other hand, LLMs process entire contexts even after acquiring sufficient
+∗
+
+ruoyu.xie@duke.edu
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

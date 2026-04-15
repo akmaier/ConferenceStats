@@ -1,0 +1,60 @@
+Parallel Scaling Law for Language Models
+
+Mouxiang Chen1,2∗, Binyuan Hui2,† , Zeyu Cui2 , Jiaxi Yang2 ,
+Dayiheng Liu2 , Jianling Sun1 , Junyang Lin2 , Zhongxin Liu1,†
+1
+Zhejiang University, 2 Qwen Team, Alibaba Group
+{chenmx,liu_zx}@zju.edu.cn, binyuan.hby@alibaba-inc.com
+
+Abstract
+It is commonly believed that scaling language models should commit a significant
+space or time cost, by increasing the parameters (parameter scaling) or output
+tokens (inference-time scaling). We introduce another and more inference-efficient
+scaling paradigm: increasing the model’s parallel computation during both training
+and inference time. We apply P diverse and learnable transformations to the input,
+execute forward passes of the model in parallel, and dynamically aggregate the
+P outputs. This method, namely parallel scaling (PAR S CALE), scales parallel
+computation by reusing existing parameters and can be applied to any model
+structure, optimization procedure, data, or task. We theoretically propose a new
+scaling law and validate it through large-scale pre-training, which shows that a
+model with P parallel streams is similar to scaling the parameters by O(log P )
+while showing superior inference efficiency. For example, PAR S CALE can use up
+to 22× less memory increase and 6× less latency increase compared to parameter
+scaling that achieves the same performance improvement. It can also recycle
+an off-the-shelf pre-trained model into a parallelly scaled one by post-training
+on a small amount of tokens, further reducing the training budget. The new
+scaling law we discovered potentially facilitates the deployment of more powerful
+models in low-resource scenarios, and provides an alternative perspective for
+the role of computation in machine learning. Our code and 67 trained model
+checkpoints are publicly available at https://github.com/QwenLM/ParScale
+and https://huggingface.co/ParScale.
+
+1
+
+Introduction
+
+Recent years have witnessed the rapid scaling of large language models (LLMs) [10, 64, 55, 72] to
+narrow the gap towards Artificial General Intelligence (AGI). Mainstream efforts focus on parameter
+scaling [40], a practice that requires substantial space overhead. For example, DeepSeek-V3 [51]
+scales the model size up to 672B parameters, which imposes prohibitive memory requirements for
+edge deployment. More recently, researchers have explored inference-time scaling [65] to enhance the
+reasoning capability by scaling the number of generated reasoning tokens. However, inference-time
+scaling is limited to certain scenarios and necessitates specialized training data [20, 68], and typically
+imposes significant time costs. For example, Chen et al. [13] find that the most powerful models can
+generate up to 900 reasoning tokens for trivial problems like “2+3=?”. This motivates the question:
+Is there a universal and efficient scaling approach that avoids excessive space and time costs?
+We draw inspiration from classifier-free guidance (CFG) [34], a widely used trick during the inference
+phase of diffusion models [35], with similar concepts also developed in the NLP community [75, 50].
+Unlike traditional methods that use a single forward pass, CFG utilizes two forward passes during
+inference: it first performs a normal forward pass to obtain the first stream of output, then perturbs
+∗
+
+Work is partially done during internship in Qwen Team, Alibaba Group.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+†
+
+Corresponding authors.
+
+

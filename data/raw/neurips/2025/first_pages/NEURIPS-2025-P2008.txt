@@ -1,0 +1,68 @@
+Hogwild! Inference:
+Parallel LLM Generation via Concurrent Attention
+Gleb Rodionov† ∗ Roman Garipov∗ Alina Shutova∗ George Yakushev∗ Erik Schultheis∗
+Yandex
+HSE University HSE University
+HSE University
+IST Austria
+Yandex
+Yandex
+Yandex
+Vage Egiazarian
+IST Austria
+
+Anton Sinitsin
+Yandex
+
+Denis Kuznedelev
+Yandex
+
+Dan Alistarh‡
+IST Austria
+
+Abstract
+Large Language Models (LLMs) have demonstrated the ability to tackle increasingly complex tasks through advanced reasoning, long-form content generation,
+and tool use. Solving these tasks often involves long inference-time computations.
+In human problem solving, a common strategy to expedite work is collaboration: by
+dividing the problem into sub-tasks, exploring different strategies concurrently, etc.
+Recent research has shown that LLMs can also operate in parallel by implementing
+explicit cooperation frameworks, such as voting mechanisms or the explicit creation of independent sub-tasks that can be executed in parallel. However, each of
+these frameworks may not be suitable for all types of tasks, which can hinder their
+applicability. In this work, we propose a different design approach: we run LLM
+“workers” in parallel , allowing them to synchronize via a concurrently-updated
+attention cache and prompt these workers to decide how best to collaborate. Our
+approach allows the LLM instances to come up with their own collaboration strategy for the problem at hand, all the while “seeing” each other’s memory in the
+concurrent KV cache. We implement this approach via Hogwild! Inference: a
+parallel LLM inference engine where multiple instances of the same LLM run in
+parallel with the same attention cache, with “instant” access to each other’s memory.1 Hogwild! Inference takes advantage of Rotary Position Embeddings (RoPE)
+to avoid recomputation while improving parallel hardware utilization. We find that
+modern reasoning-capable LLMs can perform inference with shared Key-Value
+cache out of the box, without additional fine-tuning.
+
+1
+
+Introduction
+
+Many recent advancements of Large Language Models can be attributed to their ability to perform
+inference-time computations to improve performance [Suzgun et al., 2022, Snell et al., 2024, Beeching
+et al., Muennighoff et al., 2025]. This includes chain-of-thought (CoT) reasoning [Wei et al.,
+2022, Kojima et al., 2022, Zhang et al., 2022, Yao et al., 2023, Lightman et al., 2023], long-form
+generation [Bai et al., 2024] and interacting with external tools [Schick et al., 2023, Qin et al., 2023,
+Yao et al., 2022, Shen et al., 2023]. Popular LLM-based services have capabilities for reasoning and
+tool use [OpenAI et al., 2024, Google DeepMind, 2025, Anthropic, 2024]. At the same time, several
+reasoning-capable open-access LLMs have recently been released to the public [DeepSeek-AI et al.,
+2025, Qwen Team, 2025, Yang et al., 2024, Muennighoff et al., 2025, Ye et al., 2025].
+Using these models to solve complex problems often requires long sequential computations, that is,
+generating text token-by-token. However, many reasoning problems are not sequential. Leveraging
+this intuition, several recent works propose parallel inference strategies that allow multiple LLMs
+1
+†
+
+Our implementation is available at https://github.com/eqimp/hogwild_llm .
+Corresponding author: rodionovgleb@yandex-team.ru. ∗ Equal contribution.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+‡ Senior author.
+
+

@@ -1,0 +1,65 @@
+PipeFusion: Patch-level Pipeline Parallelism for
+Diffusion Transformers Inference
+Jiarui Fang ∗†
+ByteDance
+fangjiarui123@gmail.com
+
+Jinzhe Pan∗†
+HUST
+eigensystem@hust.edu.cn
+
+Xibo Sun
+Tencent
+xibosun@tencent.com
+
+Aoyu Li†
+ByteDance
+aoyuli2000@outlook.com
+
+Jiannan Wang†
+The University of Hong Kong
+steaunk@connect.hku.hk
+
+Abstract
+This paper presents PipeFusion, an innovative parallel methodology to tackle
+the high latency issues associated with generating high-resolution images using
+diffusion transformers (DiTs) models. PipeFusion partitions images into patches
+and the model layers across multiple GPUs. It employs a patch-level pipeline
+parallel strategy to orchestrate communication and computation efficiently. By
+capitalizing on the high similarity between inputs from successive diffusion steps,
+PipeFusion reuses one-step stale feature maps to provide context for the current
+pipeline step. This approach notably reduces communication costs compared to
+existing DiTs inference parallelism, including tensor parallel, sequence parallel
+and DistriFusion. PipeFusion enhances memory efficiency through parameter
+distribution across devices, ideal for large DiTs like Flux.1. Experimental results
+demonstrate that PipeFusion achieves state-of-the-art performance on 8×L40 PCIe
+GPUs for Pixart, Stable-Diffusion 3, and Flux.1 models. Our Source code is
+available at https://github.com/xdit-project/xDiT.
+
+1
+
+Introduction
+
+In recent years, the capabilities of AI-generated content (AIGC) have rapidly advanced, with diffusion
+models emerging as a leading generative technique in image [1–4] and video synthesis [5, 6]. The
+model architecture of diffusion models is undergoing a significant transformation. Traditionally
+dominated by U-Net [7] architectures, these models are now transitioning to Diffusion Transformers
+(DiTs) [4]. The context length of diffusion models is also increasing, which is crucial for handling
+long videos and high-resolution images.
+DiTs suffer from quadratic latency growth in long-sequence generation due to attention computation.
+Given that a single GPU cannot satisfy the latency requirements for practical applications, it becomes
+necessary to parallelize the DiTs inference for a single image across multiple computational devices.
+However, tensor parallelism (TP) [8], commonly used in serving Large Language Models (LLMs), is
+inefficient for DiTs due to their large activation volumes. In such cases, the communication costs often
+outweigh the benefits of parallel computation. To address the challenges posed by long sequences,
+sequence parallelism (SP) [9, 10] is applied for the parallel inference of DiTs, which partitions the
+input image into patches and needs data exchange across different devices in the attention operations.
+∗
+†
+
+Equal contribution.
+This work was completed when Jiarui Fang, Jinzhe Pan, Aoyu Li, and Jiannan Wang were with Tencent.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

@@ -1,0 +1,71 @@
+Inference-Time Hyper-Scaling
+with KV Cache Compression
+
+Adrian Łańcucki† Konrad Staniszewski†◦
+Piotr Nawrot♢∗ Edoardo M. Ponti†♢
+†
+◦
+NVIDIA University of Warsaw ♢ University of Edinburgh
+
+Abstract
+Inference-time scaling trades efficiency for increased reasoning accuracy by generating longer or more parallel sequences. However, in Transformer LLMs, generation cost is bottlenecked by the size of the key–value (KV) cache, rather than the
+number of generated tokens. Hence, we explore inference-time hyper-scaling: by
+compressing the KV cache, we can generate more tokens within the same compute
+budget and further improve the accuracy of scaled inference. The success of this
+approach, however, hinges on the ability of compression methods to preserve
+accuracy even at high compression ratios. To make hyper-scaling practical, we
+introduce Dynamic Memory Sparsification (DMS), a novel method for sparsifying
+KV caches that only requires 1K training steps to achieve 8× compression, while
+maintaining better accuracy than training-free sparse attention. Instead of prematurely discarding cached tokens, DMS delays token eviction, implicitly merging
+representations and preserving critical information. We demonstrate the effectiveness of inference-time hyper-scaling with DMS on multiple families of LLMs,
+showing that it boosts accuracy for comparable inference latency and memory load.
+For instance, we enhance Qwen-R1 32B by 12.0 points on AIME 24, 8.6 on GPQA,
+and 9.7 on LiveCodeBench on average for an equivalent number of memory reads.
+
+1
+
+Introduction
+
+Scaling inference-time compute—employed in models such as OpenAI’s o1 (OpenAI et al., 2024) or
+DeepSeek’s R1 (Guo et al., 2025)—trades off increased inference time and memory for higher reasoning accuracy in large language models (LLMs).
+Models reason by generating intermediate steps that
+explore the problem before reaching an answer. Adjusting the depth and breadth of this exploration—
+known as sequential and parallel scaling, respectively
+(Muennighoff et al., 2025)—controls the inferencetime compute budget (Yao et al., 2023; Uesato et al.,
+2022; Wang et al., 2023; Lightman et al., 2024).
+
+R1-Qwen 2.5 1.5B
+R1-Qwen 2.5 7B
+R1-Qwen 2.5 32B
+
+LiveCodeBench
+
+AIME24
+
+2
+
+4
+
+6
+
+8
+
+12
+10
+GPQA
+
+MATH 500
+
+Despite its success, scaling inference-time compute Figure 1: Average absolute gains of DMS
+is fundamentally bottlenecked in Transformer LLMs over the original LLMs during inference-time
+by the number of tokens from the key–value (or KV) scaling on reasoning tasks for the same KV
+cache that are attended to during auto-regressive gen- cache memory reads, (a proxy for latency).
+eration. This cache grows linearly with respect to the
+length and number of reasoning chains, as the new key–value representations are appended to it.
+∗
+
+Work done as an intern at NVIDIA.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

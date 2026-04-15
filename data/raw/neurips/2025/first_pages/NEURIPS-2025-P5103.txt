@@ -1,0 +1,65 @@
+Learning to Integrate Diffusion ODEs
+by Averaging the Derivatives
+
+Wenze Liu
+
+Xiangyu Yue∗
+
+MMLab, The Chinese University of Hong Kong
+
+Abstract
+To accelerate diffusion model inference, numerical solvers perform poorly at
+extremely small steps, while distillation techniques often introduce complexity and
+instability. This work presents an intermediate strategy, balancing performance and
+cost, by learning ODE integration using loss functions derived from the derivativeintegral relationship, inspired by Monte Carlo integration and Picard iteration. From
+a geometric perspective, the losses operate by gradually extending the tangent to
+the secant, thus are named as secant losses. The target of secant losses is the
+same as that of diffusion models, or the diffusion model itself, leading to great
+training stability. By fine-tuning or distillation, the secant version of EDM achieves
+a 10-step FID of 2.14 on CIFAR-10, while the secant version of SiT-XL/2 attains
+a 4-step FID of 2.27 and an 8-step FID of 1.96 on ImageNet-256 × 256. Code is
+available at https://github.com/poppuppy/secant-expectation.
+
+1
+
+Introduction
+
+Diffusion models [1, 2, 3, 4] generate images by reversely
+ℒ 𝜃 = || 𝜃 −
+||00
+denoising their noised versions, which can be formulated by
+𝑣(𝑥'! , 𝑟)
+stochastic differential equations (SDEs) and the corresponding
+𝑥" + 𝑟 − 𝑡 𝑓# ! (𝑥" , 𝑡, 𝑟)
+probability flow ordinary differential equations (PF-ODEs) [4].
+𝑠
+Over recent years, diffusion models have transformed the land𝑓# (𝑥" , 𝑡, 𝑠)
+scape of generative modeling, across multiple modalities such 𝑥" , 𝑡
+as image [5, 6, 7, 8], video [9, 10, 11] and audio [12, 13, 14].
+(a) Estimating interior point 𝑥'!
+Despite their remarkable performance, a significant drawback
+𝑣(𝑥! , 𝑟)
+of diffusion models is their slow inference speed: they typically
+𝑥! + 𝑡 − 𝑟 𝑓# ! (𝑥! , 𝑟, 𝑡)
+require hundreds to thousands of number of function evalua𝑠
+tions (NFEs) to generate a single image. Considerable research
+has focused on reducing the number of required steps, with 𝑥'" , 𝑡
+𝑓# (𝑥'" , 𝑡, 𝑠)
+common approaches falling into categories including faster
+samplers [15, 16, 17, 18] for diffusion SDEs or PF-ODEs, and
+(b) Estimating end point 𝑥'"
+diffusion distillation [19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+30, 31, 32, 33, 34, 35] methods that distill pretrained diffusion Figure 1: Formulation of secant
+models to few-step generators. However, faster samplers ex- losses. We employ an ℓ2 loss beperience significant performance degradation when operating tween the learned secant and a tanwith a small number of function evaluations (typically fewer gent at a random interior time point.
+than 10 NFEs). Meanwhile, distillation approaches frequently By estimating either the interior or
+introduce substantial computational overhead, complex training the end point, we derive two variprocedures, or training instabilities. Additionally, they some- ants shown in (a) and (b).
+times face risks of model collapse and over-smoothing in the generated outputs.
+∗
+
+Corresponding author.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+𝑧
+
+

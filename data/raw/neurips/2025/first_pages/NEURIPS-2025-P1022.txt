@@ -1,0 +1,66 @@
+AutoJudge: Judge Decoding
+Without Manual Annotation
+Roman Garipov ∗ †
+HSE University, Yandex
+
+Fedor Velikonivtsev ∗
+HSE University, Yandex
+
+Ruslan Svirschevski
+Yandex
+
+Vage Egiazarian ‡
+IST Austria
+
+Ivan Ermakov
+HSE University, Yandex
+Max Ryabinin
+Together AI
+
+Abstract
+We introduce AutoJudge1 , a method that accelerates large language model (LLM)
+inference with task-specific lossy speculative decoding. Instead of matching the
+original model output distribution token-by-token, we identify the generated tokens
+that affect the downstream quality of the response, relaxing the distribution match
+guarantee so that the “unimportant” tokens can be generated faster. Our approach
+relies on a semi-greedy search algorithm to test which of the mismatches between
+target and draft models should be corrected to preserve quality and which ones
+may be skipped. We then train a lightweight classifier based on existing LLM
+embeddings to predict, at inference time, which mismatching tokens can be safely
+accepted without compromising the final answer quality. We evaluate AutoJudge
+with multiple draft/target model pairs on mathematical reasoning and programming benchmarks, achieving significant speedups at the cost of a minor accuracy
+reduction. Notably, on GSM8K with the Llama 3.1 70B target model, our approach
+achieves up to ≈2× speedup over speculative decoding at the cost of a ≤1% drop
+in accuracy. When applied to the LiveCodeBench benchmark, AutoJudge automatically detects programming-specific important tokens, accepting ≥25 tokens
+per speculation cycle at a 2% drop in Pass@1. Our approach requires no human
+annotation and is easy to integrate with modern LLM inference frameworks.
+
+1
+
+Introduction
+
+Recent advances in LLM capabilities, including chain-of-thought reasoning [Wei et al., 2022, Kojima
+et al., 2022, Suzgun et al., 2022], writing complex software [Rozière et al., 2023, Li et al., 2023, Jiang
+et al., 2024], or interacting with external tools [Schick et al., 2023, Qin et al., 2023], increasingly rely
+on inference-time computation [Snell et al., 2024, Beeching et al., 2024]. This progress is further
+accelerated with the release of reasoning-capable models, both proprietary [OpenAI et al., 2024,
+Anthropic, 2024, Google DeepMind, 2025] and open-access [DeepSeek-AI et al., 2025, Meta, 2025,
+Qwen Team, 2025], that were explicitly trained to perform these kinds of inference-time computation.
+However, as LLMs tackle harder problems, they also tend to generate longer sequences [Muennighoff
+et al., 2025] with tens of thousands of tokens [Yeo et al., 2025], taking up tens of minutes (and
+hundreds of dollars in costs) per task [ARC Prize Foundation, 2024].
+A popular way to speed up LLM inference is through speculative decoding [Leviathan et al., 2023,
+Chen et al., 2023], which uses a small “draft” model to propose the likely next tokens, then verifies
+these tokens with the main model in parallel. This method, along with its successors [Miao et al., 2023,
+1
+
+Our code is available at github.com/garipovroma/autojudge.
+Equal contribution. †Corresponding author: devilgar@gmail.com.
+‡
+Work done during employment at Yandex.
+
+∗
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

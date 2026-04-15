@@ -1,0 +1,48 @@
+Faster Video Diffusion with Trainable Sparse
+Attention
+Peiyuan Zhang1∗ Yongqi Chen1∗ Haofeng Huang1∗‡ Will Lin1
+Zhengzhong Liu2 Ion Stoica3 Eric P. Xing2 Hao Zhang1
+1
+UC San Diego 2 MBZUAI 3 UC Berkeley
+
+Abstract
+Scaling video diffusion transformers (DiTs) is limited by their quadratic 3D attention, even though most of the attention mass concentrates on a small subset
+of positions. We turn this observation into VSA, a trainable, hardware-efficient
+sparse attention that replaces full attention at both training and inference. In VSA,
+a lightweight coarse stage pools tokens into tiles and identifies high-weight critical tokens; a fine stage computes token-level attention only inside those tiles
+subjecting to block computing layout to ensure hard efficiency. This leads to a
+single differentiable kernel that trains end-to-end, requires no post-hoc profiling,
+and sustains 85% of FlashAttention3 MFU. We perform a large sweep of ablation
+studies and scaling-law experiments by pretraining DiTs from 60M to 1.4B parameters. VSA reaches a Pareto point that cuts training FLOPS by 2.53× with no
+drop in diffusion loss. Retrofitting the open-source Wan2.1-1.3B model speeds
+up attention time by 6× and lowers end-to-end generation time from 31s to 18s
+with comparable quality, while for the 14B model, end-to-end generation time is
+reduced from 1274s to 576s. Furthermore, we introduce a preliminary study of
+Sparse-Distill, the first method to enable sparse attention and distillation concurrently, achieving 50.9x speed up for Wan-1.3B while maintaining quality. These
+results establish trainable sparse attention as a practical alternative to full attention
+and a key enabler for further scaling of video diffusion models. Code is available
+at https://github.com/hao-ai-lab/FastVideo.
+
+1
+
+Introduction
+
+Attention computation is the primary bottleneck when scaling video Diffusion Transformers (DiT) [34,
+28]. Even a seemingly short 5-second 720p clip unfolds into more than 100K tokens [29, 20] once
+flattened as a sequence. Consequently, state-of-the-art video DiTs [20, 35, 43, 26] expend the
+majority of compute on attention when training on full-resolution, long-sequence data; the trained
+DiTs remain painfully slow at inference. Fortunately, recent studies [37, 48, 6, 47] reveal an inherent
+sparsity in DiTs √
+trained using full attention: only a tiny subset of entries in the attention matrix
+Softmax(QK ⊤ / d), which we refer to as critical tokens, significantly influence outputs, while the
+vast majority approach zero. This inherent sparsity calls for developing a native, trainable sparse
+attention mechanism purpose-built for video DiTs.
+Most prior work approaches sparsity as a post-hoc speedup for pretrained DiTs rather than as a firstclass training primitive. Sliding Tile Attention (STA) [48] and Sparge Attention [47], for example,
+begin with a model trained under full attention and then substitute each head with a fixed or profilederived sparse mask only at inference time [37, 38]. Because the sparsity pattern is decided after
+training, these methods leave the bulk of training cost untouched and introduce a train-test mismatch:
+the DiT learns parameters in a dense context yet is evaluated in a sparse one. That mismatch caps
+* Equal contribution. ‡ Work performed during an internship at UC San Diego.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

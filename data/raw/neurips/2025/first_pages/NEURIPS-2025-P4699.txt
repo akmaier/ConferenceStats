@@ -1,0 +1,64 @@
+Towards Understanding the Mechanisms of
+Classifier-Free Guidance
+Xiang Li1 , Rongrong Wang2 , Qing Qu1
+Department of EECS, University of Michigan,
+2
+Department of CMSE and Mathematics, Michigan State University,
+forkobe@umich.edu, wangron6@msu.edu, qingqu@umich.edu
+1
+
+Abstract
+Classifier-free guidance (CFG) is a core technique powering state-of-the-art image
+generation systems, yet its underlying mechanisms remain poorly understood. In
+this work, we begin by analyzing CFG in a simplified linear diffusion model,
+where we show its behavior closely resembles that observed in the nonlinear
+case. Our analysis reveals that linear CFG improves generation quality via three
+distinct components: (i) a mean-shift term that approximately steers samples in
+the direction of class means, (ii) a positive Contrastive Principal Components
+(CPC) term that amplifies class-specific features, and (iii) a negative CPC term that
+suppresses generic features prevalent in unconditional data. We then verify these
+insights in real-world, nonlinear diffusion models: over a broad range of noise
+levels, linear CFG resembles the behavior of its nonlinear counterpart. Although
+the two eventually diverge at low noise levels, we discuss how the insights from the
+linear analysis still shed light on the CFG’s mechanism in the nonlinear regime.
+
+1
+
+Introduction
+
+Diffusion models [1–4] generate samples from a data distribution pdata (x), where x ∈ Rd , by
+reversing a forward noising process. This forward process, defined in (1), progressively corrupts the
+2
+clean data until p(x; σmax ) becomes indistinguishable from a Gaussian distribution N (0, σmax
+I),
+Z
+p0t (x|x0 )pdata (x0 )dx0 .
+(1)
+p(x; σ(t)) =
+Rd
+
+Following the state-of-the-art EDM framework [4, 5], the forward transition kernel is set to
+p0t (x|x0 ) = N (x0 , σ 2 (t)I). The reverse process can then be expressed as a probabilistic ODE:
+dxt = −σ(t)∇xt log p(x; σ(t))dt,
+
+(2)
+
+such that xt ∼ p(x; σ(t)) for every σ(t) ∈ (0, σmax ]. In practice, the score function can be
+approximated as ∇x log p(x; σ(t)) ≈ (Dθ (x; σ(t)) − x)/σ 2 (t), where Dθ is a deep network-based
+denoiser with parameter θ optimized by minimizing the denoising score matching objective [6]:
+Ex∼pdata ,ϵ∼N (0,σ2 (t)I) [||Dθ (x + ϵ; σ(t)) − x||22 ].
+
+(3)
+
+To sample from conditional distribution p(x|c), the deep denoiser Dθ (x; σ(t), c) receives an auxiliary
+embedding c specifying the target class or other conditions during training such that conditional
+sampling can be performed with:
+dxt = −σ(t)∇xt log p(x|c; σ(t))dt,
+
+(4)
+
+where ∇x log p(x|c; σ(t)) ≈ (Dθ (x; σ(t), c) − x)/σ 2 (t). However, the naive (standard) conditional
+sampling (4) alone often results in images with incoherent structures and fail to align well with the
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

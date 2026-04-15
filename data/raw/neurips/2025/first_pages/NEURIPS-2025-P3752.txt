@@ -1,0 +1,64 @@
+HALO: Hadamard-Assisted Lower-Precision
+Optimization for LLMs
+
+Saleh Ashkboos∗†
+ETH Zurich
+
+Mahdi Nikdan∗
+ISTAustria
+
+Torsten Hoefler
+ETH Zurich
+
+Soroush Tabesh∗
+ISTAustria
+
+Roberto L. Castro
+ISTAustria
+
+Dan Alistarh
+ISTAustria & Neural Magic
+
+Abstract
+Quantized training of Large Language Models (LLMs) remains an open challenge,
+as maintaining accuracy while performing all matrix multiplications in low precision has proven difficult. This is particularly the case when fine-tuning pre-trained
+models, which can have large weight, activation, and error (output gradient) outlier values that make lower-precision optimization difficult. To address this, we
+present HALO, a new quantization-aware training approach for Transformers that
+enables accurate and efficient low-precision training by combining 1) strategic
+placement of Hadamard rotations in both forward and backward passes, which
+mitigate outliers, 2) high-performance kernel support, and 3) FSDP integration for
+low-precision communication. Our approach ensures that all large matrix multiplications during the forward and backward passes are executed in lower precision.
+Applied to L LAMA-family models, HALO achieves near-full-precision-equivalent
+results during fine-tuning on various tasks, while delivering up to 1.41× end-to-end
+speedup for full fine-tuning on RTX 4090 GPUs. HALO efficiently supports both
+standard and parameter-efficient fine-tuning (PEFT). Our results demonstrate the
+first practical approach to fully quantized LLM fine-tuning that maintains accuracy
+in INT8 and FP6 precision, while delivering performance benefits.
+
+1
+
+Introduction
+
+The high performance of large language models (LLMs) across a wide series of tasks comes with
+considerable computational costs; reducing them is one of the key directions in Machine Learning
+Systems research [9; 16; 21]. For LLM inference, a standard acceleration approach has been the
+quantization of weights and activations, which reduces the precision at which they are stored and
+potentially also computed over, e.g. [17; 42; 1; 35; 3].
+By contrast, much less is known about quantization in the context of LLM training. While the
+recent DeepSeek breakthrough [11] has showed that 8-bit floating-point (FP8) pre-training of large
+models can be done both accurately and efficiently, it is not known how to extend this result using
+the more widely-supported 8-bit integer (INT8) format, or lower-precision 6-bit formats such as
+MXFP6 [38; 41]. Intuitively, accurate and efficient quantized training is much more challenging
+than quantized inference: while in inference a single large matrix multiplication occurs in lower
+precision, for training, all three matrix multiplications (one during the forward pass and two during
+back-propagation) must be executed in lower precision. This creates critical issues both in terms of
+accuracy—as quantizing weights, activations, and errors can induce significant training instability—
+∗
+†
+
+Equal contribution
+Correspondence to: saleh.ashkboos@inf.ethz.ch
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

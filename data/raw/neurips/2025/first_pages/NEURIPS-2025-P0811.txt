@@ -1,0 +1,54 @@
+Cost-Efficient LLM Training with Lifetime-Aware
+Tensor Offloading via GPUDirect Storage
+
+Ziqi Yuan1 , Haoyang Zhang1 , Yirui Eric Zhou1 ,
+Apoorve Mohan2 , I-Hsin Chung2 , Seetharami Seelam2 , Jian Huang1
+1
+University of Illinois Urbana-Champaign, 2 IBM Research
+{ziqiy6, zhang402, yiruiz2, jianh}@illinois.edu
+apoorve.mohan@ibm.com, {ihchung, sseelam}@us.ibm.com
+
+Abstract
+We present the design and implementation of a new lifetime-aware tensor offloading
+framework for GPU memory expansion using low-cost PCIe-based solid-state
+drives (SSDs). Our framework, T ERAIO, is developed explicitly for large language
+model (LLM) training with multiple GPUs and multiple SSDs. Its design is driven
+by our observation that the active tensors take only a small fraction (1.7% on
+average) of allocated GPU memory in each LLM training iteration, the inactive
+tensors are usually large and will not be used for a long period of time, creating
+ample opportunities for offloading/prefetching tensors to/from slow SSDs without
+stalling the GPU training process. T ERAIO accurately estimates the lifetime (active
+period of time in GPU memory) of each tensor with the profiling of the first few
+iterations in the training process. With the tensor lifetime analysis, T ERAIO will
+generate an optimized tensor offloading/prefetching plan and integrate it into the
+compiled LLM program via PyTorch. T ERAIO has a runtime tensor migration
+engine to execute the offloading/prefetching plan via GPUDirect storage, which
+allows direct tensor migration between GPUs and SSDs for alleviating the CPU
+bottleneck and maximizing the SSD bandwidth utilization. In comparison with
+state-of-the-art studies such as ZeRO-Offload and ZeRO-Infinity, we show that
+T ERAIO improves the training performance of various LLMs by 1.47× on average,
+and achieves 80.7% of the ideal performance assuming unlimited GPU memory.
+
+1
+
+Introduction
+
+Large language models (LLMs) have been widely employed in various application domains [31, 46,
+42]. However, training LLMs is still a well-known challenging problem, as its memory demand
+is increasing at a much faster speed than the scaling speed of GPU memory [18, 25]. Scaling the
+GPU memory capacity is both technically challenging and prohibitively expensive. Due to space
+constraints and DRAM scaling issues [19, 15], it is hard to scale up the GPU memory capacity
+on each server machine. Scaling out LLM training with a cluster of GPU servers can increase the
+aggregated memory capacity, however, it inevitably increases operational cost, placing a major barrier
+for researchers and developers to entry into cutting-edge LLM development.
+To overcome the GPU memory wall, prior studies proposed expanding GPU memory with external
+memory devices. One common approach is to allow tensor offloading from GPU memory to host
+memory [17, 39, 11, 44, 32, 41, 43, 20]. However, due to the fundamental DRAM scalability
+challenge, such an approach is still limited by the host memory. Recent studies have extended tensor
+offloading to PCIe-based SSDs that offer larger capacity at a much lower cost [1, 37, 16, 23, 47,
+51, 29, 50]. But due to the incapability of efficiently utilizing the SSD bandwidth and hiding the
+slow SSD accesses, these offloading solutions still deliver suboptimal performance. For instance,
+ZeRO-infinity [37] enabled the offloading of tensors to SSDs at the granularity of deep neural network
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

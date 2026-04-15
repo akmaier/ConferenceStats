@@ -1,0 +1,54 @@
+KVzip: Query-Agnostic KV Cache Compression
+with Context Reconstruction
+Jang-Hyun Kim1 2 , Jinuk Kim1 2 , Sangwoo Kwon1 , Jae W. Lee1 ,
+Sangdoo Yun3 , Hyun Oh Song∗ 1 2
+1
+Seoul National University, 2 Neural Processing Research Center, 3 NAVER AI Lab
+{blue378, hyunoh}@snu.ac.kr
+
+https://github.com/snu-mllab/KVzip
+
+Abstract
+Transformer-based large language models (LLMs) cache context as key-value (KV)
+pairs during inference. As context length grows, KV cache sizes expand, leading to
+substantial memory overhead and increased attention latency. This paper introduces
+KVzip, a query-agnostic KV cache eviction method enabling effective reuse of
+compressed KV caches across diverse queries. KVzip quantifies the importance of
+a KV pair using the underlying LLM to reconstruct original contexts from cached
+KV pairs, subsequently evicting pairs with lower importance. Extensive empirical
+evaluations demonstrate that KVzip reduces KV cache size by 394× and FlashAttention decoding latency by approximately 2×, with negligible performance loss
+in question-answering, retrieval, reasoning, and code comprehension tasks. Evaluations include various models such as LLaMA3.1, Qwen2.5, and Gemma3, with
+context lengths reaching up to 170K tokens. KVzip significantly outperforms existing query-aware KV eviction methods, which suffer from performance degradation
+even at a 90% cache budget ratio under multi-query scenarios.
+
+1
+
+Introduction
+
+Transformer-based LLMs with long-context capabilities have significantly enhanced real-world
+applications, including long-document analysis and personalized conversational agents [1, 21, 49].
+However, increasing context lengths substantially raises both memory consumption for KV caching
+and computational costs associated with attention mechanisms [31]. For example, caching 120K
+tokens in Qwen2.5-14B with FP16 precision requires approximately 33 GB memory, surpassing the
+model’s 28 GB parameter storage at equivalent precision [54].
+Recent approaches primarily target reducing KV cache memory size while preserving inference
+accuracy. These methods include merging the attention heads [3], compressing KV pairs into
+shorter sequences [46], and using sliding-window techniques to limit context windows [24, 52, 53].
+Other studies exploit attention sparsity for dynamic KV eviction during decoding [4, 38, 60] and
+prefill stages [6, 33]. Existing eviction methods typically employ query-aware KV-pair importance
+scoring computed online during inference [6, 33, 60], selectively retaining KV pairs most relevant to
+immediate queries (Figure 1a,b). While effective in single-query scenarios, these methods exhibit
+significant performance degradation in multi-query settings, as the retained KV pairs predominantly
+overfit to initial queries [35]. We elaborate on these limitations in Section 2.2.
+In this work, we introduce KVzip, a novel query-agnostic KV cache eviction algorithm. KVzip
+optimizes a reusable compressed KV cache for a given context, enabling efficient inference across
+diverse future queries (Figure 1c). Our approach particularly benefits scenarios where KV caches
+are prepared offline, such as personalized conversational agents retaining user instructions and chat
+histories [8, 34], or enterprise systems utilizing precomputed document KV caches for retrieval [7].
+∗
+
+Corresponding author
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

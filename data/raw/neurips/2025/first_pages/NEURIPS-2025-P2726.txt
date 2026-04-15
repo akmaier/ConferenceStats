@@ -1,0 +1,55 @@
+Foresight: Adaptive Layer Reuse for Accelerated and
+High-Quality Text-to-Video Generation
+
+Muhammad Adnan∗
+The University of British Columbia
+adnan@ece.ubc.ca
+Akhil Arunkumar
+d-Matrix
+aarunkumar@d-matrix.ai
+
+Nithesh Kurella
+d-Matrix
+nitheshk@d-matrix.ai
+Prashant J. Nair
+The University of British Columbia
+prashantnair@ece.ubc.ca
+
+Abstract
+Diffusion Transformers (DiTs) achieve state-of-the-art results in text-to-image,
+text-to-video generation, and editing. However, their large model size and the
+quadratic cost of spatial-temporal attention over multiple denoising steps make
+video generation computationally expensive. Static caching mitigates this by
+reusing features across fixed steps but fails to adapt to generation dynamics, leading
+to suboptimal trade-offs between speed and quality.
+We propose Foresight, an adaptive layer-reuse technique that reduces computational
+redundancy across denoising steps while preserving baseline performance. Foresight dynamically identifies and reuses DiT block outputs for all layers across steps,
+adapting to generation parameters such as resolution and denoising schedules to optimize efficiency. Applied to OpenSora, Latte, and CogVideoX, Foresight achieves
+up to 1.63× end-to-end speedup, while maintaining video quality. The source code
+of Foresight is available at https://github.com/STAR-Laboratory/foresight.
+
+1
+
+Introduction
+
+Diffusion Transformers (DiTs) [Bao et al., 2023, Peebles and Xie, 2023] are the state-of-the-art
+architecture for text-to-image [Chen et al., 2024a] and text-to-video [Brooks et al., 2024, Genmo,
+2024, Ma et al., 2024, Liu et al., 2024c] generation. By leveraging the scaling properties of selfattention [Vaswani et al., 2017], DiTs enable high-fidelity video synthesis. However, this comes at a
+high computational cost. Self-attention has quadratic complexity O(L2 ) in the token length L, which
+increases with both spatial resolution (more patches per frame) and temporal extent (more frames).
+Combined with the tens of denoising steps in typical diffusion pipelines, this leads to prohibitive
+inference latency for high-resolution or long-duration videos.
+Inference latency in diffusion models is further increased by classifier-free guidance (CFG) [Ho and
+Salimans, 2022] and full-precision weights. Techniques like pruning [Ma et al., 2023b], quantization [Lin et al., 2024b], distillation [Hsieh et al., 2023], and architectural optimizations [Li et al.,
+2023b, Zhao et al., 2024c,a, Fang et al., 2023, Bolya and Hoffman, 2023] can reduce model size
+and compute cost. However, they often require retraining or hardware-specific tuning, making them
+impractical for deploying large, pretrained DiTs across diverse hardware environments.
+Feature caching offers a complementary strategy for accelerating diffusion by reusing intermediate
+activations across adjacent denoising steps. Early methods for U-Net models cache skip-connection
+∗
+
+A large part of this work was done while the author was interning with d-Matrix.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

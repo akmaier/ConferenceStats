@@ -1,0 +1,45 @@
+CodeGEMM: A Codebook-Centric Approach to
+Efficient GEMM in Quantized LLMs
+
+Gunho Park, Jeongin Bae, Byeongwook Kim, Baeseong Park, Jiwon Ryu,
+Hoseung Kim, Se Jung Kwon, Dongsoo Lee
+NAVER Cloud
+{gunho.park3, dongsoo.lee}@navercorp.com
+github.com/naver-aics/codegemm
+
+Abstract
+Weight-only quantization is widely used to mitigate the memory-bound nature of
+LLM inference. Codebook-based methods extend this trend by achieving strong
+accuracy in the extremely low-bit regime (e.g., 2-bit). However, current kernels rely
+on dequantization, which repeatedly fetches centroids and reconstructs weights,
+incurring substantial latency and cache pressure. We present CodeGEMM, a
+codebook-centric GEMM kernel that replaces dequantization with precomputed
+inner products between centroids and activations stored in a lightweight Psumbook. At inference, code indices directly gather these partial sums, eliminating
+per-element lookups and reducing the on-chip footprint. The kernel supports the
+systematic exploration of latency–memory–accuracy trade-offs under a unified
+implementation. On Llama-3 models, CodeGEMM delivers 1.83× (8B) and 8.93×
+(70B) speedups in the 2-bit configuration compared to state-of-the-art codebookbased quantization at comparable accuracy and further improves computing efficiency and memory subsystem utilization.
+
+1
+
+Introduction
+
+Driven by the power-law scaling principle, large language models (LLMs) have grown increasingly
+larger, delivering remarkable advancements in performance [9, 10]. Notably, open-source models
+like Llama-3 [4] have reached a scale of 405 billion parameters, demonstrating significant improvements over their predecessors. However, deploying such massive models efficiently in production
+environments poses substantial challenges. For instance, the 405B model requires approximately
+810GB of storage for its parameters alone, exceeding the memory capacity of a single multi-GPU
+node configured with 8 NVIDIA H100s, which offers a total of 640GB of memory. To address
+these limitations, extensive research has been dedicated to developing various model compression
+techniques aimed at reducing model size while minimizing performance degradation [8, 24, 22].
+Among compression strategies, quantization has emerged as a particularly effective tool for cutting
+model size and bandwidth demands with minimal accuracy loss. In large language models (LLMs),
+challenges with activation quantization—caused by activation outliers—and the significant memory
+footprint of weight parameters have spurred research into weight-only quantization [6]. These
+methods focus on quantizing model weights to maximize memory efficiency without compromising
+performance.
+State-of-the-art techniques show that 4-bit weight-only quantization achieves nearly the same performance as unquantized models [13, 12], with notable progress even in 3-bit quantization [21, 1].
+However, in extreme low-bit (e.g., 2-bit) settings, uniform quantization suffers from significant performance degradation due to its limited representational capacity. Structured non-uniform methods
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

@@ -1,0 +1,61 @@
+Gradient Multi-Normalization for Efficient
+LLM Training
+
+Meyer Scetbon∗
+Microsoft Research
+
+Chao Ma∗
+Microsoft Research
+
+Wenbo Gong∗
+Microsoft Research
+
+Ted Meeds
+Microsoft Research
+
+Abstract
+Training large language models (LLMs) commonly relies on adaptive optimizers
+such as Adam (Kingma & Ba, 2015), which accelerate convergence through moment estimates but incur substantial memory overhead. Recent stateless approaches
+such as SWAN (Ma et al., 2024) have shown that appropriate preprocessing of
+instantaneous gradient matrices can match the performance of adaptive methods
+without storing optimizer states. Building on this insight, we introduce gradient
+multi-normalization, a principled framework for designing stateless optimizers
+that normalize gradients with respect to multiple norms simultaneously. Whereas
+standard first-order methods can be viewed as gradient normalization under a single
+norm (Bernstein & Newhouse, 2024), our formulation generalizes this perspective
+to a multi-norm setting. We derive an efficient alternating scheme that enforces
+these normalization constraints and show that our procedure can produce, up to
+an arbitrary precision, a fixed-point of the problem. This unifies and extends prior
+stateless optimizers, showing that SWAN arises as a specific instance with particular norm choices. Leveraging this principle, we develop SinkGD, a lightweight
+matrix optimizer that retains the memory footprint of SGD (w/o momentum)
+while substantially reducing computation relative to whitening-based methods. On
+the memory-efficient LLaMA training benchmark (Zhao et al., 2024a), SinkGD
+achieves state-of-the-art performance, reaching the same evaluation perplexity as
+Adam using only 40% of the training tokens.
+
+1
+
+Introduction
+
+The training of Large Language Models (LLMs) relies heavily on adaptive optimization algorithms,
+such as Adam Kingma & Ba (2015), which dynamically adjust learning rates for each parameter
+based on past gradient information, leading to faster convergence and improved stability. However,
+these optimizers introduce substantial memory overhead due to the storage of internal states, typically
+moment estimates of gradients, a challenge that becomes particularly pronounced in distributed
+training settings where memory constraints and communication overhead are critical concerns Rajbhandari et al. (2020); Korthikanti et al. (2023); Dubey et al. (2024). In contrast, simpler first-order
+optimization methods such as Stochastic Gradient Descent (SGD) require significantly less memory
+but fail to adequately train LLMs Zhao et al. (2024b); Zhang et al. (2020); Kunstner et al. (2023,
+2024). As a result, there is an ongoing need for developing new optimization strategies that resolves
+the memory efficiency v.s. training performance dilemma for large-scale models training.
+Recent research has made significant strides in improving memory efficiency of optimization. A
+key focus is on low rank compression of optimizer states (Hu et al., 2021; Lialin et al., 2023; Zhao
+et al., 2024a; Hao et al., 2024; Xu et al., 2024a; Zhang et al., 2024; Gong et al., 2025; Chen et al.,
+2024a; Zhu et al., 2024). More recently, a new approach that directly removes certain optimizer
+states started to emerge, and has shown stronger results compared with direct state compression (Ma
+∗
+
+Equal contribution. This work was done when Meyer Scetbon was affiliated with Microsoft Research.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

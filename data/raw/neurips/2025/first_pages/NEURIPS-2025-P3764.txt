@@ -1,0 +1,82 @@
+Rethinking Approximate Gaussian Inference
+in Classification
+Bálint Mucsányi∗
+
+Nathaël Da Costa∗
+
+Philipp Hennig
+
+Tübingen AI Center
+University of Tübingen
+
+Abstract
+In classification tasks, softmax functions are ubiquitously used as output activations
+to produce predictive probabilities. Such outputs only capture aleatoric uncertainty.
+To capture epistemic uncertainty, approximate Gaussian inference methods have
+been proposed. We develop a common formalism to describe such methods, which
+we view as outputting Gaussian distributions over the logit space. Predictives are
+then obtained as the expectations of the Gaussian distributions pushed forward
+through the softmax. However, such softmax Gaussian integrals cannot be solved
+analytically, and Monte Carlo (MC) approximations can be costly and noisy. We
+propose to replace the softmax activation by element-wise normCDF or sigmoid,
+which allows for the accurate sampling-free approximation of predictives. This also
+enables the approximation of the Gaussian pushforwards by Dirichlet distributions
+with moment matching. This approach entirely eliminates the runtime and memory
+overhead associated with MC sampling. We evaluate it combined with several
+approximate Gaussian inference methods (Laplace, HET, SNGP) on large- and
+small-scale datasets (ImageNet, CIFAR-100, CIFAR-10), demonstrating improved
+uncertainty quantification capabilities compared to softmax MC sampling. Our
+code is available at github.com/bmucsanyi/probit.
+
+1
+
+Introduction
+
+Given an input space X , C classes and training data (xn , cn )N
+n=1 ⊂ X × {1, . . . , C}, the goal of
+probabilistic classification is to learn a function h : X → ∆C−1 , where
+∆C−1 = {(p1 , . . . , pC ) ∈ [0, 1]C : p1 + · · · + pC = 1}
+
+(1)
+
+is the (C − 1)-dimensional probability simplex. The model h outputs the probability of inputs x ∈ X
+belonging to each class, hc (x) = p(c | x). To learn such a map to the simplex, h is typically defined
+as a composition
+f
+
+softmax
+
+h : X −−−−→ RC −−−−−→ ∆C−1
+
+(2)
+
+where a function f , learned from the training data, is mapped through the softmax activation function.
+In this case, RC is called the logit space, and, for x ∈ X , f (x) is a logit.
+With the usual assumption of i.i.d. data, the likelihood under the model h is given by
+N
+p((cn )N
+n=1 | (xn )n=1 ) =
+
+N
+Y
+n=1
+
+∗
+
+p(cn | xn ) =
+
+N Y
+C
+Y
+
+hc (xn )δcn ,c ,
+
+n=1 c=1
+
+Equal contribution.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+(3)
+
+

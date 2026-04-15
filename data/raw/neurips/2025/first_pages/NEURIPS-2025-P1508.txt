@@ -1,0 +1,141 @@
+∆ Attention: Fast and Accurate Sparse Attention
+Inference by Delta Correction
+
+Jeffrey Willette1 , Heejun Lee1 , Sung Ju Hwang1,2
+KAIST1 , DeepAuto.ai2
+{jwillette, ainl, sjhwang82}@kaist.ac.kr
+
+Abstract
+The attention mechanism of a transformer has a quadratic complexity, leading to
+high inference costs and latency for long sequences. However, attention matrices
+are mostly sparse, which implies that many entries may be omitted from computation for efficient inference. Sparse attention inference methods aim to reduce this
+computational burden; however, they also come with a troublesome performance
+degradation. We discover that one reason for this degradation is that the sparse
+calculation induces a distributional shift in the attention outputs. The distributional
+shift causes decoding-time queries to fail to align well with the appropriate keys
+from the prefill stage, leading to a drop in performance. We propose a simple,
+novel, and effective procedure for correcting this distributional shift, bringing
+the distribution of sparse attention outputs closer to that of quadratic attention.
+Our method can be applied on top of any sparse attention method, and results in
+an average 36%pt performance increase, recovering 88% of quadratic attention
+accuracy on the 131K RULER benchmark when applied on top of sliding window
+attention with sink tokens while only adding a small overhead. Our method can
+maintain approximately 98.5% sparsity over full quadratic attention, making our
+model 32 times faster than Flash Attention 2 when processing 1M token prefills.
+
+1
+
+Introduction
+
+The main operation that powers modern transformers, self-attention [Vaswani et al., 2017], creates
+causal pairwise comparisons for every item in a sequence. While powerful and expressive, this
+operation comes with a quadratic complexity, leading to the need for large amounts of computation
+during inference on long sequences. This increases direct costs for hardware and electricity as well
+as negative externalities such as CO2 emissions. Training-free sparse attention modifications aim
+to lower the quadratic complexity at inference time, but come with unwanted side effects such as
+accuracy degradation due to the sparsification of the attention matrix.
+Flash Attention
+
+Accuracy (%)
+
+100
+
+100
+
+9910010096 99
+
+Streaming LLM + ∆
+
+Streaming LLM
+
+100
+
+98
+
+100
+88
+
+90
+
+74
+
+70
+
+75
+
+HiP + ∆
+
+HiP
+
+66
+
+58
+
+50
+
+74
+62
+
+46
+
+40
+
+44
+
+30
+
+0
+
+70
+
+66
+
+74 78
+
+46
+36
+
+NIAH MK 1
+
+42 40 38 38 46
+
+38
+20
+
+2
+
+NIAH 1-3
+
+70
+42
+
+30
+
+20
+
+25
+
+MInference + ∆
+
+MInference
+
+98
+
+NIAH MK 2
+
+0
+
+NIAH MK 3
+
+8
+
+QA 1
+
+QA 2
+
+Figure 1: RULER 131K Subsets. At long context lengths, sparse attention can degrade performance
+by a large margin. Our simple ∆ correction improves performance and only requires an additional
+1.5% of the full quadratic attention computation.
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

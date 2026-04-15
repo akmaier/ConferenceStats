@@ -1,0 +1,55 @@
+DuoGPT: Training-free Dual Sparsity through
+Activation-aware Pruning in LLMs
+
+Ruokai Yin, Yuhang Li, Donghyun Lee, Priyadarshini Panda
+Yale University
+ruokai.yin@yale.edu
+
+Abstract
+Large language models (LLMs) deliver strong performance but are difficult to
+deploy due to high memory and compute costs. While pruning reduces these demands, most methods ignore activation sparsity observed at runtime. We reinterpret
+activation sparsity as dynamic structured weight sparsity and propose DuoGPT, a
+unified framework that constructs dual-sparse (spMspV) workloads by combining
+unstructured weight pruning with activation sparsity. To preserve accuracy, we
+extend the Optimal Brain Compression (OBC) framework with activation-aware
+calibration and introduce output residuals from the dense model as correction terms.
+We further optimize the solution for efficient GPU execution, enabling scalability
+to billion-parameter LLMs. Evaluations on LLaMA-2 and LLaMA-3 show that
+DuoGPT outperforms state-of-the-art structured pruning methods by up to 9.17%
+accuracy at an iso-speedup of 1.39× compared to the baseline dense model. Code
+is available at GitHub.
+
+1
+
+Introduction
+
+Large language models (LLMs) have made significant advances in performance across a range
+of complex, real-world language tasks (Brown et al. 2020, Touvron et al. 2023). However, their
+massive parameter counts present practical challenges for deploying these large pre-trained models
+during inference. For example, deploying LLaMA-2-70B (Touvron et al. 2023), an open-source
+pre-trained LLM with 70 billion parameters, typically requires 150 GB of GPU and CPU RAM,
+along with 60 GFLOPs of computation to decode a single token. Consequently, there is widespread
+interest in reducing both the storage and computational requirements of LLMs through techniques
+collectively referred to as model compression. Existing model compression techniques for LLMs
+include quantization (Frantar et al. 2022, Ashkboos et al. 2024b), tensor decomposition (Wang et al.
+2024, Lin et al. 2024), and pruning (Frantar & Alistarh 2023, Ashkboos et al. 2024a). This work
+focuses on pruning, specifically incorporating activation sparsity into the one-shot weight pruning
+framework.
+One-shot pruning methods selectively zero out the elements in the weight matrices of an LLM
+during one forward pass, and optionally update the remaining non-zero weights to compensate
+for the pruning error. Depending on the freedom in the zero patterns, the pruning can be further
+categorized into unstructured pruning and structured pruning. In general, the following tradeoff
+between the two categories has long stood: more structured sparsity yields more speedup1 , while more
+unstructured sparsity is associated with better accuracy performance. In this work, we strike a balance
+between the two by incorporating activation sparsity. We observe that during the decoding stage of
+LLMs (i.e., General Matrix-Vector (GEMV) operations2 ), activation sparsity can be interpreted as
+structured weight sparsity, as only weight rows corresponding to non-zero activations are involved
+1
+2
+
+We focus on the speedup of running LLMs on general purpose architectures, e.g., GPUs.
+We primarily focus on single-batch decoding in this work.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

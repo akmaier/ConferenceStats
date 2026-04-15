@@ -1,0 +1,54 @@
+Tortoise and Hare Guidance: Accelerating Diffusion
+Model Inference with Multirate Integration
+
+Byeonghyun Pak
+Junwha Hong
+Hoseong Kim†
+Agency for Defense Development
+{yhl, byeonghyun_pak, qbit, hoseongkim}@add.re.kr
+
+Yunghee Lee
+
+Abstract
+In this paper, we propose Tortoise and Hare Guidance (THG), a training-free
+strategy that accelerates diffusion sampling while maintaining high-fidelity generation. We demonstrate that the noise estimate and the additional guidance
+term exhibit markedly different sensitivity to numerical error by reformulating
+the classifier-free guidance (CFG) ODE as a multirate system of ODEs. Our
+error-bound analysis shows that the additional guidance branch is more robust to
+approximation, revealing substantial redundancy that conventional solvers fail to
+exploit. Building on this insight, THG significantly reduces the computation of the
+additional guidance: the noise estimate is integrated with the tortoise equation on
+the original, fine-grained timestep grid, while the additional guidance is integrated
+with the hare equation only on a coarse grid. We also introduce (i) an error-boundaware timestep sampler that adaptively selects step sizes and (ii) a guidance-scale
+scheduler that stabilizes large extrapolation spans. THG reduces the number of
+function evaluations (NFE) by up to 30% with virtually no loss in generation
+fidelity (∆ImageReward ≤ 0.032) and outperforms state-of-the-art CFG-based
+training-free accelerators under identical computation budgets. Our findings highlight the potential of multirate formulations for diffusion solvers, paving the way for
+real-time high-quality image synthesis without any model retraining. The source
+code is available at https://github.com/yhlee-add/THG.
+
+1
+
+Introduction
+
+Diffusion models (DMs) have become the state-of-the-art generative model for images [10, 40, 47]
+and, more recently, for video [20, 1, 52, 21] and audio-visual content [5, 41]. Despite their impressive
+quality, sampling is costly: each output is obtained by iteratively denoising a noisy sample, and the
+latency scales with the total number of function evaluations (NFE) required by the solver.
+Many practical scenarios, such as text-to-image synthesis, class-controlled synthesis, or in-context
+image editing, require conditional generation. The dominant technique for high-quality conditioning is
+classifier-free guidance (CFG) [18], which improves perceptual quality and controllability. However,
+CFG runs the denoising network twice per timestep—once conditional and once unconditional—
+thereby doubling the NFE. For real-time applications, such as interactive editing and large-scale
+serving, evaluating a deep backbone at every timestep remains a major bottleneck.
+A large body of work to accelerate these models has focused on two main approaches. Some
+approaches reduce the number of steps using higher-order ODE/SDE solvers [45, 46, 30] or distillation [43, 34], while others—such as cache-based strategies like DeepCache [33] and Learning-toCache [32]—lower the cost per step by reusing intermediate features. Nevertheless, both approaches
+still perform two forward passes whenever CFG is enabled, implicitly assuming that conditional and
+unconditional calls are equally indispensable.
+†
+
+Corresponding author.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+
