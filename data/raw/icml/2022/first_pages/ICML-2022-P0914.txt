@@ -1,0 +1,85 @@
+Causal Imitation Learning under Temporally Correlated Noise
+
+Gokul Swamy 1 Sanjiban Choudhury 2 J. Andrew Bagnell 3 1 Zhiwei Steven Wu 1
+
+Abstract
+We develop algorithms for imitation learning from
+policy data that was corrupted by temporally correlated noise in expert actions. When noise affects
+multiple timesteps of recorded data, it can manifest as spurious correlations between states and
+actions that a learner might latch on to, leading to
+poor policy performance. To break up these spurious correlations, we apply modern variants of
+the instrumental variable regression (IVR) technique of econometrics, enabling us to recover the
+underlying policy without requiring access to an
+interactive expert. In particular, we present two
+techniques, one of a generative-modeling flavor
+(DoubIL) that can utilize access to a simulator,
+and one of a game-theoretic flavor (ResiduIL)
+that can be run entirely offline. We find both of
+our algorithms compare favorably to behavioral
+cloning on simulated control tasks.
+
+1. Introduction
+Much of the theory of imitation learning (IL) tells us that
+with enough demonstrations, we should be able to accurately
+recover the expert’s policy. A long line of work (Ross et al.,
+2011; Sun et al., 2019; Spencer et al., 2021; Swamy et al.,
+2021) has derived performance bounds that seem to imply
+that if infinite-sample training error is driven to zero, value
+equivalence to the expert policy should follow. However,
+when we actually apply IL algorithms on large datasets, we
+sometimes see them produce manifestly incorrect estimates
+of the expert’s policy (Muller et al., 2006; Codevilla et al.,
+2019; de Haan et al., 2019; Bansal et al., 2018; Kuefler
+et al., 2017). One possible reason for this phenomenon is
+that empirically, we might only have access to recordings of
+the expert that are corrupted by temporally correlated noise
+(TCN). For example, a quadcopter pilot might have been
+flying under persistent wind or an expert driver might have
+1
+Carnegie Mellon University 2 Cornell University 3 Aurora Innovation. Correspondence to: Gokul Swamy <gswamy@cmu.edu>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+been using a car with sticky brakes. More generally, we
+might expect that for a variety of sequential prediction tasks,
+observational data might have noise that is not independently
+distributed across timesteps.
+The downstream effect of TCN (more formally, an unobserved confounder) is temporal correlations in the recorded
+actions that do not have their true cause in the recorded state.
+Consider again our quadcopter pilot demonstrating how to
+fly straight on a rather windy day. If we directly fed these
+swerve-filled trajectories to the learner, they might learn to
+reproduce the deviations, producing trajectories that deviate
+even further from a straight path in a test-time windy environment. At a more abstract level, these sorts of inconsistent
+policy estimates can result from temporal correlations between pairs of actions (e.g. the persistent wind affecting the
+observed heading) being reflected in the state (e.g. the quadcopter position) leading to spurious correlations between
+state and action that the learner might unfortunately latch
+onto (e.g. turning further left when on the left).
+What then should we hope to learn in these confounded
+settings? Given we do not have access to the unobserved
+confounder, a reasonable choice is to ensure that we
+match the behavior of an expert with access to the same
+information we have. Put differently, we should strive to
+produce actions matching those proposed by an expert
+queried about our current observation. While applying
+an interactive imitation learning algorithm like DAgger
+(Ross et al., 2011) would allow us to collect a dataset
+uncorrupted by confounding (as we directly observe
+deconfounded expert actions), a queryable expert is not a
+realistic assumption for many domains. We therefore focus
+on approaches that operate on the basis of a fixed set of
+demonstrations. We base our algorithms on instrumental
+variable regression (IVR) (Angrist et al., 1996), a technique
+from econometrics for dealing with confounding in
+recorded data. The high-level idea of IVR is to leverage
+an instrument, a source of random variation independent
+of the confounder, to deconfound inputs to a learning
+procedure via conditioning on the instrument. In dynamical
+systems, history can act as this source of variation, as it
+is unaffected by future confounding (Hefny et al., 2015).
+Our key insight is that we can leverage past states as
+instruments to break the spurious correlation between
+states and actions caused by an unobserved confounder.
+
+

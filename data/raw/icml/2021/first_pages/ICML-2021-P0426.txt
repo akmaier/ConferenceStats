@@ -1,0 +1,84 @@
+Perceiver: General Perception with Iterative Attention
+
+Andrew Jaegle 1 Felix Gimeno 1 Andrew Brock 1 Andrew Zisserman 1 Oriol Vinyals 1 Joao Carreira 1
+
+Abstract
+Biological systems perceive the world by simultaneously processing high-dimensional inputs from
+modalities as diverse as vision, audition, touch,
+proprioception, etc. The perception models used
+in deep learning on the other hand are designed
+for individual modalities, often relying on domainspecific assumptions such as the local grid structures exploited by virtually all existing vision
+models. These priors introduce helpful inductive biases, but also lock models to individual
+modalities. In this paper we introduce the Perceiver – a model that builds upon Transformers
+and hence makes few architectural assumptions
+about the relationship between its inputs, but that
+also scales to hundreds of thousands of inputs,
+like ConvNets. The model leverages an asymmetric attention mechanism to iteratively distill inputs
+into a tight latent bottleneck, allowing it to scale
+to handle very large inputs. We show that this
+architecture is competitive with or outperforms
+strong, specialized models on classification tasks
+across various modalities: images, point clouds,
+audio, video, and video+audio. The Perceiver
+obtains performance comparable to ResNet-50
+and ViT on ImageNet without 2D convolutions
+by directly attending to 50,000 pixels. It is also
+competitive in all modalities in AudioSet.
+
+1. Introduction
+Inductive biases such as spatial locality in early vision are
+clearly valuable and are famous for drastically increasing
+the efficiency of learning perceptual models. But, given the
+increasing availability of large datasets, is the choice to bake
+such biases into our models with hard architectural decision
+the correct one? Or are we better off building in as much
+flexibility as possible, and encouraging the data to speak for
+itself (LeCun et al., 2015)?
+1
+
+DeepMind – London, UK. Correspondence to: Andrew Jaegle
+<drewjaegle@deepmind.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+One glaring issue with strong architectural priors is that they
+are often modality-specific. For example, if we assume that
+the input is a single image, we can use our knowledge of
+its 2D grid structure and build an efficient architecture that
+relies on 2D convolutional operations. But if we move to a
+stereo pair, we must decide how to modify this structure to
+jointly process the pixels from both sensors: should we use
+an early or late fusion architecture (Karpathy et al., 2014)
+or should we sum or concatenate features? If we move to
+audio, then the merits of a 2D grid are no longer as clear,
+and a different type of model, such as 1D convolutions
+or an LSTM (Hochreiter & Schmidhuber, 1997; Graves
+et al., 2013), may be warranted instead. If we want to
+process point clouds – a common concern for self-driving
+cars equippped with Lidar sensors – then we can longer rely
+on models that scale best for fixed, low-resolution grids. In
+short, using standard tools, we are forced to redesign the
+architecture we use every time the input changes.
+In this paper we introduce the Perceiver, a model designed
+to handle arbitrary configurations of different modalities
+using a single Transformer-based architecture. Transformers (Vaswani et al., 2017) are very flexible architectural
+blocks that make few assumptions about their inputs, but
+that also scale quadratically with the number of inputs, in
+terms of both memory and computation. Recent work has
+shown impressive performance using Transformers on images, but this work relies on the pixels’ grid structure to
+reduce computational complexity, by first processing pixels using a 2D convolution (Dosovitskiy et al., 2021; Touvron et al., 2020), factorizing the image into columns and
+rows (Ho et al., 2019; Child et al., 2019), or by aggressive
+subsampling (Chen et al., 2020a). Instead, we propose a
+mechanism that can handle high-dimensional inputs while
+retaining the expressivity and flexibility needed to deal with
+arbitrary input configurations.
+Our core idea is to introduce a small set of latent units that
+forms an attention bottleneck through which the inputs must
+pass (Fig. 1). This eliminates the quadratic scaling problem
+of all-to-all attention of a classical Transformer and decouples the network depth from the input’s size, allowing us
+to construct very deep models. By attending to the inputs
+iteratively, the Perceiver can channel its limited capacity to
+the most relevant inputs, informed by previous steps. But
+spatial or temporal information is crucial for many modali-
+
+

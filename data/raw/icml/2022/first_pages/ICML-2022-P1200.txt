@@ -1,0 +1,81 @@
+Online Decision Transformer
+Qinqing Zheng 1 Amy Zhang 1 2 Aditya Grover 1 3
+
+Abstract
+Recent work has shown that offline reinforcement
+learning (RL) can be formulated as a sequence
+modeling problem (Chen et al., 2021; Janner et al.,
+2021) and solved via approaches similar to largescale language modeling. However, any practical
+instantiation of RL also involves an online component, where policies pretrained on passive offline
+datasets are finetuned via task-specific interactions with the environment. We propose Online
+Decision Transformers (ODT), an RL algorithm
+based on sequence modeling that blends offline
+pretraining with online finetuning in a unified
+framework. Our framework uses sequence-level
+entropy regularizers in conjunction with autoregressive modeling objectives for sample-efficient
+exploration and finetuning. Empirically, we show
+that ODT is competitive with the state-of-the-art
+in absolute performance on the D4RL benchmark
+but shows much more significant gains during the
+finetuning procedure.
+
+1
+
+Introduction
+
+Generative pretraining for sequence modeling has emerged
+as a unifying paradigm for machine learning in a number of domains and modalities, notably in language and
+vision (Radford et al., 2018; Chen et al., 2020; Brown
+et al., 2020; Lu et al., 2022). Recently, such a pretraining
+paradigm has been extended to offline reinforcement learning (RL) (Chen et al., 2021; Janner et al., 2021), wherein an
+agent is trained to autoregressively maximize the likelihood
+of trajectories in the offline dataset. During training, this
+paradigm essentially converts offline RL to a supervised
+learning problem (Schmidhuber, 2019; Srivastava et al.,
+2019; Emmons et al., 2021). However, these works present
+an incomplete picture as policies learned via offline RL are
+limited by the quality of the training dataset and need to be
+1
+
+Meta AI Research 2 University of California, Berkeley
+University of California, Los Angeles. Correspondence to: Qinqing Zheng <zhengqinqing@gmail.com>.
+3
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+finetuned to the task of interest via online interactions. It
+remains an open question whether such supervised learning
+paradigm can be extended to online settings.
+Unlike language and perception, online finetuning for RL
+is fundamentally different from the pretraining phase as it
+involves data acquisition via exploration. The need for exploration renders traditional supervised learning objectives
+(e.g., mean squared error) for offline RL insufficient in the
+online setting. Moreover, it has been observed that for standard online algorithms, access to offline data can often have
+zero or even negative effect on the online performance (Nair
+et al., 2020). Hence, the overall pipeline for offline pretraining followed by online finetuning for RL policies needs a
+careful consideration of training objectives and protocols.
+We introduce Online Decision Transformers (ODT), a learning framework for RL that blends offline pretraining with online finetuning for sample-efficient policy optimization. Our
+framework builds on the decision transformer (DT) (Chen
+et al., 2021) architecture previously introduced for offline
+RL and is especially catered to scenarios where online interactions can be expensive which necessitates both offline
+pretraining and sample-efficient finetuning. We identify
+several key shortcomings with DTs that are incompatible
+with online learning and rectify them, leading to superior
+performance for our overall pipeline.
+First, we shift from deterministic to stochastic policies for
+defining exploration objectives during the online phase. We
+quantify exploration via the entropy of the policy similar
+to max-ent RL frameworks (Levine, 2018). Unlike traditional frameworks however, the policy entropy for ODT
+is constrained at an aggregate level over trajectories (as
+opposed to individual time-steps) and its dual form regularizes a supervised learning objective (as opposed to direct
+return maximization). Next, we develop a novel replay
+buffer (Mnih et al., 2015) consistent with the architecture
+and training protocol of ODT. The buffer stores trajectories and is populated via online rollouts from ODT. Since
+ODT parameterizes return-conditioned policies, we further
+investigate strategies for specifying the desired returns during online rollouts. This value however might not match
+with the true returns observed during a rollout. To address
+this challenge, we extend a notion of hindsight experience
+replay (Andrychowicz et al., 2017) to our setting and relabel rolled out trajectories with the corrected return tokens
+
+

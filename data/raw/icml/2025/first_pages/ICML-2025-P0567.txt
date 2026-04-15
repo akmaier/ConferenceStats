@@ -1,0 +1,73 @@
+MxMoE: Mixed-precision Quantization for MoE with Accuracy and
+Performance Co-Design
+
+Haojie Duanmu 1 2 Xiuhong Li 3 Zhihang Yuan 3 Size Zheng 4 Jiangfei Duan 5
+Xingcheng Zhang 2 Dahua Lin 2 5 6
+
+Abstract
+
+Yang et al., 2024; Muennighoff et al., 2024; Liu et al.,
+2024b).These models replace dense MLP blocks in dense
+Large Language Models (LLMs) with specialized MoE components, each containing a routing mechanism and multiple
+expert networks. Through dynamic token-to-expert allocation during inference, MoE architectures achieve superior
+model capacity while maintaining computational efficiency
+equivalent to their dense counterparts. However, these performance advantages introduce critical deployment challenges that existing hardware systems struggle to address.
+First, the memory footprint of MoE model is usually several
+times that of Dense model. For instance, DeepSeek-V3’s
+671B parameters exceed the memory capacity of eight H100
+GPUs in standard configurations (Liu et al., 2024b). Second,
+while the architecture activates only a subset of experts per
+token during inference, scenarios such as prefill phase or
+large-batch serving can trigger widespread expert activation, resulting in considerable computational overhead (Kim
+et al., 2022a).
+
+Mixture-of-Experts (MoE) models face deployment challenges due to their large parameter
+counts and computational demands. We explore
+quantization for MoE models and highlight two
+key insights: 1) linear blocks exhibit varying quantization sensitivity, and 2) divergent expert activation frequencies create heterogeneous computational characteristics. Based on these observations, we introduce MxMoE, a mixed-precision
+optimization framework for MoE models that
+considers both algorithmic and system perspectives. MxMoE navigates the design space defined by parameter sensitivity, expert activation
+dynamics, and hardware resources to derive efficient mixed-precision configurations. Additionally, MxMoE automatically generates optimized
+mixed-precision Group-GEMM kernels, enabling
+parallel execution of GEMMs with different precisions. Evaluations show that MxMoE outperforms existing methods, achieving 2.4 lower
+Wikitext-2 perplexity than GPTQ at 2.25-bit and
+delivering up to 3.4× speedup over full precision,
+as well as up to 29.4% speedup over uniform quantization at equivalent accuracy with 5-bit weightactivation quantization. Our code is available at
+https://github.com/cat538/MxMoE.
+
+Mixed-precision quantization, which allocates different bitwidths to different parts of the model based on certain criteria, has been shown to enhance MoE model performance
+(Huang et al., 2024; Tang et al., 2024). However, the added
+complexity of mixed-precision schemes often leads to increased system overhead, making it more challenging to
+achieve tangible improvements in wall-clock time (Dettmers
+et al., 2022).
+In this paper, we focus on achieving a mixed-precision
+scheme that balances both model accuracy and hardware
+efficiency. Our goal is to enhance MoE model quantization
+while simultaneously achieving meaningful acceleration. To
+this end, we first conduct an experimental analysis of the
+MoE block, leading to two key insights: 1 There is a significant variation in quantization sensitivity across different
+linear blocks within an MoE block. Unlike previous work
+(Li et al., 2024; Huang et al., 2024), our findings suggest
+that allocating bitwidth at the linear block level, rather than
+the expert level, may yield better results. 2 The activation frequencies of different experts exhibit large variance
+within an MoE block. From a hardware perspective, this
+variance implies that different computational characteristics
+
+1. Introduction
+Mixture-of-Experts (MoE) architectures have established
+themselves as a cornerstone of modern large language models, driving state-of-the-art performance across diverse AI
+tasks (Jiang et al., 2024; The Mosaic Research Team, 2024;
+1
+Shanghai Jiao Tong University 2 Shanghai AI Laboratory
+Peking University 4 ByteDance Seed 5 The Chinese University
+of Hong Kong 6 CPII under InnoHK. Correspondence to: Haojie
+Duanmu <duanmuhaojie@sjtu.edu.cn>.
+3
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

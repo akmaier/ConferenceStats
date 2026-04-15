@@ -1,0 +1,82 @@
+On Scalable and Efficient Computation of Large Scale
+Optimal Transport
+Yujia Xie 1 Minshuo Chen 1 Haoming Jiang 1 Tuo Zhao 1 Hongyuan Zha 1
+
+Abstract
+Optimal Transport (OT) naturally arises in many
+machine learning applications, yet the heavy computational burden limits its wide-spread uses. To
+address the scalability issue, we propose an implicit generative learning-based framework called
+SPOT (Scalable Push-forward of Optimal Transport). Specifically, we approximate the optimal
+transport plan by a pushforward of a reference distribution, and cast the optimal transport problem
+into a minimax problem. We then can solve OT
+problems efficiently using primal dual stochastic
+gradient-type algorithms. We also show that we
+can recover the density of the optimal transport
+plan using neural ordinary differential equations.
+Numerical experiments on both synthetic and real
+datasets illustrate that SPOT is robust and has favorable convergence behavior. SPOT also allows
+us to efficiently sample from the optimal transport plan, which benefits downstream applications
+such as domain adaptation.
+
+1. Introduction
+The Optimal Transport (OT) problem naturally arises in a
+variety of machine learning applications, where we need to
+handle data from multiple sources. One example is domain
+adaptation: We collect multiple datasets from different domains, and we need to learn a model from a source dataset,
+which can be further adapted to target datasets (Ganin &
+Lempitsky, 2014; Courty et al., 2017b; Damodaran et al.,
+2018). Another example is resource allocation: We want to
+assign a set of assets (one data source) to a set of receivers
+(another data source) so that an optimal economic benefit
+is achieved (Santambrogio, 2010; Galichon, 2017). Recent
+literature has shown that both aforementioned applications
+can be formulated as optimal transport problems.
+The optimal transport problem has a long history, and its
+1
+Georgia Tech. Correspondence to: Y. Xie, T. Zhao <{xieyujia, tourzhao}@gatech.edu>, H. Zha <zha@cc.gatech.edu>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+earliest literature dates back to Monge (1781). Since then,
+it has attracted increasing attention and been widely studied in multiple communities such as applied mathematics,
+probability, economy and geography (Villani, 2008; Carlier,
+2012; Gross et al., 2016). Specifically, we consider two sets
+of d-dimensional data, which are generated from two different distributions denoted by X ⇠ µ and Y ⇠ ⌫.1 We aim
+to find an optimal joint distribution of X and Y , which
+minimizes the expectation on some cost function c, i.e.,
+⇤
+
+= argmin E(X,Y )⇠ [c(X, Y )],
+
+(1)
+
+2⇧(µ,⌫)
+
+The constraint 2 ⇧(µ, ⌫) requires the marginal distribution of X and Y in to be identical to µ and ⌫, respectively.
+Existing literature often refers to the optimal expected cost
+W ⇤ (µ, ⌫) = E(X,Y )⇠ ⇤ [c(X, Y )] as Wasserstein distance,
+and ⇤ as the optimal transport plan. For domain adaptation,
+the function c measures the discrepancy between X and Y ,
+and the optimal transport plan ⇤ essentially reveals the
+transfer of the knowledge from source X to target Y . For
+resource allocation, the function c is the cost of assigning
+resource X to receiver Y , and the optimal transport plan ⇤
+essentially yields the optimal assignment.
+Since (1) is an optimization problem over the space of distributions, the problem is infinite dimensional and generally intractable when µ and ⌫ are continuous distributions.
+Therefore, existing literature has resorted to finite dimensional approximations. For example, Cuturi (2013) propose to discretize the support using a refined grid, and cast
+(1) into a finite dimensional linear programming problem.
+However, for complex distributions in high dimensions (e.g.,
+images in domain adaptation), the grid size often needs to
+be exponentially large (e.g., exponential in dimension) to
+ensure a small approximation error (due to discretization).
+Under such a regime, conventional linear programming algorithms do not scale well, e.g., the interior point method
+in conjunction with the Newton’s method takes O(n3 log n)
+time, where n is the grid size. To ease such a scalability issue, Cuturi (2013) propose an entropy regularization-based
+Sinkhorn algorithm, which requires the computational cost
+of O(n2 ), but still fail to scale to large problems.
+1
+The optimal transport can also handle more than two distributions. See Section 3 for more details.
+
+

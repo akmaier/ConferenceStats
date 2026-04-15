@@ -1,0 +1,79 @@
+Small-GAN: Speeding up GAN Training using Core-Sets
+
+Samarth Sinha 1 Han Zhang 2 Anirudh Goyal 3 Yoshua Bengio 3 Hugo Larochelle 2 3 Augustus Odena 2
+
+Abstract
+Recent work by Brock et al. (2018) suggests
+that Generative Adversarial Networks (GANs)
+benefit disproportionately from large mini-batch
+sizes. Unfortunately, using large batches is slow
+and expensive on conventional hardware. Thus,
+it would be nice if we could generate batches
+that were effectively large though actually small.
+In this work, we propose a method to do this,
+inspired by the use of Coreset-selection in active learning. When training a GAN, we draw
+a large batch of samples from the prior and then
+compress that batch using Coreset-selection. To
+create effectively large batches of ‘real’ images,
+we create a cached dataset of Inception activations of each training image, randomly project
+them down to a smaller dimension, and then
+use Coreset-selection on those projected activations at training time. We conduct experiments
+showing that this technique substantially reduces
+training time and memory usage for modern
+GAN variants, that it reduces the fraction of
+dropped modes in a synthetic dataset, and that
+it allows GANs to reach a new state of the art in
+anomaly detection.
+
+1. Introduction
+Generative Adversarial Networks (GANs) (Goodfellow
+et al., 2014) have become a popular research topic. Arguably the most impressive results have been in image
+synthesis (Brock et al., 2018; Salimans et al., 2018; Miyato et al., 2018; Zhang et al., 2018; 2017), but they have
+also been applied fruitfully to text generation (Fedus et al.,
+2018; Guo et al., 2018), domain transfer learning (Zhu
+et al., 2017; Zhang et al., 2017; Isola et al., 2017), and various other tasks (Xian et al., 2018; Ledig et al., 2017; Zhu
+& Bento, 2017).
+1
+
+University of Toronto, Vector Institute 2 Google Brain 3 Mila,
+Universite de Montreal. Correspondence to: Samarth Sinha
+<samarth.sinha@mail.utoronto.ca>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+Recently, Brock et al. (2018) substantially improved the
+results of Zhang et al. (2018) by using very large minibatches during training. The effect of large mini-batches
+in the context of deep learning is well-studied (Smith et al.,
+2017; Goyal et al., 2017; Keskar et al., 2016; Shallue et al.,
+2018) and general consensus is that they can be helpful in
+many circumstances, but the results of Brock et al. (2018)
+suggest that GANs benefit disproportionately from large
+batches. In fact, Table 1 of Brock et al. (2018) shows that
+for the Frechet Inception Distance (FID) metric (Heusel
+et al., 2017) on the ImageNet dataset, scores can be improved from 18.65 to 12.39 simply by making the batch
+eight times larger.
+Unfortunately, increasing the batch size in this way is not
+always possible, since it increases the computational resources required to train these models – often beyond the
+reach of conventional hardware. The experiments from the
+BigGAN paper require a full ‘TPU Pod’. The ‘unofficial’
+open source release of BigGAN works around this by accumulating gradients across 8 different V100 GPUs and only
+performing a gradient update on the parameters, every 8
+gradient accumulation steps. It’s important to note that doing this type of gradient accumulation is (due to the parallel nature of modern computing hardware) essentially 8
+times slower than training on TPUs. Thus, while gradient check-pointing will technically allow you to train these
+large models on conventional hardware, it’s far from an
+ideal solution.
+Future research on GANs would be much easier if we could
+have the gains from large batches without such pain points.
+In this paper, we take steps toward accomplishing that goal
+by proposing a technique that allows for mimicking large
+batches without the computational costs of actually using
+large batches.
+In this work, we use Core-set selection (Agarwal et al.,
+2005) to sub-sample a large batch to produce a smaller
+batch. The large batches are then discarded, and the subsampled, smaller, batches are used to train the GAN. Informally, this procedure yields small batches with ‘coverage’
+similar to that of the large batch – in particular the small
+batch tries to ‘cover’ all the same modes as are covered in
+the large batch. This technique yields many of the benefits of having large batches with much less computational
+
+

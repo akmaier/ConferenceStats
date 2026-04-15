@@ -1,0 +1,80 @@
+Stochastic Variance-Reduced Policy Gradient
+
+Matteo Papini * 1 Damiano Binaghi * 1 Giuseppe Canonaco * 1 Matteo Pirotta 2 Marcello Restelli 1
+
+Abstract
+In this paper, we propose a novel reinforcementlearning algorithm consisting in a stochastic
+variance-reduced version of policy gradient for
+solving Markov Decision Processes (MDPs).
+Stochastic variance-reduced gradient (SVRG)
+methods have proven to be very successful in
+supervised learning. However, their adaptation to
+policy gradient is not straightforward and needs
+to account for I) a non-concave objective function; II) approximations in the full gradient computation; and III) a non-stationary sampling process. The result is SVRPG, a stochastic variancereduced policy gradient algorithm that leverages
+on importance weights to preserve the unbiasedness of the gradient estimate. Under standard assumptions on the MDP, we provide convergence
+guarantees for SVRPG with a convergence rate
+that is linear under increasing batch sizes. Finally,
+we suggest practical variants of SVRPG, and we
+empirically evaluate them on continuous MDPs.
+
+1. Introduction
+On a very general level, artificial intelligence addresses
+the problem of an agent that must select the right actions
+to solve a task. The approach of Reinforcement Learning
+(RL) (Sutton & Barto, 1998) is to learn the best actions
+by direct interaction with the environment and evaluation
+of the performance in the form of a reward signal. This
+makes RL fundamentally different from Supervised Learning (SL), where correct actions are explicitly prescribed
+by a human teacher (e.g., for classification, in the form of
+class labels). However, the two approaches share many challenges and tools. The problem of estimating a model from
+samples, which is at the core of SL, is equally fundamental in RL, whether we choose to model the environment,
+*
+
+Equal contribution 1 Politecnico di Milano, Milano, Italy
+Inria, Lille, France. Correspondence to: Matteo Papini <matteo.papini@polimi.it>.
+2
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+a value function, or directly a policy defining the agent’s
+behaviour. Furthermore, when the tasks are characterized
+by large or continuous state-action spaces, RL needs the
+powerful function approximators (e.g., neural networks)
+that are the main subject of study of SL. In a typical SL
+setting, a performance function J(θ) has to be optimized
+w.r.t. to model parameters θ. The set of data that are available for training is often a subset of all the cases of interest,
+which may even be infinite, leading to optimization of finite sums that approximate the expected performance over
+an unknown data distribution. When generalization to the
+complete dataset is not taken into consideration, we talk
+about Empirical Risk Minimization (ERM). Even in this
+case, stochastic optimization is often used for reasons of
+efficiency. The idea of stochastic gradient (SG) ascent (Nesterov, 2013) is to iteratively focus on a random subset of
+the available data to obtain an approximate improvement
+direction. At the level of the single iteration, this can be
+much less expensive than taking into account all the data.
+However, the sub-sampling of data is a source of variance
+that can potentially compromise convergence, so that periteration efficiency and convergence rate must be traded off
+with proper handling of meta-parameters. Variance-reduced
+gradient algorithms such as SAG (Roux et al., 2012), SVRG
+(Johnson & Zhang, 2013) and SAGA (Defazio et al., 2014a)
+offer better ways of solving this trade-off, with significant
+results both in theory and practice. Although designed explicitly for ERM, these algorithms address a problem that
+affects more general machine learning problems.
+In RL, stochastic optimization is rarely a matter of choice,
+since data must be actively sampled by interacting with an
+initially unknown environment. In this scenario, limiting
+the variance of the estimates is a necessity that cannot be
+avoided, which makes variance-reduced algorithms very
+interesting. Among RL approaches, policy gradient (Sutton
+et al., 2000) is the one that bears the closest similarity to SL
+solutions. The fundamental principle of these methods is
+to optimize a parametric policy through stochastic gradient
+ascent. Compared to other applications of SG, the cost of
+collecting samples can be very high since it requires to interact with the environment. This makes SVRG-like methods
+potentially much more efficient than, e.g., batch learning.
+Unfortunately, RL has a series of difficulties that are not
+present in ERM. First, in SL the objective can often be de-
+
+

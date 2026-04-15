@@ -1,0 +1,81 @@
+Optimizing Test-Time Compute via Meta Reinforcement Finetuning
+
+Yuxiao Qu * 1 Matthew Y. R. Yang * 1 Amrith Setlur 1 Lewis Tunstall 2 Edward Emanuel Beeching 2
+Ruslan Salakhutdinov 1 Aviral Kumar 1
+
+Abstract
+
+scaling test-time compute. Generally, these approaches train
+models to produce traces that are longer than the typical correct solution, and consist of tokens that attempt to implement
+some “algorithm”, e.g., reflecting on previous answers (Qu
+et al., 2024; Kumar et al., 2024), planning (DeepSeek-AI
+et al., 2025), or implementing some form of linearized
+search (Gandhi et al., 2024). These approaches include
+explicitly fine-tuning pre-trained LLMs for algorithmic behavior, e.g., SFT on search data (Gandhi et al., 2024; Nie
+et al., 2024), or running outcome-reward RL (DeepSeek-AI
+et al., 2025) against a 0/1 correctness reward.
+
+Training models to effectively use test-time compute is crucial for improving the reasoning performance of LLMs. Current methods mostly do
+so via fine-tuning on search traces or running RL
+with 0/1 outcome reward, but do these approaches
+efficiently utilize test-time compute? Would these
+approaches continue to scale as the budget improves? To answer these questions, in this paper,
+we formalize the problem of optimizing test-time
+compute as a meta-reinforcement learning (RL)
+problem, which provides a principled perspective
+on spending test-time compute. This perspective
+enables us to view the long output stream from the
+LLM as consisting of several episodes run at test
+time and leads us to use a notion akin to cumulative regret over output tokens as a way to measure
+the efficacy of test-time compute. Akin to how RL
+algorithms can best tradeoff exploration and exploitation over training, minimizing regret should
+also provide the best balance between exploration
+and exploitation in the token stream. While we
+show that state-of-the-art models do not minimize
+regret, one can do so by maximizing a dense reward bonus in conjunction with the outcome 0/1
+reward RL. This bonus is the “progress” made
+by each subsequent block in the output stream,
+quantified by the change in the likelihood of eventual success. Using these insights, we develop
+Meta Reinforcment Fine-Tuning, or MRT, a new
+class of fine-tuning methods for optimizing testtime compute. MRT leads to a 2-3x relative gain
+in performance and roughly a 1.5x gain in token
+efficiency for math reasoning.
+
+While training models to spend test-time compute by generating long reasoning chains via outcome-reward RL has
+been promising, for continued gains from scaling test-time
+compute, we ultimately need to answer some critical understanding and method design questions. First, do current
+LLMs efficiently use test-time compute? That is, do they
+spend tokens roughly in the ballpark of the typical solution
+length or do they use too many tokens even on easy questions? Second, would LLMs be able to “discover” solutions
+to harder questions when run at much larger test-time token budgets than what was used for training? Ultimately,
+we would want models to derive enough utility from every token (or any semantically meaningful segment) they
+produce, not only for efficiency but also because doing so
+imbues a systematic procedure to discover solutions for
+harder, out-of-distribution problems.
+In this paper, we formalize the above challenges in optimizing test-time compute through the lens of meta reinforcement learning (RL) (Weng, 2019). To build our approach,
+we segment the output stream from an LLM on a problem
+into multiple episodes (Figure 2). If we were to only care
+about (a) the efficiency, then the LLM only needs to learn
+to exploit and directly output the answer without spending
+too many episodes. On the other hand, if the LLM is solely
+focused on (b) the discovery, then exploration is more desirable, so that the LLM can spend several episodes trying
+different approaches, verifying and revising them, before
+producing the final answer. Fundamentally, this is different
+from traditional RL since the goal here is to learn an LLM
+that implements explore-exploit algorithms on every test
+problem. In other words, we aim to learn such algorithms
+from training data, making this a meta RL learning problem.
+
+1. Introduction
+Recent results in LLM reasoning (Snell et al., 2024) illustrate the potential to improve reasoning capabilities by
+*
+Equal contribution 1 CMU 2 Hugging Face. Correspondence to:
+Yuxiao Qu <yuxiaoq@andrew.cmu.edu>.
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

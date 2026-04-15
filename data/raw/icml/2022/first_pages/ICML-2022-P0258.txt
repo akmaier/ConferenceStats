@@ -1,0 +1,112 @@
+Towards Scaling Difference Target Propagation by Learning Backprop Targets
+
+Maxence Ernoult 1 Fabrice Normandin * 2 Abhinav Moudgil * 2 3 Sean Spinney 2 4 Eugene Belilovsky 2 3
+Irina Rish 2 4 Blake Richards 2 5 6 Yoshua Bengio 2 4
+
+Abstract
+The development of biologically-plausible learning algorithms is important for understanding
+learning in the brain, but most of them fail to
+scale-up to real-world tasks, limiting their potential as explanations for learning by real brains. As
+such, it is important to explore learning algorithms
+that come with strong theoretical guarantees and
+can match the performance of backpropagation
+(BP) on complex tasks. One such algorithm is Difference Target Propagation (DTP), a biologicallyplausible learning algorithm whose close relation
+with Gauss-Newton (GN) optimization has been
+recently established. However, the conditions under which this connection rigorously holds preclude layer-wise training of the feedback pathway
+synaptic weights (which is more biologically plausible). Moreover, good alignment between DTP
+weight updates and loss gradients is only loosely
+guaranteed and under very specific conditions for
+the architecture being trained. In this paper, we
+propose a novel feedback weight training scheme
+that ensures both that DTP approximates BP and
+that layer-wise feedback weight training can be restored without sacrificing any theoretical guarantees. Our theory is corroborated by experimental
+results and we report the best performance ever
+achieved by DTP on CIFAR-10 and ImageNet
+32×32.
+
+1. Introduction
+Although artificial neural networks were originally inspired
+by the brain, the strict implementation of the backpropagation algorithm (BP) violates biological constraints, and no
+*
+
+Equal contribution 1 IBM Research, Paris. Work done during a
+remote internship at Mila. 2 Mila. 3 Concordia University. 4 UdeM.
+5
+McGill University. 6 Montreal Neurological Institute. Correspondence to: Maxence Ernoult <maxence.ernoult@ibm.com>,
+Yoshua Bengio <yoshua.bengio@mila.quebec>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+θ0
+F (0)
+x
+
+θ1
+
+θ2
+
+F (1)
+s1
+
+F (2)
+s2
+
+F (N −1)
+···
+
+sN
+
+n
+n ⊤
+δ 2 ∂G ≈ (∂F )
+
+δ2
+t1
+
+θN −1
+
+t2
+G(1)
+ω1
+
+···
+G(2)
+ω2
+
+δn
+tN
+
+G(N −1)
+ω N −1
+
+y
+
+Figure 1. Computational graph of the feedforward pathway F (on
+the left, shaded) with input x and associated DTP feedback pathway with ground-truth label y (right). The targets tn (purple
+nodes) are forward-propagated through the Gn+1 operator whose
+Jacobian has been made to approximately match that of the transpose of F n . This way, the resulting local activation differences
+δ n ∝ tn − sn encode backprop error signals. We thus learn to
+estimate layer-wise backprop targets.
+
+known biologically plausible candidate algorithm can match
+its performance on challenging tasks. Conversely, bridging
+this gap could bring a better understanding of biological
+learning (Richards et al., 2019). Recent efforts towards
+this goal suggest that it could be achieved by developing
+learning algorithms that relax the requirements of BP while
+preserving strong theoretical guarantees.
+Target Propagation (TP) (LeCun, 1987) and its Difference
+Target Propagation (DTP) variants (Bengio, 2014; Lee et al.,
+2015; Bartunov et al., 2018; Ororbia & Mali, 2019; Bengio,
+2020; Meulemans et al., 2020) constitute a family of such
+algorithms which, from the biological prospective, sidesteps
+two issues of BP. Most importantly, TP computes error
+signals in feedforward architectures by propagating target
+values for the neurons rather than error gradients, thereby
+aligning better with our understanding of what feedback
+pathways in the brain communicate (Lillicrap et al., 2020).
+A major consequence of handling neural activation targets
+across all layers is that feedforward weights can be updated
+in a fully local fashion to push neural activations closer to
+
+

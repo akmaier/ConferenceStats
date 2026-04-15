@@ -1,0 +1,83 @@
+Calibrated Learning to Defer with One-vs-All Classifiers
+
+Rajeev Verma 1 Eric Nalisnick 1
+
+Abstract
+The learning to defer (L2D) framework has the
+potential to make AI systems safer. For a given
+input, the system can defer the decision to a human if the human is more likely than the model to
+take the correct action. We study the calibration
+of L2D systems, investigating if the probabilities
+they output are sound. We find that Mozannar &
+Sontag’s (2020) multiclass framework is not calibrated with respect to expert correctness. Moreover, it is not even guaranteed to produce valid
+probabilities due to its parameterization being degenerate for this purpose. We propose an L2D
+system based on one-vs-all classifiers that is able
+to produce calibrated probabilities of expert correctness. Furthermore, our loss function is also
+a consistent surrogate for multiclass L2D, like
+Mozannar & Sontag’s (2020). Our experiments
+verify that not only is our system calibrated, but
+this benefit comes at no cost to accuracy. Our
+model’s accuracy is always comparable (and often
+superior) to Mozannar & Sontag’s (2020) model’s
+in tasks ranging from hate speech detection to
+galaxy classification to diagnosis of skin lesions.
+
+1. Introduction
+Machine learning is being deployed in ever more consequential and high-stakes tasks such as healthcare (Zoabi
+et al., 2021; Kadampur & Al Riyaee, 2020), criminal justice
+(Zhong et al., 2018; Chalkidis et al., 2019), and autonomous
+driving (Grigorescu et al., 2020). Thus, the trust and safety
+of these systems is paramount (Hendrycks & Dietterich,
+2019; Nguyen et al., 2015). One near-term solution is to
+ensure a human is involved in the decision making process.
+For example, learning with a rejection option (Chow, 1957)
+allows the model to abstain from making a decision, instead
+passing the burden to a human. The decision to abstain or
+1
+
+Informatics Institute, University of Amsterdam, Amsterdam, Netherlands. Correspondence to: Rajeev Verma <rajeev.ee15@gmail.com>, Eric Nalisnick <e.t.nalisnick@uva.nl>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+not is usually derived from the model’s confidence. For a
+self-driving car, a winding stretch of road could make the
+system unconfident in its abilities. The system would then
+refuse to drive and forces the human to take control. When
+the system becomes confident again (e.g. on a straight road),
+it can then take back control from the human.
+Learning to defer (L2D) (Madras et al., 2018) is another
+framework that supports machine-human collaboration. In
+L2D, the human’s confidence is modeled as well as the
+machine’s. This allows the system to compare the human’s
+and model’s expected performances. Thus, L2D systems
+defer when the human is more likely than the model to
+take the correct action. Returning to the example of a selfdriving car, an L2D system would pass control to the human
+only when it expects the human to drive better than itself.
+In addition to safety, such behavior allows for an efficient
+division of labor between the human and machine. By
+knowing what the human knows, the model is free to adapt
+itself to complement the human. The model can concentrate
+on performing easy tasks well if it knows a human can be
+relied upon for harder tasks.
+Most previous work has attempted to improve the overall
+accuracy of L2D systems. However, if these systems are to
+be used in safety-critical scenarios, then other factors such
+as trust, transparency, and fairness are important as well
+(Madras et al., 2018). Tschandl et al. (2020) found that AI
+systems can mislead physicians into incorrect diagnoses,
+even when the doctor is initially confident. To help prevent
+such scenarios, we want our systems to be well calibrated.
+The output probabilities should reflect the true uncertainties
+of the model and human. In other words, the L2D system
+should be a good forecaster. If the system says the expert
+has a 70% chance of being correct, then the expert should
+indeed be correct in about 70 out of 100 cases.
+In this paper, we study the calibration of L2D systems. We
+focus on Mozannar & Sontag’s (2020) formulation since it
+is the only consistent surrogate loss for multiclass L2D. We
+find that the Mozannar & Sontag (2020) loss results in models that are not well-calibrated with respect to expert correctness. The problem is intrinsic: the softmax parameterization
+allows the estimator to be greater than one. We propose
+an alternative loss based on one-vs-all classifiers that does
+not have this issue. We use the method of error correcting
+
+

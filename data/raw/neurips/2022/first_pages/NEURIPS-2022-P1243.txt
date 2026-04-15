@@ -1,0 +1,59 @@
+Batch size-invariance for policy optimization
+Jacob Hilton
+OpenAI
+jhilton@openai.com
+
+Karl Cobbe
+OpenAI
+karl@openai.com
+
+John Schulman
+OpenAI
+joschu@openai.com
+
+Abstract
+We say an algorithm is batch size-invariant if changes to the batch size can largely
+be compensated for by changes to other hyperparameters. Stochastic gradient
+descent is well-known to have this property at small batch sizes, via the learning
+rate. However, some policy optimization algorithms (such as PPO) do not have
+this property, because of how they control the size of policy updates. In this work
+we show how to make these algorithms batch size-invariant. Our key insight is
+to decouple the proximal policy (used for controlling policy updates) from the
+behavior policy (used for off-policy corrections). Our experiments help explain why
+these algorithms work, and additionally show how they can make more efficient
+use of stale data.
+
+1
+
+Introduction
+
+Policy gradient-based methods for reinforcement learning have enjoyed great success in recent years.
+The stability and reliability of these methods is typically improved by controlling the size of policy
+updates, using either a “trust region” (TRPO) or a surrogate objective (PPO) [Schulman et al., 2015a,
+2017]. The usual justification for this is that we cannot trust updates that take us too far from the
+policy used to collect experience, called the behavior policy. In this work we identify a subtle flaw
+with this: the behavior policy is irrelevant to the justification. Instead, what matters is that we control
+how fast the policy is updated, or put another way, that we approximate the natural policy gradient
+[Kakade, 2001].
+Our key insight is that the “old” policy in these methods serves two independent purposes. The first
+purpose is for off-policy corrections, via importance sampling, for which the old policy must be the
+behavior policy. The second purpose is to control the size of policy updates, for which the old policy
+can be any recent policy, which we call the proximal policy. It does not matter whether the proximal
+policy is also the behavior policy; it only matters how old the proximal policy is. We demonstrate this
+by running PPO with stale data collected using a policy from multiple iterations ago, which causes
+performance to quickly degrade unless the proximal policy is decoupled from the behavior policy.
+Our insight allows us to make PPO batch size-invariant, meaning that when the batch size is changed,
+we can preserve behavior, as a function of the number of examples processed, by changing other
+hyperparameters (as long as the batch size is sufficiently small). We achieve this by using an
+exponentially-weighted moving average (EWMA) of the policy network’s weights as the network
+for the proximal policy. Batch size-invariance has been studied many times before (see Section
+3.1), sometimes under the name “perfect scaling”. It is of practical benefit because the batch size
+has a big influence on training, but is often constrained by computational resources such as GPU
+memory. If an algorithm is batch size-invariant, then the batch size may be freely adjusted according
+to computational constraints, while other hyperparameters are adjusted formulaically to compensate.
+The remainder of the paper is structured as follows.
+• In Section 2, we explain the difference between the proximal and behavior policies, and
+show how to decouple them in PPO’s objectives.
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+

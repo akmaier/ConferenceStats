@@ -1,0 +1,80 @@
+Accelerating Transformer Pre-training with 2:4 Sparsity
+
+Yuezhou Hu 1 Kang Zhao Weiyu Huang 1 Jianfei Chen 1 Jun Zhu 1
+
+Abstract
+
+zeros. Within a tensor core, a 2:4 sparse matrix multiplication (2:4-spMM) could be 2x faster than its dense equivalent
+on NVIDIA Ampere architecture GPUs.
+
+Training large transformers is slow, but recent
+innovations on GPU architecture give us an advantage. NVIDIA Ampere GPUs can execute
+a fine-grained 2:4 sparse matrix multiplication
+twice as fast as its dense equivalent. In the light of
+this property, we comprehensively investigate the
+feasibility of accelerating feed-forward networks
+(FFNs) of transformers in pre-training. First, we
+define a “flip rate” to monitor the stability of a
+2:4 training process. Utilizing this metric, we
+propose three techniques to preserve accuracy:
+to modify the sparse-refined straight-through estimator by applying the masked decay term on
+gradients, to determine a feasible decay factor
+in warm-up stage, and to enhance the model’s
+quality by a dense fine-tuning procedure near the
+end of pre-training. Besides, we devise two techniques to practically accelerate training: to calculate transposable 2:4 masks by convolution, and to
+accelerate gated activation functions by reducing
+GPU L2 cache miss. Experiments show that our
+2:4 sparse training algorithm achieves similar convergence to dense training algorithms on several
+transformer pre-training tasks, while actual acceleration can be observed on different shapes of
+transformer block apparently. Our toolkit is available at https://github.com/huyz2023/
+2by4-pretrain.
+
+Some works use 2:4 sparsity for accelerating training
+(Hubara et al., 2021; Lu et al., 2023; McDanel et al., 2022;
+Chmiel et al., 2023). However, they mainly target on convolutional neural networks (CNNs) (Hubara et al., 2021;
+McDanel et al., 2022), whose architecture, optimizer and
+training procedure are different from transformers. Whether
+these 2:4 sparse training methods are capable for transformers remains under-explored. In practice, we find two barriers: 1) Low accuracy. The hyperparameters in some
+accuracy preserving techniques for transformers vary significantly from that for CNNs, which is ineffective if transplanted directly. Remarkably, simply halving the inner dimensionality of a feed-forward network can also reduce
+the same amount of computational cost, but provides better performance than most of proposed 2:4 sparse training
+methods. 2) Inefficiency. All previous works on 2:4 training
+stay on simulation, and do not provide actual acceleration
+results. Besides, they don’t focus on other key operations beyond matrix multiplication that affect the practical time cost,
+such as overheads of pruning and activation functions. They
+usually lead to substantial mismatches between simulation
+and actual acceleration performance.
+In this work, we aim to propose an end-to-end acceleration
+method for pre-training transformers based on 2:4 sparsity.
+Here are our major contributions:
+• We propose three accuracy-preserving techniques (two
+for masked decay and one for dense fine-tune) for 2:4
+training. First, we propose to apply the masked decay on
+gradients rather than on weight. Second, we show that
+the feasible masked decay factor on transformers may
+be very small (100x smaller than it has been reported
+on CNNs) and devise a method to quickly determine an
+available decay factor. Besides, our analysis demonstrates
+that employing a dense fine-tuning stage at the end of pretraining, rather than at the beginning, can enhance the
+quality of transformers.
+• We analyze practical factors affecting the 2:4 training
+speed of transformers, which is rarely considered by previous works. We identify two speed bottlenecks: pruning overhead and gated activation functions’ overhead.
+
+1. Introduction
+Pre-training large-scale transformers is hard, for its intensive
+computation and time-consuming process (Anthony et al.,
+2020). To accelerate training, sparsity-based methods have
+recently emerged as a promising solution, and one of the
+hardware-friendly sparse patterns is 2:4 sparsity. In a 2:4
+sparse matrix, every four consecutive elements contain two
+1
+
+Dept. of Comp. Sci. & Tech., Institute for AI, BNRist Center,
+Tsinghua-Bosch Joint ML Center, THBI Lab, Tsinghua University.
+Correspondence to: Jianfei Chen <jianfeic@tsinghua.edu.cn>.
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

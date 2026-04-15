@@ -1,0 +1,71 @@
+Poolingformer: Long Document Modeling with Pooling Attention
+
+Hang Zhang 1 2 Yeyun Gong 3 Yelong Shen 4 Weisheng Li 5 Jiancheng Lv 1 Nan Duan 3 Weizhu Chen 4
+
+Abstract
+In this paper, we introduce a two-level attention
+schema, Poolingformer, for long document modeling. Its first level uses a smaller sliding window
+pattern to aggregate information from neighbors.
+Its second level employs a larger window to increase receptive fields with pooling attention to
+reduce both computational cost and memory consumption. We first evaluate Poolingformer on
+two long sequence QA tasks: the monolingual
+NQ and the multilingual TyDi QA. Experimental
+results show that Poolingformer sits atop three
+official leaderboards measured by F1, outperforming previous state-of-the-art models by 1.9 points
+(79.8 vs. 77.9) on NQ long answer, 1.9 points
+(79.5 vs. 77.6) on TyDi QA passage answer, and
+1.6 points (67.6 vs. 66.0) on TyDi QA minimal
+answer. We further evaluate Poolingformer on a
+long sequence summarization task. Experimental results on the arXiv benchmark continue to
+demonstrate its superior performance.
+
+1. Introduction
+Transformer (Vaswani et al., 2017) architecture has been
+widely used in various natural language processing tasks
+with impressive results such as Translation (Lewis et al.,
+2020), Summarization (Qi et al., 2020), Text Classification (He et al., 2020) , and Language Modeling (Brown
+et al., 2020). Self-attention is one of the key components in
+Transformer, which allows text tokens to interact with each
+other, and produce contextual representations. Despite the
+effectiveness of self-attention, its computational and memory complexity increases quadratically with respect to the
+sequence length. Therefore, most of existing transformerbased pretrained models (Alberti et al., 2019; He et al.,
+2020; Liu et al., 2019) set the maximum sequence length
+1
+College of Computer Science, Sichuan University 2 During
+Internship at MSRA 3 Microsoft Research Asia 4 Microsoft Azure
+AI 5 University of Science and Technology of China. Correspondence to: Yeyun Gong <yegong@microsoft.com>, Jiancheng Lv
+<lvjiancheng@scu.edu.cn>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+(a) Single-level local attention (b) Two-level pooling attention
+Figure 1. (a): The receptive field of single-level local attention (b):
+The receptive field of our two-level pooling attention.
+
+to 512 due to either memory or computational constraints,
+which often leads to a worse performance in long sequence
+tasks (Kwiatkowski et al., 2019; Cohan et al., 2018).
+A lot of works have been proposed to adapt the self-attention
+layer in transformer to better model long sequence (Miculicich et al., 2018; Liu & Lapata, 2019; Beltagy et al., 2020;
+Zaheer et al., 2020; Wang et al., 2020b). For example, Longformer (Beltagy et al., 2020) puts forward a combination
+of both local and global attention patterns to reduce computational cost. Hierarchical transformer (Liu & Lapata,
+2019) proposes to split the long document into shorter paragraphs, and apply inter-self-attentions within a paragraph
+and intra-self-attentions across paragraphs.
+Inspired by previous works (Miculicich et al., 2018; Liu
+& Lapata, 2019; Beltagy et al., 2020; Zaheer et al., 2020;
+Wang et al., 2020b), we propose Poolingformer in which it
+revises the full self-attention to a two-level attention schema.
+The first level adopts a sliding-window attention pattern
+where each token only attends to its neighbor tokens within
+the window, as shown in Figure 1 (a). In the second level
+attention, it increases the receptive fields with a larger window size, followed by a pooling operation on both the key
+and value vectors in transformer to decrease the number of
+tokens to be attended. This multi-level design combining
+both sliding window and pooling can significantly reduce
+the computational cost and memory consumption while still
+attain exceptional model performance. Compared with the
+models with single-level local attention (Beltagy et al., 2020;
+Zaheer et al., 2020), Poolingformer allows a larger attention
+
+

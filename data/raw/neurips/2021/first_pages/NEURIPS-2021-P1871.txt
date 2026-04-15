@@ -1,0 +1,82 @@
+Dr Jekyll and Mr Hyde:
+The Strange Case of Off-Policy Policy Updates
+
+Romain Laroche∗
+Microsoft Research Montréal, Canada
+
+Rémi Tachet des Combes∗
+Microsoft Research Montréal, Canada
+
+Abstract
+The policy gradient theorem states that the policy should only be updated in states
+that are visited by the current policy, which leads to insufficient planning in the
+off-policy states, and thus to convergence to suboptimal policies. We tackle this
+planning issue by extending the policy gradient theory to policy updates with respect to any state density. Under these generalized policy updates, we show convergence to optimality under a necessary and sufficient condition on the updates’
+state densities, and thereby solve the aforementioned planning issue. We also
+prove asymptotic convergence rates that significantly improve those in the policy
+gradient literature. To implement the principles prescribed by our theory, we propose an agent, Dr Jekyll & Mr Hyde (J&H), with a double personality: Dr Jekyll
+purely exploits while Mr Hyde purely explores. J&H’s independent policies allow to record two separate replay buffers: one on-policy (Dr Jekyll’s) and one
+off-policy (Mr Hyde’s), and therefore to update J&H’s models with a mixture of
+on-policy and off-policy updates. More than an algorithm, J&H defines principles
+for actor-critic algorithms to satisfy the requirements we identify in our analysis.
+We extensively test on finite MDPs where J&H demonstrates a superior ability
+to recover from converging to a suboptimal policy without impairing its speed of
+convergence. We also implement a deep version of the algorithm and test it on a
+simple problem where it shows promising results.
+
+1
+
+Introduction
+
+Policy Gradient algorithms in Reinforcement Learning (RL) have enjoyed great success both theoretically [50, 43, 16, 36] and empirically [23, 38, 37, 27]. Their principle consists in optimizing an
+objective function J (the expected discounted return) through gradient steps, both being formally
+specified below [43]:
+"∞
+#
+X
+.
+t
+J (π) = E
+γ Rt S0 ∼ p0 , At ∼ π(·|St ), St+1 ∼ p(·|St , At ), Rt ∼ r(·|St , At )
+(1)
+t=0
+
+∇θ J (π) =
+
+X
+s∈S
+
+dπ,γ (s)
+
+X
+a∈A
+
+qπ (s, a)∇θ π(a|s) and
+
+θt+1 ←−
+−−− θt + ηt ∇θt J (πt ),
+proj
+
+(2)
+
+using standard Markov
+Decision Process notations (recalled in App. A), where ηt is the learning
+. P∞ t
+.
+rate and dπ,γ (s) =
+γ P(St = s|π) the discounted state density, the policies π = πθ and
+t=0
+.
+πt = πθt are implicitly parametrized by θ for conciseness, and ←−
+−−− denotes the projection onto
+proj
+the parameter space. We observe that the update established by the policy gradient theorem is
+proportional to the state density of the current policy. This is problematic, as it implies that no value
+improvement can be induced in off-policy states (i.e. states that are rarely visited). As a consequence,
+∗
+
+Equal contribution. Correspondence to: rolaroch@microsoft.com. All code available at http://aka.ms/jnh.
+
+35th Conference on Neural Information Processing Systems (NeurIPS 2021).
+
+

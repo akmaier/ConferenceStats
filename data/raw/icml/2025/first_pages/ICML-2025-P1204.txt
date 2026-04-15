@@ -1,0 +1,82 @@
+Lexico: Extreme KV Cache Compression via Sparse Coding
+over Universal Dictionaries
+Junhyuck Kim 1 Jongho Park 1 Jaewoong Cho 1 Dimitris Papailiopoulos 2 3
+
+Abstract
+
+requires its own KV cache, limiting opportunities for reuse
+across different user inputs, with the exception of prompt
+caching that only works for identical input prefixes. This
+creates a bottleneck in generation speed for GPUs with limited memory (Yu et al., 2022). Thus, it has become crucial
+to alleviate KV cache memory usage while preserving its
+original performance across domains.
+
+We introduce Lexico, a novel KV cache compression method that leverages sparse coding with
+a universal dictionary. Our key finding is that
+key-value cache in modern LLMs can be accurately approximated using sparse linear combination from a small, input-agnostic dictionary of
+∼4k atoms, enabling efficient compression across
+different input prompts, tasks and models. Using orthogonal matching pursuit for sparse approximation, Lexico achieves flexible compression ratios through direct sparsity control. On
+GSM8K, across multiple model families (Mistral, Llama 3, Qwen2.5), Lexico maintains 9095% of the original performance while using
+only 15-25% of the full KV-cache memory, outperforming both quantization and token eviction
+methods. Notably, Lexico remains effective in
+low memory regimes where 2-bit quantization
+fails, achieving up to 1.7× better compression
+on LongBench and GSM8K while maintaining
+high accuracy. Our code is available at https:
+//github.com/krafton-ai/lexico.
+
+Extensive post-training KV cache optimization research (Kwon et al., 2023; Lin et al., 2024; Ye et al., 2024)
+offers off-the-shelf methods for pretrained LLMs, including
+selectively retaining tokens (Beltagy et al., 2020; Xiao et al.,
+2023; Zhang et al., 2024b) and quantizing KV cache to 2 or
+4 bits (Liu et al., 2024b; He et al., 2024; Kang et al., 2024).
+However, eviction strategies have limitations on complex
+reasoning tasks that require retaining a majority of previous
+tokens, while quantizations to 2 or 4 bits have clear upper
+bounds on compression rates.
+In this paper, we focus on utilizing low-dimensional structures for efficient KV cache compression. Prior work reports
+that each key vector lies in a low-rank subspace (Singhania
+et al., 2024; Wang et al., 2024b; Yu et al., 2024). Yet, it is
+unclear whether all vectors lie in the same subspace; if so,
+such redundancy remains to be taken advantage of. Thus,
+we naturally ask the following questions:
+Do keys and values lie in low-dimensional subspaces
+across diverse input sequences? If so, can we
+leverage this for efficient KV cache compression?
+
+1. Introduction
+Transformers (Vaswani et al., 2017) have become the backbone of frontier Large Language Models (LLMs), driving
+progress in domains beyond natural language processing.
+However, Transformers are typically limited by their significant memory requirements. This stems not only from
+the large number of model parameters, but also from the
+having to maintain the key-value (KV) cache that grows
+proportional to the model size (i.e., the number of layers,
+heads, and also embedding dimension) and token length of
+the input. Additionally, serving each model session typically
+
+Towards this end, we propose Lexico, a universal dictionary
+that serves as an overcomplete basis, which can sparsely
+decompose and reconstruct the KV cache with sufficiently
+small reconstruction error that can be directly controlled via
+the level of sparsity of each reconstruction.
+In Section 2.2, we report our observation that a subset of
+key vectors cluster near each other, even though the keys
+are from different inputs, while some cluster in different
+subspaces. To take advantage of such a low-dimensional
+structure, we draw inspiration from compressed sensing
+and dictionary learning, areas of statistical learning and
+signal processing that developed algorithms for information
+compression across various domains (Candès et al., 2006;
+Donoho, 2006; Dong et al., 2014; Metzler et al., 2016).
+
+1
+
+KRAFTON 2 University of Wisconsin-Madison 3 Microsoft
+Research. Correspondence to: Dimitris Papailiopoulos <dimitris@papail.io>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

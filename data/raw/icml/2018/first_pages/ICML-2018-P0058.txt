@@ -1,0 +1,97 @@
+SIGN SGD: Compressed Optimisation for Non-Convex Problems
+
+Jeremy Bernstein 1 2 Yu-Xiang Wang 2 3 Kamyar Azizzadenesheli 4 Anima Anandkumar 1 2
+
+Abstract
+Training large neural networks requires distributing learning across multiple workers, where the
+cost of communicating gradients can be a significant bottleneck. SIGN SGD alleviates this problem by transmitting just the sign of each minibatch
+stochastic gradient. We prove that it can get the
+best of both worlds: compressed gradients and
+SGD-level convergence rate. The relative `1 /`2
+geometry of gradients, noise and curvature informs whether SIGN SGD or SGD is theoretically
+better suited to a particular problem. On the practical side we find that the momentum counterpart
+of SIGN SGD is able to match the accuracy and
+convergence speed of A DAM on deep Imagenet
+models. We extend our theory to the distributed
+setting, where the parameter server uses majority
+vote to aggregate gradient signs from each worker
+enabling 1-bit compression of worker-server communication in both directions. Using a theorem
+by Gauss (1823) we prove that majority vote can
+achieve the same reduction in variance as full
+precision distributed SGD. Thus, there is great
+promise for sign-based optimisation schemes to
+achieve fast communication and fast convergence.
+Code to reproduce experiments is to be found at
+https://github.com/jxbz/signSGD.
+
+1. Introduction
+Deep neural networks have learnt to solve numerous natural human tasks (LeCun et al., 2015; Schmidhuber, 2015).
+Training these large-scale models can take days or even
+weeks. The learning process can be accelerated by distributing training over multiple processors—either GPUs
+linked within a single machine, or even multiple machines
+linked together. Communication between workers is typically handled using a parameter-server framework (Li et al.,
+1
+
+Caltech 2 Amazon AI 3 UC Santa Barbara 4 UC Irvine. Correspondence to: Jeremy Bernstein <bernstein@caltech.edu>, YuXiang Wang <yuxiangw@amazon.edu>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+Algorithm 1 SIGN SGD
+Input: learning rate , current point xk
+g̃k
+stochasticGradient(xk )
+xk+1
+xk
+sign(g̃k )
+Algorithm 2 S IGNUM
+Input: learning rate , momentum constant
+current point xk , current momentum mk
+g̃k
+stochasticGradient(xk )
+mk+1
+mk + (1
+)g̃k
+xk+1
+xk
+sign(mk+1 )
+
+2 (0, 1),
+
+2014), which involves repeatedly communicating the gradients of every parameter in the model. This can still be
+time-intensive for large-scale neural networks. The communication cost can be reduced if gradients are compressed
+before being transmitted. In this paper, we analyse the theory of robust schemes for gradient compression.
+An elegant form of gradient compression is just to take the
+sign of each coordinate of the stochastic gradient vector,
+which we call SIGN SGD. The algorithm is as simple as
+throwing away the exponent and mantissa of a 32-bit floating point number. Sign-based methods have been studied at
+least since the days of R PROP (Riedmiller & Braun, 1993).
+This algorithm inspired many popular optimisers—like RMS PROP (Tieleman & Hinton, 2012) and A DAM (Kingma &
+Ba, 2015). But researchers were interested in R PROP and
+variants because of their robust and fast convergence, and
+not their potential for gradient compression.
+Until now there has been no rigorous theoretical explanation
+for the empirical success of sign-based stochastic gradient
+Algorithm 3 Distributed training by majority vote
+Input: learning rate , current point xk , # workers M
+each with an independent gradient estimate g̃m (xk )
+on server
+pull sign(g̃hm ) from each worker
+i
+PM
+push sign
+sign(g̃
+)
+to each worker
+m
+m=1
+on each worker
+hP
+i
+M
+xk+1
+xk
+sign
+m=1 sign(g̃m )
+
+

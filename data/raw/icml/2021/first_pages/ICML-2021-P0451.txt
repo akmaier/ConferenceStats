@@ -1,0 +1,80 @@
+Prioritized Level Replay
+
+Minqi Jiang 1 2 Edward Grefenstette 1 2 Tim Rocktäschel 1 2
+
+Abstract
+Environments with procedurally generated content serve as important benchmarks for testing
+systematic generalization in deep reinforcement
+learning. In this setting, each level is an algorithmically created environment instance with a
+unique configuration of its factors of variation.
+Training on a prespecified subset of levels allows
+for testing generalization to unseen levels. What
+can be learned from a level depends on the current
+policy, yet prior work defaults to uniform sampling of training levels independently of the policy. We introduce Prioritized Level Replay (PLR),
+a general framework for selectively sampling
+the next training level by prioritizing those with
+higher estimated learning potential when revisited
+in the future. We show TD-errors effectively estimate a level’s future learning potential and, when
+used to guide the sampling procedure, induce an
+emergent curriculum of increasingly difficult levels. By adapting the sampling of training levels,
+PLR significantly improves sample-efficiency and
+generalization on Procgen Benchmark—matching
+the previous state-of-the-art in test return—and
+readily combines with other methods. Combined
+with the previous leading method, PLR raises the
+state-of-the-art to over 76% improvement in test
+return relative to standard RL baselines.
+
+1. Introduction
+Deep reinforcement learning (RL) easily overfits to training
+experiences, making generalization a key open challenge
+to widespread deployment of these methods. Procedural
+content generation (PCG) environments have emerged as a
+promising class of problems with which to probe and address this core weakness (Risi & Togelius, 2020; ChevalierBoisvert et al., 2018; Cobbe et al., 2020a; Juliani et al., 2019;
+1
+Facebook AI Research, London, United Kingdom 2 University
+College London, London, United Kingdom. Correspondence to:
+Minqi Jiang <msj@fb.com>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Zhong et al., 2020; Küttler et al., 2020). Unlike singleton
+environments, like the Arcade Learning Environment games
+(Bellemare et al., 2013), PCG environments take on algorithmically created configurations at the start of each training
+episode, potentially varying the layout, asset appearances, or
+even game dynamics. Each environment instance generated
+this way is called a level. In mapping an identifier, such as a
+random seed, to each level, PCG environments allow us to
+measure a policy’s generalization to held-out test levels. In
+this paper, we assume only a blackbox generation process
+that returns a level given an identifier. We avoid the strong
+assumption of control over the generation procedure itself,
+explored by several prior works (see Section 6). Further, we
+assume levels follow common latent dynamics, so that in
+aggregate, experiences collected in individual levels reveal
+general rules governing the entire set of levels.
+Despite its humble origin in games, the PCG abstraction
+proves far-reaching: Many control problems, such as teaching a robotic arm to stack blocks in a specific formation,
+easily conform to PCG. Here, each level may consist of a
+unique combination of initial block positions, arm state, and
+target formation. In a vastly different domain, Hanabi (Bard
+et al., 2020) also conforms to PCG, where levels map to initial deck orderings. These examples illustrate the generality
+of the PCG abstraction: Most challenging RL problems entail generalizing across instances (or levels) differing along
+some underlying factors of variation and thereby can be
+aptly framed as PCG. This highlights the importance of
+effective deep RL methods for PCG environments.
+Many techniques have been proposed to improve generalization in the PCG setting (see Section 6), requiring changes
+to the model architecture, learning algorithm, observation
+space, or environment structure. Notably, these approaches
+default to uniform sampling of training levels. We instead
+hypothesize that the variation across levels implies that at
+each point of training, each level likely holds different potential for an agent to learn about the structure shared across
+levels to improve generalization. Inspired by this insight
+and selective sampling methods from active learning, we
+investigate whether sampling the next training level weighed
+by its learning potential can improve generalization.
+We introduce Prioritized Level Replay (PLR), illustrated in
+Figure 1, a method for sampling training levels that exploits
+
+

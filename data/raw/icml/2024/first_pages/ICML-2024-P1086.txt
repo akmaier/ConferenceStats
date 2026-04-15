@@ -1,0 +1,79 @@
+Improving Gradient-Guided Nested Sampling for Posterior Inference
+
+Pablo Lemos 1 2 3 4 5 Nikolay Malkin 1 3 Will Handley 6 7 8 Yoshua Bengio 1 3 9 Yashar Hezaveh 1 2 3 4 10 11
+Laurence Perreault-Levasseur 1 2 3 4 10 11
+
+Abstract
+
+From the perspective of differentiable programming, less
+attention has been paid in recent years to nested sampling (Skilling, 2006; Buchner, 2021; Ashton et al., 2022),
+which is a widely used algorithm for Bayesian parameter
+inference and model comparison. Nested sampling has been
+used in a range of applications in the natural sciences, from
+cosmology (Mukherjee et al., 2006; Handley et al., 2015a)
+and astrophysics (Lavie et al., 2017; Günther & Daylan,
+2021) to particle physics (Yallup et al., 2022) and biology (Russel et al., 2018). Furthermore, it provides both
+samples from the posterior distribution and an estimate of
+the Bayesian evidence, which can be used for model comparison (Marshall et al., 2006) or to test compatibility between
+datasets (Handley & Lemos, 2019).
+
+We present a performant, general-purpose
+gradient-guided nested sampling algorithm,
+GGNS, combining the state of the art in differentiable programming, Hamiltonian slice sampling,
+clustering, mode separation, dynamic nested sampling, and parallelization. This unique combination allows GGNS to scale well with dimensionality and perform competitively on a variety of
+synthetic and real-world problems. We also show
+the potential of combining nested sampling with
+generative flow networks to obtain large amounts
+of high-quality samples from the posterior distribution. This combination leads to faster mode
+discovery and more accurate estimates of the partition function.
+
+The key challenge in implementing a nested sampling algorithm is constructing a method that generates samples
+drawn from the prior, subject to a hard likelihood constraint.
+Whilst there is a wide variety of publicly available implementations for doing so (see Buchner, 2021; Ashton et al.,
+2022, for an exhaustive list), these methods are only capable
+of scaling to hundreds of dimensions (Handley, 2023).
+
+1. Introduction
+Bayesian parameter estimation and model comparison are
+key to most scientific disciplines and remain challenging
+problems, especially in high-dimensional and multimodal
+settings. While traditionally Markov chain Monte Carlo
+(MCMC) methods have been used to perform Bayesian
+inference, differentiable programming has enabled the development of new, more efficient algorithms, such as variational inference (MacKay, 2003), Hamiltonian Monte Carlo
+(Duane et al., 1987; Neal et al., 2011), and Langevin dynamics (Besag, 1994; Roberts & Tweedie, 1996; Roberts
+& Rosenthal, 1998); as well as more recent learning-based
+methods such as the Path Integral Sampler (Zhang & Chen,
+2022) and generative flow networks (Bengio et al., 2023;
+Lahlou et al., 2023).
+
+One way to improve the performance of nested sampling
+algorithms is to use the information about the gradient of the
+likelihood to propose new points. However, gradient-guided
+sampling on constrained domains is not straightforward.
+Whilst the materials science and chemistry literature has
+made extensive use of gradient-guided nested sampling (Baldock et al., 2017; Pártay et al., 2021; Habeck, 2015; Nielsen,
+2013), these methods are often generally bespoke to their
+physical problems of interest and are not suitable as generalpurpose Bayesian samplers. Previous works, such as Betancourt (2011); Speagle (2020) have shown the potential of reflective slice sampling (Neal, 2003), also known as Galilean
+Monte Carlo (GMC) (Feroz & Skilling, 2013) or Hamiltonian slice sampling (HSS) (Zhang et al., 2016; Bloem-Reddy
+& Cunningham, 2016), for general-purpose sampling, including the case of non-smooth functions (Mohasel Afshar
+& Domke, 2015). However, these approaches have found
+HSS to be “substantially less efficient (and in general less
+reliable) than other gradient-based approaches”.1 Another
+alternative is recent work in proximal nested sampling (Cai
+
+1 Mila – Québec Artificial Intelligence Institute 2 Ciela Institute
+3 Université de Montréal 4 CCA – Flatiron Institute 5 Dreamfold
+6 Cavendish Laboratory 7 Kavli Institute for Cosmology 8 Gonville
+
+and Caius College, University of Cambridge 9 Canadian Institute for Advanced Research (CIFAR) 10 Perimeter Institute
+11 Trottier Space Institute. Correspondence to: Pablo Lemos
+<pablo@dreamfold.ai>.
+Proceedings of the 41 𝑠𝑡 International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1Verbatim from the documentation of the dynesty algorithm.
+
+1
+
+

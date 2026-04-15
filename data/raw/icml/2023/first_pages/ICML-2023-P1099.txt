@@ -1,0 +1,84 @@
+Few-bit Backward: Quantized Gradients of Activation Functions for Memory
+Footprint Reduction
+
+Georgii Novikov 1 2 Daniel Bershatsky 1 Julia Gusak 1 * Alex Shonenkov Denis Dimitrov 2 Ivan Oseledets 1 2
+
+Abstract
+
+Memory consumed by the model during training (except
+intermediate tensors) can be split into two groups: 1) the
+model weights (including additional memory for the optimizer state); 2) activations saved for the backward pass,
+over which the computation is not carried out directly at the
+moment but will be required in the future to compute the
+gradients.
+
+Memory footprint is one of the main limiting factors for large neural network training. In backpropagation, one needs to store the input to each
+operation in the computational graph. Every modern neural network model has quite a few pointwise nonlinearities in its architecture, and such
+operations induce additional memory costs that,
+as we show, can be significantly reduced by quantization of the gradients. We propose a systematic
+approach to compute optimal quantization of the
+retained gradients of the pointwise nonlinear functions with only a few bits per each element. We
+show that such approximation can be achieved
+by computing an optimal piecewise-constant approximation of the derivative of the activation
+function, which can be done by dynamic programming. The drop-in replacements are implemented
+for all popular nonlinearities and can be used in
+any existing pipeline. We confirm the memory
+reduction and the same convergence on several
+open benchmarks.
+
+Every operation in the computational graph generates a
+memory footprint. It is typically overlooked that the application of the pointwise nonlinearity (such as GELU or
+sigmoid) results in storing the input for the backward pass.
+We show that instead of keeping the full input tensor, it
+is possible to store a low-bit representation, which allows
+accurate gradient approximation.
+In this work, we propose to approximate the derivative of
+the activation function in a piecewise-constant form. Such
+an approximation problem has to be solved once for each
+activation function, and we propose a simple technique to
+do that. The proposed approximation divides all values into
+several bins and saves only their corresponding bin indices
+instead of storing all values. This is a lossy compression,
+but the additional noise introduced by it is negligible, as
+we show on several benchmarks in Section 4. The main
+contributions of our paper are:
+
+1. Introduction
+
+• We propose new approximate backward computation
+schemes that significantly reduce the memory consumption of neural network training.
+
+Modern neural network models are getting larger and larger.
+One of the main bottlenecks in the training loop is the required device memory storage (Ojika et al., 2020; Gao et al.,
+2020). In this paper, we propose a universal approach that
+helps reduce the model memory footprint during backpropagation. Note that this approach is complementary to other
+memory-reducing techniques such as checkpointing (Chen
+et al., 2016) or offloading (Beaumont et al., 2021). Our
+method can be applied to any neural network without any
+additional preprocessing.
+
+• We benchmark our approach on several tasks. We
+show that it provides up to 40% memory reduction on
+various tasks while maintaining accuracy on par with
+the model trained via the standard approach.
+
+2. Quantized Gradients of Activations
+Gradients of activations using automatic differentiation.
+Modern deep learning frameworks use the reverse mode
+automatic differentiation to calculate the gradients of the
+loss over the model parameters. Forward computation can
+be associated with a directed acyclic graph, depicted in Figure 2. Each operation f computes the output Xl+1 given the
+input Xl and has to save some information Sl that would be
+
+*
+Now at Inria, University of Bordeaux, France. 1 Center for
+Artificial Intelligence Technology, Skolkovo Institute of Science
+and Technology, Moscow, Russia 2 AIRI, Moscow, Russia. Correspondence to: Georgii Novikov <georgii.novikov@skoltech.ru>.
+
+Proceedings of the 40 th International Conference on Machine
+Learning, Honolulu, Hawaii, USA. PMLR 202, 2023. Copyright
+2023 by the author(s).
+
+1
+
+

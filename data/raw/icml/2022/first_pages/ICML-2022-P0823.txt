@@ -1,0 +1,83 @@
+Direct Behavior Specification
+via Constrained Reinforcement Learning
+
+Julien Roy ‡ 1 2 Roger Girgis ‡ 1 2 Joshua Romoff 3 Pierre-Luc Bacon 1 4 5 Christopher Pal 1 2 4 6 7
+
+Abstract
+The standard formulation of Reinforcement
+Learning lacks a practical way of specifying what
+are admissible and forbidden behaviors. Most often, practitioners go about the task of behavior
+specification by manually engineering the reward
+function, a counter-intuitive process that requires
+several iterations and is prone to reward hacking
+by the agent. In this work, we argue that constrained RL, which has almost exclusively been
+used for safe RL, also has the potential to significantly reduce the amount of work spent for reward specification in applied RL projects. To this
+end, we propose to specify behavioral preferences
+in the CMDP framework and to use Lagrangian
+methods to automatically weigh each of these behavioral constraints. Specifically, we investigate
+how CMDPs can be adapted to solve goal-based
+tasks while adhering to several constraints simultaneously. We evaluate this framework on a set of
+continuous control tasks relevant to the application of Reinforcement Learning for NPC design
+in video games.
+
+1. Introduction
+Reinforcement Learning (RL) has shown rapid progress
+and lead to many successful applications over the past few
+years (Mnih et al., 2013; Silver et al., 2017; Andrychowicz et al., 2020). The RL framework is predicated on the
+simple idea that all tasks could be defined as a single scalar
+function to maximise, an idea generally referred to as the reward hypothesis (Sutton & Barto, 2018; Silver et al., 2021;
+‡
+Work conducted while interning at Ubisoft La Forge.
+Institut d’intelligence aritficielle du Québec (Mila). 2 École
+Polytechnique de Montréal. 3 Ubisoft La Forge. 4 Université
+de Montréal. 5 Facebook CIFAR AI Chair. 6 ServiceNow.
+7
+Canada CIFAR AI Chair.. Correspondence to: Julien Roy
+<julien.roy@mila.quebec>.
+
+1
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+Abel et al., 2021). This idea has proven very useful to
+develop the theory and concentrate research on a single
+theoretical framework. However, it can be significantly
+limiting when translating a real-life problem into an RL
+problem, since the question of where the reward function
+comes from is completely ignored (Singh et al., 2009). In
+practice, human-designed reward functions often lead to
+unforeseen behaviors and represent a serious obstacle to the
+reliable application of RL in the industry (Amodei et al.,
+2016).
+Concretely, for an engineer working on applying RL methods to an industrial problem, the task of reward specification
+implies to: (1) characterise the desired behavior that the
+system should exhibit, (2) write in a computer program a
+reward function for which the optimal policy corresponds
+to that desired behavior, (3) train an RL agent on that task
+using one of the methods available in the literature and (4)
+evaluate whether the agent exhibits the expected behavior.
+Multiple design iterations of that reward function are generally required, each time accompanied by costly trainings of
+the policy (Hadfield-Menell et al., 2017; Dulac-Arnold et al.,
+2019). This inefficient design loop is exacerbated by the
+fact that current Deep RL algorithms cannot be guaranteed
+to find the optimal policy (Sutton & Barto, 2018), meaning
+that the reward function could be correctly specified but still
+fail to lead to the desired behavior. The design problem thus
+becomes “What reward function would lead SAC (Haarnoja
+et al., 2018) or PPO (Schulman et al., 2017) to give me a
+policy that I find satisfactory?”, a difficult puzzle that every
+RL practitioner has had to deal with.
+Most published work on Reinforcement Learning focuses
+on point (3) i.e. improving the reliability and efficiency
+with which these algorithms can yield a near-optimal policy
+for a given reward function. This line of work is crucial to
+allow RL to tackle difficult problems. However, as agents
+become more and more capable of solving the tasks we
+present them with, our ability to (2) correctly specify these
+reward functions will only become more critical (Dewey,
+2014).
+Constrained Markov Decision Processes (Altman, 1999) offer an alternative framework for sequential decision making.
+The agent still seeks to maximise a single reward function,
+
+

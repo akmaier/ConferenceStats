@@ -1,0 +1,72 @@
+Resource Allocation in Multi-armed Bandit Exploration:
+Overcoming Sublinear Scaling with Adaptive Parallelism
+
+Brijen Thananjeyan 1 Kirthevasan Kandasamy 1 Ion Stoica 1 Michael I. Jordan 1 Ken Goldberg 1
+Joseph E. Gonzalez 1
+
+Abstract
+We study exploration in stochastic multi-armed
+bandits when we have access to a divisible resource that can be allocated in varying amounts
+to arm pulls. We focus in particular on the allocation of distributed computing resources, where
+we may obtain results faster by allocating more resources per pull, but might have reduced throughput due to nonlinear scaling. For example, in
+simulation-based scientific studies, an expensive
+simulation can be sped up by running it on multiple cores. This speed-up however, is partly offset
+by the communication among cores, which results
+in lower throughput than if fewer cores were allocated per trial to run more trials in parallel. In
+this paper, we explore these trade-offs in two settings. First, in a fixed confidence setting, we need
+to find the best arm with a given target success
+probability as quickly as possible. We propose an
+algorithm which trades off between information
+accumulation and throughput and show that the
+time taken can be upper bounded by the solution
+of a dynamic program whose inputs are the gaps
+between the sub-optimal and optimal arms. We
+also prove a matching hardness result. Second,
+we present an algorithm for a fixed deadline setting, where we are given a time deadline and need
+to maximize the probability of finding the best
+arm. We corroborate our theoretical insights with
+simulation experiments that show that the algorithms consistently match or outperform baseline
+algorithms on a variety of problem instances.
+
+1. Introduction
+In multi-armed bandit exploration, an agent draws samples
+from a set of n arms, where, upon pulling arm i, it receives
+a stochastic reward drawn from a distribution with mean
+1
+
+University of California, Berkeley. Correspondence to: Brijen
+Thananjeyan <bthananjeyan@berkeley.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Figure 1. An example of the setting using n = 3 arms. An algorithm has a divisible resource (y-axis) that can be split up to
+generate samples by pulling the 3 arms. Each pull takes time (xaxis) to complete. Allocating more resources to a pull produces
+faster results, but at the cost of decreased throughput, e.g. using
+twice the resources for a pull will provide results only 1.5x faster.
+When a pull completes, the resources used are freed and can be
+reallocated to new pulls.
+
+µi . The goal is to identify the best arm, i.e., argmaxi µi , by
+adaptively choosing which arms to pull. This problem is
+known in the literature as best-arm identification (BAI).
+As an example, consider simulation-based studies in physics,
+which are used for estimating cosmological constants and
+controlling nuclear fusion reactors (Davis et al., 2007; Xing
+et al., 2019). Pulling an arm may correspond to running
+a stochastic simulation with specific values for parameters
+(cosmological constants or reactor parameters) which affect the output of the simulation. Here, searching for the
+optimal parameters is naturally modeled as a BAI problem.
+BAI is also used in model selection (Li et al., 2017), A/B
+testing (Howard & Ramdas, 2019), and other configuration
+tuning tasks. Traditionally, BAI is studied in two settings:
+fixed confidence and fixed budget. In the former, we must
+identify the best arm with a given target success probability,
+while keeping the number of arm pulls to a minimum. In the
+latter, we are given a budget of pulls and should maximize
+the probability of identifying the best arm.
+The focus of work in the BAI literature has been the sequential setting in which the agent can pull only one arm
+at a time (Bubeck et al., 2009; Audibert & Bubeck, 2010;
+Even-Dar et al., 2002). There is also a line of work on the
+batch parallel setting, where the agent can pull a fixed number of arms at a time (Jun et al., 2016). These formulations
+
+

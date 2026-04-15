@@ -1,0 +1,51 @@
+Softmax Output Approximation for
+Activation Memory-Efficient Training of
+Attention-based Networks
+Changhyeon Lee and Seulki Lee
+UNIST (Ulsan National Institute of Science and Technology)
+{changhyeon,seulki.lee}@unist.ac.kr
+
+Abstract
+In this paper, we propose to approximate the softmax output, which is the key
+product of the attention mechanism, to reduce its activation memory usage when
+training attention-based networks (aka Transformers). During the forward pass
+of the network, the proposed softmax output approximation method stores only
+a small fraction of the entire softmax output required for back-propagation and
+evicts the rest of the softmax output from memory. Then, during the backward pass,
+the evicted softmax activation output is approximated to compose the gradient to
+perform back-propagation for model training. Considering most attention-based
+models heavily rely on the softmax-based attention module that usually takes one
+of the biggest portions of the network, approximating the softmax activation output
+can be a simple yet effective way to decrease the training memory requirement of
+many attention-based networks. The experiment with various attention-based models and relevant tasks, i.e., machine translation, text classification, and sentiment
+analysis, shows that it curtails the activation memory usage of the softmax-based attention module by up to 84% (6.2× less memory) in model training while achieving
+comparable or better performance, e.g., up to 5.4% higher classification accuracy.
+
+1
+
+Introduction
+
+Recently, many attention-based networks, aka Transformers [50], are widely used in many natural
+language processing tasks such as machine translation [50, 13], sentiment analysis [52, 29, 34], text
+classification [52, 54], and question/answering [47, 53, 20]. Due to their superior performance, they
+also have become the backbone of many large language and general task-agnostic models, e.g., GPT
+series [41, 5], and are actively expanding to other domains ranging from computer vision (Vision
+Transformers [12, 49, 38]) to protein structure predictions (AlphaFold [44, 22]). However, the stellar
+performance of attention-based networks comes with significant resource requirements in training,
+especially massive memory (RAM) usage. For example, the small-size GPT-2 model [41] is known
+to require 27.5 GB of peak memory for its training with a mini-batch of size eight [3]. Hence, the
+memory bottleneck problem makes training of attention-based models challenging when massive
+memory capacity is not available, e.g., BERT [11] takes 16 TPUs [21], each equipped with 32 TB of
+built-in memory, for training, and the regular GPT-2 [41] is reported to be trained with 32 TPUs.
+During deep model training, it is required to store various components in memory, i.e., model
+parameters, input data, optimizer state, etc., along with activation output, i.e., the intermediate output
+of each layer. As the activation output of each layer must be stored in memory for gradient-based
+back-propagation [42], the memory capacity required to train a model increases proportionally to the
+data sequence length (width), depth of the network, and mini-batch size of the model. Consequently,
+as the model gets huge and the training data gets bigger, the activation easily becomes to take up more
+memory than other components. Especially, it is more evident in NLP (natural language processing)
+tasks, as provided in Figure 1(a) [25], which shows the memory composition required for training
+four different attention-based model configurations, ranging from 22 billion to 1 trillion parameters.
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

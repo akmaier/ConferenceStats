@@ -1,0 +1,82 @@
+DINO: Distributed Newton-Type Optimization Method
+
+Rixon Crane 1 Fred Roosta 1 2
+
+Abstract
+
+where `i is a loss function corresponding to xi and parameterized by w. For example, such settings are popular in
+industry in the form of federated learning when data is
+collected and processed locally, which increases computing resources and facilitates data privacy (Agarwal et al.,
+2018). Another example is in big data regimes, where it
+is more practical, or even necessary, to partition and store
+large datasets on separate machines (Zhang & Lin, 2015).
+Distributing machine learning model parameters is also becoming a necessity as some highly successful models now
+contain billions of parameters, such as GPT-2 (Radford et al.,
+2019; Lee et al., 2014).
+
+We present a novel communication-efficient
+Newton-type algorithm for finite-sum optimization over a distributed computing environment.
+Our method, named DINO, overcomes both theoretical and practical shortcomings of similar existing methods. Under minimal assumptions, we
+guarantee global sub-linear convergence of DINO
+to a first-order stationary point for general nonconvex functions and arbitrary data distribution
+over the network. Furthermore, for functions satisfying Polyak-Lojasiewicz (PL) inequality, we
+show that DINO enjoys a linear convergence rate.
+Our proposed algorithm is practically parameter
+free, in that it will converge regardless of the selected hyper-parameters, which are easy to tune.
+Additionally, its sub-problems are simple linear
+least-squares, for which efficient solvers exist, and
+numerical simulations demonstrate the efficiency
+of DINO as compared with similar alternatives.
+
+1. Introduction
+Consider the generic finite-sum optimization problem
+
+
+m
+1 X
+fi (w) ,
+(1)
+min f (w) ,
+m i=1
+w∈Rd
+in a centralized distributed computing environment comprised of one central driver machine communicating to m
+worker machines, where each worker i only has access to fi .
+A common application of this problem is where each worker
+i has access to a portion of n data points {x1 , . . . , xn }, indexed by a set Si ⊆ {1, . . . , n}, with
+fi (w) =
+
+|Si | X
+`j (w; xj ),
+n
+
+(2)
+
+j∈Si
+
+*
+Equal contribution 1 School of Mathematics and Physics, University of Queensland, Australia 2 International Computer Science
+Institute, Berkeley, CA, USA. Correspondence to: Rixon Crane
+<r.crane@uq.edu.au>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+The need for distributed computing has motivated the development of many frameworks. For example, the popular machine learning packages PyTorch (Paszke et al., 2017) and
+Tensorflow (Abadi et al., 2016) contain comprehensive functionality for distributed training of machine learning models.
+Despite many benefits to distributed computing, there are
+significant computational bottlenecks, such as those introduced through bandwidth and latency (Shamir & Srebro,
+2014; Li et al., 2014; Wangni et al., 2018). Frequent transmission of data is expensive in terms of time and physical
+resources (Zhang & Lin, 2015). For example, even transferring data on a local machine can be the main contributor to
+energy consumption (Shalf et al., 2011).
+With the bottleneck of communication, there has recently been significant focus on developing communicationefficient distributed optimization algorithms. This is particularly apparent in regards to popular first-order methods, such
+as stochastic gradient descent (SGD) (Haddadpour et al.,
+2019; Ivkin et al., 2019; Vogels et al., 2019; Basu et al.,
+2019; Teng et al., 2019; Zheng et al., 2019). As first-order
+methods solely rely on gradient information, which can often be computed easily in parallel, they are usually straightforward to implement in a distributed setting. However, their
+typical inherent nature of performing many computationally
+inexpensive iterations, which is suitable and desirable on a
+single machine, leads to significant data transmission costs
+and ineffective utilization of increased computing resources
+in a distributed computing environment (Wang et al., 2018).
+
+

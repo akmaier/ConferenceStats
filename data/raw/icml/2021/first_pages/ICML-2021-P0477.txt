@@ -1,0 +1,87 @@
+Practical and Private (Deep) Learning Without Sampling or Shuffling
+
+Peter Kairouz 1 Brendan McMahan 1 Shuang Song 1 Om Thakkar 1 Abhradeep Thakurta 1 Zheng Xu 1
+
+Abstract
+We consider training models with differential
+privacy (DP) using mini-batch gradients. The
+existing state-of-the-art, Differentially Private
+Stochastic Gradient Descent (DP-SGD), requires
+privacy amplification by sampling or shuffling
+to obtain the best privacy/accuracy/computation
+trade-offs. Unfortunately, the precise requirements on exact sampling and shuffling can be
+hard to obtain in important practical scenarios, particularly federated learning (FL). We design and analyze a DP variant of Follow-TheRegularized-Leader (DP-FTRL) that compares
+favorably (both theoretically and empirically) to
+amplified DP-SGD, while allowing for much
+more flexible data access patterns. DP-FTRL
+does not use any form of privacy amplification.
+
+1. Introduction
+Differentially private stochastic gradient descent (DPSGD) (Song et al., 2013; Bassily et al., 2014; Abadi et al.,
+2016) has become state-of-the-art in training private (deep)
+learning models (Abadi et al., 2016; McMahan et al., 2018;
+Erlingsson et al., 2020; Papernot et al., 2020b; Facebook,
+2020; Tramèr & Boneh, 2021). It operates by running
+stochastic gradient descent (Robbins & Monro, 1951) on
+noisy mini-batch gradients1 , with the noise calibrated such
+that it ensures differential privacy. The privacy analysis heavily uses tools like privacy amplification by sampling/shuffling (Kasiviswanathan et al., 2008; Bassily et al.,
+2014; Abadi et al., 2016; Wang et al., 2019; Zhu & Wang,
+2019; Erlingsson et al., 2019; Feldman et al., 2020b) to obtain the best privacy/utility trade-offs. Such amplification
+tools require that each mini-batch is a perfectly (uniformly)
+random subset of the training data. This assumption can
+make practical deployment prohibitively hard, especially
+1
+
+Google.
+Correspondence to:
+<athakurta@google.com>.
+
+Abhradeep Thakurta
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+1
+Gradient computed on a subset of the training examples, also
+called a mini-batch.
+
+in the context of distributed settings like federated learning (FL) where one has little control on which subset of
+the training data one sees at any time (Kairouz et al., 2019;
+Balle et al., 2020).
+We propose a new online learning (Hazan, 2019; ShalevShwartz et al., 2011) based DP algorithm, differentially
+private follow-the-regularized-leader (DP-FTRL), that has
+privacy/utility/computation trade-offs that are competitive
+with DP-SGD, and does not rely on privacy amplification.
+DP-FTRL significantly outperforms un-amplified DP-SGD
+at all privacy levels. In the higher-accuracy / lower-privacy
+regime, DP-FTRL outperforms even amplified DP-SGD.
+We emphasize that in the context of ML applications, using
+a DP mechanism even with a large ε is practically much
+better for privacy than using a non-DP mechanism (Song
+& Shmatikov, 2019; Jagielski et al., 2020; Thakkar et al.,
+2020; Nasr et al., 2021).
+Privacy amplification and its perils: At a high-level, DPSGD can be thought of as an iterative noisy state update
+procedure for T steps operating over mini-batches of the
+training data. For a time step t ∈ [T ] and an arbitrary minibatch of size k from a data set D of size n, let σt be the
+standard deviation of the noise needed in the tth update to
+satisfy εt -differential privacy. If the mini-batch is chosen
+u.a.r. and i.i.d. from D at each time step2 t, then privacy
+amplification by sampling (Kasiviswanathan et al., 2008;
+Bassily et al., 2014; Abadi et al., 2016; Wang et al., 2019)
+allows one to scale down the noise to σt · (k/n), while
+still ensuring εt -differential privacy.3 Such amplification
+is crucial for DP-SGD to obtain state-of-the-art models in
+practice (Abadi et al., 2016; Papernot et al., 2020b; Tramèr
+& Boneh, 2021) when k  n.
+There are two major bottlenecks for such deployments: i)
+For large data sets, achieving uniform sampling/shuffling
+of the mini-batches in every round (or epoch) can be pro2
+
+One can also create a mini-batch with Poisson sampling (Abadi et al., 2016; McMahan et al., 2017b; Zhu & Wang,
+2019), except the batch size is now a random variable. For brevity,
+we focus on the fixed batch setting.
+3
+A similar argument holds for amplification by shuffling (Erlingsson et al., 2019; Feldman et al., 2020b), when the data are
+uniformly shuffled at the beginning of every epoch.We do not consider privacy amplification by iteration (Feldman et al., 2018) in
+this paper, as it only applies to smooth convex functions.
+
+

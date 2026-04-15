@@ -1,0 +1,83 @@
+Trust-Region Twisted Policy Improvement
+
+Joery A. de Vries 1 Jinke He 1 Yaniv Oren 1 Matthijs T. J. Spaan 1
+
+Abstract
+
+et al., 2021; Danihelka et al., 2022; Antonoglou et al., 2022;
+Oren et al., 2025).
+
+Monte-Carlo tree search (MCTS) has driven many
+recent breakthroughs in deep reinforcement learning (RL). However, scaling MCTS to parallel compute has proven challenging in practice which
+has motivated alternative planners like sequential
+Monte-Carlo (SMC). Many of these SMC methods adopt particle filters for smoothing through a
+reformulation of RL as a policy inference problem.
+Yet, persisting design choices of these particle filters often conflict with the aim of online planning
+in RL, which is to obtain a policy improvement
+at the start of planning. Drawing inspiration from
+MCTS, we tailor SMC planners specifically to RL
+by improving data generation within the planner
+through constrained action sampling and explicit
+terminal state handling, as well as improving policy and value target estimation. This leads to our
+Trust-Region Twisted SMC (TRT-SMC), which
+shows improved runtime and sample-efficiency
+over baseline MCTS and SMC methods in both
+discrete and continuous domains.
+
+Although MCTS has been a leading technology in recent
+breakthroughs, the tree search is inherently sequential, can
+deteriorate agent performance at small planning budgets
+(Grill et al., 2020), and requires significant modifications
+for general use in RL (Hubert et al., 2021). The sequential nature of MCTS is particularly crippling as it limits
+the full utilization of modern hardware such as GPUs. Despite follow-up work attempting to address specific issues,
+alternative planners have since been explored that avoid
+these flaws. Successful alternatives in this area are often
+inspired by stochastic control (Del Moral, 2004; Åström,
+2006), examples include path integral control (Theodorou
+et al., 2010; Williams et al., 2015; Hansen et al., 2022) and
+related sequential Monte-Carlo (SMC) methods (Naesseth
+et al., 2019; Chopin & Papaspiliopoulos, 2020).
+Specifically, recent variational SMC planners (Naesseth
+et al., 2018; Macfarlane et al., 2024) have shown great potential in terms of generality, performance, and scalability
+to parallel compute. These methods adopt a particle filter
+for trajectory smoothing to enable planning in RL (Piché
+et al., 2019). However, the distribution of interest for these
+particle filters do not perfectly align with learning and exploration for RL agents. Namely, recent SMC methods
+focus on estimation of the trajectory distribution under an
+unknown policy, and not the actual unknown policy at the
+state where we initiate the planner. We find that this mismatch can cause SMC planners to suffer from unnecessarily
+high-variance estimation and waste much of their compute
+and data during planning. In other words, online planning in
+RL should serve as a local approximate policy improvement
+(Chan et al., 2022; Sutton & Barto, 2018). Fortunately, existing MCTS and SMC literature provides various directions to
+achieve this (Moral et al., 2010; Svensson et al., 2015; Lawson et al., 2018; Danihelka et al., 2022; Grill et al., 2020),
+but their use in SMC-planning remains largely unrealized.
+
+1. Introduction
+Monte-Carlo tree search (MCTS) with neural networks
+(Browne et al., 2012) has enabled many recent successes in
+sequential decision making problems such as board games
+(Silver et al., 2018), Atari (Ye et al., 2021), and algorithm
+discovery (Fawzi et al., 2022; Mankowitz et al., 2023).
+These successes demonstrate that combining decision-time
+planning and reinforcement learning (RL) often outperforms
+methods that utilize search or deep neural networks in isolation. Naturally, this has stimulated many studies to understand the role of planning in combination with learning
+(Guez et al., 2019; de Vries et al., 2021; Hamrick et al.,
+2021; Bertsekas, 2022; He et al., 2024) along with studies
+to improve specific aspects of the base algorithm (Hubert
+
+This paper aims to address the current limitations of bootstrapped particle filter planners for RL by drawing inspiration from MCTS. Our contributions are 1) to make more
+accurate estimates of statistics extracted by the planner, at
+the start of planning, and 2) enhancing data-efficiency inside
+the planner. We address the pervasive path-degeneracy prob-
+
+1
+Delft University of Technology, Delft, the Netherlands. Correspondence to: Joery A. de Vries <J.A.deVries@tudelft.nl>.
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

@@ -1,0 +1,97 @@
+Off-Policy Confidence Sequences
+
+Nikos Karampatziakis 1 Paul Mineiro 2 Aaditya Ramdas 3
+
+Abstract
+We develop confidence bounds that hold uniformly over time for off-policy evaluation in the
+contextual bandit setting. These confidence sequences are based on recent ideas from martingale
+analysis and are non-asymptotic, non-parametric,
+and valid at arbitrary stopping times. We provide algorithms for computing these confidence
+sequences that strike a good balance between computational and statistical efficiency. We empirically demonstrate the tightness of our approach in
+terms of failure probability and width and apply
+it to the “gated deployment” problem of safely
+upgrading a production contextual bandit system.
+
+1. Introduction
+Reasoning about the reward that a new policy π would have
+achieved if it had been deployed, a task known as Off-Policy
+Evaluation (OPE), is one of the key challenges in modern
+Contextual Bandits (CBs) (Langford and Zhang, 2007) and
+Reinforcement Learning (RL). A typical OPE use case is
+the validation of new modeling ideas by data scientists. If
+OPE suggests that π is better, this can then be validated
+online by deploying the new policy to the real world.
+The classic way to answer whether π has better reward
+than the current policy h is via a confidence interval (CI).
+Unfortunately, CIs take a very static view of the world.
+Suppose that π is better than h and our OPE shows a higher
+but not significantly better estimated reward. What should
+we do? We could collect more data, but since a CI holds for
+a particular (fixed) sample size and is not designed to handle
+interactive/adaptive data collection, simply recalculating the
+CI at a larger sample size invalidates its coverage guarantee.
+While there are ways to fix this, such as a crude union
+bound, the proper statistical tool for such cases is called a
+Confidence Sequence (CS). A CS is a sequence of CIs such
+1
+Microsoft Azure AI 2 Microsoft Research 3 Carnegie Mellon University. Correspondence to: Nikos Karampatziakis
+<nikosk@microsoft.com>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+that the probability that they ever exclude the true value is
+bounded by a prespecified quantity. In other words, they
+retain validity under optional (early) stopping and optional
+continuation (collecting more data).
+In this work we develop CSs for OPE using recent insights
+from martingale analysis (for simpler problems). Besides
+the aforementioned high probability uniformly over time
+guarantee, these CSs make no parametric assumptions and
+are easy to compute. We use them to create a “gated deployment” primitive: instead of deploying π directly we keep it
+in a staging area where we compute its off-policy CS as h
+is collecting data. Then π can replace h as soon as (if ever)
+we can reject the hypothesis that h is better than π.
+We now introduce some notation to give context to our
+contributions. We have iid CB data of the form (x, a, r)
+collected by a historical policy h in the following way. First
+a context x was sampled from an unknown distribution D.
+Then h assigns a probability to each action. An action a is
+sampled with probability h(a; x) and performed. A reward
+r associated with performing a in situation x is sampled
+from an unknown distribution R(x, a). Afterwards, we wish
+to estimate the reward of another policy π that is absolutely
+continuous wrt h. We have
+
+
+π(a; x)
+V (π) = Ex∼D
+[r] = Ex∼D
+r
+(1)
+h(a; x)
+a∼π(x)
+a∼h(x)
+r∼R(x,a)
+
+r∼R(x,a)
+
+where the last quantity can be estimated from data.
+Letting w = π(a;x)
+h(a;x) we see that Ex∼D,a∼h [w] = 1, where
+we write w instead of w(x, a) to reduce notation clutter.
+More generally for any function q(x, a) — which is typically a predictor of the reward of a at x — we have
+X
+Ex∼D,a∼h [wq(x, a)] =
+π(a0 ; x)q(x, a0 ),
+(2)
+a0
+
+which reduces to E[w] = 1 when q(x, a) = 1 always.
+Eq. (1) and (2) are the building blocks of OPE estimators. The IPS estimator (Horvitz and Thompson,
+Pn 1952)
+estimates (1) via Monte Carlo: V̂ IPS (π) = 1/n i=1 wi ri .
+A plethora of other OPE estimators are discussed in Section 6. In general there is a tension between the desirability
+of an unbiased estimator like V̂ IPS and the difficulty of working with it in finite samples due to its excessive variance.
+
+

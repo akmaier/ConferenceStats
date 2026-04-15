@@ -1,0 +1,55 @@
+On Warm-Starting Neural Network Training
+Jordan T. Ash
+Microsoft Research NYC
+ash.jordan@microsoft.com
+
+Ryan P. Adams
+Princeton University
+rpa@princeton.edu
+
+Abstract
+In many real-world deployments of machine learning systems, data arrive piecemeal. These learning scenarios may be passive, where data arrive incrementally
+due to structural properties of the problem (e.g., daily financial data) or active,
+where samples are selected according to a measure of their quality (e.g., experimental design). In both of these cases, we are building a sequence of models that
+incorporate an increasing amount of data. We would like each of these models in
+the sequence to be performant and take advantage of all the data that are available
+to that point. Conventional intuition suggests that when solving a sequence of
+related optimization problems of this form, it should be possible to initialize using
+the solution of the previous iterate—to “warm start” the optimization rather than
+initialize from scratch—and see reductions in wall-clock time. However, in practice
+this warm-starting seems to yield poorer generalization performance than models
+that have fresh random initializations, even though the final training losses are
+similar. While it appears that some hyperparameter settings allow a practitioner to
+close this generalization gap, they seem to only do so in regimes that damage the
+wall-clock gains of the warm start. Nevertheless, it is highly desirable to be able to
+warm-start neural network training, as it would dramatically reduce the resource
+usage associated with the construction of performant deep learning systems. In
+this work, we take a closer look at this empirical phenomenon and try to understand when and how it occurs. We also provide a surprisingly simple trick that
+overcomes this pathology in several important situations, and present experiments
+that elucidate some of its properties.
+
+1
+
+Introduction
+
+Although machine learning research generally assumes a fixed set of training data, real life is more
+complicated. One common scenario is where a production ML system must be constantly updated
+with new data. This situation occurs in finance, online advertising, recommendation systems, fraud
+detection, and many other domains where machine learning systems are used for prediction and
+decision making in the real world [1–3]. When new data arrive, the model needs to be updated so
+that it can be as accurate as possible and account for any domain shift that is occurring.
+As a concrete example, consider a large-scale social media website, to which users are constantly
+uploading images and text. The company requires up-to-the-minute predictive models in order to
+recommend content, filter out inappropriate media, and select advertisements. There might be millions
+of new data arriving every day, which need to be rapidly incorporated into production ML pipelines.
+It is natural in this scenario to imagine maintaining a single model that is updated with the
+latest data at regular cadence. Every day, for example, new training might be performed on
+the model with the updated, larger dataset. Ideally, this new training procedure is initialized
+from the parameters of yesterday’s model, i.e., it is “warm-started” from those parameters
+rather than given a fresh initialization. Such an initialization makes intuitive sense: the data
+used yesterday are mostly the same as the data today, and it seems wasteful to throw away all
+previous computation. For convex optimization problems, warm starting is widely used and
+highly successful (e.g., [1]), and the theoretical properties of online learning are well understood.
+34th Conference on Neural Information Processing Systems (NeurIPS 2020), Vancouver, Canada.
+
+

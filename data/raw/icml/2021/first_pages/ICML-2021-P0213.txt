@@ -1,0 +1,74 @@
+A Tale of Two Efficient and Informative Negative Sampling Distributions
+Shabnam Daghaghi 1 Tharun Medini 1 Nicholas Meisburger 2 Beidi Chen 3 Mengnan Zhao 1
+Anshumali Shrivastava 2 1
+
+Abstract
+Softmax classifiers with a very large number of
+classes naturally occur in many applications such
+as natural language processing and information
+retrieval. The calculation of full softmax is costly
+from the computational and energy perspective.
+There have been various sampling approaches to
+overcome this challenge, popularly known as negative sampling (NS). Ideally, NS should sample
+negative classes from a distribution that is dependent on the input data, the current parameters, and
+the correct positive class. Unfortunately, due to
+the dynamically updated parameters and data samples, there is no sampling scheme that is provably
+adaptive and samples the negative classes efficiently. Therefore, alternative heuristics like random sampling, static frequency-based sampling,
+or learning-based biased sampling, which primarily trade either the sampling cost or the adaptivity
+of samples per iteration are adopted. In this paper, we show two classes of distributions where
+the sampling scheme is truly adaptive and provably generates negative samples in near-constant
+time. Our implementation in C++ on CPU is significantly superior, both in terms of wall-clock
+time and accuracy, compared to the most optimized TensorFlow implementations of other popular negative sampling approaches on powerful
+NVIDIA V100 GPU.
+
+1. Introduction
+Neural Networks (NN) have successfully pushed the boundaries of many application tasks, such as image or text classification (Wang et al., 2017; Yao et al., 2019), speech
+recognition (Dong et al., 2018) and recommendation systems (Zhang et al., 2015; Medini et al., 2019). Many hard
+1
+Department of Electrical and Computer Engineering,
+Rice University 2 Department of Computer Science, Rice
+University 3 Department of Computer Science, Stanford University.
+Correspondence to: Shabnam Daghaghi <shabnam.daghaghi@rice.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+AI problems are currently modeled as massive multiclass
+or multilabel problems leading to a drastic improvement
+over prior work. For example, popular NLP models predict
+the best word, given the full context observed so far. Such
+models are becoming state-of-the-art. Recommendation systems and related Information Retrieval (IR) problems are
+classical examples of machine learning with outrageously
+large outputs (Medini et al., 2019; Jain et al., 2019). In
+IR, given the user query, the task is to predict few relevant
+documents (or products) from among hundreds of millions
+of possible documents, a typical machine learning problem
+with massive output space.
+Owing to the significance of the problem, machine learning
+with large output space or alternatively also known as extreme classification is a field in itself (Bengio et al., 2019).
+A large number of classes naturally brings a new set of
+computational and memory challenges.
+Fortunately, with access to powerful Graphics Processing
+Unit (GPU) (Owens et al., 2008), the training processes of
+large models have been accelerated heavily. That is because
+GPUs have a unique advantage for matrix multiplication,
+which usually requires a cubic time algebraic operation
+(O(N 3 )) and is the major and costly building block of NN
+computations. However, the number of concurrent operations required in large matrix multiplications for classification with an extensive number of classes has reached a limit
+for further speedups even using GPUs.
+1.1. Negative Sampling
+The typical approach to address the challenge mentioned
+above is known as negative sampling (Pennington et al.,
+2014; Jean et al., 2014; Rawat et al., 2019; Mikolov et al.,
+2013). In Negative Sampling, we select a small subset of
+classes for each input and compute the softmax and crossentropy function. This subset usually includes the positive
+(true) and a small set of negative (false) classes. Negative
+sampling reduced the computations in the most cumbersome
+last layer, thereby making the gradient update procedure
+efficient.
+However, approximating full softmax with small sub-sample
+results in poor convergence if the negative samples are not
+chosen appropriately. For instance, let us take the example
+of a recommendation system (predicting products relevant
+
+

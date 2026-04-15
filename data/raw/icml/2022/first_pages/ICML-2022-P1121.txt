@@ -1,0 +1,82 @@
+Be Like Water:
+Adaptive Floating Point for Machine Learning
+
+Thomas Y. Yeh 1 Maxwell R. Sterner 1 Zerlina Lai 2 Brandon Y. Chuang 3 Alexander Ihler 4
+
+Abstract
+In the pursuit of optimizing memory and compute
+density to accelerate machine learning applications, reduced precision training and inference
+has been an active area of research. While some
+approaches selectively apply low precision computations, this may require costly off-chip data
+transfers or mixed precision support. In this paper, we propose a novel numerical representation,
+Adaptive Floating Point (AFP), that dynamically
+adjusts to the characteristics of deep learning data.
+AFP requires no changes to the model topology,
+requires no additional training, and applies to all
+layers of DNN models. We evaluate AFP on a
+spectrum of representative models in computer
+vision and NLP, and show that our technique enables ultra-low precision inference of deep learning models while providing accuracy comparable
+to full precision inference. By dynamically adjusting to ML data, AFP increases memory density by
+1.6x, 1.6x, and 3.2x and compute density by 4x,
+1.3x, and 12x when compared to BFP, BFloat16,
+and FP32.
+
+1. Introduction
+In the pursuit of optimizing compute density while reducing
+memory bandwidth requirements, a number of recent works
+have examined reduced precision computations for floating
+point (FP) operations during the training and inference of
+machine learning models. Two extremes in this spectrum
+are the fixed-point format (De Sa et al., 2017; Sa et al., 2018)
+and the 4-bit DNN training format (Sun et al., 2020). In the
+fixed-point integer format, all exponent bits are removed,
+1
+
+Computer Science Department, Pomona College, Claremont,
+CA, USA 2 Computer Science Department, Occidental College,
+Los Angeles, CA, USA 3 Computer Science Department, University of California, Santa Cruz, CA, USA 4 Department of Computer
+Science, University of California, Irvine, CA, USA. Correspondence to: Thomas Y. Yeh <tomyenhsiyeh@gmail.com>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+resulting in a fixed, implicit exponent. In the case of the
+4-bit (DNN) training format, all available bits are used to
+indicate the sign and the exponent of the value, with only an
+implicit “leading one” for the mantissa. With exponent bits
+determining the range and the mantissa bits providing the
+accuracy, a delicate balance between the two is critical in
+optimizing a number representation for machine learning.
+In this paper, we present the Adaptive Floating Point
+(AFP) representation, a denser alternative to IEEE FP32
+or BFloat16 for storing ML data. AFP encapsulates floating
+point (FP) values into blocks of FP values along with characterization data that describe the block of numbers. AFP uses
+this block information to increase performance and reduce
+memory requirement while maintaining high accuracy.
+AFP is designed to be effective in large-scale deep learning
+models. We use a collection of pre-trained benchmark models to analyze empirically the distribution of values obtained
+during inference, showing that 99% of values can be covered
+with AFP. In addition, previous compact representations for
+ML (Darvish Rouhani et al., 2020; Sa et al., 2018; Zhang
+et al., 2022) may require subsets of the calculations (e.g.,
+certain layers) to be computed using high precision. Such a
+protocol may cause significant inefficiencies due to its data
+conversion and data transfer requirements. In contrast, AFP
+provides end-to-end application coverage by enabling all
+ML FP computations to utilize AFP.
+Our paper’s contributions include:
+• We propose Adaptive Floating Point, a novel numerical
+datatype for use with all ML floating point data, as an
+alternative to IEEE-754 FP32 and Bfloat16 with higher
+memory and compute density. The key elements which
+provide higher density are:
+– Auto Focus feature, where a shared exponent and
+private offsets combine to automatically provide
+maximum available precision to 99% of all ML
+data.
+– Shared block-level characterization information
+to dynamically improve efficiency.
+• We build a simulation infrastructure in Tensorflow to
+accurately model the numerical effects of applying
+AFP to the weights and layer outputs of ML models.
+
+

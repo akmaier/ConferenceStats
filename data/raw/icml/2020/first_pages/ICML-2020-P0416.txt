@@ -1,0 +1,81 @@
+Improving Transformer Optimization Through Better Initialization
+
+Xiao Shi Huang * 1 2 Felipe Pérez * 1 Jimmy Ba 3 2 Maksims Volkovs 1
+
+Abstract
+The Transformer architecture has achieved considerable success recently; the key component
+of the Transformer is the attention layer that enables the model to focus on important regions
+within an input sequence. Gradient optimization
+with attention layers can be notoriously difficult
+requiring tricks such as learning rate warmup to
+prevent divergence. As Transformer models are
+becoming larger and more expensive to train, recent research has focused on understanding and
+improving optimization in these architectures. In
+this work our contributions are two-fold: we first
+investigate and empirically validate the source
+of optimization problems in the encoder-decoder
+Transformer architecture; we then propose a new
+weight initialization scheme with theoretical justification, that enables training without warmup or
+layer normalization. Empirical results on public
+machine translation benchmarks show that our
+approach achieves leading accuracy, allowing to
+train deep Transformer models with 200 layers
+in both encoder and decoder (over 1000 attention/MLP blocks) without difficulty. Code for
+this work is available here: https://github.
+com/layer6ai-labs/T-Fixup.
+
+1. Introduction
+The Transformer model proposed by Vaswani et al. (2017),
+has proven to be a versatile and effective architecture with
+broad applications in various fields of deep learning, including neural machine translation (Vaswani et al., 2017; Edunov
+et al., 2018), language modeling (Devlin et al., 2019; Yang
+et al., 2019; Lan et al., 2020; Beltagy et al., 2020), video captioning and summarization (Bilkhu et al., 2019; Fan et al.,
+2018; Chen et al., 2018a) and recommender systems (Chen
+*
+Equal contribution 1 Layer 6 AI, Toronto, ON, Canada
+University of Toronto, Toronto, ON, Canada 3 Vector Institute,
+Toronto, ON, Canada. Correspondence to: Xiao Shi Huang
+<gary@layer6.ai>, Felipe Pérez <felipe@layer6.ai>.
+2
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+et al., 2019; Sun et al., 2019). Despite the broad applications,
+optimization in the Transformer models can be notoriously
+difficult (Popel & Bojar, 2018). Most successful implementations require learning rate warmup, layer normalization,
+residual connections and large batch size for learning to
+work. Removing any of these components hampers optimization, and the model often fails to learn (Popel & Bojar,
+2018). Learning rate warmup is particularly puzzling. Unlike most deep learning architectures, where learning rate
+is initialized to a reasonably high value and then annealed
+as training progresses, Transformers instead require gradual
+learning rate warmup at the beginning of training. Starting
+with a high learning rate without warmup breaks optimization, while training with a small learning rate is prohibitively
+slow.
+As many leading Transformer architectures are large and
+require many GPU hours to train (Yang et al., 2019; Lan
+et al., 2020), recent research has focused on understanding
+and improving optimization in these models (Ahmed et al.,
+2017; Chen et al., 2018b; Nguyen & Salazar, 2019; Aji
+& Heafield, 2019; Liu et al., 2020). Chen et al. (2018b)
+found that layer normalization could be the source of the
+problem, and moving it off the main branch improves optimization. This finding was further supported by follow
+up work (Nguyen & Salazar, 2019; Wang et al., 2019). In
+parallel, Zhang et al. (2019b) showed that layer normalization can be fully removed in related ResNet models if
+appropriate weight initialization is used. Lastly, Liu et al.
+(2020) focused on the Adam optimizer, demonstrating that
+during early stages of optimization the inverse of the second
+moment is proportional to a divergent integral and can lead
+to unstable updates. Despite significant progress, there have
+been conflicting conclusions on learning rate warmup from
+previous work (Ma & Yarats, 2019; Liu et al., 2020).
+In this work, we aim to answer the question of why
+Transformer training can break down without learning rate
+warmup, and propose a solution. We first show that instability in the Adam optimizer, in part caused by gradient
+vanishing from layer normalization, causes optimization to
+break when warmup is not used. We then build on the work
+of Zhang et al. (2019b), and propose a weight initialization scheme for the Transformer that fully eliminates the
+need for layer normalization and warmup. By applying this
+weight initialization, we achieve highly competitive perfor-
+
+

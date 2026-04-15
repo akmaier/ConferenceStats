@@ -1,0 +1,67 @@
+PoWER-BERT: Accelerating BERT Inference via
+Progressive Word-vector Elimination
+
+Saurabh Goyal 1 Anamitra Roy Choudhury 1 Saurabh M. Raje 1 Venkatesan T. Chakaravarthy 1
+Yogish Sabharwal 1 Ashish Verma 2
+
+Abstract
+We develop a novel method, called PoWER-BERT,
+for improving the inference time of the popular BERT model, while maintaining the accuracy. It works by: a) exploiting redundancy
+pertaining to word-vectors (intermediate transformer block outputs) and eliminating the redundant vectors. b) determining which wordvectors to eliminate by developing a strategy for
+measuring their significance, based on the selfattention mechanism. c) learning how many
+word-vectors to eliminate by augmenting the
+BERT model and the loss function. Experiments
+on the standard GLUE benchmark shows that
+PoWER-BERT achieves up to 4.5x reduction in
+inference time over BERT with < 1% loss in
+accuracy. We show that PoWER-BERT offers
+significantly better trade-off between accuracy
+and inference time compared to prior methods.
+We demonstrate that our method attains up to
+6.8x reduction in inference time with < 1%
+loss in accuracy when applied over ALBERT, a
+highly compressed version of BERT. The code
+for PoWER-BERT is publicly available at https:
+//github.com/IBM/PoWER-BERT.
+
+1. Introduction
+The BERT model (Devlin et al., 2019) has gained popularity as an effective approach for natural language processing. It has achieved significant success on standard benchmarks such as GLUE (Wang et al., 2019a) and SQuAD
+(Rajpurkar et al., 2016), dealing with sentiment classification, question-answering, natural language inference and
+1
+
+IBM Research, New Delhi, India 2 IBM Research, Yorktown, New York, USA. Correspondence to: Saurabh Goyal
+<saurago1@in.ibm.com, saurabhiit2007@gmail.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+language acceptability tasks. The model has been used in
+applications ranging from text summarization (Liu & Lapata, 2019) to biomedical/insight text mining (Palakodety
+et al., 2020; Lee et al., 2019).
+The BERT model consists of an embedding layer, a chain
+of transformer blocks and an output layer. The input words
+are first embedded as vectors, which are then processed by
+the pipeline of transformer blocks and the final prediction
+is derived at the output layer (see Figure 1). The model
+is known to be compute intensive, resulting in high infrastructure demands and latency, whereas low latency is vital
+for a good customer experience. Therefore, it is crucial to
+design methods that reduce the computational demands of
+BERT in order to successfully meet the latency and resource
+requirements of a production environment.
+Consequently, recent studies have focused on optimizing
+two fundamental metrics: model size and inference time.
+The recently proposed ALBERT (Lan et al., 2019) achieves
+significant compression over BERT by sharing parameters
+across the transformer blocks and decomposing the embedding layer. However, there is almost no impact on the inference time, since the amount of computation remains the
+same during inference (even though training is faster).
+Other studies have aimed for optimizing both the metrics simultaneously. Here, a natural strategy is to reduce the number of transformer blocks and the idea has
+been employed by DistilBERT (Sanh et al., 2019b) and
+BERT-PKD (Sun et al., 2019b) within the knowledge distillation paradigm. An alternative approach is to shrink the individual transformer blocks. Each transformer block comprises of multiple self-attention heads and the Head-Prune
+strategy (Michel et al., 2019b) removes a fraction of the
+heads by measuring their significance. In order to achieve
+considerable reduction in the two metrics, commensurate
+number of transformer blocks/heads have to be pruned, and
+the process leads to noticeable loss in accuracy. The above
+approaches operate by removing the redundant model parameters using strategies such as parameter sharing and
+transformer block/attention-head removal.
+
+

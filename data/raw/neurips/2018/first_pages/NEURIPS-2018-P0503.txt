@@ -1,0 +1,64 @@
+Faster Neural Networks Straight from JPEG
+
+Lionel Gueguen1
+1
+
+Uber
+
+2
+
+Alex Sergeev1
+
+Uber AI Labs
+
+Ben Kadlec1
+
+Rosanne Liu2
+
+Jason Yosinski2
+
+{lgueguen,asergeev,bkadlec,rosanne,yosinski}@uber.com
+
+Abstract
+The simple, elegant approach of training convolutional neural networks (CNNs)
+directly from RGB pixels has enjoyed overwhelming empirical success. But
+could more performance be squeezed out of networks by using different input
+representations? In this paper we propose and explore a simple idea: train CNNs
+directly on the blockwise discrete cosine transform (DCT) coefficients computed
+and available in the middle of the JPEG codec. Intuitively, when processing JPEG
+images using CNNs, it seems unnecessary to decompress a blockwise frequency
+representation to an expanded pixel representation, shuffle it from CPU to GPU,
+and then process it with a CNN that will learn something similar to a transform
+back to frequency representation in its first layers. Why not skip both steps and
+feed the frequency domain into the network directly? In this paper, we modify
+libjpeg to produce DCT coefficients directly, modify a ResNet-50 network to
+accommodate the differently sized and strided input, and evaluate performance
+on ImageNet. We find networks that are both faster and more accurate, as well as
+networks with about the same accuracy but 1.77x faster than ResNet-50.
+
+1
+
+Introduction
+
+The amazing progress toward training neural networks, particularly convolutional neural networks
+[14], to attain good performance on a variety of tasks [13, 19, 20, 10] has led to the widespread
+adoption of such models in both academia and industry. When CNNs are trained using image data as
+input, data is most often provided as an array of red-green-blue (RGB) pixels. Convolutional layers
+proceed to compute features starting from pixels, with early layers often learning Gabor filters and
+later layers learning higher level, more abstract features [13, 27].
+In this paper, we propose and explore a simple idea for accelerating neural network training and
+inference in the common scenario where networks are applied to images encoded in the JPEG format.
+In such scenarios, images would typically be decoded from a compressed format to an array of RGB
+pixels and then fed into a neural network. Here we propose and explore a more direct approach.
+First, we modify the libjpeg library to decode JPEG images only partially, resulting in an image
+representation consisting of a triple of tensors containing discrete cosine transform (DCT) coefficients
+in the YCbCr color space. Due to how the JPEG codec works, these tensors are at different spatial
+resolutions. We then design and train a network to operate directly from this representation; as one
+might suspect, this turns out to work reasonably well.
+Related Work When training and/or inference speed is critical, much work has focused on accelerating network computation by reducing the number of parameters or by using operations more
+computationally efficient on a graphics processing unit (GPU) [12, 3, 9]. Several works have employed spatial frequency decomposition and other compressed representations for image processing
+without using deep learning [22, 18, 8, 5, 7]. Other works have combined deep learning with compressed representations other than JPEG to promising effect [24, 1]. The most similar works to ours
+come from [6] and [25]. [6] train on DCT coefficients compressed not via the JPEG encoder but by a
+32nd Conference on Neural Information Processing Systems (NeurIPS 2018), Montréal, Canada.
+
+

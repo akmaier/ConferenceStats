@@ -1,0 +1,75 @@
+Scalable Marginal Likelihood Estimation for Model Selection in Deep Learning
+
+Alexander Immer 1 2 Matthias Bauer † 3 4 Vincent Fortuin 1 Gunnar Rätsch 1 2 Mohammad Emtiyaz Khan 5
+
+Abstract
+Marginal-likelihood based model-selection, even
+though promising, is rarely used in deep learning
+due to estimation difficulties. Instead, most approaches rely on validation data, which may not
+be readily available. In this work, we present a
+scalable marginal-likelihood estimation method
+to select both hyperparameters and network architectures, based on the training data alone. Some
+hyperparameters can be estimated online during
+training, simplifying the procedure. Our marginallikelihood estimate is based on Laplace’s method
+and Gauss-Newton approximations to the Hessian,
+and it outperforms cross-validation and manualtuning on standard regression and image classification datasets, especially in terms of calibration and out-of-distribution detection. Our work
+shows that marginal likelihoods can improve generalization and be useful when validation data is
+unavailable (e.g., in nonstationary settings).
+
+1. Introduction
+Bayesian deep learning has made great strides on approximate inference but little has been done regarding model
+selection. Bayesian predictive distributions have been used
+to improve calibration, detect out-of-distribution data, and
+sometimes even improve the accuracy (Osawa et al., 2019;
+Maddox et al., 2019). To that end, a wide variety of scalable
+approximate inference methods have been explored, including Laplace’s method (Ritter et al., 2018), variational approximations (Blundell et al., 2015; Khan et al., 2018), sampling methods (Wenzel et al., 2020), and ensembles (Lakshminarayanan et al., 2017). Still, there is not much work on
+model-selection, even though it was one of the original motivations for Bayesian neural networks (Buntine & Weigend,
+1991; MacKay, 1995; Neal, 1995).
+1
+Department of Computer Science, ETH Zurich, Switzerland
+Max Planck ETH Center for Learning Systems (CLS) 3 Max
+Planck Institute for Intelligent Systems, Germany 4 University
+of Cambridge, UK 5 RIKEN Center for Advanced Intelligence
+Project, Japan, † M.B. is now at DeepMind, UK. Correspondence
+to: Alexander Immer <alexander.immer@inf.ethz.ch>. Proceedings of the 38 th International Conference on Machine Learning,
+PMLR 139, 2021. Copyright 2021 by the author(s).
+2
+
+3 layers, 5221 params
+MargLik = −88
+
+1 layer, 151 params
+MargLik = −110
+
+Figure 1: A deeper 3-layer network (left) has a better
+marginal likelihood compared to a 1-layer network (right).
+This agrees with the fit where the deeper network appears to
+explain the ‘sinusoidal’ trend better. We optimize the prior
+and noise variance on marginal likelihood estimates during
+training (see Alg. 1 and Sec. 4.1 for details).
+Bayesian model-selection uses the marginal likelihood—the
+normalizing constant of the posterior distribution—which
+can be estimated solely from training data and without any
+validation data. Also known as empirical Bayes (Robbins,
+1955) or type-II maximum likelihood learning (Rasmussen
+& Williams, 2006), it is closely related to Occam’s razor
+(Jefferys & Berger, 1992; Rasmussen & Ghahramani, 2001;
+MacKay, 2003). It can also be seen as a form of crossvalidation based on the training data (Fong & Holmes,
+2020), and it is commonly used in Gaussian processes (GPs)
+and Deep GPs to select hyperparameters (Rasmussen &
+Williams, 2006; Damianou & Lawrence, 2013) or even learn
+invariances from data (van der Wilk et al., 2018; Dutordoir
+et al., 2020). However, it is rarely used in deep learning
+because it is challenging to estimate (Llorente et al., 2020).
+The marginal likelihood is intractable for even mediumsized neural-network models, and most Bayesian deep learning approaches simply use validation data (Khan et al., 2018;
+Zhang et al., 2018; Osawa et al., 2019). Originally, MacKay
+(1995) advocated the use of Laplace’s method for smallscale neural networks. This requires Hessian computations
+and does not scale to large problems. Recently, Khan et al.
+(2019) showed promising results for small-scale regression
+using a GP viewpoint of deep networks, and Lyle et al.
+(2020) used infinite-width neural networks (also GPs).
+The goal of this paper is to provide a scalable and online
+version of MacKay’s original proposal, and apply it to modern, larger models used in deep learning. We propose a
+scalable Laplace’s method to approximate the marginal like-
+
+

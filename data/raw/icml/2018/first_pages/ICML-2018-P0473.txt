@@ -1,0 +1,75 @@
+Adafactor: Adaptive Learning Rates with Sublinear Memory Cost
+
+Noam Shazeer 1 Mitchell Stern 1 2
+
+Abstract
+In several recently proposed stochastic optimization methods (e.g. RMSProp, Adam, Adadelta),
+parameter updates are scaled by the inverse
+square roots of exponential moving averages of
+squared past gradients. Maintaining these perparameter second-moment estimators requires
+memory equal to the number of parameters. For
+the case of neural network weight matrices, we
+propose maintaining only the per-row and percolumn sums of these moving averages, and estimating the per-parameter second moments based
+on these sums. We demonstrate empirically that
+this method produces similar results to the baseline. Secondly, we show that adaptive methods
+can produce larger-than-desired updates when the
+decay rate of the second moment accumulator is
+too slow. We propose update clipping and a gradually increasing decay rate scheme as remedies.
+Combining these methods and dropping momentum, we achieve comparable results to the published Adam regime in training the Transformer
+model on the WMT 2014 English-German machine translation task, while using very little auxiliary storage in the optimizer. Finally, we propose
+scaling the parameter updates based on the scale
+of the parameters themselves.
+
+1. Introduction and Background
+Gradient-based optimization forms the backbone of most
+modern approaches used to train deep neural networks.
+One of the simplest methods is stochastic gradient descent
+(SGD), wherein steps are taken along the direction of the
+negative gradient of the loss function evaluated on a minibatch. Building on this foundation, a variety of adaptive
+gradient-based methods have been proposed in which the
+gradient is divided by the componentwise square root of a
+1
+
+Google Brain, Mountain View, California, USA 2 University of
+California, Berkeley, California, USA. Correspondence to: Noam
+Shazeer <noam@google.com>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+vector summarizing the history of squared gradients, usually
+obtained through summation as in Adagrad (Duchi et al.,
+2011) or exponential averaging as in RMSProp (Tieleman &
+Hinton, 2012), Adam (Kingma & Ba, 2015), and Adadelta
+(Zeiler, 2012). On convex problems, several of these methods offer theoretical advantages over SGD when gradients
+are sparse. While convergence guarantees have not yet been
+provided in the dense, non-convex setting in which most
+neural network training takes place, practitioners have nevertheless found these methods to empirically outperform
+SGD across a variety of domains.
+The superior performance of these methods does come at a
+cost. Recent improvements in the computational capacity
+needed to train neural networks with larger numbers of parameters have far outstripped improvements in the memory
+capacity required to store those parameters during training.
+This has led to memory usage becoming an important constraint on model size. Adaptive optimization algorithms
+exacerbate this problem by requiring additional memory for
+extra accumulators, such as those required for momentum
+and per-coordinate gradient scaling. For example, Adam
+(Kingma & Ba, 2015) keeps two additional values for each
+parameter, tripling the memory requirements.
+We propose a way to reduce memory usage while retaining
+the empirical benefits of adaptivity by maintaining a factored representation of the squared gradient accumulator
+across training steps. Specifically, by tracking moving averages of the row and column sums of the squared gradients
+for matrix-valued variables, we are able to reconstruct a
+low-rank approximation of the exponentially smoothed accumulator at each training step that is optimal with respect to
+the generalized Kullback-Leibler divergence. For an n × m
+matrix, this reduces the memory requirements from O(nm)
+to O(n + m). We demonstrate empirically using Adam on a
+large-scale machine translation task known for its expensive
+models that our approach achieves comparable performance
+to that obtained using full accumulators.
+Beyond this, we also investigate another issue related to
+Adam of recent interest. To further reduce memory requirements, we would like to run Adam without momentum,
+eliminating an additional auxiliary value per model parameter. But without making any other changes, eliminating
+momentum can cause training instability. We identify out-
+
+

@@ -1,0 +1,83 @@
+NeRF-VAE: A Geometry Aware 3D Scene Generative Model
+
+Adam R. Kosiorek * 1 Heiko Strathmann * 1 Daniel Zoran 1 Pol Moreno 1 Rosalia Schneider 1 Soňa Mokrá 1
+Danilo J. Rezende 1
+
+Abstract
+We propose NeRF - VAE, a 3D scene generative
+model that incorporates geometric structure via
+Neural Radiance Fields (NeRF) and differentiable
+volume rendering. In contrast to NeRF, our model
+takes into account shared structure across scenes,
+and is able to infer the structure of a novel scene—
+without the need to re-train—using amortized inference. NeRF - VAE’s explicit 3D rendering process further contrasts previous generative models
+with convolution-based rendering which lacks geometric structure. Our model is a VAE that learns
+a distribution over radiance fields by conditioning them on a latent scene representation. We
+show that, once trained, NeRF - VAE is able to infer and render geometrically-consistent scenes
+from previously unseen 3D environments of synthetic scenes using very few input images. We
+further demonstrate that NeRF - VAE generalizes
+well to out-of-distribution cameras, while convolutional models do not. Finally, we introduce and
+study an attention-based conditioning mechanism
+of NeRF - VAE’s decoder, which improves model
+performance.
+
+1
+
+Introduction
+
+The ability to infer the structure of scenes from visual inputs,
+and to render high quality images from different viewpoints,
+has vast implications for computer graphics and virtual reality.
+This problem has traditionally been tackled with 3D
+reconstruction-based on matching visual keypoints, e. g.
+Lowe (2004); Schönberger & Frahm (2016). While these
+methods incorporate structure through multi-view geometry
+(Hartley & Zisserman, 2003), very few existing methods
+adopt learned scene-priors such as types of objects or statis*
+1
+Equal contribution
+DeepMind, London.
+Correspondence to:
+ARK <adamrk@deepmind.com>, HS
+<strathmann@deepmind.com>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+tics of the background. The resulting representations are
+usually discrete: they consist of meshes (Dai et al., 2017),
+point clouds (Engel et al., 2014), or discretized volumes
+(Ulusoy et al., 2016), and are difficult to integrate with
+neural networks. An alternative approach to scene generation uses light-field rendering (Levoy & Hanrahan, 1996;
+Srinivasan et al., 2017) and multiplane image representations (Zhou et al., 2018; Mildenhall et al., 2019). While
+these methods allow image-based rendering, they do not
+estimate scene geometry. Hence, they are not directly useful
+for the purpose of 3D scene understanding. More recent
+deep-learning-based novel view synthesis methods have the
+advantages of end-to-end training, and producing distributed
+representations that can be easily used in other neural-netbased downstream tasks. These models, however, often have
+little embedded geometrical knowledge (Dosovitskiy et al.,
+2014) and are either geometrically inconsistent (NguyenPhuoc et al., 2020) or provide insufficient visual quality
+(Tatarchenko et al., 2015). Moreover, many of these methods are deterministic and cannot manage uncertainty in the
+inputs (Sitzmann et al., 2019; Trevithick & Yang, 2021).
+This work attempts to address these shortcomings. We
+introduce NeRF - VAE—a deep generative model with the
+knowledge of 3D geometry as well as complex scene priors.
+Our work builds on Neural Radiance Fields (NeRF, Mildenhall et al. (2020)). NeRF combines implicit neural network
+representations of radiance fields, or scene functions, with
+a volumetric rendering process. NeRF needs to undergo a
+lengthy optimization process on many views of each single
+scene separately and does not generalize to novel scenes.
+In contrast, NeRF - VAE—a variational auto-encoder (VAE)—
+models multiple scenes, while its constant-time amortized
+inference allows reasoning about novel scenes. Unlike NeRF,
+our model is also generative, and therefore capable of handling missing data and imagining completely new scenes. In
+that, our work closely follows Generative Query Networks
+(GQN, Eslami et al. (2018)). Like GQN, NeRF - VAE defines
+a distribution over scene functions. Once sampled, a scene
+function allows rendering arbitrary views of the underlying
+scene. Where GQN relies on convolutional neural networks
+(CNNs) with no knowledge of 3D geometry, leading to geometrical inconsistencies, NeRF - VAE achieves consistency by
+leveraging NeRF’s implicit representations and volumetric
+
+

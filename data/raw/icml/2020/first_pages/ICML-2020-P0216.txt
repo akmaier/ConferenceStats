@@ -1,0 +1,102 @@
+The Usual Suspects?
+Reassessing Blame for VAE Posterior Collapse
+
+Bin Dai 1 Ziyu Wang 2 David Wipf 3
+
+Abstract
+In narrow asymptotic settings Gaussian VAE models of continuous data have been shown to possess
+global optima aligned with ground-truth distributions. Even so, it is well known that poor solutions
+whereby the latent posterior collapses to an uninformative prior are sometimes obtained in practice. However, contrary to conventional wisdom
+that largely assigns blame for this phenomena on
+the undue influence of KL-divergence regularization, we will argue that posterior collapse is, at
+least in part, a direct consequence of bad local
+minima inherent to the loss surface of deep autoencoder networks. In particular, we prove that
+even small nonlinear perturbations of affine VAE
+decoder models can produce such minima, and in
+deeper models, analogous minima can force the
+VAE to behave like an aggressive truncation operator, provably discarding information along all latent dimensions in certain circumstances. Regardless, the underlying message here is not meant to
+undercut valuable existing explanations of posterior collapse, but rather, to refine the discussion and
+elucidate alternative risk factors that may have
+been previously underappreciated.
+
+1. Introduction
+The variational autoencoder (VAE) (Kingma & Welling,
+2014; Rezende et al., 2014) represents a powerful generative
+model of data points that are assumed to possess some
+complex yet unknown latent structure. This assumption
+is
+R instantiated via the marginalized distribution pθ (x) =
+pθ (x|z)p(z)dz, which forms the basis of prevailing VAE
+models. Here z ∈ Rκ is a collection of unobservable latent
+factors of variation that, when drawn from the prior p(z), are
+colloquially said to generate an observed data point x ∈ Rd
+1
+Samsung Research China-Beijing 2 Tsinghua University
+AWS Shanghai AI Lab.
+Correspondence to: Bin Dai
+<bin2.dai@samsung.com>, Ziyu Wang <wzy196@gmail.com>,
+David Wipf <davidwipf@gmail.com>.
+3
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+through the conditional distribution pθ (x|z). The latter is
+controlled by parameters θ that can, at least conceptually
+speaking, be optimized by maximum likelihood over pθ (x)
+given available training examples.
+In particular, assuming n observable points X =
+[x(1) , . . . , x(n) ], maximum likelihood estimation is tantamount P
+to minimizing
+the 
+negative log-likelihood expres
+sion n1 i − log pθ x(i) . Proceeding further, because
+computing pθ (x) generally entails the intractable marginalization over z, the VAE instead minimizes a convenient
+variational upper bound given by
+n 
+h
+
+i
+X
+− Eqφ (z |x(i) ) log pθ x(i) |z
+(1)
+L(θ, φ) , n1
+i=1
+n
+h
+i
+h 
+i
+X
++ KL qφ (z|x(i) ||p(z)
+− log pθ x(i) ,
+≥ n1
+i=1
+
+with equality iff qφ (z|x(i) ) = pθ (z|x(i) ) for all i. The
+additional parameters φ govern the shape of the variational
+distribution qφ (z|x) that is designed to approximate the true
+but often intractable latent posterior pθ (z|x).
+The VAE energy from (1) is composed of two terms, a
+data-fitting loss that borrows the basic structure of an autoencoder (AE), and a KL-divergence-based regularization
+factor. The former incentivizes assigning high probability
+to latent codes z that facilitate accurate reconstructions of
+each x(i) . In fact, if qφ (z|x) is a Dirac delta function, this
+term is exactly equivalent to a deterministic AE with data
+reconstruction loss defined by − log pθ (x|z). Overall, it
+is because of this association that qφ (z|x) is generally referred to as the encoder distribution, while pθ (x|z) denotes
+the decoder distribution. Additionally, the KL regularizer
+KL [qφ (z|x)||p(z)] pushes the encoder distribution towards
+the prior without violating the variational bound.
+For continuous data, which will be our primary focus herein,
+it is typical to assume that
+p(z) = N (z|0, I),
+pθ (x|z) = N (x|µx , γI),
+qφ (z|x) = N (z|µz , Σz ),
+
+(2)
+
+where γ > 0 is a scalar variance parameter, while the
+Gaussian moments µx ≡ µx (z; θ), µz ≡ µz (x; φ), and
+
+

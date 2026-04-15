@@ -1,0 +1,83 @@
+Dataset Condensation with Differentiable Siamese Augmentation
+
+Bo Zhao 1 Hakan Bilen 1
+
+Abstract
+In many machine learning problems, large-scale
+datasets have become the de-facto standard to
+train state-of-the-art deep networks at the price
+of heavy computation load. In this paper, we
+focus on condensing large training sets into significantly smaller synthetic sets which can be used
+to train deep neural networks from scratch with
+minimum drop in performance. Inspired from
+the recent training set synthesis methods, we propose Differentiable Siamese Augmentation that
+enables effective use of data augmentation to synthesize more informative synthetic images and
+thus achieves better performance when training
+networks with augmentations. Experiments on
+multiple image classification benchmarks demonstrate that the proposed method obtains substantial gains over the state-of-the-art, 7% improvements on CIFAR10 and CIFAR100 datasets. We
+show with only less than 1% data that our method
+achieves 99.6%, 94.9%, 88.5%, 71.5% relative
+performance on MNIST, FashionMNIST, SVHN,
+CIFAR10 respectively. We also explore the use
+of our method in continual learning and neural
+architecture search, and show promising results.
+
+1. Introduction
+Deep neural networks have become the go-to technique in
+several fields including computer vision, natural language
+processing and speech recognition thanks to the recent developments in deep learning (Krizhevsky et al., 2012; Simonyan & Zisserman, 2014; Szegedy et al., 2015; He et al.,
+2016) and presence of large-scale datasets (Deng et al.,
+2009; Lin et al., 2014; Antol et al., 2015; Abu-El-Haija et al.,
+2016). However, their success comes at a price, increasing
+computational expense, as the state-of-the-art models have
+been primarily fueled by larger models (e.g. (Devlin et al.,
+2018; Radford et al., 2019; Dosovitskiy et al., 2021) and
+1
+School of Informatics, The University of Edinburgh, UK.
+Correspondence to: Bo Zhao <bo.zhao@ed.ac.uk>, Hakan Bilen
+<hbilen@ed.ac.uk>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+massive datasets (e.g. (Kuznetsova et al., 2020; Chen et al.,
+2020a; Kwiatkowski et al., 2019)). For example, it takes
+12.3k TPU days to train EfficientNet-L2 (Xie et al., 2020) on
+JFT-300M dataset (Sun et al., 2017). To put in a perspective,
+the energy consumption for training EfficientNet-L2 once
+is about 3 × 107 J, assuming that the TPU training power
+is 100W. Ideally, the same energy is sufficient to launch a
+30 kg object to the outer space, i.e. reaching Kármán line
+which costs gravitational potential energy 106 J/kg. More
+dramatically, the computational cost significantly increases
+when better neural architectures are searched and designed
+due to many trials of training and validation on the dataset
+for different hyper-parameters (Bergstra & Bengio, 2012;
+Elsken et al., 2019). Significantly decreasing these costs
+without degrading the performance of the trained models is
+one of the long-standing goals in machine learning (Agarwal
+et al., 2004). To address these challenges, this paper focuses
+on reducing the training data size by learning significantly
+smaller synthetic data to train deep neural networks with
+minimum drop in their performance.
+The standard way to reduce the training set size is to use
+a smaller but equally informative portion of data, namely
+a coreset. In literature, there is a large body of coreset
+selection methods for various target tasks, e.g. accelerating model training in neural architecture search (Shleifer &
+Prokop, 2019; Such et al., 2020), storing previous knowledge compactly in continual learning (Rebuffi et al., 2017;
+Toneva et al., 2019) and efficient selection of samples to
+label in active learning (Sener & Savarese, 2018). However, their selection procedures rely on heuristics and thus
+do not guarantee any optimal solution for the downstream
+tasks (e.g. image classification). In addition, finding such
+an informative coreset may not always be possible when the
+information in the dataset is not concentrated in few samples
+but uniformly distributed over all of them.
+Motivated by these shortcomings, a recent research direction, training set synthesis aims at generating a small training set which is further used to train deep neural networks
+for the downstream task (Wang et al., 2018; Sucholutsky
+& Schonlau, 2019; Bohdal et al., 2020; Such et al., 2020;
+Nguyen et al., 2021; Zhao et al., 2021). In particular, Dataset
+Distillation (DD) (Wang et al., 2018) models the network
+parameters as a function of synthetic training data, and
+then minimize the training loss on the real training data
+
+

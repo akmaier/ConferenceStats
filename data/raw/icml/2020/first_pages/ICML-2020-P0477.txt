@@ -1,0 +1,69 @@
+Non-autoregressive Machine Translation with Disentangled Context
+Transformer
+Jungo Kasai 1 James Cross 2 Marjan Ghazvininejad 2 Jiatao Gu 2
+
+Abstract
+State-of-the-art neural machine translation models generate a translation from left to right and
+every step is conditioned on the previously generated tokens. The sequential nature of this
+generation process causes fundamental latency
+in inference since we cannot generate multiple
+tokens in each sentence in parallel. We propose an attention-masking based model, called
+Disentangled Context (DisCo) transformer, that
+simultaneously generates all tokens given different contexts. The DisCo transformer is trained
+to predict every output token given an arbitrary
+subset of the other reference tokens. We also develop the parallel easy-first inference algorithm,
+which iteratively refines every token in parallel
+and reduces the number of required iterations.
+Our extensive experiments on 7 translation directions with varying data sizes demonstrate that
+our model achieves competitive, if not better, performance compared to the state of the art in nonautoregressive machine translation while significantly reducing decoding time on average. Our
+code is available at https://github.com/
+facebookresearch/DisCo.
+
+1. Introduction
+State-of-the-art neural machine translation systems use autoregressive decoding where words are predicted one-byone conditioned on all previous words (Bahdanau et al.,
+2015; Vaswani et al., 2017). Non-autoregressive machine
+translation (NAT, Gu et al., 2018), on the other hand, generates all words in one shot and speeds up decoding at the
+expense of performance drop. Parallel decoding results in
+1
+
+Paul G. Allen School of Computer Science & Engineering, University of Washington. Work done at Facebook
+AI. 2 Facebook AI. Correspondence to: Jungo Kasai <jkasai@cs.washington.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+conditional independence and prevents the model from properly capturing the highly multimodal distribution of target
+translations (Gu et al., 2018). One way to remedy this fundamental problem is to refine model output iteratively (Lee
+et al., 2018; Ghazvininejad et al., 2019). This work pursues
+this iterative approach to non-autoregressive translation.1
+In this work, we propose a transformer-based architecture
+with attention masking, which we call Disentangled Context
+(DisCo) transformer, and use it for non-autoregressive decoding. Specifically, our DisCo transformer predicts every
+word in a sentence conditioned on an arbitrary subset of
+the rest of the words. Unlike the masked language models
+(Devlin et al., 2019; Ghazvininejad et al., 2019) where the
+model only predicts the masked words, the DisCo transformer can predict all words simultaneously, leading to
+faster inference as well as a substantial performance gain
+when training data are relatively large.
+We also introduce a new inference algorithm for iterative
+parallel decoding, parallel easy-first, where each word is
+predicted by attending to the words that the model is more
+confident about. This decoding algorithm allows for predicting all tokens with different contexts in each iteration and
+terminates when the output prediction converges, contrasting with the constant number of iterations (Ghazvininejad
+et al., 2019). Indeed, we will show in a later section that
+this method substantially reduces the number of required
+iterations without loss in performance.
+Our extensive empirical evaluations on 7 translation directions from standard WMT benchmarks show that our approach achieves competitive performance to state-of-the-art
+non-autoregressive and autoregressive machine translation
+while significantly reducing decoding time on average.
+
+2. DisCo Transformer
+We introduce our DisCo transformer for non-autoregressive
+translation (Fig. 1). We propose a DisCo objective as an efficient alternative to masked language modeling and design
+an architecture that computes the objective in a single pass.
+1
+
+Refinement requires several sequential steps, but we abuse
+the term non-autoregressive generation to mean a broad family of
+methods that generate the target in parallel for simplicity.
+
+

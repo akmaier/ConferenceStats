@@ -1,0 +1,83 @@
+Polynomial Tensor Sketch for Element-wise Function of Low-Rank Matrix
+
+Insu Han 1 Haim Avron 2 Jinwoo Shin 3 1
+
+Abstract
+This paper studies how to sketch element-wise
+functions of low-rank matrices. Formally, given
+low-rank matrix A = [Aij ] and scalar non-linear
+function f , we aim for finding an approximated
+low-rank representation of the (possibly highrank) matrix [f (Aij )]. To this end, we propose an
+efficient sketching-based algorithm whose complexity is significantly lower than the number of
+entries of A, i.e., it runs without accessing all
+entries of [f (Aij )] explicitly. The main idea underlying our method is to combine a polynomial
+approximation of f with the existing tensor sketch
+scheme for approximating monomials of entries
+of A. To balance the errors of the two approximation components in an optimal manner, we
+propose a novel regression formula to find polynomial coefficients given A and f . In particular, we utilize a coreset-based regression with a
+rigorous approximation guarantee. Finally, we
+demonstrate the applicability and superiority of
+the proposed scheme under various machine learning tasks.
+
+1. Introduction
+Given a low-rank matrix A = [Aij ] ∈ Rn×n with A =
+U V > for some matrices U, V ∈ Rn×d with d  n and a
+scalar non-linear function f : R → R, we are interested in
+the following element-wise matrix function:∗
+f (A) ∈ Rn×n ,
+
+where f (A)ij := [f (Aij )] .
+
+Our goal is to design a fast algorithm for computing talland-thin matrices TU , TV in time o(n2 )such that f (A) ≈
+TU TV> . In particular, our algorithm should run without
+computing all entries of A or f (A) explicitly. As an
+1
+School of Electrical Engineering, KAIST, Daejeon, Korea
+School of Mathematical Sciences, Tel Aviv University, Israel
+3
+Graduate School of AI, KAIST, Daejeon, Korea. Correspondence
+to: Jinwoo Shin <jinwoos@kaist.ac.kr>.
+2
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+side, we obtain a o(n2 )-time approximation scheme of
+f (A)x ≈ TU TV> x for an arbitrary vector x ∈ Rn due
+to the associative property of matrix multiplication, where
+the exact computation of f (A)x requires the complexity
+of Θ(n2 ).
+The matrix-vector multiplication f (A)x or the low-rank
+decomposition f (A) ≈ TU TV> is useful in many machine
+learning algorithms. For example, the Gram matrices of
+certain kernel functions, e.g., polynomial and radial basis
+function (RBF), are element-wise matrix functions where
+the rank is the dimension of the underlying data. Such
+matrices are the cornerstone of so-called kernel methods
+and the ability to multiply the Gram matrix to a vector
+suffices for most kernel learning. The Sinkhorn-Knopp
+algorithm is a powerful, yet simple, tool for computing
+optimal transport distances (Cuturi, 2013; Altschuler et al.,
+2017) and also involves the matrix-vector multiplication
+f (A)x with f (x) = exp(x). Finally, f (U V > ) can also
+describe the non-linear computation of activation in a layer
+of deep neural networks (Goodfellow et al., 2016), where U ,
+V and f correspond to input, weight and activation function
+(e.g., sigmoid or ReLU) of the previous layer, respectively.
+Unlike the element-wise matrix function f (A), a traditional matrix function f (A) is defined on their eigenvalues (Higham, 2008) and possesses clean algebraic properties, i.e., it preserves eigenvectors. For example, given
+a diagonalizable matrix A = P DP −1 , it is defined that
+f (A) = P f (D)P −1 . A classical problem addressed
+in the literature is of approximating the trace of f (A) (or
+f (A)x) efficiently (Han et al., 2017; Ubaru et al., 2017).
+However, these methods are not applicable to our problem because element-wise matrix functions are fundamentally different from the traditional function of matrices,
+e.g., they do not guarantee the spectral property. We are
+unaware of any approximation algorithm that targets general element-wise matrix functions. The special case of
+element-wise kernel functions such as f (x) = exp(x) and
+f (x) = xk , as been address in the literature, e.g., using random Fourier features (RFF) (Rahimi & Recht, 2008; Pennington et al., 2015), Nyström method (Williams & Seeger,
+2001), sparse greedy approximation (Smola & Schökopf,
+∗
+In this paper, we primarily focus on the square matrix A for
+simplicity, but it is straightforward to extend our results to the case
+of non-square matrices.
+
+

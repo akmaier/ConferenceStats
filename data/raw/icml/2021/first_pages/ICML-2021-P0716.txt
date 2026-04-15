@@ -1,0 +1,81 @@
+Oblivious Sketching for Logistic Regression
+
+Alexander Munteanu 1 Simon Omlor 2 David P. Woodruff 3
+
+Abstract
+What guarantees are possible for solving logistic
+regression in one pass over a data stream? To
+answer this question, we present the first data
+oblivious sketch for logistic regression. Our
+sketch can be computed in input sparsity time
+over a turnstile data stream and reduces the
+size of a d-dimensional data set from n to only
+poly(µd log n) weighted points, where µ is a useful parameter which captures the complexity of
+compressing the data. Solving (weighted) logistic regression on the sketch gives an O(log n)approximation to the original problem on the full
+data set. We also show how to obtain an O(1)approximation with slight modifications. Our
+sketches are fast, simple, easy to implement, and
+our experiments demonstrate their practicality.
+
+1. Introduction
+Sketches and coresets are arguably the most promising
+and widely used methods to facilitate the analysis of
+massive data with provable accuracy guarantees (Phillips,
+2017; Munteanu & Schwiegelshohn, 2018; Feldman, 2020).
+Sketching has become a standard tool in core research areas such as data streams (Muthukrishnan, 2005) and numerical linear algebra (Mahoney, 2011; Woodruff, 2014),
+and constantly paves its way into diverse areas including
+computational geometry (Braverman et al., 2019; Meintrup et al., 2019), computational statistics (Geppert et al.,
+2017; Munteanu, 2019), machine learning (Nelson, 2020)
+and artificial intelligence (van den Brand et al., 2020; Gajjar & Musco, 2020; Molina et al., 2018). Following the
+sketch-and-solve paradigm, we first apply a simple and fast
+1
+Authors listed in alphabetical order.
+Dortmund Data
+Science Center, Faculties of Statistics and Computer Science, TU Dortmund University, Dortmund, Germany 2 Faculty
+of Statistics, TU Dortmund University, Dortmund, Germany
+3
+Department of Computer Science, Carnegie Mellon University, Pittsburgh, PA, USA. Correspondence to: Alexander Munteanu <alexander.munteanu@tu-dortmund.de>, Simon Omlor <simon.omlor@tu-dortmund.de>, David Woodruff
+<dwoodruf@cs.cmu.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+dimensionality reduction technique to compress the data
+to a significantly smaller sketch of polylogarithmic size.
+In a second step we feed the sketch to a standard solver
+for the problem, that needs little or no modifications. The
+theoretically challenging part is to prove an approximation
+guarantee for the solution obtained from the sketch with
+respect to the original large data set.
+1.1. Related work
+Deficiencies of coreset constructions. Most works on logistic regression have studied coresets as a data reduction
+method. Those are small subsets of the data, often obtained by subsampling from a properly designed importance
+sampling distribution (Huggins et al., 2016; Tolochinsky &
+Feldman, 2018; Munteanu et al., 2018; Tukan et al., 2020;
+Samadian et al., 2020). Those results often rely on regularization as a means to obtain small coresets. This changes the
+sampling distribution such that they do not generally apply
+to the unregularized setting that we study. The above coreset
+constructions usually require random access to the data and
+are thus not directly suitable for streaming computations.
+Even where row-order processing is permissible, at least two
+passes are required, one for calculating or approximating
+the probabilities and another for subsampling and collecting
+the data, since the importance sampling distributions usually depend on the data. A widely cited general scheme for
+making static (or multi-pass) constructions streamable in
+one pass is the merge & reduce framework (Bentley & Saxe,
+1980). However, this comes at the cost of additional polylogarithmic overhead in the space requirements and also in
+the update time. The latter is a severe limitation when it
+comes to high velocity streams that occur for instance in
+large scale physical experiments such as the large hadron
+collider, where up to 100 GB/s need to be processed and
+data rates are anticipated to grow quickly to several TB/s in
+the near future (Rohr, 2018). While the amortized insertion
+time of merge & reduce is constant for some problems, in
+the worst case Θ(log n) repeated coreset constructions are
+necessary for the standard construction to propagate through
+the tree structure; see e.g. (Feldman et al., 2020). This poses
+a prohibitive bottleneck in high velocity applications. Any
+data that passes and cannot be processed in real time will be
+lost forever.
+Another limitation of coresets and the merge & reduce
+
+

@@ -1,0 +1,87 @@
+How to set AdamW’s weight decay as you scale model and dataset size
+
+Xi Wang 1 Laurence Aitchison 2
+
+Abstract
+
+from small-scale student projects to the largest LLM training runs. However, for this workflow to be effective, we
+need to understand how to transfer optimal hyperparameters from smaller-scale prototyping runs to the final, largest
+model and dataset. This is very well studied for the optimal
+learning rate as you scale up width and depth (e.g. Yang
+et al., 2022; Bordelon et al., 2024; Noci et al., 2024; Everett
+et al., 2024). However, the largest LLM pretraining runs (e.g.
+Zhang et al., 2022; Touvron et al., 2023a;b; Tow et al., 2023)
+use an optimizer with a weight decay term such as AdamW
+(Loshchilov & Hutter, 2018), and it is not understood how to
+scale the AdamW weight decay hyperparameter with model
+sizes, and how to scale hyperparameters as we scale dataset
+size. Here, we fix this gap, showing how the optimal weight
+decay transfers across model width and dataset size.
+
+The scaling of the optimal AdamW weight decay
+hyperparameter with model and dataset size is
+critical as we seek to build larger models, but is
+poorly understood. We show that weights learned
+by AdamW can be understood as an exponential
+moving average (EMA) of recent updates. This
+gives critical insights for how to set the weight decay in AdamW, and how the weight decay should
+scale with model and dataset size. In particular,
+the key hyperparameter for an exponential moving average is the EMA timescale. Intuitively, the
+EMA timescale can be understood as the number of recent iterations the EMA averages over.
+We find that the optimal timescale, measured in
+epochs, is roughly constant as we change model
+and dataset size. Moreover, given a learning rate,
+there is a one-to-one mapping from the EMA
+timescale to the weight decay hyperparameter.
+Thus, if the optimal EMA timescale is constant,
+that implies that as the dataset size increases, the
+optimal weight decay should fall and as the model
+size increases, the optimal weight decay should
+increase (if we follow the muP recommendation
+for scaling the learning rate). We validate these
+scaling rules on ResNet-18 and Vision Transformers trained on CIFAR-10 and ImageNet, and on
+NanoGPT pre-training on OpenWebText. Finally,
+we found that as training progresses, muP’s learning rate scaling breaks down for AdamW unless
+weight decay is scaled appropriately.
+
+To understand how to transfer weight decay across model
+and dataset sizes, we argue that AdamW should be understood as an Exponential Moving Average (EMA). Of course,
+both Adam and AdamW use EMAs to estimate the average
+gradient, mt , and average squared gradient, vt . That is not
+what we are talking about. Instead, we observe that in algorithms with decoupled weight decay (i.e. AdamW but not
+Adam), the weights themselves are an EMA of recent updates (see Sec. 3.1). The key hyperparameter in an EMA is
+the EMA timescale, which intuitively describes the number
+of previous iterations that the EMA averages over, which
+is given by τiter = 1/(ηλ) (Sec. 3.1). In fact, we prove and
+empirically verify that under a η-dependent initialization
+and a fully-scale invariant network, AdamW’s optimization
+trajectory is controlled solely by the timescale τiter for all
+combinations of learning rate η and weight decay coefficient
+λ (Sec. 3.2).
+Perhaps more importantly, the EMA perspective tells us
+how to set the weight decay parameter. Specifically, we
+can take into account the dataset and batch sizes to measure the timescale in epochs, i.e. τepoch = τiter /M , where
+M = N/B denotes the number of iterations per epoch in a
+training dataset of N samples under a batch size of B, which
+measures the fraction of the dataset that contributes to the
+current weights through the EMA. We empirically observed
+that the optimal τepoch is stable across model and dataset
+sizes, which, consequently provides a guideline for scaling weight decay. In particular, under a fixed learning rate
+schedule, as the dataset size N increases, we find that the
+
+1. Introduction
+A common machine learning workflow is to prototype by
+training many smaller models, then at the end do one final
+training run, with the largest possible model on the largest
+possible dataset. This workflow is used in many settings,
+1
+Johns Hopkins University, US 2 University of Bristol, UK.
+Correspondence to: Xi Wang <xidulu@gmail.com>.
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

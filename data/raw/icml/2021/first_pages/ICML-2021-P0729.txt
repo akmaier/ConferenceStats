@@ -1,0 +1,79 @@
+Bayesian Algorithm Execution: Estimating Computable Properties of
+Black-box Functions Using Mutual Information
+
+Willie Neiswanger 1 Ke Alexander Wang 1 Stefano Ermon 1
+
+Abstract
+In many real world problems, we want to infer
+some property of an expensive black-box function
+f , given a budget of T function evaluations. One
+example is budget constrained global optimization
+of f , for which Bayesian optimization is a popular
+method. Other properties of interest include local
+optima, level sets, integrals, or graph-structured
+information induced by f . Often, we can find an
+algorithm A to compute the desired property, but
+it may require far more than T queries to execute.
+Given such an A, and a prior distribution over f ,
+we refer to the problem of inferring the output of
+A using T evaluations as Bayesian Algorithm Execution (BAX). To tackle this problem, we present
+a procedure, I NFO BAX, that sequentially chooses
+queries that maximize mutual information with
+respect to the algorithm’s output. Applying this to
+Dijkstra’s algorithm, for instance, we infer shortest paths in synthetic and real-world graphs with
+black-box edge costs. Using evolution strategies,
+we yield variants of Bayesian optimization that
+target local, rather than global, optima. On these
+problems, I NFO BAX uses up to 500 times fewer
+queries to f than required by the original algorithm. Our method is closely connected to other
+Bayesian optimal experimental design procedures
+such as entropy search methods and optimal sensor placement using Gaussian processes.
+
+1. Introduction
+Many real-world problems can be described as inferring
+properties of an expensive black-box function f , subject
+to a computational budget of T function evaluations. This
+class of problems includes global optimization, commonly
+An extended version of this paper can be found on arXiv:
+https://arxiv.org/abs/2104.09460
+1
+
+Stanford University, Computer Science Department. Correspondence to: Willie Neiswanger <neiswanger@cs.stanford.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+tackled by Bayesian optimization methods (Shahriari et al.,
+2015; Frazier, 2018), but it also encompasses many additional problems. For example, in materials science, f (x)
+may measure the strength of a material with composition
+specified by x ∈ X , and the goal is to find the set of materials with strength above a threshold C, without ever evaluating more than T materials, due to the cost of such experiments (Zhong et al., 2020; Tran et al., 2021). Here, the
+property of interest is a set of points, the superlevel set of f .
+Often, there exist effective algorithms to compute our property of interest in the absence of a budget constraint. We
+call such a property a computable property of f , if it is the
+output of an algorithm A that makes a finite sequence of
+function evaluations during its execution. In the superlevel
+set example, A might simply evaluate f at each x ∈ X
+and output points with f (x) > C. Other examples include
+using numerical quadrature to find integrals of f (Davis &
+Rabinowitz, 2007), using Newton’s method to find roots
+of f (Madsen, 1973), using evolution strategies or finitedifference gradient descent to find local optima of f , and
+using Dijkstra’s algorithm to find the shortest path between
+nodes in a graph when the edge costs are given by f (Dijkstra et al., 1959). The property of interest in these examples
+take different forms, such as a single value, a set of vectors,
+or a sequence of edges in a graph. In each case, an algorithm for computing the property exists, but executing that
+algorithm on f may exceed our budget of T evaluations.
+In this paper, we address the general problem of estimating a
+computable property OA := OA (f ) of a black-box function
+f , under a budget constraint T , irrespective of the number
+of evaluations required by the algorithm A. To do this, we
+posit a probabilistic model for f , and use it to estimate OA
+given data gathered via function evaluations. Our goal is to
+make the best T evaluations to yield an accurate estimate.
+We refer to this problem as Bayesian algorithm execution, or
+BAX. Note that the probabilistic nature of BAX enables us
+to work with noisy function evaluations, e.g. yx ∼ f (x) +
+N (0, σ 2 ), even if A is only designed for noiseless settings.
+We develop an iterative procedure for BAX, called I N FO BAX, that sequentially evaluates the x ∈ X that maximizes the mutual information (MI) between f (x) and OA
+under our probabilistic model. Each iteration of our proce-
+
+

@@ -1,0 +1,78 @@
+BERT and PALs: Projected Attention Layers for
+Efficient Adaptation in Multi-Task Learning
+
+Asa Cooper Stickland 1 Iain Murray 1
+
+Abstract
+Multi-task learning shares information between
+related tasks, sometimes reducing the number
+of parameters required. State-of-the-art results
+across multiple natural language understanding
+tasks in the GLUE benchmark have previously
+used transfer from a single large task: unsupervised pre-training with BERT, where a separate
+BERT model was fine-tuned for each task. We
+explore multi-task approaches that share a single
+BERT model with a small number of additional
+task-specific parameters. Using new adaptation
+modules, PALs or ‘projected attention layers’,
+we match the performance of separately finetuned models on the GLUE benchmark with ≈7
+times fewer parameters, and obtain state-of-theart results on the Recognizing Textual Entailment
+dataset.
+
+1. Introduction
+This work explores how to adapt a single large base model
+to work with multiple tasks. In particular we focus on
+using deep neural networks, pre-trained on large amounts
+of English text, for multi-task learning on several natural
+language understanding (NLU) tasks.
+Some multi-task learning approaches consider learning a
+general-purpose model that shares all parameters across
+tasks (e.g., the NLP decathlon introduced by McCann et al.,
+2018). This setting requires all tasks to have the same input
+and output space, and the input indicates the task. Instead,
+we consider the setting where we share most parameters
+across all tasks, but have a small number of task-specific
+parameters which adapt the shared model.
+Sharing parameters, and thus a common representation, between tasks can sometimes lead to better generalization.
+1
+School of Informatics, University of Edinburgh. Correspondence to: Asa Cooper Stickland <a.cooper.stickland@ed.ac.uk>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+However, fine-tuning separate models for each task often
+works better in practice. Although we are interested in
+multi-task methods that give results close to (or better than)
+state-of-the-art, there are separate motivations for maintaining shared parameters between tasks:
+• On applications like mobile devices we may have constraints on battery life. Applying several different neural networks to the same input costs energy. If only the
+‘tops’ of our models are task-specific, we can apply a
+shared transformation only once to the input, and use
+this transformed representation multiple times, as input
+to each task-specific function.
+• Again on mobile devices, running several different
+neural networks for various tasks can incur a computational and energy overhead due to swapping parameters
+on a dedicated integrated circuit (Rebuffi et al., 2018).
+• An application with a large number of tasks may have
+constraints on the number of parameters that can be
+stored. For example, web-scale applications may need
+to avoid storing a separate large model for every user.
+Given a large number of shared parameters in a base model,
+and a small number of task-specific parameters, our key
+questions are: where should we be transforming the base
+model? What form should these transformations take? We
+assume the task is always known, so the model can always
+choose the correct adaptation parameters and output space.
+We experiment on a set of eight NLU tasks from the GLUE
+benchmark (Wang et al., 2018a), which include question
+answering, sentiment analysis, and textual entailment. The
+number of training examples varies widely across the tasks,
+so we explore how to schedule training to not unduly favor
+the well-resourced tasks, or overfit the low-resource tasks.
+We use the BERT model (Bidirectional Encoder Representations from Transformers, Devlin et al., 2018) as our base
+pre-trained model. Pre-trained BERT representations can
+be fine-tuned with just one additional output layer to create
+state-of-the-art models for a wide range of tasks, including
+the GLUE benchmark. However, the entire model is finetuned, meaning we need a separate model for each task. The
+
+

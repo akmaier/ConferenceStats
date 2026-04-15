@@ -1,0 +1,94 @@
+Training Well-Generalizing Classifiers for Fairness Metrics and Other
+Data-Dependent Constraints
+
+Andrew Cotter 1 Maya Gupta 1 Heinrich Jiang 1 Nathan Srebro 2 Karthik Sridharan 3 Serena Wang 1
+Blake Woodworth 2 Seungil You 4
+
+Abstract
+Classifiers can be trained with data-dependent
+constraints to satisfy fairness goals, reduce churn,
+achieve a targeted false positive rate, or other policy goals. We study the generalization performance for such constrained optimization problems, in terms of how well the constraints are
+satisfied at evaluation time, given that they are satisfied at training time. To improve generalization,
+we frame the problem as a two-player game where
+one player optimizes the model parameters on a
+training dataset, and the other player enforces the
+constraints on an independent validation dataset.
+We build on recent work in two-player constrained
+optimization to show that if one uses this twodataset approach, then constraint generalization
+can be significantly improved. As we illustrate
+experimentally, this approach works not only in
+theory, but also in practice.
+
+1. Introduction
+It is useful to train classifiers with data-dependent constraints in order to achieve certain guarantees on the training
+set, such as statistical parity or other fairness guarantees,
+specified recall, or a desired positive classification rate (e.g.
+Scott & Nowak, 2005; Zafar et al., 2015; Goh et al., 2016;
+Woodworth et al., 2017; Narasimhan, 2018)). However, a
+key question is whether the achieved constraints will generalize. For example: will a classifier trained to produce
+80% statistical parity on training examples still achieve 80%
+statistical parity at evaluation time?
+Unfortunately, the answer is “not quite.” Because such
+1
+
+Google AI, Mountain View, CA, USA 2 Toyota Technological Institute at Chicago, Chicago, IL, USA 3 Cornell University,
+Computer Science Department, Ithaca, NY, USA 4 Kakao Mobility, Seongnam-si, Geyonggi-do, South Korea. Correspondence to:
+Andrew Cotter <acotter@google.com>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+constraints are data-dependent, overfitting can occur, and
+constraints that were satisfied on the training set should be
+expected to be slightly violated on an i.i.d. test set. This
+is particularly problematic in the context of fairness constraints, which will typically be chosen based on real-world
+requirements (e.g. the 80% rule of some US laws (Biddle,
+2005; Vuolo & Levy, 2013; Zafar et al., 2015; Hardt et al.,
+2016)). In this paper, we investigate how well constraints
+generalize, and propose algorithms to improve the generalization of constraints to new examples.
+Specifically, we consider problems that minimize a loss
+function subject to data-dependent constraints, expressed in
+terms of expectations over a data distribution D:
+min Ex∼D [`0 (x; θ)]
+θ∈Θ
+
+s.t. Ex∼D [`i (x; θ)] ≤ 0
+
+∀i∈[m]
+
+(1)
+
+where x ∈ X is a feature vector, D is the data distribution
+over X , Θ is a space of model parameters for the function
+class of interest, and `0 , `1 , . . . , `m : X × Θ → R are losses
+associated with the objective and the m constraints∗ . We do
+not require these loss functions to be convex. Appendix B†
+contains two examples of how Equation 1 can be used to
+express certain data-dependent constraints (see Goh et al.
+(2016); Narasimhan (2018) for more).
+One typically trains a classifier on a finite training set drawn
+from D, but the true goal is to satisfy constraints in expectation over D, as in Equation 1. To this end, we build on a
+long line of prior work that treats constrained optimization
+as a two-player game (e.g. Christiano et al., 2011; Arora
+et al., 2012; Rakhlin & Sridharan, 2013; Kearns et al., 2017;
+Narasimhan, 2018; Agarwal et al., 2018). The first player
+optimizes the model parameters θ, and the second player
+enforces the constraints, e.g. using the Lagrangian:
+"
+#
+m
+X
+L (θ, λ) := Ex∼D `0 (x; θ) +
+λi `i (x; θ)
+(2)
+i=1
+
+In practice, one would approximate the Lagrangian with an
+i.i.d. training sample from D, and the first player would
+∗
+†
+
+Table 5, in the supplementary material, summarizes notation.
+Appendices can be found in the supplementary material.
+
+

@@ -1,0 +1,103 @@
+VFlow: More Expressive Generative Flows with
+Variational Data Augmentation
+
+Jianfei Chen 1 2 Cheng Lu 1 Biqi Chenli 1 2 Jun Zhu 1 2 Tian Tian 1 2
+
+Abstract
+Generative flows are promising tractable models for density modeling that define probabilistic distributions with invertible transformations.
+However, tractability imposes architectural constraints on generative flows. In this work, we study
+a previously overlooked constraint that all the intermediate representations must have the same
+dimensionality with the data due to invertibility,
+limiting the width of the network. We propose
+VFlow to tackle this constraint on dimensionality.
+VFlow augments the data with extra dimensions
+and defines a maximum evidence lower bound
+(ELBO) objective for estimating the distribution
+of augmented data jointly with the variational data
+augmentation distribution. Under mild assumptions, we show that the maximum ELBO solution
+of VFlow is always better than the original maximum likelihood solution. For image density modeling on the CIFAR-10 dataset, VFlow achieves a
+new state-of-the-art 2.98 bits per dimension.
+
+1. Introduction
+Generative flows (Dinh et al., 2014; 2017; Kingma & Dhariwal, 2018; Ho et al., 2019) are a promising class of generative models. They define a probability distribution p(x)
+by applying an invertible transformation x = f −1 () to
+some simple and known distribution p(). Stacking a sequence f 1 . . . , f L of deep neural networks as the transformation, generative flows can model complicated highdimensional data. Comparing with generative adversarial
+networks (GANs) (Goodfellow et al., 2014) and variational
+autoencoders (VAEs) (Kingma & Welling, 2014), generative flows are particularly attractive because their sampling
+process and density estimation are tractable. Due to these
+1
+
+Department of Computer Science and Technology, Institute for
+AI, BNRist Center, Tsinghua University 2 RealAI. Correspondence
+to: Jun Zhu <dcszj@mail.tsinghua.edu.cn>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Invertible transformation step
+
+Augmented dimensions
+
+Transformed data
+
+Internal hidden layers
+
+h1
+
+32x32x3
+32x16x3
+32x16x96
+
+f1
+
+...
+
+32x16x3
+
+×10
+
+32x16x96
+x
+
+32x32x3
+
+(a)
+32x32x(3+DZ )
+
+h1
+
+32x16x(3+DZ )
+f1
+
+32x16x96
+
+...
+
+×10
+
+32x16x96
+(x, z)
+
+32x16x(3+DZ )
+
+32x32x(3+DZ )
+
+(b)
+Figure 1. (a) Bottleneck problem in a Flow++ (Ho et al., 2019)
+for CIFAR-10. Dimensionality of the transformed data (red) limits the model capacity. (b) Our solution VFlow, where DZ is
+the dimensionality of the augmented random variable. Only the
+transformation step f 1 is shown due to space constraint.
+
+advantages, generative flows have been applied to a wide
+range of problems including image generation (Kingma &
+Dhariwal, 2018), speech synthesis (Prenger et al., 2019), 3D
+point cloud generation (Yang et al., 2019), semi-supervised
+learning (Nalisnick et al., 2019), anomaly detection (Choi
+et al., 2018), and ray tracing (Müller et al., 2019).
+However, tractability comes with a cost of model expressiveness. To be tractable, generative flows have more architectural constraints compared with other non-invertible models,
+such as GANs and VAEs. One particular constraint is that
+the determinant of the Jacobian of f must be efficient to compute. While previous work typically adopts transformations
+with diagonal (Dinh et al., 2014; 2017; Kingma & Dhariwal,
+2018) or triangular Jacobian (Papamakarios et al., 2017),
+there has been lots of recent work developing transformations with free-form Jacobians, including invertible 1x1
+
+

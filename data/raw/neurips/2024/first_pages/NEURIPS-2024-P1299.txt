@@ -1,0 +1,87 @@
+Compact Language Models via Pruning and
+Knowledge Distillation
+
+Saurav Muralidharan∗ Sharath Turuvekere Sreenivas∗ Raviraj Joshi
+Marcin Chochowski Mostofa Patwary Mohammad Shoeybi Bryan Catanzaro
+Jan Kautz Pavlo Molchanov
+NVIDIA
+{sauravm,sharatht,ravirajj,mchochowski,mpatwary,mshoeybi,
+bcatanzaro,jkautz,pmolchanov}@nvidia.com
+
+Abstract
+Large language models (LLMs) targeting different deployment scales and sizes
+are currently produced by training each variant from scratch; this is extremely
+compute-intensive. In this paper, we investigate if pruning an existing LLM and
+then re-training it with a fraction (<3%) of the original training data can be a
+suitable alternative to repeated, full retraining. To this end, we develop a set of
+practical and effective compression best practices for LLMs that combine depth,
+width, attention and MLP pruning with knowledge distillation-based retraining; we
+arrive at these best practices through a detailed empirical exploration of pruning
+strategies for each axis, methods to combine axes, distillation strategies, and search
+techniques for arriving at optimal compressed architectures. We use this guide
+to compress the Nemotron-4 family of LLMs by a factor of 2-4×, and compare
+their performance to similarly-sized models on a variety of language modeling
+tasks. Deriving 8B and 4B models from an already pretrained 15B model using our
+approach requires up to 40× fewer training tokens per model compared to training
+from scratch; this results in compute cost savings of 1.8× for training the full model
+family (15B, 8B, and 4B). M INITRON models exhibit up to a 16% improvement
+in MMLU scores compared to training from scratch, perform comparably to
+other community models such as Mistral 7B, Gemma 7B and Llama-3 8B, and
+outperform state-of-the-art compression techniques from the literature. We have
+open-sourced M INITRON model weights on Huggingface 2 , with corresponding
+supplementary material including example code available on GitHub 3 .
+
+Introduction
+
+Large language models (LLMs) now dominate realworld natural language processing and have demonstrated excellent proficiency in understanding difficult contexts [7, 40, 52, 49, 48]. To aid users targeting different deployment sizes and scales, model
+providers often train an entire family of models from
+scratch, each with a different size (number of parameters). For instance, the LLaMa-2 model family [49]
+includes three different variants with 7, 13, and 70 bil-
+
+MMLU Score (%)
+
+1
+
+Gemma7B Nemotron-4 15B
+65 Minitron 8B
+Mistral 7B
+40x cheaper
+60
+9% bettter
+
+LLaMa-3 8B
+
+Minitron 4B
+55
+50
+45
+
+Phi-2
+Nemotron-3 8B
+Minitron (resulting models)
+Pruning start
+Pruning Path
+Gemma2B
+Other Models
+0.1
+2.5
+5.0
+7.5 10.0 12.5 15.0
+Cost to train the model (trillion tokens)
+LLaMa-2 7B
+
+∗
+
+Equal contribution.
+Minitron Collection on HuggingFace
+3
+https://github.com/NVlabs/Minitron
+2
+
+Figure 1: M INITRON results. Our approach
+greatly reduces training costs for additional
+models (40×) while improving accuracy.
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

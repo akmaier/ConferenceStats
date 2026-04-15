@@ -1,0 +1,68 @@
+TensorFuzz: Debugging Neural Networks with Coverage-Guided Fuzzing
+
+Augustus Odena 1 Catherine Olsson 2 David G. Andersen 1 Ian Goodfellow 3
+
+Abstract
+Neural networks are difficult to interpret and debug. We introduce testing techniques for neural networks that
+can discover errors occurring only for rare inputs. Specifically, we develop coverage-guided fuzzing (CGF)
+methods for neural networks. In CGF, random mutations of inputs are guided by a coverage metric toward the
+goal of satisfying user-specified constraints. We describe how approximate nearest neighbor (ANN) algorithms
+can provide this coverage metric for neural networks. We then combine these methods with techniques for
+property-based testing (PBT). In PBT, one asserts properties that a function should satisfy and the system
+automatically generates tests exercising those properties. We then apply this system to practical goals including
+(but not limited to) surfacing broken loss functions in popular GitHub repositories and making performance
+improvements to TensorFlow. Finally, we release an open source library called TensorFuzz that implements the
+described techniques.
+
+1. Introduction
+Machine learning is gradually becoming used in more contexts that affect human lives, including for medical diagnosis (Gulshan et al., 2016), in autonomous vehicles (Huval
+et al., 2015; Angelova et al.; Bojarski et al., 2016), as input
+into corporate and judicial decision making processes (Scarborough & Somers, 2006; Berk et al., 2017), in air traffic
+control (Katz et al., 2017), and in power grid control (Siano
+et al., 2012).
+Machine learning models are notoriously difficult to debug
+or interpret (Lipton, 2016) for a variety of reasons, ranging
+from the conceptual difficulty of specifying what the user
+wishes to know about the model in formal terms to statistical and computational difficulties in obtaining answers to
+formally specified questions. This property has arguably
+contributed to the recent “reproducibility crisis” in machine
+learning (Ke et al., 2017; Henderson et al., 2018; Fedus et al.,
+2018; Lucic et al., 2017; Melis et al., 2018; Oliver et al.,
+2018) – it’s tricky to make robust experimental conclusions
+about techniques that are hard to debug.
+Neural networks can be particularly difficult to debug because even relatively straightforward formal questions about
+them can be computationally expensive to answer and because software implementations of neural networks can
+1
+Google Brain 2 Open Philanthropy Project (work done while at
+Google Brain) 3 Work done while at Google Brain. Correspondence
+to: Augustus Odena <augustusodena@google.com>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+deviate significantly from theoretical models. For example, Reluplex (Katz et al., 2017) can formally verify some
+properties of neural networks but is too computationally
+expensive to scale to model sizes used in practice.
+Moreover, Reluplex works by analyzing the description of
+a ReLU network as a piecewise linear function, using a
+theoretical model in which all of the matrix multiplication
+operations are truly linear. In practice, matrix multiplication on a digital computer is not linear due to floating point
+arithmetic, and machine learning algorithms can learn to
+exploit this property to perform significantly nonlinear computation (Foerster, 2017). This is not to criticize Reluplex,
+but to illustrate the need for additional testing methods that
+interact directly with software as it actually exists in order
+to correctly test even software that deviates from theoretical
+models.
+In this work, we adapt an existing technique from traditional software testing —coverage-guided fuzzing (CGF)
+(Zalewski, 2007; Serebryany, 2016) — to be applicable to
+testing neural networks. We then combine this technique
+with property-based testing (PBT) (Claessen & Hughes,
+2011) and use the resulting system on a wide variety of
+neural network testing problems. In particular, this work
+makes the following contributions:
+• First, we introduce the notion of CGF for neural networks and describe how approximate nearest neighbor (ANN) algorithms can be used to check for coverage
+in a general way.
+• Second, we describe how PBT techniques can be combined with CGF techniques into a general system that
+
+

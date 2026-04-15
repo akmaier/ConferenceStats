@@ -1,0 +1,115 @@
+Progressive Tempering Sampler with Diffusion
+
+Severi Rissanen * 1 RuiKang OuYang * 2 Jiajun He 2 Wenlin Chen 2 3 Markus Heinonen 1 Arno Solin 1
+José Miguel Hernández-Lobato 2
+
+Abstract
+
+9
+BNEM
+← Sample error (W2 )
+
+Recent research has focused on designing neural samplers that amortize the process of sampling from unnormalized densities. However, despite significant advancements, they still fall short
+of the state-of-the-art MCMC approach, Parallel
+Tempering (PT), when it comes to the efficiency
+of target evaluations. On the other hand, unlike a
+well-trained neural sampler, PT yields only dependent samples and needs to be rerun—at considerable computational cost—whenever new samples
+are required. To address these weaknesses, we
+propose the Progressive Tempering Sampler with
+Diffusion (PTSD), which trains diffusion models
+sequentially across temperatures, leveraging the
+advantages of PT to improve the training of neural samplers. We also introduce a novel method
+to combine high-temperature diffusion models to
+generate approximate lower-temperature samples,
+which are minimally refined using MCMC and
+used to train the next diffusion model. PTSD enables efficient reuse of sample information across
+temperature levels while generating well-mixed,
+uncorrelated samples. Our method significantly
+improves target evaluation efficiency, outperforming diffusion-based neural samplers.
+
+8
+
+DDS
+
+7
+
+CMCD
+
+6
+
+PT+DM
+(baseline)
+
+5
+4 6
+10
+
+iDEM
+
+nd
+ra
+o
+r
+er t
+ed coun
+v
+o
+pr al.
+Im ev
+
+PTSD
+(ours)
+107
+108
+109
+1010
+← Target evaluation count
+
+1011
+
+Figure 1. Sample error (W2 distance) and target evaluation times
+for several diffusion (and control)-based neural samplers on ManyWell-32 target, including DDS, iDEM, BNEM, and CMCD, with
+our proposed approach. We include the results obtained by first
+running PT and fit a diffusion model post hoc for comparison.
+
+(Noé et al., 2019). We aim to draw independent samples
+from a probability distribution with a density:
+Z
+p̃(x)
+p(x) =
+s.t. Z = p̃(x) dx,
+(1)
+Z
+where we only assume access to the unnormalized density
+function p̃(x) without any ground-truth observations.
+
+1. Introduction
+
+The classical way to sample from the target density p is
+Markov chain Monte Carlo (MCMC), where we design a
+Markov chain whose invariant density is p, with the stateof-the-art method being Parallel Tempering (PT, Swendsen & Wang, 1986; Geyer, 1991; Hukushima & Nemoto,
+1996), also known as replica exchange. The key to PT’s
+success lies in running parallel MCMC chains at K temperatures T1 , . . . , TK , each corresponding to a tempering
+version pTk ∝ p1/TK of the original target. The chains at
+higher temperatures are easier to traverse across the entire
+support, and samples in those chains are swapped, facilitating better mixing in low temperatures (Woodard et al.,
+2009). We also note that other choices of path exist, for
+example, geometric interpolant path pk ∝ pβk p01−βk with a
+tractable reference p0 and βk ranging from 0 to 1, or other
+
+Sampling from probability distributions is a fundamental
+problem in many fields of science, including Bayesian inference (Gelman et al., 2013; Welling & Teh, 2011), statistical
+physics (Von Toussaint, 2011) and molecular simulations
+*
+
+Equal contribution 1 Department of Computer Science,
+Aalto University, Finland 2 Department of Engineering, University of Cambridge, United Kingdom 3 Department of Empirical Inference, Max Planck Institute for Intelligent Systems,
+Tübingen, Germany. Correspondence to: Severi Rissanen <severi.rissanen@aalto.fi>, RuiKang OuYang <ro352@cam.ac.uk>,
+Jiajun He <jh2383@cam.ac.uk>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

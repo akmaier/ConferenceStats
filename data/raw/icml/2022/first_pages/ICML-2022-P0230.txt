@@ -1,0 +1,73 @@
+PACE: A Parallelizable Computation Encoder for Directed Acyclic Graphs
+
+Zehao Dong * 1 Muhan Zhang * 2 3 Fuhai Li 4 Yixin Chen 1
+
+Abstract
+Optimization of directed acyclic graph (DAG)
+structures has many applications, such as neural architecture search (NAS) and probabilistic
+graphical model learning. Encoding DAGs into
+real vectors is a dominant component in most
+neural-network-based DAG optimization frameworks. Currently, most DAG encoders use an
+asynchronous message passing scheme which sequentially processes nodes according to the dependency between nodes in a DAG. That is, a node
+must not be processed until all its predecessors
+are processed. As a result, they are inherently not
+parallelizable. In this work, we propose a Parallelizable Attention-based Computation structure
+Encoder (PACE) that processes nodes simultaneously and encodes DAGs in parallel. We demonstrate the superiority of PACE through encoderdependent optimization subroutines that search
+the optimal DAG structure based on the learned
+DAG embeddings. Experiments show that PACE
+not only improves the effectiveness over previous sequential DAG encoders with a significantly
+boosted training and inference speed, but also generates smooth latent (DAG encoding) spaces that
+are beneficial to downstream optimization subroutines. Our source code is available at https:
+//github.com/zehao-dong/PACE.
+
+1. Introduction
+Directed acyclic graphs (DAGs) are ubiquitous in various real-world problems including neural architecture
+search (Elsken et al., 2019; Wen et al., 2020), source code
+*
+
+Equal contribution 1 Department of Computer Science & Engineering, Washington University in St. Louis, St. Louis, USA
+2
+Institute for Artificial Intelligence, Peking University, Beijing,
+China 3 Beijing Institute for General Artificial Intelligence, Beijing, China 4 Institute for Informatics and Department of Pediatrics,
+Washington University in St. Louis, St. Louis, USA. Correspondence to: Yixin Chen <chen@cse.wustl.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+modeling (Allamanis et al., 2018), structure learning of
+Bayesian networks (Koller & Friedman, 2009; Zhang et al.,
+2019), etc. One key challenge in DAG optimization problems is the difficulty to use gradient strategies to quickly adjust the structure of a DAG towards the right direction due to
+the absence of gradient information. Some earlier works propose to directly optimize the discrete DAG structure through
+black-box optimization techniques such as reinforcement
+learning (Zoph & Le, 2016), evolutionary algorithms (Liu
+et al., 2017), and Bayesian optimization (Kandasamy et al.,
+2018), which are inherently less efficient. A more recent
+approach is to encode DAGs into some continuous space for
+searching, and various DAG encoders have been developed.
+In general, these DAG encoding schemes fall into two categories: structure-aware encoding scheme (Ying et al., 2019;
+Wen et al., 2020; Shi et al., 2020) and computation-aware
+(performance-aware) encoding scheme (Zhang et al., 2019;
+Thost & Chen, 2021).
+Due to the superior graph representation learning ability,
+graph neural networks (GNNs) have broadly achieved stateof-art performance on various graph learning tasks, such
+as node classification (Velickovic et al., 2018; Hamilton
+et al., 2017), graph classification (Xu et al., 2019; Zhang
+et al., 2018b; Duvenaud et al., 2015), link prediction (Zhang
+& Chen, 2018), and hyperlink prediction (Zhang et al.,
+2018a). Basically, GNNs follow the message passing
+scheme (Gilmer et al., 2017) where each node aggregates
+node features from its one-hop neighborhood repeatedly
+to update its own feature, and this aggregation happens at
+all nodes simultaneously. However, Thost & Chen (2021)
+suggests that such a framework cannot exploit the inductive
+bias of the computation dependency defined by DAGs, thus
+failing to generate a smooth encoding space beneficial to
+downstream optimization and prediction routines.
+Hence, in order to model the dependency between nodes
+in DAGs, various GNNs specifically designed for encoding DAGs, such as D-VAE (Zhang et al., 2019) and
+DAGNN (Thost & Chen, 2021), are developed to inject the
+computation dependency between nodes into the representation learning process. Instead of updating node features
+simultaneously, these DAG encoders are constructed upon
+a gated recurrent unit (GRU) and will not update the representation of a node until all of its predecessors are updated.
+Such an asynchronous message passing scheme actually
+
+

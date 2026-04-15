@@ -1,0 +1,79 @@
+Nesterov Method for Asynchronous Pipeline Parallel Optimization
+
+Thalaiyasingam Ajanthan 1 Sameera Ramasinghe 1 Yan Zuo 1 Gil Avraham 1 Alexander Long 1
+
+Abstract
+
+The main objective of PP methods is to mask the communication overhead and improve device utilization so as to minimize training time. To this end, many pipeline scheduling
+strategies (i.e., the order of processing forward and backward passes of microbatches) have been developed (Huang
+et al., 2019; Narayanan et al., 2021b; Qi et al., 2023). However, the main bottleneck in these methods is the requirement to synchronize the weights and gradients across stages
+at each update step, hindering 100% pipeline utilization.
+
+Pipeline Parallelism (PP) enables large neural network training on small, interconnected devices
+by splitting the model into multiple stages. To
+maximize pipeline utilization, asynchronous optimization is appealing as it offers 100% pipeline
+utilization by construction. However, it is inherently challenging as the weights and gradients are
+no longer synchronized, leading to stale (or delayed) gradients. To alleviate this, we introduce a
+variant of Nesterov Accelerated Gradient (NAG)
+for asynchronous optimization in PP. Specifically,
+we modify the look-ahead step in NAG to effectively address the staleness in gradients. We theoretically prove that our approach converges at
+a sublinear rate in the presence of fixed delay in
+gradients. Our experiments on large-scale language modelling tasks using decoder-only architectures with up to 1B parameters, demonstrate
+that our approach significantly outperforms existing asynchronous methods, even surpassing the
+synchronous baseline.†
+
+To enable full pipeline utilization, we consider asynchronous
+optimization in PP, where the weight updates are performed
+independently at each stage without waiting for the corresponding backward pass to complete. This approach introduces gradient staleness, as weights are updated multiple
+times between the forward and backward passes of a microbatch, resulting in outdated gradients being used for weight
+updates. This gradient staleness presents a significant optimization challenge, necessitating sophisticated delay correction mechanisms to ensure convergence, even in traditional
+distributed settings (Agarwal & Duchi, 2011; Zheng et al.,
+2017; Stich & Karimireddy, 2019; Mishchenko et al., 2022).
+Typically, delay correction methods directly estimate the
+gradients via forecasting approaches (Zheng et al., 2017;
+Liu et al., 2024b) or extrapolate the previous update step in
+the weight space (Hakimi et al., 2019; Guan et al., 2019).
+We follow the latter approach as delay correction in the
+weight space does not make any assumptions on the loss
+landscape (as in gradient forecasting methods), but rather
+assumes that the update directions change slowly. Noting
+that the smoothness of update directions can be controlled in
+momentum based optimizers, we derive a look-ahead based
+optimization method to alleviate gradient staleness.
+
+1. Introduction
+Pipeline Parallelism (PP) is a standard parallelism technique
+for training large-scale frontier foundational models (Dubey
+et al., 2024; Liu et al., 2024a). PP partitions neural networks into sequential stages, enabling the training of models
+that exceed the memory capacity of any single device by
+distributing computations across multiple interconnected
+devices. The devices can be co-located in datacenters or
+connected via the internet (i.e., low bandwidth connections)
+in a fully decentralised setting. Each device processes a
+stage (i.e., a set of consecutive layers) and communicates
+the activations and gradients with adjacent stages often via
+bandwidth-constrained interconnects.
+
+Specifically, we introduce a variant of the Nesterov Accelerated Gradient (NAG) method (Nesterov, 1983; 2013) for
+asynchronous PP optimization. Our idea stems from the
+observation that NAG has a look-ahead step which can be
+repurposed as a delay correction in the weight space, by
+carefully modifying the update formula (refer to Fig. 1).
+Our approach is a simple, yet elegant modification to NAG
+that does not introduce any hyperparameters. We theoretically prove that our approach converges at a sublinear rate
+for convex, smooth functions with a fixed delay in gradients.
+
+1
+Pluralis Research. Correspondence to: Thalaiyasingam Ajanthan <aj@pluralis.ai>.
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+†
+Our code is available at https://github.com/
+PluralisResearch/AsyncPP.
+
+We demonstrate the merits of our approach on large-scale
+1
+
+

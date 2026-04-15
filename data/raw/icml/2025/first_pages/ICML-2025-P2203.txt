@@ -1,0 +1,123 @@
+Cache Me If You Must: Adaptive Key-Value Quantization
+for Large Language Models
+
+Alina Shutova * 1 2 Vladimir Malinovskii * 2 1 Vage Egiazarian * 3 Denis Kuznedelev 2 Denis Mazur 4 5
+Nikita Surkov 6 Ivan Ermakov 5 2 Dan Alistarh 3
+
+Abstract
+Average LongBench Score
+
+60
+
+Efficient real-world deployments of large language models (LLMs) rely on Key-Value (KV)
+caching for processing and generating long outputs, reducing the need for repetitive computation.
+For large contexts, Key-Value caches can take
+up tens of gigabytes of device memory, as they
+store vector representations for each token and
+layer. Recent work has shown that the cached
+vectors can be compressed through quantization,
+pruning or merging, but these techniques often
+compromise quality towards higher compression
+rates. In this work, we aim to improve Key &
+Value compression by exploiting two observations: 1) the inherent dependencies between keys
+and values across different layers, and 2) the existence of high-compression methods for internal
+network states (e.g. attention Keys & Values).
+We propose AQUA-KV, an adaptive quantization for Key-Value caches that relies on compact
+adapters to exploit existing dependencies between
+Keys and Values, and aims to “optimally” compress the information that cannot be predicted.
+AQUA-KV significantly improves compression
+rates, while maintaining high accuracy on stateof-the-art LLM families. On Llama 3.2 LLMs, we
+achieve near-lossless inference at 2-2.5 bits per
+value with under 1% relative error in perplexity
+and LongBench scores. AQUA-KV is one-shot,
+simple, and efficient: it can be calibrated on a single GPU within 1-6 hours, even for 70B models.
+
+KVQuant (2.33 bit)
+
+50
+
+AQUA-KV (ours, 2.09 bit)
+
+47.8 48.1
+
+44.3 44.6
+
+Baseline (BF16)
+
+52.8 52.9
+46.1
+
+37.2
+
+40
+30
+20
+
+20.6
+
+10
+0
+
+3
+
+8
+
+70
+
+# Parameters (B)
+Figure 1. Comparison of AQUA-KV to alternative Key-Value
+Cache compression methods for Llama 3.x models in terms of
+average LongBench score on 14 english tasks (see Section 4).
+
+attention-based Transformer models (Vaswani, 2017). To
+achieve faster inference and avoid wasteful recomputation
+of attention scores during autoregressive generation, KV
+caching is typically employed, where keys and values are
+saved for later use. Unfortunately, KV-caching comes with
+its own pitfalls: KV caches are large, especially when handling long sequences (Bai et al., 2023; Xiao et al., 2023).
+Thus, the memory footprint of a full-length Key-Value cache
+can reach tens of gigabytes of device memory, sometimes
+more than the model itself1 . This massive memory consumption increases the cost of deployment, and also slows down
+inference, as the whole process can become memory-bound
+for large caches (Hooper et al., 2024).
+Previous work has proposed methods to compress KV
+caches using various methods such as quantization and pruning (Li et al., 2024a), that can significantly reduce the memory footprint of KV caches. Yet, as we increase the degree
+of compression, e.g. 2 bits per value, existing compression
+techniques begin to lose significant information, resulting
+in poor accuracy (Li et al., 2024c).
+
+1. Introduction
+Large Language Models (LLMs) are revolutionizing natural
+language processing, but come with major computational
+costs, in particular due to the input-quadratic complexity of
+
+In this work, we aim to improve KV cache compression by
+taking advantage of the inherent structure and dependencies
+in the cache tensors. Specifically, we analyze the Key-Value
+cache behavior for state-of-the-art LLMs and find several
+
+*
+
+1
+Equal contribution
+HSE University 2 Yandex 3 ISTA
+5
+6
+SberDevices MIPT T-Bank. Correspondence to: Dan Alistarh
+<dan.alistarh@ist.ac.at>.
+
+4
+
+1
+For the popular Llama 3.2 3B model (Dubey et al., 2024)
+with a maximum context length of 217 tokens (≈131K), the 16-bit
+cache takes up 15 GB per sequence. For Llama 3.1 70B and Qwen
+2.5 72B, it is 42.9 GB per sequence.
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

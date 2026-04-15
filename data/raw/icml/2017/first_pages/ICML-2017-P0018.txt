@@ -1,0 +1,85 @@
+Modular Multitask Reinforcement Learning with Policy Sketches
+Jacob Andreas 1 Dan Klein 1 Sergey Levine 1
+
+Abstract
+We describe a framework for multitask deep reinforcement learning guided by policy sketches.
+Sketches annotate tasks with sequences of named
+subtasks, providing information about high-level
+structural relationships among tasks but not how
+to implement them—specifically not providing
+the detailed guidance used by much previous
+work on learning policy abstractions for RL (e.g.
+intermediate rewards, subtask completion signals, or intrinsic motivations). To learn from
+sketches, we present a model that associates every subtask with a modular subpolicy, and jointly
+maximizes reward over full task-specific policies by tying parameters across shared subpolicies. Optimization is accomplished via a decoupled actor–critic training objective that facilitates
+learning common behaviors from multiple dissimilar reward functions. We evaluate the effectiveness of our approach in three environments
+featuring both discrete and continuous control,
+and with sparse rewards that can be obtained only
+after completing a number of high-level subgoals. Experiments show that using our approach
+to learn policies guided by sketches gives better
+performance than existing techniques for learning task-specific or shared policies, while naturally inducing a library of interpretable primitive behaviors that can be recombined to rapidly
+adapt to new tasks.
+
+1. Introduction
+This paper describes a framework for learning composable deep subpolicies in a multitask setting, guided only
+by abstract sketches of high-level behavior. General reinforcement learning algorithms allow agents to solve tasks
+in complex environments. But tasks featuring extremely
+1
+University of California, Berkeley. Correspondence to: Jacob
+Andreas <jda@cs.berkeley.edu>.
+
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+τ1: make planks
+b1: get wood
+
+K1
+
+b2: use workbench
+
+Π1
+π1
+π2
+
+τ2: make sticks
+b1: get wood
+b3: use toolshed
+
+K2
+
+Π2
+π1
+π3
+
+π3
+π2
+π1
+
+π1
+
+Figure 1: Learning from policy sketches. The figure shows simplified versions of two tasks (make planks and make sticks, each
+associated with its own policy (⇧1 and ⇧2 respectively). These
+policies share an initial high-level action b1 : both require the
+agent to get wood before taking it to an appropriate crafting station. Even without prior information about how the associated behavior ⇡1 should be implemented, knowing that the agent should
+initially follow the same subpolicy in both tasks is enough to learn
+a reusable representation of their shared structure.
+
+delayed rewards or other long-term structure are often difficult to solve with flat, monolithic policies, and a long
+line of prior work has studied methods for learning hierarchical policy representations (Sutton et al., 1999; Dietterich, 2000; Konidaris & Barto, 2007; Hauser et al., 2008).
+While unsupervised discovery of these hierarchies is possible (Daniel et al., 2012; Bacon & Precup, 2015), practical
+approaches often require detailed supervision in the form
+of explicitly specified high-level actions, subgoals, or behavioral primitives (Precup, 2000). These depend on state
+representations simple or structured enough that suitable
+reward signals can be effectively engineered by hand.
+But is such fine-grained supervision actually necessary to
+achieve the full benefits of hierarchy? Specifically, is it
+necessary to explicitly ground high-level actions into the
+representation of the environment? Or is it sufficient to
+simply inform the learner about the abstract structure of
+policies, without ever specifying how high-level behaviors
+should make use of primitive percepts or actions?
+To answer these questions, we explore a multitask reinforcement learning setting where the learner is pre-
+
+

@@ -1,0 +1,77 @@
+Inducing and Exploiting Activation Sparsity for Fast Neural Network Inference
+
+Mark Kurtz * 1 Justin Kopinsky * 1 Rati Gelashvili 1 Alexander Matveev 1 John Carr 1 Michael Goin 1
+William Leiserson 1 Sage Moore 1 Bill Nell 1 Nir Shavit 1 Dan Alistarh 1 2
+
+Abstract
+Optimizing deep neural networks for inference
+has recently become an extremely active area
+of research. One of the go-to solutions in this
+context is weight pruning, which aims to reduce
+computational and memory footprint by removing large subsets of the connections in a neural
+network. Surprisingly, much less attention has
+been given to exploiting sparsity in the activation
+maps, which tend to be naturally sparse in many
+settings thanks to the structure of rectified linear
+(ReLU) activation functions. In this paper, we
+present an analysis of methods for maximizing
+the sparsity of the activations in a trained neural network, and show that, when coupled with
+an efficient sparse-input convolution algorithm,
+we can leverage this sparsity for significant performance gains. To induce highly sparse activation maps without accuracy loss, we introduce a
+new regularization technique, coupled with a new
+threshold-based sparsification method based on a
+parameterized activation function called ForcedActivation-Threshold Rectified Linear Unit (FATReLU). We examine the impact of our methods
+on popular image classification models, showing
+that most architectures can adapt to significantly
+sparser activation maps without any accuracy loss.
+Our second contribution is showing that these
+these compression gains can be translated into inference speedups: we provide a new algorithm to
+enable fast convolution operations over networks
+with sparse activations, and show that it can enable significant speedups for end-to-end inference
+on a range of popular models on the large-scale
+ImageNet image classification task on modern
+Intel CPUs, with relatively low retraining cost.
+*
+Equal contribution 1 Neural Magic 2 IST Austria. Correspondence to: Dan Alistarh <dan@neuralmagic.com>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+1. Introduction
+Deep neural networks (DNNs) are able to achieve state-ofthe-art performance in several application domains, such
+as image classification, speech recognition, and automated
+decision making, e.g. (Krizhevsky et al., 2012; Vaswani
+et al., 2017; Silver et al., 2016). Along with this wide array of applications comes the need to reduce the significant
+computational and memory footprint of DNNs. To this end,
+several techniques have been designed to obtain optimized,
+resource-efficient variants of a given deep model. Pruning and quantization are arguably the standard methods for
+achieving resource-efficient models, which have received
+considerable attention, e.g. (Liu et al., 2017; Luo et al., 2017;
+Gray et al., 2017; Han et al., 2015; Li et al., 2016; Mishra
+et al., 2017; Zhu et al., 2016). However, the vast majority
+of existing work has focused on compressing the weights
+(connections) in the neural network, for which several regularization (Molchanov et al., 2017) and thresholding-based
+methods (Han et al., 2015; Gale et al., 2019) are now known.
+It is therefore perhaps surprising that sparsifying activation
+maps has received relatively little attention. A non-trivial
+fraction of the activations are sparse as a natural consequence of the structure of Rectified Linear Unit (ReLU)
+activation functions. This observation has been leveraged
+by hardware accelerators, e.g. (Albericio et al., 2016; Han
+et al., 2016; Parashar et al., 2017), and reference (Rhu et al.,
+2018) performed an analysis of naturally-occurring activation sparsity. Recently, (Georgiadis, 2019) explored L1
+regularization to increase the number of zeroes in the activation maps, showing that sparsity can be increased by up
+to 60% for image classification models.
+A second gap in the literature is the absence of software
+support for sparsity, and in particular activation sparsity, on
+common hardware. Currently, running models with higher
+activation sparsity rates on common CPU or GPU platforms
+will not result in computational speedups, and improvements
+are only reported in relative sparsity percentage, or synthetic
+memory compression rates (Georgiadis, 2019). It is not at
+all clear how these compression rates will relate to speedup
+in real-world implementations, and it is therefore difficult
+to evaluate the practical impact of existing methods.
+In this paper, we address both these gaps with respect to
+
+

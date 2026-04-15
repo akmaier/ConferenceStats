@@ -1,0 +1,71 @@
+Coded-InvNet for Resilient Prediction Serving Systems
+
+Tuan Dinh 1 Kangwook Lee 2
+
+Abstract
+Inspired by a new coded computation algorithm for invertible functions, we propose CodedInvNet, a new approach to design resilient prediction serving systems that can gracefully handle
+stragglers or node failures. Coded-InvNet leverages recent ﬁndings in the deep learning literature such as invertible neural networks, Manifold
+Mixup, and domain translation algorithms, identifying interesting research directions that span
+across machine learning and systems. Our experimental results show that Coded-InvNet can
+outperform existing approaches, especially when
+the compute resource overhead is as low as 10%.
+For instance, without knowing which of ten workers is going to fail, our algorithm can design a
+backup task to correctly recover the missing prediction with an accuracy of 85.9%, signiﬁcantly
+outperforming the previous SOTA by 32.5%.
+
+1. Introduction
+Prediction serving systems (PSSs) are systems that host
+pre-trained machine learning models for inference queries
+such as search, translation, and ranking ones. PSSs usually
+consist of a large number of parallel/distributed compute
+workers to process a large batch of input queries in parallel. As the system scales, maintaining low response time
+(latency) becomes more challenging. This is because the
+slowdown or failure of a single node can slow down the
+entire query processing time (Dean & Barroso, 2013; Narra
+et al., 2019). Multiple approaches for latency reduction
+have been proposed, including detect-and-relaunch (Zaharia
+et al., 2008), query replication (Suresh et al., 2015), and
+approximate inference (Han et al., 2017).
+Coded computation, by introducing backup tasks in a coded
+1
+Department of Computer Sciences, University of WisconsinMadison, Madison, USA 2 Department of Electrical and Computer
+Engineering, University of Wisconsin-Madison, Madison, USA.
+Correspondence to: Tuan Dinh <tuan.dinh@wisc.edu>, Kangwook Lee <kangwook.lee@wisc.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+form, improves system resilience with lower overhead compared to other methods (Lee et al., 2017). Recently, (Kosaian et al., 2019) showed that a coded computation-based
+technique, called Parity Models (ParMs), can signiﬁcantly
+reduce the latency of PSSs. ParM consists of a tuple of encoder/parity model/decoder: the encoder aggregates multiple queries into a coded query, the parity model computes an
+inference task on it, and the decoder uses the encoded query
+together with available task results to reconstruct missing
+task results. However, experimental results of ParM were
+limited to small-scale PSSs (2–4 workers), and it is not clear
+whether the proposed method is applicable to large-scale
+PSSs. Also, small-scale regimes correspond to high resource
+overhead regimes, as one backup worker is required for every two to four workers. We empirically show that ParM
+does not scale well. For instance, when there is only one
+backup worker for ten main workers, ParM achieves approximately 19% accuracy on the CIFAR10 image classiﬁcation
+when one of the main workers is not available.
+We propose Coded-InvNet, a new coded computation-based
+framework to design scalable resilient prediction serving
+systems. Inspired by an efﬁcient coded computation scheme
+for invertible functions, Coded-InvNet designs the inference function with a computationally-heavy but invertible
+module followed by a computationally-light module. To
+design the invertible module, we take advantage of recent
+developments in invertible neural networks (Behrmann et al.,
+2018; Song et al., 2019; Jacobsen et al., 2018). Then, by
+making use of GAN-based paired domain translation algorithms (Isola et al., 2017), Coded-InvNet trains a lightweight encoding function so that one can efﬁciently generate
+encoded queries from input queries without incurring high
+encoding overhead. To further improve the classiﬁcation accuracy in the event of failures, Coded-InvNet also leverages
+mixup algorithms (Zhang et al., 2017; Verma et al., 2018).
+We evaluate the efﬁcacy of Coded-InvNet in image classiﬁcation and multitask learning setting. Experimental results
+show that Coded-InvNet can scale much beyond the scales
+at which existing algorithms operate. More speciﬁcally,
+Coded-InvNet achieves higher reconstruction accuracy compared to ParM, and the accuracy gap increases remarkably as
+the system scales. For instance, Coded-InvNet can achieve
+reconstruction accuracy of 85.9% with 10 workers, while
+that of ParM is 53.4%. We also evaluate end-to-end laten-
+
+

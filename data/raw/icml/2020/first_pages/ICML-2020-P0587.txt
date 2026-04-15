@@ -1,0 +1,82 @@
+Learning to Encode Position for Transformer
+with Continuous Dynamical Model
+
+Xuanqing Liu 1 Hsiang-Fu Yu 2 Inderjit S. Dhillon 3 2 Cho-Jui Hsieh 1
+
+Abstract
+We introduce a new way of learning to encode
+position information for non-recurrent models,
+such as Transformer models. Unlike RNN and
+LSTM, which contain inductive bias by loading
+the input tokens sequentially, non-recurrent models are less sensitive to position. The main reason
+is that position information among input units is
+not inherently encoded, i.e., the models are permutation equivalent; this problem justifies why
+all of the existing models are accompanied by a
+sinusoidal encoding/embedding layer at the input.
+However, this solution has clear limitations: the
+sinusoidal encoding is not flexible enough as it is
+manually designed and does not contain any learnable parameters, whereas the position embedding
+restricts the maximum length of input sequences.
+It is thus desirable to design a new position layer
+that contains learnable parameters to adjust to different datasets and different architectures. At the
+same time, we would also like the encodings to
+extrapolate in accordance with the variable length
+of inputs. In our proposed solution, we borrow
+from the recent Neural ODE approach, which may
+be viewed as a versatile continuous version of a
+ResNet. This model is capable of modeling many
+kinds of dynamical systems. We model the evolution of encoded results along position index by
+such a dynamical system, thereby overcoming the
+above limitations of existing methods. We evaluate our new position layers on a variety of neural
+machine translation and language understanding
+tasks, the experimental results show consistent
+improvements over the baselines.
+1
+Department of Computer Science, University of California
+Los Angeles, CA, USA 2 Amazon.com 3 Department of Computer
+Science, University of Texas Austin, TA, USA. Correspondence
+to: Xuanqing Liu <xqliu@cs.ucla.edu>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+1. Introduction
+Transformer based models (Vaswani et al., 2017; Devlin
+et al., 2018; Yang et al., 2019; Radford et al., 2019; Lan
+et al., 2019; Raffel et al., 2019) have become one of the
+most effective approaches to model sequence data of variable lengths. Transformers have shown wide applicability to
+many natural language processing (NLP) tasks such as language modeling (Radford et al., 2019), neural machine translation (NMT) (Vaswani et al., 2017), and language understanding (Devlin et al., 2018). Unlike traditional recurrentbased models (e.g., RNN or LSTM), Transformer utilizes a
+non-recurrent but self-attentive neural architecture to model
+the dependency among elements at different positions in the
+sequence, which leads to better parallelization using modern
+hardware and alleviates the vanishing/exploding gradient
+problem in traditional recurrent models.
+It is known that the self-attentive architecture corresponds
+to a family of permutation equivalence functions. Thus,
+for applications where the ordering of the elements matters,
+how to properly encode position information is crucial for
+Transformer based models. There have been many attempts
+to encode position information for the Transformer. In
+the original Transformer paper (Vaswani et al., 2017), a
+family of pre-defined sinusoidal functions was adapted to
+construct a set of embeddings for each position. These fixed
+position embeddings are then added to the word embeddings
+of the input sequence accordingly. To further construct
+these position embeddings in a more data-driven way, many
+recent Transformer variants such as (Devlin et al., 2018;
+Liu et al., 2019) include these embeddings as learnable
+model parameters in the training stage. This data-driven
+approach comes at the cost of limiting the maximum length
+of sequence Lmax and the computational/memory overhead
+from additional Lmax × d parameters, where Lmax is usually
+set to 512 in many applications, and d is the dimension
+of the embeddings. (Shaw et al., 2018) propose a relative
+position representation to reduce the number of parameters
+to (2K + 1)d by dropping the interactions between tokens
+with a distance greater than K. In addition to just the input
+layer, (Dehghani et al., 2018) and (Lan et al., 2019) suggest
+that the injection of position information to every layer
+leads to even better performance for the Transformer. More
+
+

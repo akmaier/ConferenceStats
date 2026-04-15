@@ -1,0 +1,74 @@
+Decoupled Parallel Backpropagation with Convergence Guarantee
+
+Zhouyuan Huo 1 Bin Gu 1 Qian Yang 1 Heng Huang 1
+
+Abstract
+Backpropagation algorithm is indispensable for
+the training of feedforward neural networks. It
+requires propagating error gradients sequentially
+from the output layer all the way back to the input
+layer. The backward locking in backpropagation
+algorithm constrains us from updating network
+layers in parallel and fully leveraging the computing resources. Recently, several algorithms have
+been proposed for breaking the backward locking.
+However, their performances degrade seriously
+when networks are deep. In this paper, we propose
+decoupled parallel backpropagation algorithm for
+deep learning optimization with convergence guarantee. Firstly, we decouple the backpropagation
+algorithm using delayed gradients, and show that
+the backward locking is removed when we split
+the networks into multiple modules. Then, we
+utilize decoupled parallel backpropagation in two
+stochastic methods and prove that our method
+guarantees convergence to critical points for the
+non-convex problem. Finally, we perform experiments for training deep convolutional neural networks on benchmark datasets. The experimental
+results not only confirm our theoretical analysis,
+but also demonstrate that the proposed method
+can achieve significant speedup without loss of
+accuracy.
+
+1. Introduction
+We have witnessed a series of breakthroughs in computer vision using deep convolutional neural networks (LeCun et al.,
+2015). Most neural networks are trained using stochastic
+gradient descent (SGD) or its variants in which the gradients of the networks are computed by backpropagation
+algorithm (Rumelhart et al., 1988). As shown in Figure 1,
+the backpropagation algorithm consists of two processes, the
+1
+
+Department of Electrical and Computer Engineering, University of Pittsburgh, Pittsburgh, PA, United States. Correspondence
+to: Heng Huang <henghuanghh@gmail.com>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+Figure 1. We split a multilayer feedforward neural network into
+three modules. Each module is a stack of layers. Backpropagation
+algorithm requires running forward pass (from 1 to 3) and backward pass (from 4 to 6) in sequential order. For example, module
+t
+A cannot perform step 6 before receiving δA
+which is an output of
+step 5 in module B.
+
+forward pass to compute prediction and the backward pass
+to compute gradient and update the model. After computing
+prediction in the forward pass, backpropagation algorithm
+requires propagating error gradients from the top (output
+layer) all the way back to the bottom (input layer). Therefore, in the backward pass, all layers, or more generally,
+modules, of the network are locked until their dependencies
+have executed.
+The backward locking constrains us from updating models
+in parallel and fully leveraging the computing resources.
+It has been shown in practice (Krizhevsky et al., 2012; Simonyan & Zisserman, 2014; Szegedy et al., 2015; He et al.,
+2016; Huang et al., 2016) and in theory (Eldan & Shamir,
+2016; Telgarsky, 2016; Bengio et al., 2009) that depth is
+one of the most critical factors contributing to the success
+of deep learning. From AlexNet with 8 layers (Krizhevsky
+et al., 2012) to ResNet-101 with more than one hundred
+layers (He et al., 2016), the forward and backward time
+grow from (4.31ms and 9.58ms) to (53.38ms and 103.06ms)
+when we train the networks on Titan X with the input size of
+16×3×224×224 (Johnson, 2017). Therefore, parallelizing
+the backward pass can greatly reduce the training time when
+the backward time is about twice of the forward time. We
+
+

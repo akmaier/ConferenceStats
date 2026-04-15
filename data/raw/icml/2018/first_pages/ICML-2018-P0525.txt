@@ -1,0 +1,79 @@
+Neural Dynamic Programming for Musical Self Similarity
+
+Christian J. Walder 1 2 Dongwoo Kim 2 3
+
+Abstract
+We present a neural sequence model designed
+specifically for symbolic music. The model is
+based on a learned edit distance mechanism which
+generalises a classic recursion from computer science, leading to a neural dynamic program. Repeated motifs are detected by learning the transformations between them. We represent the arising
+computational dependencies using a novel data
+structure, the edit tree; this perspective suggests
+natural approximations which afford the scaling
+up of our otherwise cubic time algorithm. We
+demonstrate our model on real and synthetic data;
+in all cases it out-performs a strong stacked long
+short-term memory benchmark.
+
+1. Introduction
+A popular approach to symbolic music modelling is to represent pieces by sequences and model them with a Recurrent
+Neural Network (RNN) (Eck & Schmidhuber, 2002; Fernandez & Vico, 2013; Jaques et al., 2016; Pachet et al., 2017;
+Briot et al., 2017; Johnson, 2017). The RNN architecture is
+typically based on the Long Short-Term Memory (LSTM)
+(Hochreiter & Schmidhuber, 1997).
+Such models are useful for algorithmic composition and
+accompaniment; e.g. one may conditionally sample with
+human input constraints (Pachet & Roy, 2011; Walder &
+Kim, 2017). Without such constraints, sampling from an
+LSTM tends to produce music with an undesirable meandering quality that is unlike human composed music (see
+e.g. (Jaques et al., 2016) for a discussion of the issue).
+Rather, human music is strongly self similar (Pareyon,
+2011); a few motifs may form the building blocks for an entire piece — see e.g. movement one of Beethoven’s Pastoral
+Symphony and its entertaining analysis by Bernstein (1973).
+1
+CSIRO Data61, Black Mountain, Australia 2 The Australian National University 3 Data to Decisions CRC, Kent
+Town, SA, Australia. Correspondence to: Christian <christian.walder@data61.csiro.au>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+j
+
+i
+
+Figure 1. An excerpt from Bach’s BWV 1007 as a piano roll (horizontal = time; vertical = pitch as per the keyboard at left), which
+ends during the third repetition of a motif. By analogy with the
+earlier repeats, the last two notes of the excerpt will likely repeat
+immediately. Note that the third cycle of the motif introduces a
+non-trivial diatonic (within musical scale) shift of the upper notes.
+The indices i and j above are referred to in subsubsection 4.2.1.
+
+These motific building blocks are not simply repeated verbatim throughout a piece of music; rather, as in the example
+of figure 1, the fragments are transformed in a musically
+logical way. This logic demands coherent harmony, melody
+and phrasing structure; this in turns requires such non-trivial
+motif transformations as transposition, diatonic shifting,
+deletion, insertion of passing tones, truncation, etc.
+The logic of motif transformation is our focus. Like any
+sequence model, our model may be factorised causally as
+in (5) of section 4 below. The key idea is that whenever,
+as we are generating a sequence, we detect earlier point(s)
+which are motifically related, then we may expect the future to unfold analogously. This is similar in spirit to the
+concept of attention (Bahdanau et al., 2014), which has
+spurred lots of research interest, especially in sequence to
+sequence modelling for machine translation. Attentional
+sequence models are far less common however — the single
+example we are aware of is (Laird & Irvin, 2017). Indeed,
+naı̈vely modelling sequences with attention suffers from a
+quadratic time complexity, and is arguably less appropriate
+for language modelling than for machine translation.
+Our model explicitly compares all sub-sequences of all
+lengths within the very sequence being modelled, using
+a dynamic program (DP) that aligns by explicitly modelling
+generalised edit operations; a naı̈ve implementation has a cubic time complexity. This is a challenging example of recent
+research investigating structured attention and neural (or
+differentiable) dynamic programming; e.g. (Schulze et al.,
+2007; Lample et al., 2016; Kim et al., 2017; Cuturi & Blondel, 2017; Mensch & Blondel, 2018). The computational
+
+

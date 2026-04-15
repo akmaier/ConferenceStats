@@ -1,0 +1,87 @@
+Combining Deep Reinforcement Learning and Search
+for Imperfect-Information Games
+
+Noam Brown∗ Anton Bakhtin∗ Adam Lerer Qucheng Gong
+Facebook AI Research
+{noambrown,yolo,alerer,qucheng}@fb.com
+
+Abstract
+The combination of deep reinforcement learning and search at both training and test
+time is a powerful paradigm that has led to a number of successes in single-agent
+settings and perfect-information games, best exemplified by AlphaZero. However,
+prior algorithms of this form cannot cope with imperfect-information games. This
+paper presents ReBeL, a general framework for self-play reinforcement learning
+and search that provably converges to a Nash equilibrium in any two-player zerosum game. In the simpler setting of perfect-information games, ReBeL reduces to
+an algorithm similar to AlphaZero. Results in two different imperfect-information
+games show ReBeL converges to an approximate Nash equilibrium. We also show
+ReBeL achieves superhuman performance in heads-up no-limit Texas hold’em
+poker, while using far less domain knowledge than any prior poker AI.
+
+1
+
+Introduction
+
+Combining reinforcement learning with search at both training and test time (RL+Search) has led to
+a number of major successes in AI in recent years. For example, the AlphaZero algorithm achieves
+state-of-the-art performance in the perfect-information games of Go, chess, and shogi [55].
+However, prior RL+Search algorithms do not work in imperfect-information games because they
+make a number of assumptions that no longer hold in these settings. An example of this is illustrated
+in Figure 1a, which shows a modified form of Rock-Paper-Scissors in which the winner receives two
+points (and the loser loses two points) when either player chooses Scissors [15]. The figure shows the
+game in a sequential form in which player 2 acts after player 1 but does not observe player 1’s action.
+𝑷𝟏
+𝑃 = 0.2
+
+𝑷𝟐
+
+𝑷𝟐
+
+2,-2
+
+1,-1 0,0 -2,2
+
+0
+
+0
+
+0
+
+Paper
+
+Paper
+
+Paper
+0,0 -1,1
+
+Paper
+
+𝑃 = 0.4
+
+Paper
+
+𝑃 = 0.4
+
+𝑷𝟐
+
+𝑷𝟏
+
+-2,2
+
+2,-2 0,0
+
+(1a) Variant of Rock-Paper-Scissors in which the optimal player 1 policy is (R=0.4, P=0.4, S=0.2). Terminal
+values are color-coded. The dotted lines mean player 2
+does not know which node they are in.
+
+(1b) The player 1 subgame when using perfectinformation one-ply search. Leaf values are determined by the full-game equilibrium. There is insufficient information for finding (R=0.4, P=0.4, S=0.2).
+
+The optimal policy for both players in this modified version of the game is to choose Rock and Paper
+with 40% probability, and Scissors with 20%. In that case, each action results in an expected value of
+zero. However, as shown in Figure 1b, if player 1 were to conduct one-ply lookahead search as is
+∗
+
+Equal contribution
+
+34th Conference on Neural Information Processing Systems (NeurIPS 2020), Vancouver, Canada.
+
+

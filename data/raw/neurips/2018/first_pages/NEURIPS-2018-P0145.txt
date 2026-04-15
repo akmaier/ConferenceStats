@@ -1,0 +1,55 @@
+Simple, Distributed, and Accelerated
+Probabilistic Programming
+Dustin Tran⇤
+Matthew D. Hoffman†
+Dave Moore†
+Christopher Suter†
+†
+†
+⇤
+Srinivas Vasudevan
+Alexey Radul
+Matthew Johnson
+Rif A. Saurous†
+⇤
+
+Google Brain, † Google
+
+Abstract
+We describe a simple, low-level approach for embedding probabilistic programming in a deep learning ecosystem. In particular, we distill probabilistic programming down to a single abstraction—the random variable. Our lightweight implementation in TensorFlow enables numerous applications: a model-parallel variational auto-encoder (VAE) with 2nd-generation tensor processing units (TPUv2s); a
+data-parallel autoregressive model (Image Transformer) with TPUv2s; and multiGPU No-U-Turn Sampler (NUTS). For both a state-of-the-art VAE on 64x64 ImageNet and Image Transformer on 256x256 CelebA-HQ, our approach achieves
+an optimal linear speedup from 1 to 256 TPUv2 chips. With NUTS, we see a 100x
+speedup on GPUs over Stan and 37x over PyMC3.1
+
+1
+
+Introduction
+
+Many developments in deep learning can be interpreted as blurring the line between model and
+computation. Some have even gone so far as to declare a new paradigm of “differentiable programming,” in which the goal is not merely to train a model but to perform general program synthesis.2 In
+this view, attention [3] and gating [18] describe boolean logic; skip connections [17] and conditional
+computation [6, 14] describe control flow; and external memory [12, 15] accesses elements outside a
+function’s internal scope. Learning algorithms are also increasingly dynamic: for example, learning
+to learn [19], neural architecture search [52], and optimization within a layer [1].
+The differentiable programming paradigm encourages modelers to explicitly consider computational
+expense: one must consider not only a model’s statistical properties (“how well does the model
+capture the true data distribution?”), but its computational, memory, and bandwidth costs (“how
+efficiently can it train and make predictions?”). This philosophy allows researchers to engineer
+deep-learning systems that run at the very edge of what modern hardware makes possible.
+By contrast, the probabilistic programming community has tended to draw a hard line between
+model and computation: first, one specifies a probabilistic model as a program; second, one performs an “inference query” to automatically train the model given data [44, 33, 8]. This design
+choice makes it difficult to implement probabilistic models at truly large scales, where training multibillion parameter models requires splitting model computation across accelerators and scheduling
+communication [41]. Recent advances such as Edward [48] have enabled finer control over inference procedures in deep learning (see also [28, 7]). However, they all treat inference as a closed
+1
+All code, including experiments and more details from code snippets displayed here, is
+available at http://bit.ly/2JpFipt.
+Namespaces: import tensorflow as tf; ed=edward2;
+tfe=tf.contrib.eager. Code snippets assume tensorflow==1.12.0.
+2
+Recent advocates of this trend include Tom Dietterich (https://twitter.com/tdietterich/
+status/948811925038669824) and Yann LeCun (https://www.facebook.com/yann.lecun/posts/
+10155003011462143). It is a classic idea in the programming languages field [4].
+
+32nd Conference on Neural Information Processing Systems (NeurIPS 2018), Montréal, Canada.
+
+

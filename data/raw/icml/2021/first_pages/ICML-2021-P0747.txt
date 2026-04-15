@@ -1,0 +1,86 @@
+Asynchronous Decentralized Optimization With
+Implicit Stochastic Variance Reduction
+Kenta Niwa 1 2 Guoqiang Zhang 3 W. Bastiaan Kleijn 4
+Noboru Harada 1 2 Hiroshi Sawada 1 Akinori Fujino 1
+
+Abstract
+A novel asynchronous decentralized optimization
+method that follows Stochastic Variance Reduction (SVR) is proposed. Average consensus algorithms, such as Decentralized Stochastic Gradient
+Descent (DSGD), facilitate distributed training of
+machine learning models. However, the gradient
+will drift within the local nodes due to statistical
+heterogeneity of the subsets of data residing on
+the nodes and long communication intervals. To
+overcome the drift problem, (i) Gradient TrackingSVR (GT-SVR) integrates SVR into DSGD and
+(ii) Edge-Consensus Learning (ECL) solves a
+model constrained minimization problem using
+a primal-dual formalism. In this paper, we reformulate the update procedure of ECL such that it
+implicitly includes the gradient modification of
+SVR by optimally selecting a constraint-strength
+control parameter. Through convergence analysis
+and experiments, we confirmed that the proposed
+ECL with Implicit SVR (ECL-ISVR) is stable and
+approximately reaches the reference performance
+obtained with computation on a single-node using
+full data set.
+
+1. Introduction
+While the use of massive data benefits the training of machine learning (ML) models, aggregating all data into one
+physical location (e.g., cloud data center) may overwhelm
+available communication bandwidth and violate rules on
+consumer privacy. In the European Union’s General Data
+Protection Regulation (GDPR) (Custers et al., 2019) (article
+46), a controller or processor may transfer personal data to
+a third country or an international organization only if the
+controller or processor has provided appropriate safeguards.
+1
+NTT Communication Science Laboratories, Kyoto, Japan
+NTT Media Intelligence Laboratories, Tokyo, Japan 3 University
+of Technology Sydney, Sydney, Australia 4 Victoria University of
+Wellington, Wellington, New Zealand. Correspondence to: Kenta
+Niwa <kenta.niwa.bk@hco.ntt.co.jp>.
+2
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Our goal is to facilitate ML model training without revealing the original data from local nodes. This requires edge
+computing (e.g., (Shi et al., 2016; Mao et al., 2017; Zhou
+et al., 2019)), which brings computation and data storage
+closer to the location where it is needed.
+A representative collaborative learning algorithm is FedAvg
+(McMahan et al., 2017) for centralized networks. In FedAvg,
+the model update differences on a subset of local nodes are
+synchronously transmitted to a central server where they are
+averaged. Average consensus algorithms, such as DSGD
+(Chen & Sayed, 2012; Kar & Moura, 2013; Ram et al.,
+2010), Gossip SGD (GoSGD) (Ormándi et al., 2013; Jin
+et al., 2016; Blot et al., 2016), and related parallel algorithms
+(Sattler et al., 2019; Lim et al., 2020; Xie et al., 2019; Jiang
+et al., 2017; Lian et al., 2017; Tang et al., 2018) have been
+studied. However, it has been found empirically that these
+average consensus algorithms (even with model normalization (Li et al., 2019)) do not perform well when (i) the data
+subsets held on the local nodes are statistically heterogeneous,1 (ii) use asynchronous and/or sparse (long update
+intervals) communication between local nodes, and (iii) the
+networks have arbitrary/non-homogeneous configurations.
+In such scenarios, the gradient used for model update will
+often drift within the local nodes, resulting in either slow
+convergence or unstable iterates. An effective approach to
+overcome this issue is introduced in SCAFFOLD (Karimireddy et al., 2020), where SVR is applied to FedAvg. Later,
+the gradient control rule of SVR was applied to DSGD in
+GT-SVR (Xin et al., 2020). In GT-SVR, each local-node gradient bias is modified using expectations of both the global
+and local gradients (control variates) for each update iteration. Representative methods to calculate control variates
+are Stochastic Variance Reduced Gradient descent (SVRG)
+(Johnson & Zhang, 2013) and SAGA (Defazio et al., 2014).
+It is straightforward to include SVR in various algorithms,
+as externally calculated control variates are just added to the
+local stochastic gradient. However, there are uncertainties in
+the implementation of the control variable calculation. For
+example, SVRG updates the control variables by using first
+order local node gradients for each regular update interval,
+while a different update timing was used in SAGA.
+1
+
+This class of problems has also been referred to as ”non-IID”.
+
+

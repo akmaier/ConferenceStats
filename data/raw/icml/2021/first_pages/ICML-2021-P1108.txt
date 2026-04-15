@@ -1,0 +1,91 @@
+Deep Latent Graph Matching
+
+Tianshu Yu 1 Runzhong Wang 2 Junchi Yan 2 Baoxin Li 1
+
+Abstract
+Deep learning for graph matching (GM) has
+emerged as an important research topic due to
+its superior performance over traditional methods
+and insights it provides for solving other combinatorial problems on graph. While recent deep
+methods for GM extensively investigated effective
+node/edge feature learning or downstream GM
+solvers given such learned features, there is little
+existing work questioning if the fixed connectivity/topology typically constructed using heuristics
+(e.g., Delaunay or k-nearest) is indeed suitable for
+GM. From a learning perspective, we argue that
+the fixed topology may restrict the model capacity
+and thus potentially hinder the performance. To
+address this, we propose to learn the (distribution
+of) latent topology, which can better support the
+downstream GM task. We devise two latent graph
+generation procedures, one deterministic and one
+generative. Particularly, the generative procedure
+emphasizes the across-graph consistency and thus
+can be viewed as a matching-guided co-generative
+model. Our methods deliver superior performance
+over previous state-of-the-arts on public benchmarks, hence supporting our hypothesis.
+
+1. Introduction
+With the strong learning ability of deep networks, recent
+research on graph matching (GM) has migrated from traditional deterministic optimization (Schellewald & Schnörr,
+2005; Cho et al., 2010; Zhou et al., 2015) towards learningbased methods (Zanfir & Sminchisescu, 2018; Wang et al.,
+2019; Yu et al., 2020). GM is a classic combinatorial and
+NP-hard problem (Loiola et al., 2007). As the mathematical cornerstone for a series of real-world applications (e.g.,
+image matching (Wang et al., 2018b), social mining (Chiasserini et al., 2018) and protein matching (Krissinel & Hen1
+Arizona State University 2 Shanghai Jiao Tong University. Correspondence to: Tianshu Yu <tianshuy@asu.edu>, Baoxin Li
+<baoxin.li@asu.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+rick, 2004)), GM has received persistent attention from the
+machine learning and optimization communities for many
+years. Formally, for two graphs with n nodes each, graph
+matching seeks to solve1 :
+max z> Mz
+z
+
+s.t.
+
+Z ∈ {0, 1}n×n ,
+2
+
+Hz = 1
+
+(1)
+
+2
+
+where the affinity matrix M ∈ Rn+ ×n encodes node (diagonal elements) and edge (off-diagonal elements) affinities/similarities and z is the column-wise vectorization form
+of the permutation matrix Z. H is a selection matrix ensuring each row and column of Z summing to 1. 1 is a column
+vector filled with 1. Eq. (1) is the so-called quadratic assignment problem (QAP) (Cho et al., 2010). Maximizing
+Eq. (1) amounts to maximizing the sum of the similarity
+induced by the matching vector Z.
+Recently, deep learning based GM solvers (Zanfir & Sminchisescu, 2018; Wang et al., 2019; Yu et al., 2020; Fey et al.,
+2020; Rolı́nek et al., 2020) have enabled end-to-end training
+of GM on high-quality human labelled datasets (e.g., Pascal
+VOC (Everingham et al., 2010; Bourdev & Malik, 2009) and
+SPair-71k (Min et al., 2019)), which greatly improved the
+model capacity. Any of the aforementioned deep GM algorithms behaves as an integral framework, of which the main
+parts cover topology construction2 , feature extraction and
+differentiable GM solver. In this line of works, affinity M
+(see Eq. (1)) is not obtained beforehand, but calculated using node/edge features from some feature backbones given
+heuristically constructed connectivity, then fed to subsequent GM solvers. Therefore, recent investigation on deep
+GM frameworks typically focuses on two essential parts: 1)
+node/edge feature backbone (e.g., graph convolutional networks (Wang et al., 2019), channel-independent embedding
+(Yu et al., 2020) and SplineCNN (Fey et al., 2018)); 2) GM
+solvers (e.g., spectral (Zanfir & Sminchisescu, 2018), linear
+(Wang et al., 2019) and black-box (Pogancic et al., 2020)).
+In particular, since the feature backbones are variants of
+1
+Without loss of generality, we discuss graph matching under
+the setting of equal number of nodes without outliers. The unequal
+case can be readily handled by introducing extra constraints or
+dummy nodes. Bipartite matching and graph isomorphism are
+subsets of this quadratic formulation (Loiola et al., 2007).
+2
+Topology in some GM problems is pre-defined and needs to
+be fixed, such as graph isomorphism. In this paper, we consider a
+more generic case where topology construction is necessary.
+
+

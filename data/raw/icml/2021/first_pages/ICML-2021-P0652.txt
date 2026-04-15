@@ -1,0 +1,72 @@
+Variance Reduced Training with Stratiﬁed Sampling
+for Forecasting Models
+Yucheng Lu 1 2 Youngsuk Park 2 Lifan Chen 2 Yuyang Wang 2 Christopher De Sa 1 Dean Foster 3 4
+
+Abstract
+In large-scale time series forecasting, one often encounters the situation where the temporal patterns
+of time series, while drifting over time, differ from
+one another in the same dataset. In this paper, we
+provably show under such heterogeneity, training
+a forecasting model with commonly used stochastic optimizers (e.g. SGD) potentially suffers large
+variance on gradient estimation, and thus incurs
+long-time training. We show that this issue can
+be efﬁciently alleviated via stratiﬁcation, which
+allows the optimizer to sample from pre-grouped
+time series strata. For better trading-off gradient
+variance and computation complexity, we further
+propose SCott (Stochastic Stratiﬁed Control Variate Gradient Descent), a variance reduced SGDstyle optimizer that utilizes stratiﬁed sampling via
+control variate. In theory, we provide the convergence guarantee of SCott on smooth non-convex
+objectives. Empirically, we evaluate SCott and
+other baseline optimizers on both synthetic and
+real-world time series forecasting problems, and
+demonstrate SCott converges faster with respect
+to both iterations and wall clock time.
+
+1. Introduction
+Large-scale time series forecasting is prevalent in many
+real-world applications, such as trafﬁc ﬂow prediction (Vlahogianni et al., 2014), stock price monitoring (Box et al.,
+2011), weather forecasting (Xu et al., 2019), etc. Traditional forecasting models such as SSM (Durbin & Koopman,
+2012), ARIMA (Zhang, 2003), ETS (De Livera et al., 2011)
+and Gaussian Processes (Brahim-Belhouari & Bermak,
+This work was done during Yucheng Lu’s internship at Amazon. Lifan Chen participated in this work while he was with
+Amazon. 1 Department of Computer Science, Cornell University, Ithaca, NY, USA. 2 Amazon Web Services (AWS) AI Labs,
+Palo Alto, CA, USA. 3 Amazon Research, New York, NY, USA.
+4
+University of Pennsylvania, Philadelphia, PA, USA. Correspondence to: Yucheng Lu <yl2967@cornell.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+2004) are the folklore methods for modeling the dynamics
+of a single time series. Recently, deep forecasting models
+(Faloutsos et al., 2019) that leverage deep learning techniques have been proven to be particularly well-suited at
+modeling over an entire collection of time series (Rangapuram et al., 2018; Wang et al., 2019; Salinas et al., 2020). In
+such setting, multiple time series are jointly learned, which
+enables forecasting over a large scope.
+In practice, a time series dataset can be heterogeneous with
+respect to a single forecasting model (Lee et al., 2018).
+The heterogeneity here speciﬁcally indicates the underlying
+distribution of interests may vary across different time series instances due to local effects (Wang et al., 2019; Sen
+et al., 2019); or is correlated to time in each time series
+individually – a phenomenon we refer to as concept drift
+(Gama et al., 2014). In light of this, a seemingly plausible solution is to maintain multiple forecasters. However,
+in most applications training a single model is inevitable
+since deploying multiple models incurs storage overhead
+and sometimes generalizes worse (Montero-Manso & Hyndman, 2020; Oreshkin et al., 2019; Gasthaus et al., 2019).
+As a ﬁrst investigation in this paper, we provably show
+the time series heterogeneity can induce arbitrarily large
+gradient estimation variance in many optimizers, including
+SGD (Bottou, 2010), Adam (Kingma & Ba, 2014), AdaGrad
+(Ward et al., 2019), etc.
+Extensive study has been conducted on reducing gradient
+estimation variance in stochastic optimization such as using
+mini-batching (Gower et al., 2019), control variate (Johnson & Zhang, 2013) and importance sampling (Csiba &
+Richtárik, 2018). These methods are mostly motivated by
+optimization theory and do not consider time series heterogeneity at a ﬁner-grained level. In this paper, we take a
+different perspective: observing that the distribution of interests in time series is usually recurring over time horizon
+or is correlated over instances (Liao, 2005; Aghabozorgi
+et al., 2015; Maharaj et al., 2019), we argue gradient variance induced by time series heterogeneity can be mitigated
+via stratiﬁcation. Speciﬁcally, the intuition is that if we can
+somehow stratify the time series into multiple strata where
+each stratum contains homogeneous series, then the variance on the gradient estimation can be provably reduced via
+
+

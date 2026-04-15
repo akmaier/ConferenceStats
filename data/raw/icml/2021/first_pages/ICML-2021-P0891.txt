@@ -1,0 +1,77 @@
+Accelerating Feedforward Computation via
+Parallel Nonlinear Equation Solving
+
+Yang Song 1 Chenlin Meng 1 Renjie Liao 2 3 Stefano Ermon 1
+
+Abstract
+Feedforward computation, such as evaluating a
+neural network or sampling from an autoregressive model, is ubiquitous in machine learning.
+The sequential nature of feedforward computation,
+however, requires a strict order of execution and
+cannot be easily accelerated with parallel computing. To enable parallelization, we frame the task
+of feedforward computation as solving a system
+of nonlinear equations. We then propose to find
+the solution using a Jacobi or Gauss-Seidel fixedpoint iteration method, as well as hybrid methods
+of both. Crucially, Jacobi updates operate independently on each equation and can be executed
+in parallel. Our method is guaranteed to give exactly the same values as the original feedforward
+computation with a reduced (or equal) number of
+parallelizable iterations, and hence reduced time
+given sufficient parallel computing power. Experimentally, we demonstrate the effectiveness
+of our approach in accelerating (i) backpropagation of RNNs, (ii) evaluation of DenseNets, and
+(iii) autoregressive sampling of MADE and PixelCNN++, with speedup factors between 2.1 and
+26 under various settings.
+
+1. Introduction
+With sufficient parallel computing resources, we can certainly accelerate any algorithm with a parallelizable component. However, many machine learning algorithms heavily
+rely on a seemlingly non-parallelizable part—feedforward
+computation. To evaluate the output of a neural network,
+layers are computed one after the other in a feedforward fashion. To sample text from an autoregressive model, words
+1
+Computer Science Department, Stanford Univer2
+sity.
+Department of Computer Science, University of
+3
+Toronto.
+Vector Institute.
+Correspondence to: Yang
+Song <yangsong@cs.stanford.edu>, Stefano Ermon <ermon@cs.stanford.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+are generated in sequence one by one. Because of the inherently sequential nature, it is difficult to directly perform
+feedforward computation in parallel—how can one output
+a label before any intermediate features are extracted, or
+generate the last word in a sentence before having seen the
+initial part?
+At first sight, the idea of executing in parallel the various
+steps that comprise a feedforward computation procedure
+seems hopeless. Indeed, the task is clearly impossible in
+general. Machine learning workloads, however, have special
+properties that make the idea viable in some cases. First,
+computations are numerical in nature, and can tolerate small
+approximation errors. For example, it is acceptable if a faster
+method produces image samples at the cost of small imperceptible errors. Second, computations have been learned
+from data rather than designed by hand. As a result, they
+might involve unnecessary steps, and have dependencies between the various (sequential) stages that are weak enough
+to be ignored without significantly affecting the final results.
+Although we might not be able to explicitly characterize this
+structure of redundant dependencies, as long as it is present,
+we can design methods to take advantage of it.
+Based on these insights, we propose an approach to accelerate feedforward computation with parallelism. Despite
+not beneficial for certain types of feedforward computation,
+it works well for many cases of practical interest in machine learning. Our key idea is to interpret feedforward
+computation as solving a triangular system of nonlinear
+equations, and use efficient numerical solvers to find the
+solution. This is advantageous because (i) many numerical
+equation solvers can be easily parallelized; and (ii) iterative
+numerical equation solvers generate a sequence of intermediate solutions of increasing quality, so we can use early
+stopping to trade off approximation error with computation
+time. In particular, we propose to find the solution of the
+triangular system using nonlinear Jacobi and Gauss-Seidel
+(GS) methods (Ortega & Rheinboldt, 1970). Crucially, Jacobi iterations update each state independently and can be
+naturally executed in parallel. Moreover, we show feedforward computation corresponds to GS iterations, and can be
+combined with Jacobi iterations to build hybrid methods
+that interpolate between them.
+
+

@@ -1,0 +1,71 @@
+ASAP.SGD: Instance-based Adaptiveness to Staleness in Asynchronous SGD
+
+Karl Bäckström 1 Marina Papatriantafilou 1 Philippas Tsigas 1
+
+Abstract
+Concurrent algorithmic implementations of
+Stochastic Gradient Descent (SGD) give rise to
+critical questions for compute-intensive Machine
+Learning (ML). Asynchrony implies speedup
+in some contexts, and challenges in others,
+as stale updates may lead to slower, or nonconverging executions. While previous works
+showed asynchrony-adaptiveness can improve stability and speedup by reducing the step size for
+stale updates according to static rules, there is no
+one-size-fits-all adaptation rule, since the optimal
+strategy depends on several factors. We introduce
+(i) ASAP.SGD, an analytical framework capturing necessary and desired properties of stalenessadaptive step size functions and (ii) TAIL-τ , a
+method for utilizing key properties of the execution instance, generating a tailored strategy
+that not only dampens the impact of stale updates, but also leverages fresh ones. We recover convergence bounds for adaptiveness functions satisfying the ASAP.SGD conditions, for general, convex and non-convex problems, and establish novel bounds for ones satisfying the PolyakLojasiewicz property. We evaluate TAIL-τ with
+representative AsyncSGD concurrent algorithms,
+for Deep Learning problems, showing TAIL-τ is a
+vital complement to AsyncSGD, with (i) persistent
+speedup in wall-clock convergence time in the parallelism spectrum, (ii) considerably lower risk of
+non-convergence, as well as (iii) precision levels
+for which original SGD implementations fail.
+
+1. Introduction
+The ascending interest in concurrent SGD is due to the
+explosion of data volumes, requiring scalable systems to
+process them in ML and Artificial Neural Network (ANN)
+1
+
+Department of Computer Science and Engineering, Chalmers
+University of Technology, Gothenburg, Sweden. Correspondence
+to: Karl Bäckström <bakarl@chalmers.se>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+applications. However, parallelization of the inherently
+sequential SGD process is non-trivial since each iteration
+requires the computation of the previous one. Besides
+understanding the dynamics of such executions, achieving
+resource-efficiency is a known significant target, since it can
+imply significant improvements in energy efficiency.
+Traditional synchronous SGD (SyncSGD) conforms to the
+sequential SGD semantics by employing iteration-level parallelism, and lock-step-style synchronization. In practice,
+SyncSGD accelerates updates by data-parallel concurrent
+gradient computation, e.g. by GPU-acceleration, or aggregating gradient contributions in distributed settings. SyncSGD improves computational efficiency up to a point, but
+suffers direct limitations, as each iteration is at least as slow
+as the slowest contributing worker. However, from an optimization standpoint SyncSGD is analogous to sequential
+SGD, with well-understood convergence properties.
+In contrast, asynchronous concurrent SGD (AsyncSGD) introduces a higher-level parallelism by relaxing the sequential
+SGD semantics, allowing asynchronous reads/updates on
+the shared ML model θ. Consequently, AsyncSGD provides
+computational benefits, however at the price of asynchronyinduced noise due to the staleness τ that arises when updates
+are not applied to the same states based on which they were
+computed, but instead on ones that have been updated τ
+times in-between. It was within convex optimization, targeting primarily regression problems (Zinkevich et al., 2009;
+2010), where it was shown that the asynchrony-induced
+noise had small impact on the quality of the updates, and
+that the computational benefits of reduced synchronization
+provided speedup for certain problems. A relevant example
+is H OGWILD ! which, with only component-wise atomic access to θ (i.e. relaxed consistency by not ensuring atomicity
+for the complete vector) showed almost-linear speedup for
+strongly convex and sparse problems (Recht et al., 2011; Alistarh et al., 2018; Nguyen et al., 2018). Asymptotic bounds
+for AsyncSGD were similarly established under strong
+convexity and smoothness assumptions, and for non-convex
+problems, such as matrix completion (De Sa et al., 2015).
+However, these analytical confinements make the concluding outcomes non-applicable for a wider class of applications, including Deep Learning (DL), characterized by inherent non-convexity. This is confirmed in recent works (Wei
+et al., 2019; Bäckström et al., 2019; Lopez et al., 2020; Bäck-
+
+

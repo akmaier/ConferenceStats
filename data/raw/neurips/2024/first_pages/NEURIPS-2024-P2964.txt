@@ -1,0 +1,60 @@
+Normalization Layer Per-Example Gradients are
+Sufficient to Predict Gradient Noise Scale in
+Transformers
+Gavia Gray
+Cerebras Systems
+Toronto, Canada
+gavia.gray@cerebras.net
+
+Aman Tiwari
+Subjective
+London, UK
+
+Shane Bergsma
+Cerebras Systems
+Toronto, Canada
+
+Joel Hestness
+Cerebras Systems
+Sunnyvale, CA
+
+Abstract
+Per-example gradient norms are a vital ingredient for estimating gradient noise
+scale (GNS) with minimal variance. Observing the tensor contractions required to
+compute them, we propose a method with minimal FLOPs in 3D or greater tensor
+regimes by simultaneously computing the norms while computing the parameter
+gradients. Using this method we are able to observe the GNS of different layers at
+higher accuracy than previously possible. We find that the total GNS of contemporary transformer models is predicted well by the GNS of only the normalization
+layers. As a result, focusing only on the normalization layer, we develop a custom
+kernel to compute the per-example gradient norms while performing the LayerNorm backward pass with zero throughput overhead. Tracking GNS on only those
+layers, we are able to guide a practical batch size schedule that reduces training
+time by 18% on a Chinchilla-optimal language model.
+
+1
+
+Introduction
+
+The gradients gathered during the backward pass while training a neural network are typically
+inspected via their Frobenius norm, the magnitude of the vector. This gradient vector may be viewed
+as the sum of gradients computed over each individual example in the minibatch. Each of these has
+its own norm. In this work, we develop a method to access these norms that works at any scale, for
+three common layer types in deep learning models: linear, normalization and embedding layers.
+One primary application of a per-example gradient norm is in estimating the Gradient Noise Scale
+(GNS) [39], a metric that has been shown to be useful in training large scale models [9]. The
+uncertainty of the GNS estimator depends directly on the size of the batch used to compute the small
+batch gradient norm as shown in Section 2.1. So, the most precise estimate of the GNS is obtained by
+computing the gradient norms for each example in the minibatch: the per-example gradient norm.
+To demonstrate GNS measurement in practice we perform experiments on contemporary language
+model architectures, providing a detailed visualisation of the movement of the GNS components
+throughout training, presented in Section 4. By inspecting these components it was found that the
+GNS of the model is highly correlated between layer types, which we give an intuition for in Figure 1.
+However, the practical utility of measuring GNS with per-example gradient norms is only present if it
+can be gathered without affecting training time. Focusing on LayerNorm [4] layers, we note the main
+speed bottleneck is the memory I/O when not implemented as a fused kernel. To demonstrate this,
+we develop a custom kernel to compute both the backward pass and the per-example gradient norms
+at the same time. Using this kernel the throughput overhead of gathering the per-example gradient is
+zero, even outperforming PyTorch’s LayerNorm at larger dimensions. We apply this to a practical
+batch size schedule case study in Section 5.
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

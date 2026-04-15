@@ -1,0 +1,53 @@
+Patching open-vocabulary models
+by interpolating weights
+
+Gabriel Ilharco∗1 Mitchell Wortsman∗1 Samir Yitzhak Gadre∗2 Shuran Song2
+Hannaneh Hajishirzi1,3 Simon Kornblith4 Ali Farhadi1 Ludwig Schmidt1,3
+1
+University of Washington 2 Columbia University 3 AI2 4 Google Research, Brain Team
+
+Abstract
+Open-vocabulary models like CLIP achieve high accuracy across many image
+classification tasks. However, there are still settings where their zero-shot performance is far from optimal. We study model patching, where the goal is to improve
+accuracy on specific tasks without degrading accuracy on tasks where performance
+is already adequate. Towards this goal, we introduce PAINT, a patching method
+that uses interpolations between the weights of a model before fine-tuning and
+the weights after fine-tuning on a task to be patched. On nine tasks where zeroshot CLIP performs poorly, PAINT increases accuracy by 15 to 60 percentage
+points while preserving accuracy on ImageNet within one percentage point of the
+zero-shot model. PAINT also allows a single model to be patched on multiple
+tasks and improves with model scale. Furthermore, we identify cases of broad
+transfer, where patching on one task increases accuracy on other tasks even when
+the tasks have disjoint classes. Finally, we investigate applications beyond common
+benchmarks such as counting or reducing the impact of typographic attacks on
+CLIP. Our findings demonstrate that it is possible to expand the set of tasks on
+which open-vocabulary models achieve high accuracy without re-training them
+from scratch.
+
+1
+
+Introduction
+
+Open-vocabulary models are characterized by their ability to perform any image classification task
+based on text descriptions of the classes [56]. Thanks to advances in large-scale pre-training, recent
+examples of open-vocabulary models such as CLIP and BASIC have reached parity with or surpassed
+important task-specific baselines, even when the open-vocabulary models are not fine-tuned on
+task-specific data (i.e., in a zero-shot setting) [57, 31, 56, 88, 1, 86]. For instance, the largest CLIP
+model from Radford et al. [57] used in a zero-shot setting matches the ImageNet accuracy of a
+ResNet-50 trained on 1.2 million ImageNet images [14, 24].
+Nevertheless, current open-vocabulary models still face challenges. The same CLIP model that
+matches a ResNet-50 on ImageNet has lower MNIST accuracy than simple logistic regression in
+pixel space [57]. Moreover, even when zero-shot models achieve good performance, they are usually
+still worse than models trained or fine-tuned on specific downstream tasks.
+To address these issues, several authors have proposed methods for adapting zero-shot models to a task
+of interest using labeled data [82, 91, 21, 89, 37, 73]. A common practice is to fine-tune the zero-shot
+model on the task of interest [82, 56]. However, fine-tuned models can suffer from catastrophic
+forgetting [48, 76, 20, 33], performing poorly on tasks where the zero-shot model initially performed
+well [2, 82, 56]. Additionally, fine-tuning typically produces a task-specific classification head,
+sacrificing the flexible text-based API that makes open-vocabulary models so appealing. Whereas
+an open-vocabulary model can perform any classification task in a zero-shot fashion, a fine-tuned
+∗
+Equal contribution. Code available at https://github.com/mlfoundations/patching. Correspondance to {gamaga,mitchnw,schmidt}@cs.washington.edu, sy@cs.columbia.edu.
+
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+

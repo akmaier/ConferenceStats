@@ -1,0 +1,81 @@
+Shampoo: Preconditioned Stochastic Tensor Optimization
+
+Vineet Gupta 1 Tomer Koren 1 Yoram Singer 2 1
+
+Abstract
+Preconditioned gradient methods are among the
+most general and powerful tools in optimization.
+However, preconditioning requires storing and
+manipulating prohibitively large matrices. We describe and analyze a new structure-aware preconditioning algorithm, called Shampoo, for stochastic
+optimization over tensor spaces. Shampoo maintains a set of preconditioning matrices, each of
+which operates on a single dimension, contracting over the remaining dimensions. We establish
+convergence guarantees in the stochastic convex
+setting, the proof of which builds upon matrix
+trace inequalities. Our experiments with stateof-the-art deep learning models show that Shampoo is capable of converging considerably faster
+than commonly used optimizers. Surprisingly,
+although it involves a more complex update rule,
+Shampoo’s runtime per step is comparable in practice to that of simple gradient methods such as
+SGD, AdaGrad, and Adam.
+
+1. Introduction
+Over the last decade, stochastic first-order optimization
+methods have emerged as the canonical tools for training
+large-scale machine learning models. These methods are
+particularly appealing due to their wide applicability and
+their low runtime and memory costs.
+A potentially more powerful family of algorithms consists of
+preconditioned gradient methods. Preconditioning methods
+maintain a matrix, termed a preconditioner, which is used
+to transform (i.e., premultiply) the gradient vector before
+it is used to take a step. Classic algorithms in this family
+include Newton’s method, which employs the local Hessian
+as a preconditioner, as well as a plethora of quasi-Newton
+methods (e.g., Fletcher, 2013; Lewis and Overton, 2013;
+1 Google Brain, Mountain View, CA, USA 2 Princeton University, Princeton, NJ, USA. Correspondence to: Tomer Koren
+<tkoren@google.com>.
+
+Proceedings of the 35th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+Nocedal, 1980) that can be used whenever second-order
+information is unavailable or too expensive to compute.
+Newer additions to this family are preconditioned online
+algorithms, most notably AdaGrad (Duchi et al., 2011), that
+use the covariance matrix of the accumulated gradients to
+form a preconditioner.
+While preconditioned methods often lead to improved convergence properties, the dimensionality of typical problems
+in machine learning prohibits out-of-the-box use of fullmatrix preconditioning. To mitigate this issue, specialized
+variants have been devised in which the full preconditioner
+is replaced with a diagonal approximation (Duchi et al.,
+2011; Kingma and Ba, 2014), a sketched version (Gonen
+and Shalev-Shwartz, 2015; Pilanci and Wainwright, 2017),
+or various estimations thereof (Erdogdu and Montanari,
+2015; Agarwal et al., 2016; Xu et al., 2016). While the
+diagonal methods are heavily used in practice thanks to their
+favorable scaling with the dimension, the other approaches
+are seldom practical at large scale as one typically requires
+a fine approximation (or estimate) of the preconditioner that
+often demands super-linear memory and computation.
+In this paper, we take an alternative approach to preconditioning and describe an efficient and practical apparatus that
+exploits the structure of the parameter space. Our approach
+is motivated by the observation that in numerous machine
+learning applications, the parameter space entertains a more
+complex structure than a monolithic vector in Euclidean
+space. In multiclass problems the parameters form a matrix
+of size m × n where m is the number of features and n is
+the number of classes. In neural networks, the parameters
+of each fully-connected layer form an m × n matrix with n
+being the number of input nodes and m is the number of
+outputs. The space of parameters of convolutional neural
+networks for images is a collection of 4 dimensional tensors
+of the form input-depth × width × height × output-depth.
+As a matter of fact, machine learning software tools such as
+Torch and TensorFlow are designed with tensor structure in
+mind.
+Our algorithm, which we call Shampoo,1 retains the tensor
+structure of the gradient and maintains a separate preconditioner matrix for each of its dimensions. An illustration of
+Shampoo is provided in Figure 1. The set of preconditioners
+1We call it Shampoo because it has to do with pre-conditioning.
+
+

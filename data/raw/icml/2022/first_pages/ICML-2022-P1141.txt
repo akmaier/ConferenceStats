@@ -1,0 +1,82 @@
+Adaptive Conformal Predictions for Time Series
+
+Margaux Zaffran 1 2 3 Olivier Féron 1 4 Yannig Goude 1 5 Julie Josse 2 6 Aymeric Dieuleveut 3
+
+Abstract
+Uncertainty quantification of predictive models is
+crucial in decision-making problems. Conformal
+prediction is a general and theoretically sound
+answer. However, it requires exchangeable data,
+excluding time series. While recent works tackled
+this issue, we argue that Adaptive Conformal Inference (ACI, Gibbs & Candès, 2021), developed
+for distribution-shift time series, is a good procedure for time series with general dependency.
+We theoretically analyse the impact of the learning rate on its efficiency in the exchangeable and
+auto-regressive case. We propose a parameter-free
+method, AgACI, that adaptively builds upon ACI
+based on online expert aggregation. We lead extensive fair simulations against competing methods that advocate for ACI’s use in time series. We
+conduct a real case study: electricity price forecasting. The proposed aggregation algorithm provides efficient prediction intervals for day-ahead
+forecasting. All the code and data to reproduce
+the experiments are made available on GitHub.
+
+1. Introduction
+The increasing use of renewable intermittent energy leads
+to more dependent and volatile energy markets. Therefore,
+an accurate electricity price forecasting is required to stabilize energy production planning, gathering loads of research
+work as evidenced by recent substantial reviews (Weron,
+2014; Lago et al., 2018; 2021). Furthermore, probabilistic
+forecasts are needed to develop risk-based strategies (Gaillard et al., 2016; Maciejowska et al., 2016; Nowotarski &
+Weron, 2018; Uniejewski & Weron, 2021). On the one hand,
+the lack of uncertainty quantification of predictive models is
+1
+
+Electricité de France R&D, Palaiseau, France 2 INRIA SophiaAntipolis, Montpellier, France 3 CMAP, École Polytechnique, Institut Polytechnique de Paris, Palaiseau, France 4 FiME, Université
+Paris-Dauphine, France 5 LMO, Université Paris-Saclay, Orsay,
+France 6 IDESP, Montpellier, France. Correspondence to: Margaux
+Zaffran <margaux.zaffran@inria.fr>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+a major barrier to the adoption of powerful machine learning
+methods. On the other hand, probabilistic forecasts are only
+valid asymptotically or upon strong assumptions on the data.
+Conformal prediction (CP, Vovk et al., 1999; 2005; Papadopoulos et al., 2002) is a promising framework to overcome both issues. It is a general procedure to build predictive intervals for any (black box) predictive model, such
+as neural networks, which are valid (i.e. achieve nominal
+marginal coverage) in finite sample and without any distributional assumptions except that the data are exchangeable.
+Thereby, CP has received increasing attention lately, favored
+by the development of split conformal prediction (SCP, Lei
+et al., 2018, reformulated from inductive CP, Papadopoulos
+et al., 2002). More formally, suppose we have n training
+samples (xi , yi ) ∈ Rd × R, i ∈ J1, nK, realizations of
+random variables (X1 , Y1 ), . . . , (Xn , Yn ), and that we aim
+at predicting a new observation yn+1 at xn+1 . Given a
+miscoverage rate α ∈ [0, 1] fixed by the user (typically 0.1
+or 0.05) the aim is to build a predictive interval Cα such that:
+P {Yn+1 ∈ Cα (Xn+1 )} ≥ 1 − α,
+
+(1)
+
+with Cα as small as possible, in order to be informative. For
+the sequel, we call a valid interval an interval satisfying
+equation (1) and an efficient interval when it is as small as
+possible (Vovk et al., 2005; Shafer & Vovk, 2008).
+To achieve this, SCP first splits the n points of the training set into two sets Tr, Cal ⊂ J1, nK, to create a proper
+training set, Tr, and a calibration set, Cal. On the proper
+training set a regression model µ̂ (chosen by the user) is
+fitted, and then used to predict on the calibration set. A conformity score is applied to assess the conformity between the
+calibration’s response values and the predicted values, giving SCal = {(si )i∈Cal }. In regression, usually the absolute
+value of the residuals is used, i.e. si = |µ̂(xi ) − yi |. Finally,
+b 1−α̂ (SCal )
+a corrected1 (1 − α̂)-th quantile of these scores Q
+is computed to define the size of the interval, which,
+in its simplest form, is centered on the predicted value:
+bα̂ (xn+1 ) := [µ̂(xn+1 ) ± Q
+b 1−α̂ (SCal )].
+Cα (xn+1 ) = C
+These steps are detailed in Appendix A, and illustrated in
+Figure 9. More details on CP, including beyond regres1
+
+The correction α → α̂ is needed because of the inflation of
+quantiles in finite sample (see Lemma 2 in Romano et al. (2019)
+or Section 2 in Lei et al. (2018)).
+
+

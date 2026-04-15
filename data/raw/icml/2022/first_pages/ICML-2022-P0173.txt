@@ -1,0 +1,74 @@
+From block-Toeplitz matrices to differential equations on graphs: towards a
+general theory for scalable masked Transformers
+
+Krzysztof Choromanski * 1 2 Han Lin * 2 Haoxian Chen * 2 Tianyi Zhang 2 Arijit Sehanobish 3
+Valerii Likhosherstov 4 Jack Parker-Holder 5 Tamas Sarlos 6 Adrian Weller 4 7 Thomas Weingarten 8
+
+Abstract
+In this paper we provide, to the best of our knowledge, the first comprehensive approach for incorporating various masking mechanisms into
+Transformers architectures in a scalable way. We
+show that recent results on linear causal attention
+(Choromanski et al., 2021) and log-linear RPEattention (Luo et al., 2021) are special cases of this
+general mechanism. However by casting the problem as a topological (graph-based) modulation of
+unmasked attention, we obtain several results unknown before, including efficient d-dimensional
+RPE-masking and graph-kernel masking. We
+leverage many mathematical techniques ranging
+from spectral analysis through dynamic programming and random walks to new algorithms for
+solving Markov processes on graphs. We provide
+a corresponding empirical evaluation.
+
+1. Introduction & Related Work
+Transformers (Vaswani et al., 2017; Brown et al., 2020; Devlin et al., 2019) have revolutionized machine learning by
+reintroducing an attention mechanism explicitly modeling
+complicated relationships between elementary ingredients
+of the ML models’ inputs, e.g. words for text data, or
+patches/pixels for the image data (Han et al., 2020; Dosovitskiy et al., 2021). Crucially, attention quantifies these
+relationships via dynamic weights that depend on the input
+data. This architectural solution is the strength and at the
+same time the weakness of Transformer models. An attention matrix scales quadratically in the length of the input
+sequence, making corresponding computations prohibitively
+expensive for longer inputs.
+*
+
+Equal contribution 1 Google Brain Robotics 2 Columbia
+University 3 Independent Researcher 4 University of Cambridge
+5
+University of Oxford 6 Google Research 7 The Alan Turing Institute 8 Google. Correspondence to: Krzysztof Choromanski
+<kchoro@google.com>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+Several solutions were proposed to address this limitation.
+Local attention (Vaswani et al., 2021; Parmar et al., 2019)
+explicitly narrows down the attention context to a fixed-size
+window, effectively zeroing out most attention weights. In
+applications where long-range attention is crucial (e.g. protein modeling), other techniques were introduced. These
+include: (1) pooling mechanisms compressing sequences to
+shorter-ones agglomerating multiple-tokens signal (Avsec
+et al., 2021; Dai et al., 2020), (2) hashing/clustering methods
+sparsifying attention by giving up attention modeling for tokens from different learnable hash-buckets/clusters (Kitaev
+et al., 2020; Roy et al., 2021), (3) low-rank/kernel-based
+methods decomposing the attention matrix (Choromanski
+et al., 2020; 2021; Katharopoulos et al., 2020; Peng et al.,
+2021; Xiong et al., 2021) and other (Qin et al., 2022).
+Masking is a powerful mechanism altering the attention
+matrix by incorporating structural inductive bias. Flagship
+examples include (1) causal attention, applied in generative
+Transformers (Yang et al., 2019), where the arrow of time
+induces token-ordering with tokens not attending to their
+successors in the sequences, (2) relative positional encoding
+(RPE, Shaw et al., 2018) reducing interactions between distant tokens (but via a much more general mechanism than
+local attention) and (3) graph attention incorporating topological signal from the graph (Ying et al., 2021b; Velickovic
+et al., 2018). RPE-mechanisms were shown to significantly
+improve speech models (Pham et al., 2020; Zhou et al.,
+2019) and masks obtained from shortest-path length matrices were recently demonstrated to close the gap between the
+best customized graph neural networks models and Transformers (Ying et al., 2021a). Straightforward application
+of the masking mechanism requires materialization of the
+attention matrix and consequently - impractical quadratic
+time complexity for long input sequences (or large graphs).
+In this paper we aim to answer the following question: Under which conditions can masking be incorporated into attention mechanisms in a scalable way, i.e. in sub-quadratic
+time complexity in the number of input tokens?
+So far this question was answered only partially. Causality
+was incorporated in linear time into linear low-rank attention via the so-called prefix sum mechanism by Choroman-
+
+

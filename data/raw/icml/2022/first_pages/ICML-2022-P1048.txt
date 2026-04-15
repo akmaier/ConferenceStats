@@ -1,0 +1,95 @@
+Leverage Score Sampling for Tensor Product Matrices in Input Sparsity Time
+
+David P. Woodruff * 1 Amir Zandieh * 2
+
+Abstract
+We propose an input sparsity time sampling algorithm that can spectrally approximate the Gram
+matrix corresponding to the q-fold column-wise
+tensor product of q matrices using a nearly optimal number of samples, improving upon all previously known methods by poly(q) factors. Furthermore, for the important special case of the
+q-fold self-tensoring of a dataset, which is the
+feature matrix of the degree-q polynomial kernel, the leading term of our method’s runtime is
+proportional to the size of the input dataset and
+has no dependence on q. Previous techniques
+either incur poly(q) slowdowns in their runtime
+or remove the dependence on q at the expense
+of having sub-optimal target dimension, and depend quadratically on the number of data-points
+in their runtime. Our sampling technique relies
+on a collection of q partially correlated random
+projections which can be simultaneously applied
+to a dataset X in total time that only depends on
+the size of X, and at the same time their q-fold
+Kronecker product acts as a near-isometry for any
+fixed vector in the column span of X ⊗q . We also
+show that our sampling methods generalize to
+other classes of kernels beyond polynomial, such
+as Gaussian and Neural Tangent kernels.
+
+1. Introduction
+In many learning problems such as regression or PCA, one is
+given a feature (or design) matrix Φ ∈ Rm×n and needs to
+compute the inverse or singular value decomposition (SVD)
+of the Gram matrix Φ⊤ Φ. However, the feature matrices Φ,
+particularly the features that correspond to kernel functions,
+often have a massive (sometimes infinite) number of rows,
+which makes the storage and computations involving Φ⊤ Φ
+*
+Equal contribution 1 Max-Planck-Institut für Informatik
+Carnegie Mellon University. Correspondence to: David Woodruff
+<dwoodruf@cs.cmu.edu>, Amir Zandieh <azandieh@mpiinf.mpg.de>.
+2
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+prohibitively expensive. This has motivated a long line of
+work on approximating the Gram matrix Φ⊤ Φ by a low-rank
+matrix (Williams & Seeger, 2001; Rahimi & Recht, 2009;
+Avron et al., 2014; El Alaoui & Mahoney, 2014; Cohen
+et al., 2015; Musco & Musco, 2017; Avron et al., 2017).
+In this work, we focus on feature matrices whose columns
+are tensor products of a large number of arbitrary vectors, i.e., Φ = X (1) ⊗ X (2) ⊗ . . . X (q) for datasets
+X (1) , . . . X (q) ∈ Rd×n (for tensor product notations see
+Definitions 2.1 and 2.2). Note that the tensor product matrix
+Φ defined this way has dq rows and n columns. This type
+of tensor product feature matrix Φ is of great importance in
+learning applications, particularly because the special case
+of X (1) = · · · = X (q) corresponds to the feature matrix of
+the degree-q polynomial kernel, i.e., the Gram matrix Φ⊤ Φ
+is the degree-q polynomial kernel matrix. To tackle scalability challenges, much work has focused on compressing the
+large number of rows of such tensor product feature matrices through linear sketching or sampling techniques (Pham
+& Pagh, 2013; Avron et al., 2014; Ahle et al., 2020; Meister
+et al., 2019; Zandieh et al., 2021; Song et al., 2021).
+The aim of our work is to devise efficient sampling methods
+for reducing the dimensionality (number of rows) of tensor
+product matrices while preserving the spectral structure
+of the Gram matrix. Formally, for any given ϵ, λ > 0
+and any X (1) , . . . X (d) ∈ Rd×n , if the feature matrix is
+defined as Φ := X (1) ⊗. . . X (q) , we want to find a sampling
+d
+matrix Π ∈ Rs×d , such that the sub-sampled Gram matrix
+⊤ ⊤
+Φ Π ΠΦ is an (ϵ, λ)-spectral approximation to Φ⊤ Φ, i.e.,
+Φ⊤ Φ + λI
+Φ⊤ Φ + λI
+⪯ Φ⊤ Π⊤ ΠΦ + λI ⪯
+.
+1+ϵ
+1−ϵ
+
+(1)
+
+Sampling a small number of rows of any matrix Φ according
+to its leverage scores is known to yield a spectral approximation to Φ⊤ Φ (Li et al., 2013). Our goal is to generate a
+sampling matrix Π according to the ridge leverage scores
+of
+
+Pq
+(j)
+Φ in input sparsity time, i.e., O
+.
+j=1 nnz X
+1.1. Our Main Results
+• It is well-known that for any linear sketch or sampling matrix Π to satisfy (1), its number s of rows needs
+to be proportional to the statistical dimension sλ :=
+
+

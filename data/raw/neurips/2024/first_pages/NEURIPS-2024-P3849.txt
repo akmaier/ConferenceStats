@@ -1,0 +1,69 @@
+RankRAG: Unifying Context Ranking with
+Retrieval-Augmented Generation in LLMs
+
+Yue Yu ∗
+Georgia Tech
+Chao Zhang
+Georgia Tech
+
+Wei Ping ∗
+NVIDIA
+
+Zihan Liu
+NVIDIA
+
+Boxin Wang
+NVIDIA
+
+Mohammad Shoeybi
+NVIDIA
+
+Jiaxuan You
+NVIDIA
+
+Bryan Catanzaro
+NVIDIA
+
+Abstract
+Large language models (LLMs) typically utilize the top-k contexts from a retriever
+in retrieval-augmented generation (RAG). In this work, we propose a novel instruction fine-tuning framework RankRAG, which instruction-tunes a single LLM for
+the dual purpose of context ranking and answer generation in RAG. In particular,
+the instruction-tuned LLMs work surprisingly well by adding a small fraction
+of ranking data into the training blend, and outperform existing expert ranking
+models, including the same LLM exclusively fine-tuned on a large amount of
+ranking data. For generation, we compare our model with many strong baselines,
+including GPT-4-0613, GPT-4-turbo-2024-0409, and ChatQA-1.5, an open-sourced
+model with the state-of-the-art performance on RAG benchmarks. Specifically,
+our Llama3-RankRAG significantly outperforms Llama3-ChatQA-1.5 and GPT-4
+models on nine knowledge-intensive benchmarks. In addition, it also performs
+comparably to GPT-4 on five RAG benchmarks in the biomedical domain without
+instruction fine-tuning on biomedical data, demonstrating its superb capability for
+generalization to new domains.
+
+1
+
+Introduction
+
+Retrieval-augmented generation (RAG) (Lewis et al., 2020; Izacard & Grave, 2021; Lin et al., 2024;
+Wang et al., 2024) is a widely used technique for customizing large language models (LLMs) to handle
+long-tail knowledge (Mallen et al., 2023; Asai et al., 2024b), provide up-to-date information (Kasai
+et al., 2023), and adapt to specific domains and tasks (Xiong et al., 2024) without modifying the
+model weights. In general, a dense embedding-based retriever (Karpukhin et al., 2020; Lin et al.,
+2023; Wang et al., 2022) first retrieves top-k chunked contexts from a collection of documents or
+external database for a given question. Then, LLM reads the top-k contexts to generate the answer.
+However, the current RAG pipeline has the following limitations: i) LLMs are not good at reading too
+many chunked contexts (e.g., top-100) even with the long-context window, not only due to efficiency
+reasons, but also because a shorter list of top-k (e.g., 5, 10) contexts usually leads to higher accuracy
+of generation (e.g., see Table 5 in Xu et al., 2024b). ii) Given a small k, one needs a mechanism to
+ensure the high recall of relevant contents. Relying solely on a retrieval model may be inadequate
+due to challenges in learning effective local alignments across the entire embedding space to support
+accurate matching (Luan et al., 2021). In practice, a separate ranking model (Nogueira et al., 2020;
+Glass et al., 2022; Ma et al., 2023) that cross-encodes question and candidate context can work better
+than a dense embedding-based retriever for obtaining the most relevant top-k contexts from top-N
+∗
+
+Yue Yu did this work during an internship at NVIDIA. Correspondence to: Yue Yu <yueyu@gatech.edu>,
+Wei Ping <wping@nvidia.com>.
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

@@ -1,0 +1,79 @@
+Fast Parametric Learning with Activation Memorization
+Jack W Rae 1 2 Chris Dyer 1 Peter Dayan 3 Timothy P Lillicrap 1 2
+
+Abstract
+Neural networks trained with backpropagation
+often struggle to identify classes that have been
+observed a small number of times. In applications
+where most class labels are rare, such as language
+modelling, this can become a performance bottleneck. One potential remedy is to augment the network with a fast-learning non-parametric model
+which stores recent activations and class labels
+into an external memory. We explore a simplified architecture where we treat a subset of the
+model parameters as fast memory stores. This can
+help retain information over longer time intervals
+than a traditional memory, and does not require
+additional space or compute. In the case of image
+classification, we display faster binding of novel
+classes on an Omniglot image curriculum task.
+We also show improved performance for wordbased language models on news reports (GigaWord), books (Project Gutenberg) and Wikipedia
+articles (WikiText-103) — the latter achieving a
+state-of-the-art perplexity of 29.2.
+
+1. Introduction
+Neural networks can be trained to classify discrete outputs
+by appending a softmax output layer. This is a linear map
+projecting the d-dimensional hidden output of the network
+to m outputs, where m is the number of distinct classes. A
+softmax operator (Bridle, 1990) is then applied to produce a
+probability distribution over classes. The parameters in this
+softmax layer are typically optimized with the network’s
+parameters by gradient descent.
+We can think of the weights in the softmax layer ✓ 2 Rm⇥d
+as a set of m vectors ✓[i]; i = 1, . . . , m that each corre1
+
+DeepMind, London, UK 2 CoMPLEX, Computer Science,
+University College London, London, UK 3 Gatsby Computational
+Neuroscience Unit, University College London, UK. Correspondence to: Jack W Rae <jwrae@google.com>, Timothy P Lillicrap
+<countzero@google.com>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+spond to a given class. When trained with a supervised loss,
+such as cross-entropy, each step of gradient descent pulls the
+parameter ✓[y], corresponding to the class label y, towards
+having a greater inner product with the network output h,
+and pushes all other parameters ✓[j] , j 6= y towards having
+a smaller inner product with h.
+One shortcoming of neural network classifiers trained with
+backpropagation is that they require many input examples
+for a given class in order to predict it with reasonable accuracy. That is, many positive class examples and optimization
+steps are required to pull ✓[i] towards a point in space where
+class i can then be recognized. While the learner will have
+many opportunities to organize ✓[i] parameters associated
+with frequent classes, infrequent class parameters will be
+poorly estimated. In domains where new classes are frequently introduced, or large-scale classification problems
+where some classes are very infrequently observed, this
+estimation problem is potentially quite serious.
+One approach to speed up learning, which has received revived interest, is meta-learning. Here, meta-learning refers
+to algorithms which learn to produce or manipulate learning
+algorithms (Thrun, 1998; Hochreiter et al., 2001), and it
+operates by learning over a distribution of tasks or datasets.
+A meta-learner applies knowledge from the global distribution of tasks to produce or optimize algorithms which
+specialize to a given task instance. Meta-learning of neural
+networks has seen promising results for applications such
+as parameter optimization (Andrychowicz et al., 2016; Ravi
+& Larochelle, 2016; Finn et al., 2017) and classification
+(Santoro et al., 2016; Vinyals et al., 2016; Zhou et al., 2018).
+For classification, the networks are augmented with a differentiable external memory, and are trained with many rounds
+of data — with class labels permuted between episodes.
+Meta-learning can be very powerful for few-shot learning
+in cases where there is a set of similar prior data to metalearn over, however it may not be practical for standalone
+datasets. For example, if one wants to model the grammar
+of computer code, it is unclear that a meta-learning system
+trained over natural language will be useful. Also memorybased meta-learning requires backpropagating from the read
+time to the original write time, which is not well suited to
+applications where writes and reads are separated by many
+time steps. In the case of modelling language, for example,
+
+

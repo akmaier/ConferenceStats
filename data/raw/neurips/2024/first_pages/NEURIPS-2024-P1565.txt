@@ -1,0 +1,54 @@
+Gradients of Functions of Large Matrices
+Nicholas Krämer, Pablo Moreno-Muñoz, Hrittik Roy, Søren Hauberg
+Technical University of Denmark
+Kongens Lyngby, Denmark
+{pekra, pabmo, hroy, sohau}@dtu.dk
+
+Abstract
+Tuning scientific and probabilistic machine learning models – for example, partial differential equations, Gaussian processes, or Bayesian neural networks –
+often relies on evaluating functions of matrices whose size grows with the data
+set or the number of parameters. While the state-of-the-art for evaluating these
+quantities is almost always based on Lanczos and Arnoldi iterations, the present
+work is the first to explain how to differentiate these workhorses of numerical linear algebra efficiently. To get there, we derive previously unknown adjoint systems for Lanczos and Arnoldi iterations, implement them in JAX, and
+show that the resulting code can compete with Diffrax when it comes to differentiating PDEs, GPyTorch for selecting Gaussian process models and beats
+standard factorisation methods for calibrating Bayesian neural networks. All
+this is achieved without any problem-specific code optimisation. Find the code
+at https://github.com/pnkraemer/experiments-lanczos-adjoints and
+install the library with pip install matfree.
+
+1
+
+Introduction
+
+Automatic differentiation has dramatically altered the development of machine learning models by
+allowing us to forego laborious, application-dependent gradient derivations. The essence of this
+automation is to evaluate Jacobian-vector and vector-Jacobian products without ever instantiating
+the full Jacobian matrix, whose column count would match the number of parameters of the neural
+network. Nowadays, everyone can build algorithms around matrices of unprecedented sizes by
+exploiting this matrix-free implementation. However, differentiable linear algebra for Jacobian-vector
+products and similar operations has remained largely unexplored to this day. We introduce a new
+matrix-free method for automatically differentiating functions of matrices. Our algorithm yields the
+exact gradients of the forward pass, all gradients are obtained with the same code, and said code runs
+in linear time- and memory-complexity.
+For a parametrised matrix A = A(θ) ∈ RN ×N and an analytic function f : R → R, we call f (A) a
+function of the matrix (different properties of A imply different definitions of f (A); one of them is
+applying f to each eigenvalue of A if A is diagonalisable; see [1]). However, we assume that A is the
+Jacobian of a large neural network or a matrix of similar size and never materialise f (A). Instead, we
+only care about the values and gradients of the matrix-function-vector product
+(θ, v) 7→ f [A(θ)]v
+
+(1)
+
+assuming that A is only accessed via differentiable matrix-vector products. Table 1 lists examples.
+Evaluating Equation 1 is crucial for building large machine learning models, e.g., Bayesian neural
+networks: A common hyperparameter-calibration loss of a (Laplace-approximated) Bayesian neural
+network involves the log-determinant of the generalised Gauss–Newton matrix [13]
+X
+A(α) :=
+[Dθ g](xi )⊤ [Dg2 ρ](yi , g(xi ))[Dθ g](xi ) + α2 I,
+(2)
+(xi ,yi )∈data
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

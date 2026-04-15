@@ -1,0 +1,75 @@
+High-Performance Large-Scale Image Recognition Without Normalization
+
+Andrew Brock 1 Soham De 1 Samuel L. Smith 1 Karen Simonyan 1
+
+Abstract
+Batch normalization is a key component of most
+image classification models, but it has many
+undesirable properties stemming from its dependence on the batch size and interactions between
+examples. Although recent work has succeeded
+in training deep ResNets without normalization
+layers, these models do not match the test
+accuracies of the best batch-normalized networks,
+and are often unstable for large learning rates
+or strong data augmentations. In this work, we
+develop an adaptive gradient clipping technique
+which overcomes these instabilities, and design a
+significantly improved class of Normalizer-Free
+ResNets. Our smaller models match the test
+accuracy of an EfficientNet-B7 on ImageNet
+while being up to 8.7× faster to train, and our
+largest models attain a new state-of-the-art top-1
+accuracy of 86.5%. In addition, Normalizer-Free
+models attain significantly better performance
+than their batch-normalized counterparts when
+fine-tuning on ImageNet after large-scale
+pre-training on a dataset of 300 million labeled
+images, with our best models obtaining an
+accuracy of 89.2%. Code and pretrained models
+are available at https://github.com/
+deepmind/deepmind-research/tree/
+master/nfnets
+
+1. Introduction
+The vast majority of recent models in computer vision are
+variants of deep residual networks (He et al., 2016b;a),
+trained with batch normalization (Ioffe & Szegedy, 2015).
+The combination of these two architectural innovations has
+enabled practitioners to train significantly deeper networks
+which can achieve higher accuracies on both the training
+set and the test set. Batch normalization also smoothens the
+loss landscape (Santurkar et al., 2018), which enables stable
+1
+
+DeepMind, London, United Kingdom. Correspondence to:
+Andrew Brock <ajbrock@deepmind.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Figure 1. ImageNet Validation Accuracy vs Training Latency.
+All numbers are single-model, single crop. Our NFNet-F1 model
+achieves comparable accuracy to an EffNet-B7 while being 8.7×
+faster to train. Our NFNet-F5 model has similar training latency to
+EffNet-B7, but achieves a state-of-the-art 86.0% top-1 accuracy
+on ImageNet. We further improve on this using Sharpness Aware
+Minimization (Foret et al., 2021) to achieve 86.5% top-1 accuracy.
+
+training with larger learning rates and at larger batch sizes
+(Bjorck et al., 2018; De & Smith, 2020), and it can have a
+regularizing effect (Hoffer et al., 2017; Luo et al., 2018).
+However, batch normalization has three significant practical
+disadvantages. First, it is a surprisingly expensive computational primitive, which incurs memory overhead (Rota Bulò
+et al., 2018), and significantly increases the time required to
+evaluate the gradient in some networks (Gitman & Ginsburg,
+2017). Second, it introduces a discrepancy between the behaviour of the model during training and at inference time
+(Summers & Dinneen, 2019; Singh & Shrivastava, 2019),
+introducing hidden hyper-parameters that have to be tuned.
+Third, and most importantly, batch normalization breaks the
+independence between training examples in the minibatch.
+This third property has a range of negative consequences.
+For instance, practitioners have found that batch normalized
+networks are often difficult to replicate precisely on different hardware, and batch normalization is often the cause of
+subtle implementation errors, especially during distributed
+training (Pham et al., 2019). Furthermore, batch normal-
+
+

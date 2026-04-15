@@ -1,0 +1,61 @@
+Reducing Transformer Key-Value Cache Size with
+Cross-Layer Attention
+
+William Brandon∗
+MIT CSAIL
+wbrandon@csail.mit.edu
+
+Mayank Mishra∗
+MIT-IBM Watson AI Lab
+
+Rameswar Panda
+MIT-IBM Watson AI Lab
+
+Aniruddha Nrusimha
+MIT CSAIL
+
+Jonathan Ragan-Kelley
+MIT CSAIL
+
+Abstract
+Key-value (KV) caching plays an essential role in accelerating decoding for
+transformer-based autoregressive large language models (LLMs). However, the
+amount of memory required to store the KV cache can become prohibitive at long
+sequence lengths and large batch sizes. Since the invention of the transformer, two
+of the most effective interventions discovered for reducing the size of the KV cache
+have been Multi-Query Attention (MQA) and its generalization, Grouped-Query
+Attention (GQA). MQA and GQA both modify the design of the attention block so
+that multiple query heads can share a single key/value head, reducing the number of
+distinct key/value heads by a large factor while only minimally degrading accuracy.
+In this paper, we show that it is possible to take Multi-Query Attention a step
+further by also sharing key and value heads between adjacent layers, yielding a new
+attention design we call Cross-Layer Attention (CLA). With CLA, we find that it
+is possible to reduce the size of the KV cache by another 2× while maintaining
+nearly the same accuracy as unmodified MQA. In experiments training 1B- and
+3B-parameter models from scratch, we demonstrate that CLA provides a Pareto improvement over the memory/accuracy tradeoffs which are possible with traditional
+MQA, potentially enabling future models to operate at longer sequence lengths
+and larger batch sizes than would otherwise be possible.
+
+1
+
+Introduction
+
+The memory footprint of the key-value (KV) cache can be a bottleneck when serving large language
+models (LLMs). Because the size of the KV cache scales proportionally with both sequence length
+and batch size, the memory overhead of KV cache storage can limit batch sizes when operating on
+long sequence lengths [Chowdhery et al., 2022], and can require employing costly techniques like
+offloading when on-device memory is scarce [Sheng et al., 2023]. It is also desirable to be able to
+persist KV caches over long periods of time in order to minimize redundant computations [Gao et al.,
+2024, Google, 2024]. However, the size of the KV cache directly determines the cost of storing and
+retrieving such persistent caches. As new applications of LLMs emerge which demand ever-longer
+sequence lengths, the memory footprint of the KV cache is becoming an increasingly important
+consideration in the design of efficient transformer-based language models.
+Existing work has proposed a variety of methods for decreasing the memory footprint of the KV
+cache, including storing KV activations in low precision [Hooper et al., 2024, Zhang et al., 2024b],
+∗
+
+Equal Contribution
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

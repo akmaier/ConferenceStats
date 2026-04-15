@@ -1,0 +1,54 @@
+Backprop with Approximate Activations
+for Memory-efficient Network Training
+
+Ayan Chakrabarti
+Washington University in St. Louis
+1 Brookings Dr., St. Louis, MO 63130
+ayan@wustl.edu
+
+Benjamin Moseley
+Carnegie Mellon University
+5000 Forbes Ave., Pittsburgh, PA 15213
+moseleyb@andrew.cmu.edu
+
+Abstract
+Training convolutional neural network models is memory intensive since backpropagation requires storing activations of all intermediate layers. This presents a
+practical concern when seeking to deploy very deep architectures in production,
+especially when models need to be frequently re-trained on updated datasets. In this
+paper, we propose a new implementation for back-propagation that significantly
+reduces memory usage, by enabling the use of approximations with negligible
+computational cost and minimal effect on training performance. The algorithm
+reuses common buffers to temporarily store full activations and compute the forward pass exactly. It also stores approximate per-layer copies of activations, at
+significant memory savings, that are used in the backward pass. Compared to simply approximating activations within standard back-propagation, our method limits
+accumulation of errors across layers. This allows the use of much lower-precision
+approximations without affecting training accuracy. Experiments on CIFAR-10,
+CIFAR-100, and ImageNet show that our method yields performance close to exact
+training, while storing activations compactly with as low as 4-bit precision.
+
+1
+
+Introduction
+
+The use of deep convolutional neural networks has become prevalent for a variety of visual and other
+inference tasks [9], with a trend to employ increasingly larger and deeper network architectures [8, 10]
+that are able to express more complex functions. While deeper architectures have delivered significant
+improvements in performance, they have also increased demand on computational resources. In
+particular, training such networks requires a significant amount of on-device GPU memory—much
+more so than during inference—in order to store activations of all intermediate layers of the network
+that are needed for gradient computation during back-propagation.
+This leads to large memory footprints during training for state-of-the-art deep architectures, especially
+when training on high-resolution images with a large number of activations per layer. This in-turn
+can lead to the computation being inefficient and “memory-bound”: it forces the use of smaller
+training batches for each GPU leading to under-utilization of available GPU cores (smaller batches
+also complicate the use of batch-normalization [12] with batch statistics computed over fewer
+samples). Consequently, practitioners are forced to either use a larger number of GPUs for parallelism,
+or contend with slower training. This makes it expensive to deploy deep architectures for many
+applications, especially when networks need to be continually trained as more data becomes available.
+Prior work to address this has traded-off memory for computation [2, 4, 5, 14], but with a focus on
+enabling exact gradient computation. However, stochastic gradient descent (SGD) inherently works
+with noisy gradients at each iteration and, in the context of distributed training, has been shown to
+succeed when using approximate and noisy parameter gradients when aggregating across multiple
+devices [3, 16, 19, 20]. Motivated by this, we propose a method that uses approximate activations
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

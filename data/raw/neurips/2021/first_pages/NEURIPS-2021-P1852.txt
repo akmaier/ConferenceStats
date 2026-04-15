@@ -1,0 +1,65 @@
+Training Neural Networks with Fixed Sparse Masks
+
+Yi-Lin Sung∗
+UNC Chapel Hill
+ylsung@cs.unc.edu
+
+Varun Nair∗
+Duke University
+vn40@duke.edu
+
+Colin Raffel
+UNC Chapel Hill
+craffel@gmail.com
+
+Abstract
+During typical gradient-based training of deep neural networks, all of the model’s
+parameters are updated at each iteration. Recent work has shown that it is possible
+to update only a small subset of the model’s parameters during training, which can
+alleviate storage and communication requirements. In this paper, we show that it
+is possible to induce a fixed sparse mask on the model’s parameters that selects
+a subset to update over many iterations. Our method constructs the mask out of
+the k parameters with the largest Fisher information as a simple approximation
+as to which parameters are most important for the task at hand. In experiments
+on parameter-efficient transfer learning and distributed training, we show that
+our approach matches or exceeds the performance of other methods for training
+with sparse updates while being more efficient in terms of memory usage and
+communication costs. We release our code publicly to promote further applications
+of our approach.2
+
+1
+
+Introduction
+
+Stochastic gradient descent (SGD) is a vital component of the modern pipeline for training deep
+neural networks. Along with the back-propagation algorithm, gradient descent allows for the efficient
+minimization of a loss function by gradually updating a model’s parameters. SGD minimizes the loss
+over a small random subset of the dataset at each training iteration, which allows training over large
+datasets. In practice, minimizing a large neural network’s training loss using SGD often results in
+models that generalize well to new data [3, 17, 27], making SGD an invaluable tool.
+While effective, standard SGD requires that all model parameters are updated at every iteration of
+training. As a result, communicating changes to the model requires communicating the updated value
+of every parameter. Since modern neural networks often have millions or billions of parameters
+[9, 7, 40], this communication can become excessively expensive. A concrete example of the negative
+impacts of these costs arises in the setting of transfer learning. In transfer learning, a model’s
+parameters are initialized from an existing pre-trained model before being fine-tuned (i.e. trained)
+on a task of interest. Pre-trained models can be fine-tuned a huge number of times – for example,
+the Hugging Face model repository3 has thousands of fine-tuned variants of the BERT model [12].
+Each of these fine-tuned variants requires a unique copy of the model’s parameters, each of which
+takes up around 500MB of disk space. Relatedly, in distributed training [11] and federated learning
+[35], workers compute updates for a centralized model in parallel on different subsets of data. After a
+certain number of updates, the workers each communicate the newly-computed parameter values
+back to the centralized model. The communication step can cause a significant amount of overhead
+(particularly when the model is large) since the workers must communicate the updated values of all
+parameters when using standard SGD.
+∗
+
+Equal contribution.
+Code for our work can be found at https://github.com/varunnair18/FISH.
+3
+https://huggingface.co/models
+2
+
+35th Conference on Neural Information Processing Systems (NeurIPS 2021).
+
+

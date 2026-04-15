@@ -1,0 +1,81 @@
+Towards Binary-Valued Gates for Robust LSTM Training
+
+Zhuohan Li 1 Di He 1 Fei Tian 2 Wei Chen 2 Tao Qin 2 Liwei Wang 1 3 Tie-Yan Liu 2
+
+Abstract
+Long Short-Term Memory (LSTM) is one of the
+most widely used recurrent structures in sequence
+modeling. It aims to use gates to control information flow (e.g., whether to skip some information
+or not) in the recurrent computations, although its
+practical implementation based on soft gates only
+partially achieves this goal. In this paper, we propose a new way for LSTM training, which pushes
+the output values of the gates towards 0 or 1. By
+doing so, we can better control the information
+flow: the gates are mostly open or closed, instead
+of in a middle state, which makes the results more
+interpretable. Empirical studies show that (1) Although it seems that we restrict the model capacity,
+there is no performance drop: we achieve better
+or comparable performances due to its better generalization ability; (2) The outputs of gates are not
+sensitive to their inputs: we can easily compress
+the LSTM unit in multiple ways, e.g., low-rank
+approximation and low-precision approximation.
+The compressed models are even better than the
+baseline models without compression.
+
+1. Introduction
+Recurrent neural networks (RNNs) (Hochreiter, 1998) are
+widely used in sequence modeling tasks, such as language
+modeling (Kim et al., 2016; Jozefowicz et al., 2016), speech
+recognition (Zhang et al., 2016), time series prediction
+(Xingjian et al., 2015), machine translation (Wu et al., 2016;
+Britz et al., 2017; He et al., 2016), image captioning (Vinyals
+et al., 2015; Xu et al., 2015), and image generation (Villegas
+et al., 2017).
+To address the long-term dependency and gradient vanishThe work was done while the first author was visiting Microsoft
+Research Asia. 1 Key Laboratory of Machine Perception, MOE,
+School of EECS, Peking University 2 Microsoft Research 3 Center
+for Data Science, Peking University, Beijing Institute of Big Data
+Research. Correspondence to: Tao Qin <taoqin@microsoft.com>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+ing problem of conventional RNNs, long short-term memory (LSTM) (Gers et al., 1999; Hochreiter & Schmidhuber,
+1997b) networks were proposed, which introduce gate functions to control the information flow in a recurrent unit: a
+forget gate function to determine how much previous information should be excluded for the current step, an input
+gate function to find relevant signals to be absorbed into the
+hidden context, and an output gate function for prediction
+and decision making. For ease of optimization, in practical
+implementation, one usually uses the element-wise sigmoid
+function to mimic the gates, whose outputs are soft values
+between 0 and 1.
+By using such gates with many more parameters, LSTM usually performs much better than conventional RNNs. However, when looking deep into the unit, we empirically find
+that the values of the gates are not that meaningful as the
+design logic. For example, in Figure 1, the distributions of
+the forget gate values and input gate values are not sharp and
+most of the values are in the middle state (around 0.5), meaning that most of the gate values are ambiguous in LSTM.
+This phenomenon contradicts the design of both gates: to
+control whether or not to take the information from the
+previous timesteps or the new inputs. At the same time,
+several works (Murdoch & Szlam, 2017; Karpathy et al.,
+2015) show that most cell coordinates of LSTM are hard to
+find particular meanings.
+In this paper, we propose to push the values of the gates to
+the boundary of their ranges (0, 1).1 Pushing the values of
+the gates to 0/1 has certain advantages. First, it well aligns
+with the original purpose of the development of gates: to
+get the information in or skip by “opening” or “closing” the
+gates during the recurrent computation, which reflects more
+accurate and clear linguistic and structural information. Second, similar to BitNet in image classification (Courbariaux
+et al., 2016), by pushing the activation function to be binarized, we can learn a model that is ready for further compression. Third, training LSTM towards binary-valued gates
+enables better generation of the learned model. According
+1
+
+The output of a gate function is usually a vector. For simplicity,
+in the paper, we say “pushing the output of the gate function to 0/1”
+when meaning “pushing each dimension of the output vector of
+the gate function to either 0 or 1”. We also say that each dimension
+of the output vector of the gate function is a gate, and say a gate is
+open/closed if its value is close to 1/0.
+
+

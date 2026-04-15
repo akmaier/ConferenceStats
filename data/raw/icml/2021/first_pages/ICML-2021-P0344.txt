@@ -1,0 +1,80 @@
+Function Contrastive Learning of Transferable Meta-Representations
+
+Muhammad Waleed Gondal 1 Shruti Joshi 1 Nasim Rahaman 1 2 Stefan Bauer 1 3 Manuel Wüthrich 1
+Bernhard Schölkopf 1
+
+Abstract
+Meta-learning algorithms adapt quickly to new
+tasks that are drawn from the same task distribution as the training tasks. The mechanism leading
+to fast adaptation is the conditioning of a downstream predictive model on the inferred representation of the task’s underlying data generative
+process, or function. This meta-representation,
+which is computed from a few observed examples of the underlying function, is learned jointly
+with the predictive model. In this work, we study
+the implications of this joint training on the transferability of the meta-representations. Our goal
+is to learn meta-representations that are robust
+to noise in the data and facilitate solving a wide
+range of downstream tasks that share the same underlying functions. To this end, we propose a decoupled encoder-decoder approach to supervised
+meta-learning, where the encoder is trained with
+a contrastive objective to find a good representation of the underlying function. In particular, our
+training scheme is driven by the self-supervision
+signal indicating whether two sets of examples
+stem from the same function. Our experiments
+on a number of synthetic and real-world datasets
+show that the representations we obtain outperform strong baselines in terms of downstream performance and noise robustness, even when these
+baselines are trained in an end-to-end manner.
+
+1. Introduction
+Many supervised learning problems are concerned with approximating a data-generating function f : X → Y given
+a finite set of N samples, {xi , yi = f (xi )}N
+i=1 . Expressive
+models, such as deep neural networks, are known to excel
+at this function approximation task, but they often heavily
+1
+
+Max Planck Institute for Intelligent Systems, Tübingen, Germany 2 Mila, University of Montreal, Montreal, Canada 3 CIFAR
+Azrieli Global Scholar. Correspondence to: Muhammad Waleed
+Gondal <waleed.gondal@tue.mpg.de>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+rely on the number of samples N being large. This poses
+further challenges: in many domains of interest, sourcing
+enough data is a challenging endeavour; further, the process
+of training such models can be prohibitively slow for many
+applications. This is exacerbated by the fact that in the
+typical setting, each new data-generating function encountered requires that the model be retrained. In other words,
+the model is not shared between data-generating functions,
+even when training a model to approximate one function can
+potentially be beneficial for approximating another function.
+To overcome these challenges, a variety of meta-learning
+methods have been proposed (Vinyals et al., 2016; Snell
+et al., 2017; Garnelo et al., 2018a; Ravi & Larochelle, 2016;
+Finn et al., 2017). In the present work, we are interested in a
+class of models that use encoder-decoder architectures such
+as Conditional Neural Processes (CNPs) (Garnelo et al.,
+2018a) and Generative Query Networks (GQNs) (Eslami
+et al., 2018). In the first stage, an encoder is used to infer
+a fixed-dimensional representation of a given function f
+from just a few input-output examples Of = {(xi , yi )}i ,
+the context dataset. We call it the meta-representation of the
+function r = hφ (Of ), where h is an encoder parameterized
+by φ. In the second stage, the meta-representation is then
+used to condition a predictive model in order to solve a
+downstream prediction task related to that function. For
+instance, the task may consist of predicting the function
+value y at unseen locations x or classifying images after
+observing only a few pixels (in that case, x is the pixel
+location and y is the pixel value). This two-stage process has
+multiple benefits. First, the extraction of prior knowledge
+about f directly from the training data, in the form of metarepresentation, reduces the need for specifying inductive
+biases (model architectures, training details, etc.) particular
+to f . Thus, it allows learning to be shared between functions
+such that a single model can be trained on a distribution over
+functions. Second, the computation of meta-representations
+is efficient and can be done online. Third, the computation
+of meta-representations provides flexibility to solve a variety
+of downstream tasks concerning a specific function.
+However, CNPs optimize encoder jointly with the decoder
+on the downstream prediction task, i.e., prediction of function values y at unseen locations x, as illustrated in Figure 1(a). This ties the meta-representation’s quality to the
+
+

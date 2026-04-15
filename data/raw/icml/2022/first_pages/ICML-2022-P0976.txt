@@ -1,0 +1,102 @@
+Multirate Training of Neural Networks
+
+Tiffany Vlaar 1 Benedict Leimkuhler 1
+
+Abstract
+We propose multirate training of neural networks:
+partitioning neural network parameters into “fast”
+and “slow” parts which are trained on different
+time scales, where slow parts are updated less frequently. By choosing appropriate partitionings
+we can obtain substantial computational speed-up
+for transfer learning tasks. We show for applications in vision and NLP that we can fine-tune deep
+neural networks in almost half the time, without
+reducing the generalization performance of the
+resulting models. We analyze the convergence
+properties of our multirate scheme and draw a
+comparison with vanilla SGD. We also discuss
+splitting choices for the neural network parameters which could enhance generalization performance when neural networks are trained from
+scratch. A multirate approach can be used to learn
+different features present in the data and as a form
+of regularization. Our paper unlocks the potential
+of using multirate techniques for neural network
+training and provides several starting points for
+future work in this area.
+
+1. Introduction
+Multirate techniques have been widely used for efficient simulation of multiscale ordinary differential equations (ODEs)
+and partial differential equations (PDEs) (Rice, 1960; Gear,
+1974; Gear & Wells, 1984; Günther & Rentrop, 1993; Engstler & Lubich, 1997; Constantinescu & Sandu, 2013).
+Motivations for using multirate techniques are the presence
+of fast and slow time scales in the system dynamics and to
+simulate systems which are computationally infeasible to
+evolve with a single stepsize.
+In their most general formulation the multirate methods we
+consider in this work involve separating the model parame1
+
+Department of Mathematics, University of Edinburgh, Edinburgh, United Kingdom. Correspondence to: Tiffany Vlaar
+<Tiffany.Vlaar@ed.ac.uk>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+ters Θ into multiple components Θ1 , ..., ΘN corresponding
+to different time scales. Slow parameters are updated less
+frequently than their fast counterparts but with larger stepsizes. Synchronization of the parts occurs every slow time
+step. This is illustrated for two time scales (and accompanying fast ΘF and slow ΘS parameters) in Figure 1.
+k updates
+
+Θ
+
+ΘF
+
+hF
+
+ΘF,1
+
+...
+
+ΘF,k−1
+
+hF
+
+Θ′F
+
+Split
+
+Join
+ΘS
+
+hS = khF
+
+Θ′
+
+Θ′S
+
+Figure 1. The basic principle of the multirate techniques considered in this paper is illustrated for two time scales in this figure. We
+first split our model parameters Θ into fast and slow components,
+ΘF and ΘS , respectively. The fast components are then updated
+every step with stepsize hF , whereas the slow components are
+updated every k steps with stepsize hS = k · hF .
+
+The idea of using fast and slow weights in a machine learning context has been around for a long time (Feldman, 1982;
+Hinton & Plaut, 1987; Ba et al., 2016), originally inspired
+by neuroscience as synapses in the brain have dynamics at
+different time scales. However, the use of multirate methods
+has so far been largely overlooked for this area. In this
+work we seek to change this. We propose a novel multirate
+training scheme and show its use in various neural network
+training settings. We describe connections with the current
+machine learning literature in Section 6.
+To demonstrate how multirate methods may be applicable in
+deep learning applications, consider a WideResNet-16 architecture trained on the patch-augmented CIFAR-10 dataset
+(Li et al., 2019) using SGD with momentum and weight
+decay and different learning rates (Figure 2). In this dataset
+a noisy patch of 7 × 7 pixels is added to the center of some
+CIFAR-10 images. Some images contain both the patch and
+CIFAR-10 data, while other images only contain the patch
+or are patch-free. When training using a large learning rate,
+the network is unable to memorize the patch, but achieves
+high accuracy on patch-free data. Meanwhile, when training using a small learning rate the network can memorize
+the patch quickly, but the accuracy on clean data is lower.
+We demonstrate that a multirate approach trained on two
+
+

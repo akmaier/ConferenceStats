@@ -1,0 +1,55 @@
+You Only Cache Once:
+Decoder-Decoder Architectures for Language Models
+
+Yutao Sun∗ ‡† Li Dong∗ † Yi Zhu† Shaohan Huang†
+Wenhui Wang† Shuming Ma† Quanlu Zhang† Jianyong Wang‡ Furu Wei†⋄
+‡
+†
+Tsinghua University
+Microsoft Research
+https://aka.ms/GeneralAI
+
+Abstract
+We introduce a decoder-decoder architecture, YOCO, for large language models,
+which only caches key-value pairs once. It consists of two components, i.e., a crossdecoder stacked upon a self-decoder. The self-decoder efficiently encodes global
+key-value (KV) caches that are reused by the cross-decoder via cross-attention.
+The overall model behaves like a decoder-only Transformer, although YOCO only
+caches once. The design substantially reduces GPU memory demands, yet retains
+global attention capability. Additionally, the computation flow enables prefilling
+to early exit without changing the final output, thereby significantly speeding up
+the prefill stage. Experimental results demonstrate that YOCO achieves favorable
+performance compared to Transformer in various settings of scaling up model
+size and number of training tokens. We also extend YOCO to 1M context length
+with near-perfect needle retrieval accuracy. The profiling results show that YOCO
+improves inference memory, prefill latency, and throughput by orders of magnitude
+across context lengths and model sizes.
+
+1
+
+Introduction
+
+Decoder-only Transformer [40] has become the de facto architecture for language models. By caching
+the previously computed key/value vectors, the model can reuse them for future generation steps. The
+key-value cache avoids encoding the history again for each token, greatly improving the inference
+speed. The compelling feature establishes the decoder-only architecture as the standard option.
+However, as the number of serving tokens increases, the key-value (KV) caches occupy a lot of
+GPU memory, rendering the inference of large language models memory-bounded [29]. For the
+example of a 65B-size language model (augmented with grouped-query attention [1] and 8-bit KV
+quantization), 512K tokens occupy about 86GB GPU memory, which is even larger than the capacity
+of one H100-80GB GPU. In addition, the prefilling latency of long-sequence input is extremely high.
+For instance, using four H100 GPUs, the 7B language model (augmented with Flash-Decoding [6]
+and kernel fusion) requires about 110 seconds to prefill 450K tokens, and 380 seconds for 1M length.
+The above bottlenecks make it difficult to deploy long-context language models in practice.
+In this work, we propose a decoder-decoder architecture, YOCO, for large language models, which
+only caches KV pairs once. Specifically, we stack cross-decoder upon self-decoder. Given an input
+sequence, the self-decoder utilizes efficient self-attention to obtain KV caches. Then the cross-decoder
+layers employ cross-attention to reuse the shared KV caches. The decoder-decoder architecture is
+conceptually similar to encoder-decoder, but the whole model behaves more like a decoder-only
+model from the external view. It naturally fits into autoregressive generation tasks, such as language
+∗
+
+Equal contribution. ⋄ Corresponding author.
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

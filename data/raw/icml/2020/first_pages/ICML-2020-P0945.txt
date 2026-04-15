@@ -1,0 +1,93 @@
+Batch Stationary Distribution Estimation
+Junfeng Wen * 1 Bo Dai * 2 Lihong Li 2 Dale Schuurmans 1 2
+
+Abstract
+We consider the problem of approximating the stationary distribution of an ergodic Markov chain
+given a set of sampled transitions. Classical
+simulation-based approaches assume access to
+the underlying process so that trajectories of sufficient length can be gathered to approximate stationary sampling. Instead, we consider an alternative setting where a fixed set of transitions has
+been collected beforehand, by a separate, possibly
+unknown procedure. The goal is still to estimate
+properties of the stationary distribution, but without additional access to the underlying system.
+We propose a consistent estimator that is based
+on recovering a correction ratio function over the
+given data. In particular, we develop a variational
+power method (VPM) that provides provably consistent estimates under general conditions. In addition to unifying a number of existing approaches
+from different subfields, we also find that VPM
+yields significantly better estimates across a range
+of problems, including queueing, stochastic differential equations, post-processing MCMC, and
+off-policy evaluation.
+
+1. Introduction
+Markov chains are a pervasive modeling tool in applied
+mathematics of particular importance in stochastic modeling
+and machine learning. A key property of an ergodic Markov
+chain is the existence of a unique stationary distribution;
+i.e., the long-run distribution of states that remains invariant
+under the transition kernel. In this paper, we consider a
+less well studied but still important version of the stationary
+distribution estimation problem, where one has access to a
+set of sampled transitions from a given Markov chain, but
+does not know the mechanism by which the probe points
+were chosen, nor is able to gather additional data from the
+*
+
+Equal contribution 1 Department of Computing Science, University of Alberta, Edmonton, Canada 2 Google Brain. Correspondence to: Junfeng Wen <junfengwen@gmail.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+underlying process. Nevertheless, one would still like to
+estimate target properties of the stationary distribution, such
+as the expected value of a random variable of interest.
+This setting is inspired by many practical scenarios where
+sampling from the Markov process is costly or unavailable,
+but data has already been collected and available for analysis. A simple example is a queueing system consisting of a
+service desk that serves customers in a queue. Queue length
+changes stochastically as customers arrive or leave after
+being served. The long-term distribution of queue length
+(i.e., the stationary distribution of the underlying Markov
+chain) is the object of central interest for managing such a
+service (Haviv, 2009; Serfozo, 2009). In practice, however,
+queue lengths are physical quantities that can only be measured for moderate periods, perhaps on separate occasions,
+but rarely for sufficient time to ensure the (stochastic) queue
+length has reached the stationary distribution. Since the
+measurement process itself is expensive, it is essential to
+make reasonable inferences about the stationary distribution
+from the collected data alone.
+We investigate methods for estimating properties of the
+stationary distribution solely from a batch of previously collected data. The key idea is to first estimate a correction
+ratio function over the given data, which can then be used to
+estimate expectations of interest with respect to the stationary distribution. To illustrate, consider an ergodic Markov
+chain with state space X , transition kernel T , and a unique
+stationary distribution µ that satisfies
+Z
+0
+µ (x ) = T (x0 |x) µ (x) dx := (T µ) (x0 ) .
+(1)
+Assume we are given a fixed sample of state transitions, D =
+n
+(x, x0 )i=1 ⇠ T (x0 |x) p (x), such that each x has been
+sampled according to an unknown probe distribution p, but
+each x0 has been sampled according to the true underlying
+transition kernel, x0 |x ⇠ T (x0 |x). Below we investigate
+procedures for estimating the point-wise ratios, ⌧b (xi ) ⇡
+µ(xi )
+p(xi ) , such that the weighted empirical distribution
+µ̂(x) :=
+
+n
+⇣X
+i=1
+
+⌧b (xi )
+
+n
+⌘ 1X
+i=1
+
+⌧b (xi ) I{x = xi }
+
+can be used to approximate µ directly, or further used to
+estimate the expected value of some target function(s) of x
+
+

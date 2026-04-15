@@ -1,0 +1,100 @@
+Don’t Waste Your Bits! Squeeze Activations and Gradients for
+Deep Neural Networks via T INY S CRIPT
+
+Fangcheng Fu 1 2 Yuzheng Hu 1 Yihan He 1 Jiawei Jiang 3 Yingxia Shao 4 Ce Zhang 3 Bin Cui 1 5
+
+Abstract
+Recent years have witnessed intensive research interests on training deep neural networks (DNNs)
+more efficiently by quantization-based compression methods, which facilitate DNNs training in
+two ways: (1) activations are quantized to shrink
+the memory consumption, and (2) gradients are
+quantized to decrease the communication cost.
+However, existing methods mostly use a uniform
+mechanism that quantizes the values evenly. Such
+a scheme may cause a large quantization variance
+and slow down the convergence in practice.
+In this work, we introduce T INY S CRIPT, which
+applies a non-uniform quantization algorithm to
+both activations and gradients. T INY S CRIPT models the original values by a family of Weibull distributions and searches for “quantization knobs”
+that minimize quantization variance. We also
+discuss the convergence of the non-uniform
+quantization algorithm on DNNs with varying
+depths, shedding light on the number of bits required for convergence. Experiments show that
+T INY S CRIPT always obtains lower quantization
+variance, and achieves comparable model qualities against full precision training using 1-2 bits
+less than the uniform-based counterpart.
+
+1. Introduction
+Deep learning (DL) has brought revolutionary changes to
+machine learning and made remarkable improvements on
+various complicated tasks such as image recognition, natural language processing, recommendation, and autonomous
+1
+
+Department of Computer Science and Technology & Key
+Laboratory of High Confidence Software Technologies (MOE),
+Peking University 2 Tencent Inc. 3 ETH Zurich 4 Beijing Key Lab of
+Intelligent Telecommunications Software and Multimedia, BUPT
+5
+Center for Data Science & National Engineering Laboratory for
+Big Data Analysis and Applications, Peking University. Correspondence to: Bin Cui <bin.cui@pku.edu.cn>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+drawback 1:
+most values tend to
+be quantized to s2(=0) ✕ ✕
+distribution
+s0
+
+s1
+
+✕ ✕
+✕ ✕ ✕ ✕
+✕ ✕ ✕ ✕ ✕ ✕
+✕ ✕ ✕ ✕ ✕ ✕
+✕ ✕ ✕ ✕ ✕ ✕
+
+s2
+
+drawback 2:
+high magnitude
+in quant. error
+s3
+
+s4
+
+Figure 1. Uniform quantization with n = 4 on a distribution which
+has the properties of central tendency and long-tailed.
+
+driving (He et al., 2016; Devlin et al., 2019; Arun & Govindan, 2018; Chen et al., 2019; Zhang et al., 2020; Gharibshah
+et al., 2020). Recently, with the incredible surge of big
+data and trend of edge-computing, many researchers have
+devoted efforts to training deep neural networks (DNNs)
+on edge devices. However, due to the large amount of
+data and increasingly complex model architectures, training DNNs becomes both memory- and communicationbounded. For one thing, activations (a.k.a. feature maps) in
+forward propagation need to be stored for gradient computation in backward propagation, which leads to large memory
+footprints. For another, gradients need to be sent to central servers or exchanged among workers for model update,
+resulting in heavy network transmission.
+One approach to alleviating the burden of memory consumption and communication overhead is reducing the data size
+by quantizing values to fewer bits, at the price of precision loss. For instance, gradient quantization accelerates
+the overall training speed since the communication time is
+decreased (Alistarh et al., 2017; Wen et al., 2017), whilst
+(Chakrabarti & Moseley, 2019) copes with the memory
+bottleneck by quantizing activations into 4 bits.
+Given a tensor x and a set of quantization points s =
+n
+{st }t=0 satisfying −M = s0 < s1 < ... < sn = M ,
+where M = ||x||∞ acts as a scaling factor1 , the stochastic
+quantization on each element xi ∈ [st , st+1 ) is defined as
+(
+st ,
+with probability (st+1 − xi )/(st+1 − st )
+x̃i =
+.
+st+1 , with probability (xi − st )/(st+1 − st )
+In a sense, each element is more likely to be quantized
+1
+(Alistarh et al., 2017) scales gradient with L2 norm in their
+analysis, but uses L∞ norm in practice.
+
+

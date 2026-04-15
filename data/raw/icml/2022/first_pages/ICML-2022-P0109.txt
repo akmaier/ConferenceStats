@@ -1,0 +1,87 @@
+Scaling Gaussian Process Optimization by
+Evaluating a Few Unique Candidates Multiple Times
+
+Daniele Calandriello 1 Luigi Carratino 2 Alessandro Lazaric 3 Michal Valko 1 Lorenzo Rosasco 2 4 5
+
+Abstract
+
+Computing a Gaussian process (GP) posterior has
+a computational cost cubical in the number of historical points. A reformulation of the same GP
+posterior highlights that this complexity mainly
+depends on how many unique historical points
+are considered. This can have important implication in active learning settings, where the set
+of historical points is constructed sequentially by
+the learner. We show that sequential black-box
+optimization based on GPs (GP-Opt) can be made
+efficient by sticking to a candidate solution for
+multiple evaluation steps and switch only when
+necessary. Limiting the number of switches also
+limits the number of unique points in the history of the GP. Thus, the efficient GP reformulation can be used to exactly and cheaply compute the posteriors required to run the GP-Opt
+algorithms. This approach is especially useful
+in real-world applications of GP-Opt with high
+switch costs (e.g. switching chemicals in wet labs,
+data/model loading in hyperparameter optimization). As examples of this meta-approach, we
+modify two well-established GP-Opt algorithms,
+GP-UCB and GP-EI, to switch candidates as infrequently as possible adapting rules from batched
+GP-Opt. These versions preserve all the theoretical no-regret guarantees while improving practical aspects of the algorithms such as runtime,
+memory complexity, and the ability of batching
+candidates and evaluating them in parallel.
+
+1
+DeepMind 2 MaLGa, DIBRIS, University of Genova, Italy
+Meta AI 4 Massachusetts Institute of Technology 5 Istituto Italiano
+di Tecnologia. Correspondence to: Daniele Calandriello <dcalandriello@google.com>.
+3
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+1. Introduction
+Bayesian and bandit optimization (Mockus, 1989; Lattimore
+& Szepesvári, 2020) are two well established frameworks
+for black-box function optimization under uncertainty. They
+model the optimization process as a sequential learning
+problem. For an unknown function f and a decision set A
+(e.g., A ⊆ Rd ) at each step t the learner:
+(1) selects candidate xt ∈ A by maximizing an acquisition
+function ut as a surrogate of f ;
+def
+(2) receives a noisy feedback 1 yt = f (xt ) + ηt from the
+i.i.d.
+environment, where ηt ∼ N (0, ξ 2 );
+(3) uses yt to improve ut ’s approximation of f .
+A common approach to measure the learner’s convergence
+def PT
+is to study the cumulative regret RT = t=1 f ? − f (xt )
+of the learner’s choice of candidates compared to the
+optimum of the function f ? = maxx f (x). A learner
+is deemed no-regret when it converges on average (i.e.,
+limT →∞ RT /T → 0). Thanks to their flexibility and capability of modeling uncertainty, Gaussian processes (GP)
+(Rasmussen & Williams, 2006) have emerged as an effective
+choice for regret minimization, jump-starting the field of GP
+optimization (GP-Opt). Decision rules that leverage GPs to
+estimate upper confidence bounds (GP-UCB (Srinivas et al.,
+2010; Chowdhury & Gopalan, 2017)) or expected improvement (GP-EI (Wang
+& de Freitas, 2014)) provably achieve
+√
+a regret2 e
+O(γT T ) over T steps. Here, γT is the so-called
+maximum information gain associated with A and the GP.
+It captures in a data-adaptive way the implicit number of
+parameters of the non-parametric GP model, quantifying
+the effective complexity of the optimization problem. Under appropriate assumptions γT grows slowly in T making
+GP based methods no-regret (Srinivas et al., 2010; Scarlett
+et al., 2017). However, as most non-parametric approaches,
+GP-Opt algorithms face scalability issues when T grows
+large, severely limiting their applicability to large scale settings. For example, in some hyper-parameter optimization
+problems the solutions can still improve even after tens of
+thousands of candidate evaluations (e.g. the NAS-bench
+search (Ying et al., 2019) evaluated 5 million candidates).
+1
+2
+
+Actions or arms are also used for xt ; and rewards for yt .
+e ignores polylog terms.
+The notation O
+
+

@@ -1,0 +1,75 @@
+Optimal Clipping and Magnitude-aware Differentiation
+for Improved Quantization-aware Training
+
+Charbel Sakr 1 Steve Dai 1 Rangharajan Venkatesan 1 Brian Zimmer 1 William J. Dally 1 Brucek Khailany 1
+
+Abstract
+Data clipping is crucial in reducing noise in quantization operations and improving the achievable
+accuracy of quantization-aware training (QAT).
+Current practices rely on heuristics to set clipping threshold scalars and cannot be shown to
+be optimal. We propose Optimally Clipped Tensors And Vectors (OCTAV), a recursive algorithm
+to determine MSE-optimal clipping scalars. Derived from the fast Newton-Raphson method, OCTAV finds optimal clipping scalars on the fly, for
+every tensor, at every iteration of the QAT routine. Thus, the QAT algorithm is formulated
+with provably minimum quantization noise at
+each step. In addition, we reveal limitations in
+common gradient estimation techniques in QAT
+and propose magnitude-aware differentiation as
+a remedy to further improve accuracy. Experimentally, OCTAV-enabled QAT achieves state-ofthe-art accuracy on multiple tasks. These include
+training-from-scratch and retraining ResNets and
+MobileNets on ImageNet, and Squad fine-tuning
+using BERT models, where OCTAV-enabled QAT
+consistently preserves accuracy at low precision
+(4-to-6-bits). Our results require no modifications
+to the baseline training recipe, except for the insertion of quantization operations where appropriate.
+
+1
+
+Introduction
+
+Deep neural networks (DNNs) are powerful models achieving state-of-the-art accuracy on various cognitive tasks such
+as image classification, object detection, and natural language processing (LeCun et al., 2015). However, DNN
+successes have been achieved at the expense of a high computational and parameter complexity. Indeed, networks
+1
+
+The authors are with NVIDIA Corporation, Santa
+Clara, CA 95051 USA. Correspondence to: Charbel Sakr
+<csakr@nvidia.com>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+commonly require around 4 billion multiply-accumulates
+(MACs) (He et al., 2016) or have over 100 million parameters (Taigman et al., 2014). With further progress in deep
+learning, the growth of DNN resource requirements shows
+no sign of slowing down (Bianco et al., 2018). Fortunately,
+reduced-precision implementation has been shown to largely
+lower the computational complexity of deep learning models
+(Gupta et al., 2015).
+Reduced-precision deep learning is widely adopted and
+multi-faceted. One option is to perform post-training quantization (PTQ), which benefits inference only and consists of
+taking a pretrained network and implementing it in reducedprecision, with no retraining allowed. While conceptually
+simple, PTQ is challenging, as determining an accuracypreserving quantization strategy is non-trivial. In recent
+works, proposed practical PTQ solutions include speculative hybrid high/low precision number formats (Jain et al.,
+2019; Lin et al., 2017) and Batch-Norm-guided data free
+quantization (Nagel et al., 2019).
+The results presented in our work apply to any quantization
+setup, including PTQ. However, the main feature is the
+ability to optimize quantization metadata on the fly. This
+is most arguably effective for another facet: quantizationaware training (QAT), where weights and activations are
+quantized during training. A superset of this problem is fully
+quantized training (FQT) (Sakr & Shanbhag, 2019), where
+gradients and weight updates are also quantized. While we
+focus on QAT here, an interesting and important extension
+of our work is to apply our results to FQT.
+1.1
+
+Quantization-aware training and related works
+
+There are three main use cases for QAT: training-fromscratch where the starting point is a randomly initialized
+network; retraining where a pretrained model is quantized
+and retrained for a short time on the same dataset; and finetuning where the starting point is a model pretrained on one
+dataset and trained on another.
+Early works on QAT showed that binary-weighted (Courbariaux et al., 2015) and fully-binarized (Hubara et al.,
+2016) networks can be accurately trained on simple models
+and datasets. To improve accuracy in more difficult tasks,
+
+

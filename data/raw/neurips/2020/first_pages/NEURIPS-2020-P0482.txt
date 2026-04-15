@@ -1,0 +1,52 @@
+Bayesian Bits: Unifying Quantization and Pruning
+Mart van Baalen⇤, Christos Louizos⇤, Markus Nagel, Rana Ali Amjad,
+Ying Wang, Tijmen Blankevoort, Max Welling
+Qualcomm AI Research†
+{mart,clouizos,markusn,ramjad,yinwan,tijmen,mwelling}@qti.qualcomm.com
+
+Abstract
+We introduce Bayesian Bits, a practical method for joint mixed precision quantization and pruning through gradient based optimization. Bayesian Bits employs a
+novel decomposition of the quantization operation, which sequentially considers
+doubling the bit width. At each new bit width, the residual error between the full
+precision value and the previously rounded value is quantized. We then decide
+whether or not to add this quantized residual error for a higher effective bit width
+and lower quantization noise. By starting with a power-of-two bit width, this
+decomposition will always produce hardware-friendly configurations, and through
+an additional 0-bit option, serves as a unified view of pruning and quantization.
+Bayesian Bits then introduces learnable stochastic gates, which collectively control
+the bit width of the given tensor. As a result, we can obtain low bit solutions by
+performing approximate inference over the gates, with prior distributions that encourage most of them to be switched off. We experimentally validate our proposed
+method on several benchmark datasets and show that we can learn pruned, mixed
+precision networks that provide a better trade-off between accuracy and efficiency
+than their static bit width equivalents.
+
+1
+
+Introduction
+
+To reduce the computational cost of neural network inference, quantization and compression techniques are often applied before deploying a model in real life. The former reduces the bit width of
+weight and activation tensors by quantizing floating-point values onto a regular grid, allowing the use
+of cheap integer arithmetic, while the latter aims to reduce the total number of multiply-accumulate
+(MAC) operations required. We refer the reader to [18] and [19] for overviews of hardware-friendly
+quantization and compression techniques, respectively.
+In quantization, the default assumption is that all layers should be quantized to the same bit width.
+While it has long been understood that low bit width quantization can be achieved by keeping the
+first and last layers of a network in higher precision [34; 5], recent work [7; 35; 36] has shown that
+carefully selecting the bit width of each tensor can yield a better trade-off between accuracy and
+complexity. Since the choice of quantization bit width for one tensor may affect the quantization
+sensitivity of all other tensors, the choice of bit width cannot be made without regarding the rest of
+the network.
+The number of possible bit width configurations for a neural network is exponential in the number of
+layers in the network. Therefore, we cannot exhaustively search all possible configurations and pick
+the best one. Several approaches to learning the quantization bit widths from data have been proposed,
+either during training [35; 24], or on pre-trained networks [36; 7; 6]. However, these works do not
+consider the fact that commercially available hardware typically only supports efficient computation
+⇤
+†
+
+Equal contribution
+Qualcomm AI Research is an initiative of Qualcomm Technologies, Inc.
+
+34th Conference on Neural Information Processing Systems (NeurIPS 2020), Vancouver, Canada.
+
+

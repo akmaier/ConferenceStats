@@ -1,0 +1,61 @@
+Deconstructing Lottery Tickets:
+Zeros, Signs, and the Supermask
+
+Hattie Zhou
+Uber
+hattie@uber.com
+
+Janice Lan
+Uber AI
+janlan@uber.com
+
+Rosanne Liu
+Uber AI
+rosanne@uber.com
+
+Jason Yosinski
+Uber AI
+yosinski@uber.com
+
+Abstract
+The recent “Lottery Ticket Hypothesis” paper by Frankle & Carbin showed that a
+simple approach to creating sparse networks (keeping the large weights) results
+in models that are trainable from scratch, but only when starting from the same
+initial weights. The performance of these networks often exceeds the performance
+of the non-sparse base model, but for reasons that were not well understood. In this
+paper we study the three critical components of the Lottery Ticket (LT) algorithm,
+showing that each may be varied significantly without impacting the overall results.
+Ablating these factors leads to new insights for why LT networks perform as well
+as they do. We show why setting weights to zero is important, how signs are all
+you need to make the reinitialized network train, and why masking behaves like
+training. Finally, we discover the existence of Supermasks, masks that can be
+applied to an untrained, randomly initialized network to produce a model with
+performance far better than chance (86% on MNIST, 41% on CIFAR-10).
+
+1
+
+Introduction
+
+Many neural networks are over-parameterized [3, 4], enabling compression of each layer [4, 21, 8] or
+of the entire network [14]. Some compression approaches enable more efficient computation by pruning parameters, by factorizing matrices, or via other tricks [8, 10, 13, 16–18, 20–23]. Unfortunately,
+although sparse networks created via pruning often work well, training sparse networks directly often
+fails, with the resulting networks underperforming their dense counterparts [16, 8].
+A recent work by Frankle & Carbin [5] was thus surprising to many researchers when it presented
+a simple algorithm for finding sparse subnetworks within larger networks that are trainable from
+scratch. Their approach to finding these sparse, performant networks is as follows: after training a
+network, set all weights smaller than some threshold to zero, pruning them (similarly to other pruning
+approaches [9, 8, 15]), rewind the rest of the weights to their initial configuration, and then retrain the
+network from this starting configuration but with the zero weights frozen (not trained). Using this
+approach, they obtained two intriguing results.
+First, they showed that the pruned networks performed well. Aggressively pruned networks (with 95
+percent to 99.5 percent of weights pruned) showed no drop in performance compared to the much
+larger, unpruned network. Moreover, networks only moderately pruned (with 50 percent to 90 percent
+of weights pruned) often outperformed their unpruned counterparts. Second, they showed that these
+pruned networks train well only if they are rewound to their initial state, including the specific initial
+weights that were used. Reinitializing the same network topology with new weights causes it to train
+poorly. As pointed out in [5], it appears that the specific combination of pruning mask and weights
+underlying the mask form a more efficient subnetwork found within the larger network, or, as named
+by the original study, a lucky winning “Lottery Ticket,” or LT.
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

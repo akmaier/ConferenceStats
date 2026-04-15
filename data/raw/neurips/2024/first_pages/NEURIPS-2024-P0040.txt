@@ -1,0 +1,58 @@
+KVQuant: Towards 10 Million Context Length LLM
+Inference with KV Cache Quantization
+
+Coleman Hooper1 Sehoon Kim1 Hiva Mohammadzadeh1
+Michael W. Mahoney1,2,3 Yakun Sophia Shao1 Kurt Keutzer1 Amir Gholami1,2
+1
+
+University of California, Berkeley
+
+2
+
+ICSI
+
+3
+
+LBNL
+
+{chooper, sehoonkim, hiva, mahoneymw, ysshao, keutzer, amirgh}@berkeley.edu
+
+Abstract
+LLMs are seeing growing use for applications which require large context windows,
+and with these large context windows KV cache activations surface as the dominant
+contributor to memory consumption during inference. Quantization is a promising
+approach for compressing KV cache activations; however, existing solutions fail to
+represent activations accurately in sub-4-bit precision. Our work, KVQuant, facilitates low precision KV cache quantization by incorporating several novel methods:
+(i) Per-Channel Key Quantization, where we adjust the dimension along which we
+quantize the Key activations to better match the distribution; (ii) Pre-RoPE Key
+Quantization, where we quantize Key activations before the rotary positional embedding to mitigate its impact on quantization; (iii) Non-Uniform KV Cache Quantization, where we derive per-layer sensitivity-weighted non-uniform datatypes that
+better represent the distributions; and (iv) Per-Vector Dense-and-Sparse Quantization, where we isolate outliers separately for each vector to minimize skews in
+quantization ranges. By applying our method to the LLaMA, Llama-2, Llama-3,
+and Mistral models, we achieve < 0.1 perplexity degradation with 3-bit quantization on both Wikitext-2 and C4, outperforming existing approaches. Our method
+enables serving LLaMA-7B with a context length of up to 1 million on a single
+A100-80GB GPU and up to 10 million on an 8-GPU system. We develop custom
+CUDA kernels for KVQuant, showing that we can achieve up to ∼1.7× speedups,
+compared to baseline fp16 matrix-vector multiplications, for the LLaMA-7B model.
+Code is available at https://github.com/SqueezeAILab/KVQuant.
+
+1
+
+Introduction
+
+Large language models (LLMs) have revolutionized many natural language processing (NLP) tasks. In
+order to improve the capabilities of LLMs, there is significant interest in increasing the context lengths
+of LLMs. Longer context lengths enable new applications, including long document summarization,
+retrieval for answering questions about long documents, extended multi-turn applications [6], and
+code analysis. To support this pull from applications, there have been significant recent advances in
+long-context length models in industry [2, 30], as well as in academia [6, 22].
+Given the importance of LLM workloads, there is strong motivation to improve their inference
+efficiency. LLM inference with large context lengths can be incredibly resource-intensive; serving
+LLMs requires high-end GPUs, and the largest LLMs require costly multi-GPU inference setups.
+When analyzing the computational nature of generative inference with LLMs, it becomes quickly
+apparent that, for relatively small batch sizes, the computation is memory bound [17]. With the
+growing divergence between computational speeds and memory speeds, this problem is only going
+to get worse over time [12]. This makes reducing the memory bottleneck preeminently important.
+Further analysis shows that the memory bottleneck is strongly related to context size. For short
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

@@ -1,0 +1,94 @@
+Metropolis-Hastings Generative Adversarial Networks
+
+Ryan Turner 1 Jane Hung 1 Eric Frank 1 Yunus Saatci 1 Jason Yosinski 1
+
+Abstract
+We introduce the Metropolis-Hastings generative
+adversarial network (MH-GAN), which combines
+aspects of Markov chain Monte Carlo and GANs.
+The MH-GAN draws samples from the distribution implicitly defined by a GAN’s discriminatorgenerator pair, as opposed to standard GANs
+which draw samples from the distribution defined
+only by the generator. It uses the discriminator
+from GAN training to build a wrapper around
+the generator for improved sampling. With a perfect discriminator, this wrapped generator samples from the true distribution on the data exactly
+even when the generator is imperfect. We demonstrate the benefits of the improved generator on
+multiple benchmark datasets, including CIFAR10 and CelebA, using the DCGAN, WGAN, and
+progressive GAN.
+
+1. Introduction
+Traditionally, density estimation is done with a model that
+can compute the data likelihood. Generative adversarial networks (GANs) (Goodfellow et al., 2014) present a radically
+new way to do density estimation: They implicitly represent
+the density of the data via a classifier that distinguishes real
+from generated data.
+GANs iterate between updating a discriminator D and a
+generator G, where G generates new (synthetic) samples
+of data, and D attempts to distinguish samples of G from
+the real data. In the typical setup, D is thrown away at the
+end of training, and only G is kept for generating new synthetic data points. In this work, we propose the MetropolisHastings GAN (MH-GAN), a GAN that constructs a new
+generator G0 that “wraps” G using the information contained in D. This principle is illustrated in Figure 1.1
+1
+
+Uber AI Labs.
+Correspondence to:
+<ryan.turner@uber.com>.
+
+Ryan Turner
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+1
+Code found at:
+github.com/uber-research/metropolis-hastings-gans
+
+The MH-GAN uses Markov chain Monte Carlo (MCMC)
+methods to sample from the distribution implicitly defined
+by the discriminator D learned for the generator G. This
+is built upon the notion that the discriminator classifies
+between the generator G and a data distribution:
+D(x) =
+
+pD (x)
+,
+pD (x) + pG (x)
+
+(1)
+
+where pG is the (intractable) density of samples from the
+generator G, and pD is the data density implied by the discriminator D with respect to G. If GAN training reaches its
+global optimum, then this discriminator distribution pD is
+equal to the data distribution and the generator distribution
+(pD = pdata = pG ) (Goodfellow et al., 2014). Furthermore,
+if the discriminator D is optimal for a fixed imperfect generator, G then the implied distribution still equals the data
+distribution (pD = pdata 6= pG ).
+We use an MCMC independence sampler (Tierney, 1994) to
+sample from pD by taking multiple samples from G. Amazingly, using our algorithm, one can show that given a perfect
+discriminator D and a decent (but imperfect) generator G,
+one can obtain exact samples from the true data distribution
+pdata . Standard MCMC implementations require (unnormalized) densities for the target pD and the proposal pG , which
+are both unavailable for GANs. However, the MetropolisHastings (MH) algorithm requires only the ratio:
+D(x)
+pD (x)
+=
+,
+pG (x)
+1 − D(x)
+
+(2)
+
+which we can obtain using only evaluation of D(x).
+Sampling from an MH-GAN is more computationally expensive than a standard GAN, but the bigger and more
+relevant training compute cost remains unchanged. Thus,
+the MH-GAN is best suited for applications where sample
+quality is more important than compute speed at test time.
+The outline of this paper is as follows: Section 2 reviews
+diverse areas of relevant prior work. In Sections 3.1 and 3.2
+we explain the necessary background on MCMC methods
+and GANs. We explain our methodology of combining
+these two seemingly disparate areas in Section 4 where
+we derive the wrapped generator G0 . Results on real data
+(CIFAR-10 and CelebA) and extending common GAN models (DCGAN, WGAN, and progressive GAN) are shown in
+Section 5. Section 6 discusses implications and conclusions.
+
+

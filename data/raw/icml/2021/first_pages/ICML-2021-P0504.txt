@@ -1,0 +1,73 @@
+I-BERT: Integer-only BERT Quantization
+
+Sehoon Kim * 1 Amir Gholami * 1 Zhewei Yao * 1 Michael W. Mahoney 1 Kurt Keutzer 1
+
+Abstract
+Transformer based models, like BERT and
+RoBERTa, have achieved state-of-the-art results
+in many Natural Language Processing tasks. However, their memory footprint, inference latency,
+and power consumption are prohibitive for efficient inference at the edge, and even at the data
+center. While quantization can be a viable solution for this, previous work on quantizing Transformer based models use floating-point arithmetic
+during inference, which cannot efficiently utilize
+integer-only logical units such as the recent Turing Tensor Cores, or traditional integer-only ARM
+processors. In this work, we propose I-BERT, a
+novel quantization scheme for Transformer based
+models that quantizes the entire inference with
+integer-only arithmetic. Based on lightweight
+integer-only approximation methods for nonlinear operations, e.g., GELU, Softmax, and Layer
+Normalization, I-BERT performs an end-to-end
+integer-only BERT inference without any floating point calculation. We evaluate our approach
+on GLUE downstream tasks using RoBERTaBase/Large. We show that for both cases, I-BERT
+achieves similar (and slightly higher) accuracy as
+compared to the full-precision baseline. Furthermore, our preliminary implementation of I-BERT
+shows a speedup of 2.4 − 4.0× for INT8 inference on a T4 GPU system as compared to FP32
+inference. The framework has been developed in
+PyTorch and has been open-sourced (Kim, 2021).
+
+1. Introduction
+The recent Transformer based Neural Network (NN) models (Vaswani et al., 2017), pre-trained from large unlabeled
+data (e.g., BERT (Devlin et al., 2018), RoBERTa (Liu et al.,
+*
+Equal contribution 1 University of California, Berkeley. Correspondence to: Sehoon Kim <sehoonkim@berkeley.edu>,
+Amir Gholami <amirgh@berkeley.edu>,
+Zhewei Yao
+<zheweiy@berkeley.edu>, Michael W. Mahoney <mahoneymw@berkeley.edu>, Kurt Keutzer <keutzer@berkeley.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+2019), and the GPT family (Brown et al., 2020; Radford
+et al., 2018; 2019)), have achieved a significant accuracy
+improvement when fine-tuned on a wide range of Natural
+Language Processing (NLP) tasks such as sentence classification (Wang et al., 2018) and question answering (Rajpurkar et al., 2016). Despite the state-of-the-art results
+in various NLP tasks, pre-trained Transformer models are
+generally orders of magnitude larger than prior models. For
+example, the BERT-Large model (Devlin et al., 2018) contains 340M parameters. Much larger Transformer models
+have been introduced in the past few years, with even more
+parameters (Brown et al., 2020; Lepikhin et al., 2020; Radford et al., 2019; Raffel et al., 2019; Rosset, 2019; Shoeybi
+et al., 2019; Yang et al., 2019). Efficient deployment of
+these models has become a major challenge, even in data
+centers, due to limited resources (energy, memory footprint,
+and compute) and the need for real-time inference. Obviously, these challenges are greater for edge devices, where
+the compute and energy resources are more constrained.
+One promising method to tackle this challenge is quantization (Dong et al., 2019; Jacob et al., 2018; Krishnamoorthi,
+2018; Wu et al., 2018; 2016; Zhang et al., 2018), a procedure which compresses NN models into smaller size by
+representing parameters and/or activations with low bit precision, e.g., 8-bit integer (INT8) instead of 32-bit floating
+point (FP32). Quantization reduces memory footprint by
+storing parameters/activations in low precision. With the recent integer-only quantization methods, one can also benefit
+from faster inference speed by using low precision integer
+multiplication and accumulation, instead of floating point
+arithmetic. However, previous quantization schemes for
+Transformer based models use simulated quantization (aka
+fake quantization), where all or part of operations in the
+inference (e.g., GELU (Hendrycks & Gimpel, 2016), Softmax, and Layer Normalization (Ba et al., 2016)) are carried
+out with floating point arithmetic (Bhandare et al., 2019;
+Shen et al., 2020; Zafrir et al., 2019). This approach has
+multiple drawbacks for deployment in real edge application scenarios. Most importantly, the resulting NN models
+cannot be deployed on neural accelerators or popular edge
+processors that do not support floating point arithmetic. For
+instance, the recent server class of Turing Tensor Cores
+have added high throughput integer logic that are faster
+than single/half-precision. Similarly, some of the edge pro-
+
+

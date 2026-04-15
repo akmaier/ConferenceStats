@@ -1,0 +1,54 @@
+Parallelizing Linear Transformers with the Delta Rule
+over Sequence Length
+
+⋄
+
+Songlin Yang⋄ Bailin Wang⋄
+Massachusetts Institute of Technology
+
+Yu Zhang† Yikang Shen‡ Yoon Kim⋄
+Soochow University ‡ MIT-IBM Watson AI Lab
+
+†
+
+yangsl66@mit.edu
+
+Abstract
+Transformers with linear attention (i.e., linear transformers) and state-space models have recently been suggested as a viable linear-time alternative to transformers
+with softmax attention. However, these models still underperform transformers
+especially on tasks that require in-context retrieval. While more expressive variants of linear transformers which replace the additive update in linear transformers
+with the delta rule [DeltaNet; 101] have been found to be more effective at associative recall, existing algorithms for training such models do not parallelize over
+sequence length and are thus inefficient to train on modern hardware. This work
+describes a hardware-efficient algorithm for training linear transformers with the
+delta rule, which exploits a memory-efficient representation for computing products of Householder matrices [11]. This algorithm allows us to scale up DeltaNet
+to standard language modeling settings. We train a 1.3B model for 100B tokens
+and find that it outperforms recent linear-time baselines such as Mamba [31] and
+GLA [124] in terms of perplexity and zero-shot performance on downstream tasks.
+We also experiment with two hybrid models which combine DeltaNet layers with
+(1) sliding-window attention layers every other layer or (2) two global attention
+layers, and find that these hybrids outperform strong transformer baselines.
+
+1
+
+Introduction
+
+The attention mechanism [8, 116] has been shown to be an important primitive for accurate sequence
+modeling. Attention is moreover efficient during training as it is rich in matrix multiplications and
+can thus take advantage of highly parallel processing capabilities and specialized accelerators on
+modern GPUs. However, the complexity of attention is quadratic in sequence length, and hence it is
+a fundamentally expensive primitive. And while recent techniques have made it possible to scale attention to longer sequences through hardware-aware restructuring of the intermediate computations
+[20, 18, 59, 14], these methods still require storing the key/value vectors of previous elements, and
+this “KV cache” (whose size grows linearly) can be unwieldy to manage for long sequences.
+Linear attention transformers [48] replace the exponential kernel in softmax attention with a dotproduct over (possibly transformed) key and query vectors. This makes it possible to formulate
+linear attention as a linear RNN with matrix-valued hidden states, thus obviating the need for a KV
+cache and enabling constant-memory inference. While initial variants of linear attention generally
+underperformed softmax attention on language modeling, gated variants of linear attention which
+incorporate a data-dependent gating factor have recently been shown to be competitive against strong
+transformer baselines [124, 92, 9, 79]. These gated linear transformers, along with time-varying state
+space models such as Mamba [31, 19] (which can be reparameterized as a gated linear transformer
+[124]), have been suggested as a potential alternative to ordinary transformers. However, despite
+The parallel DeltaNet layer is made available as part of the F LASH L INEAR ATTENTION library [124, 123]:
+https://github.com/fla-org/flash-linear-attention
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

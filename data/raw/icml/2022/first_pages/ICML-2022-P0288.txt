@@ -1,0 +1,81 @@
+SPDY: Accurate Pruning with Speedup Guarantees
+
+Elias Frantar 1 Dan Alistarh 1 2
+
+Abstract
+The recent focus on the efficiency of deep neural
+networks (DNNs) has led to significant work on
+model compression approaches, of which weight
+pruning is one of the most popular. At the same
+time, there is rapidly-growing computational support for efficiently executing the unstructuredsparse models obtained via pruning. Yet, most existing pruning methods minimize just the number
+of remaining weights, i.e. the size of the model,
+rather than optimizing for inference time. We
+address this gap by introducing SPDY, a new compression method which automatically determines
+layer-wise sparsity targets achieving a desired inference speedup on a given system, while minimizing accuracy loss. SPDY is the composition of
+two new techniques. The first is an efficient and
+general dynamic programming algorithm for solving constrained layer-wise compression problems,
+given a set of layer-wise error scores. The second
+technique is a local search procedure for automatically determining such scores in an accurate and
+robust manner. Experiments across popular vision
+and language models show that SPDY guarantees
+speedups while recovering higher accuracy relative to existing strategies, both for one-shot and
+gradual pruning scenarios, and is compatible with
+most existing pruning approaches. We also extend our approach to the recently-proposed task
+of pruning with very little data, where we achieve
+the best known accuracy recovery when pruning
+to the GPU-supported 2:4 sparsity pattern.
+
+1. Introduction
+Increasing the efficiency of deep neural networks (DNNs)
+has the potential to not just reduce the cost of computeand energy-hungry models, but also to make them more
+readily available and privacy-conscious, by allowing model
+execution on end-devices. There are many approaches for
+1
+IST Austria 2 Neural Magic. Correspondence to: Elias Frantar
+<elias.frantar@ist.ac.at>, Dan Alistarh <dan.alistarh@ist.ac.at>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+compressing DNNs for increased efficiency (Hoefler et al.,
+2021; Gholami et al., 2021). The one we focus on in this
+paper is sparsity, i.e. setting to zero a large fraction of the
+values in the big parameter matrices of a neural network.
+Sparsification of neural networks has a long history (LeCun
+et al., 1990), and current pruning techniques can shrink
+models by more than an order of magnitude, while largely
+preserving accuracy (Hoefler et al., 2021).
+Pruning methods are usually categorized by the granularity
+at which they are applied: Structured pruning aims to drop
+groups of related weights, e.g. filters in a convolutional layer,
+which directly leads to improved inference speeds, but is
+usually limited in the compression amount before significant
+accuracy loss occurs. Unstructured pruning methods have
+traditionally been focused on reducing model size, as they
+drop individual weights in often random patterns, which is
+harder to translate into faster execution. More recent semistructured methods (Mishra et al., 2021; Zhou et al., 2021;
+Lagunas et al., 2021) trade off additional structure in the
+zeroed weights, e.g. small rectangular blocks, with higher
+accuracy loss relative to unstructured pruning.
+On the runtime side, increasingly advanced algorithms have
+been introduced to provide computational speedup also for
+unstructured sparse models, whether executed on CPUs
+(Kurtz et al., 2020; NeuralMagic, 2021; Elsen et al., 2020),
+GPUs (Gale et al., 2020), or specialized hardware (Han et al.,
+2015; Dave et al., 2021). Currently, unstructured pruning
+provides some of the best compression-to-accuracy tradeoffs among existing approaches (Hoefler et al., 2021), and
+efficient sparse inference on CPUs, which is our main focus,
+is particularly interesting in terms of accessibility and cost.
+Further, several commodity CPUs, e.g. current AMD models, do not support efficient quantized arithmetic, making
+sparsity their primary means of accelerating inference.
+One key practical issue is that state-of-the-art unstructured
+pruning methods, e.g. (Evci et al., 2020; Singh & Alistarh, 2020; Schwarz et al., 2021; Peste et al., 2021), do
+not directly take the behavior of acceleration methods into
+account, while existing speedup-aware structured pruning
+methods are not straightforward to adapt to the unstructured
+case. This means that sparsifying a model to reach a certain
+speed, rather than a certain size, with minimal accuracy loss,
+is still an extremely laborious process.
+Contribution. We provide a general solution to this prob-
+
+

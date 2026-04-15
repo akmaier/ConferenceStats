@@ -1,0 +1,69 @@
+Distributed Gaussian Processes
+Marc Peter Deisenroth
+Department of Computing, Imperial College London, United Kingdom
+
+M . DEISENROTH @ IMPERIAL . AC . UK
+
+Jun Wei Ng
+Department of Computing, Imperial College London, United Kingdom
+
+JUNWEI . NG 10@ ALUMNI . IMPERIAL . AC . UK
+
+Abstract
+To scale Gaussian processes (GPs) to large data
+sets we introduce the robust Bayesian Committee Machine (rBCM), a practical and scalable product-of-experts model for large-scale
+distributed GP regression. Unlike state-of-theart sparse GP approximations, the rBCM is conceptually simple and does not rely on inducing
+or variational parameters. The key idea is to
+recursively distribute computations to independent computational units and, subsequently, recombine them to form an overall result. Efficient
+closed-form inference allows for straightforward
+parallelisation and distributed computations with
+a small memory footprint. The rBCM is independent of the computational graph and can
+be used on heterogeneous computing infrastructures, ranging from laptops to clusters. With sufficient computing resources our distributed GP
+model can handle arbitrarily large data sets.
+
+1. Introduction
+Gaussian processes (GPs) (Rasmussen & Williams, 2006)
+are the method of choice for probabilistic nonlinear regression: Their non-parametric nature allows for flexible modelling without specifying low-level assumptions
+(e.g., the degree of a polynomial) in advance. Inference
+can be performed in a principled way simply by applying Bayes’ theorem. GPs have had substantial impact in
+geostatistics (Cressie, 1993), optimisation (Jones et al.,
+1998; Brochu et al., 2009), data visualisation (Lawrence,
+2005), robotics and reinforcement learning (Deisenroth
+et al., 2015), spatio-temporal modelling (Luttinen & Ilin,
+2012), and active learning (Krause et al., 2008). A strength
+of GPs is that they are a fairly reliable black-box funcProceedings of the 32 nd International Conference on Machine
+Learning, Lille, France, 2015. JMLR: W&CP volume 37. Copyright 2015 by the author(s).
+
+tion approximator, i.e., they produce reasonable predictions
+without manual parameter tuning. However, their inherent weakness is that they scale poorly with the size N of
+the data set: Training and predicting scale in O(N 3 ) and
+O(N 2 ), respectively, which practically limits GPs to data
+sets of size O(104 ).
+For large data sets (e.g., N > 104 ) sparse approximations are often used (Williams & Seeger, 2001; QuiñoneroCandela & Rasmussen, 2005; Hensman et al., 2013; Titsias, 2009; Lázaro-Gredilla et al., 2010; Shen et al., 2006;
+Gal et al., 2014). Typically, they lower the computational
+burden by implicitly (or explicitly) using a subset of the
+data, which scales (sparse) GPs to training set sizes N ∈
+O(106 ). Recently, Gal et al. (2014) proposed an approach
+that scales variational sparse GPs (Titsias, 2009) further by
+exploiting distributed computations. In particular, they derive an exact re-parameterisation of the variational sparse
+GP by Titsias (2009) to update the variational parameters
+independently on different computing nodes. However,
+even with sparse approximations it is inconceivable to apply GPs to training set sizes of N ≥ O(107 ).
+An alternative to sparse approximations is to distribute the
+computations by using independent local “expert” models,
+which operate on subsets of the data. These local models typically require stationary kernels for a notion of “distance” and “locality”. Shen et al. (2006) used KD-trees to
+recursively partition the data space into a multi-resolution
+tree data structure, which scale GPs to O(104 ) training
+points. However, no solutions for variance predictions are
+provided, and the approach is limited to stationary kernels.
+Along the lines of exploiting locality, mixture-of-experts
+(MoE) models (Jacobs et al., 1991) have been applied to
+GP regression (Rasmussen & Ghahramani, 2002; Meeds
+& Osindero, 2006; Yuan & Neubauer, 2009). However,
+these models have not primarily been used to speed up
+GP regression, but rather to increase the expressiveness of
+the model, i.e., allowing for heteroscedasticity and nonstationarity. Each local model possesses its own set of
+hyper-parameters to be optimised. Predictions are made
+by collecting the predictions of all local expert models, and
+
+

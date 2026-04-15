@@ -1,0 +1,82 @@
+Sliced Iterative Normalizing Flows
+
+Biwei Dai 1 Uroš Seljak 1 2
+
+Abstract
+We develop an iterative (greedy) deep learning
+(DL) algorithm which is able to transform an arbitrary probability distribution function (PDF) into
+the target PDF. The model is based on iterative
+Optimal Transport of a series of 1D slices, matching on each slice the marginal PDF to the target.
+The axes of the orthogonal slices are chosen to
+maximize the PDF difference using Wasserstein
+distance at each iteration, which enables the algorithm to scale well to high dimensions. As special
+cases of this algorithm, we introduce two sliced
+iterative Normalizing Flow (SINF) models, which
+map from the data to the latent space (GIS) and
+vice versa (SIG). We show that SIG is able to
+generate high quality samples of image datasets,
+which match the GAN benchmarks, while GIS
+obtains competitive results on density estimation
+tasks compared to the density trained NFs, and
+is more stable, faster, and achieves higher p(x)
+when trained on small training sets. SINF approach deviates significantly from the current DL
+paradigm, as it is greedy and does not use concepts such as mini-batching, stochastic gradient
+descent and gradient back-propagation through
+deep layers.
+
+1. Introduction
+Latent variable generative models such as Normalizing
+Flows (NFs) (Rezende & Mohamed, 2015; Dinh et al.,
+2014; 2017; Kingma & Dhariwal, 2018), Variational AutoEncoders (VAEs) (Kingma & Welling, 2014; Rezende
+et al., 2014) and Generative Adversarial Networks (GANs)
+(Goodfellow et al., 2014; Radford et al., 2016) aim to model
+the distribution p(x) of high-dimensional input data x by
+introducing a mapping from a latent variable z to x, where z
+is assumed to follow a given prior distribution π(z). These
+1
+
+Department of Physics, University of California, Berkeley, California, USA 2 Lawrence Berkeley National Laboratory,
+Berkeley, California, USA. Correspondence to: Biwei Dai <biwei@berkeley.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+models usually parameterize the mapping using neural networks, and the training of these models typically consists
+of minimizing a dissimilarity measure between the model
+distribution and the target distribution. For NFs and VAEs,
+maximizing the marginal likelihood is equivalent to minimizing the Kullback–Leibler (KL) divergence. While for
+GANs, the adversarial training leads to minimizations of the
+Jenson-Shannon (JS) divergence (Goodfellow et al., 2014).
+The performance of these models largely depends on the
+following aspects:
+1) The parametrization of the mapping (the architecture of
+the neural network) should match the structure of the data
+and be expressive enough. Different architectures have been
+proposed (Kingma & Dhariwal, 2018; van den Oord et al.,
+2017; Karras et al., 2018; 2019), but to achieve the best
+performance on a new dataset one still needs extensive hyperparameter explorations (Lucic et al., 2018).
+2) The dissimilarity measure (the loss function) should be
+appropriately chosen for the tasks. For example, in high
+dimensions the JS divergence is more correlated with the
+sample quality than KL divergence (Huszár, 2015; Theis
+et al., 2016), which is believed to be one of the reasons
+that GANs are able to generate higher quality samples than
+VAEs and NFs. However, JS divergence is hard to directly
+work with, and the adversarial training could bring many
+problems such as vanishing gradient, mode collapse and
+non-convergence (Arjovsky & Bottou, 2017; Wiatrak &
+Albrecht, 2019).
+To avoid these complexities, in this work we adopt a different approach to build the map from latent variable z to data
+x. We approach this problem from the Optimal Transport
+(OT) point of view. OT studies whether the transport maps
+exist between two probability distributions, and if they do,
+how to construct the map to minimize the transport cost.
+Even though the existence of transport maps can be proved
+under mild conditions (Villani, 2008), it is in general hard to
+construct them in high dimensions. We propose to decompose the high dimensional problem into a succession of 1D
+transport problems, where the OT solution is known. The
+mapping is iteratively augmented, and it has a NF structure
+that allows explicit density estimation and efficient sampling.
+We name the algorithm Sliced Iterative Normalizing Flow
+(SINF). Our objective function is inspired by the Wasserstein distance, which is defined as the minimal transport
+
+

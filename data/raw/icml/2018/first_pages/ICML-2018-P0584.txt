@@ -1,0 +1,91 @@
+GAIN: Missing Data Imputation using Generative Adversarial Nets
+
+Jinsung Yoon 1 * James Jordon 2 * Mihaela van der Schaar 1 2 3
+
+Abstract
+We propose a novel method for imputing missing
+data by adapting the well-known Generative Adversarial Nets (GAN) framework. Accordingly,
+we call our method Generative Adversarial Imputation Nets (GAIN). The generator (G) observes
+some components of a real data vector, imputes
+the missing components conditioned on what is
+actually observed, and outputs a completed vector.
+The discriminator (D) then takes a completed vector and attempts to determine which components
+were actually observed and which were imputed.
+To ensure that D forces G to learn the desired
+distribution, we provide D with some additional
+information in the form of a hint vector. The hint
+reveals to D partial information about the missingness of the original sample, which is used by
+D to focus its attention on the imputation quality
+of particular components. This hint ensures that G
+does in fact learn to generate according to the true
+data distribution. We tested our method on various datasets and found that GAIN significantly
+outperforms state-of-the-art imputation methods.
+
+1. Introduction
+Missing data is a pervasive problem. Data may be missing
+because it was never collected, records were lost or for many
+other reasons. In the medical domain, the respiratory rate of
+a patient may not have been measured (perhaps because it
+was deemed unnecessary/unimportant) or accidentally not
+recorded (Yoon et al., 2017; Alaa et al., 2018). It may also
+be the case that certain pieces of information are difficult
+or even dangerous to acquire (such as information gathered
+from a biopsy), and so these were not gathered for those
+reasons (Yoon et al., 2018b). An imputation algorithm can
+be used to estimate missing values based on data that was
+observed/measured, such as the systolic blood pressure and
+*
+
+Equal contribution 1 University of California, Los Angeles,
+CA, USA 2 University of Oxford, UK 3 Alan Turing Institute, UK.
+Correspondence to: Jinsung Yoon <jsyoon0823@gmail.com>.
+th
+
+Proceedings of the 35 International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+heart rate of the patient (Yoon et al., 2018c). A substantial
+amount of research has been dedicated to developing imputation algorithms for medical data (Barnard & Meng, 1999;
+Mackinnon, 2010; Sterne et al., 2009; Purwar & Singh,
+2015). Imputation algorithms are also used in many other
+applications such as image concealment, data compression,
+and counterfactual estimation (Rubin, 2004; Kreindler &
+Lumsden, 2012; Yoon et al., 2018a).
+Missing data can be categorized into three types: (1) the data
+is missing completely at random (MCAR) if the missingness
+occurs entirely at random (there is no dependency on any of
+the variables), (2) the data is missing at random (MAR) if the
+missingness depends only on the observed variables1 , (3) the
+data is missing not at random (MNAR) if the missingness
+is neither MCAR nor MAR (more specifically, the data
+is MNAR if the missingness depends on both observed
+variables and the unobserved variables; thus, missingness
+cannot be fully accounted for by the observed variables). In
+this paper we provide theoretical results for our algorithm
+under the MCAR assumption, and compare to other stateof-the-art methods in this setting2 .
+State-of-the-art imputation methods can be categorized as
+either discriminative or generative. Discriminative methods include MICE (Buuren & Oudshoorn, 2000; Buuren
+& Groothuis-Oudshoorn, 2011), MissForest (Stekhoven &
+Bühlmann, 2011), and matrix completion (Mazumder et al.,
+2010a; Yu et al., 2016; Schnabel et al., 2016; Mazumder
+et al., 2010b); generative methods include algorithms based
+on Expectation Maximization (Garcı́a-Laencina et al., 2010)
+and algorithms based on deep learning (e.g. denoising autoencoders (DAE) and generative adversarial nets (GAN))
+(Vincent et al., 2008; Gondara & Wang, 2017; Allen & Li,
+2016). However, current generative methods for imputation
+have various drawbacks. For instance, the approach for data
+imputation based on (Garcı́a-Laencina et al., 2010) makes
+assumptions about the underlying distribution and fails to
+generalize well when datasets contain mixed categorical and
+continuous variables. In contrast, the approaches based on
+DAE (Vincent et al., 2008) have been shown to work well
+in practice but require complete data during training. In
+1
+
+A formal definition of MAR can be found in the Supplementary Materials.
+2
+Empirical results for the MAR and MNAR settings are shown
+in the Supplementary Materials.
+
+

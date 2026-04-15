@@ -1,0 +1,67 @@
+Fast Tree-Field Integrators: From Low Displacement
+Rank to Topological Transformers
+∗
+
+∗
+
+∗
+
+Krzysztof Choromanski1, 2 , Arijit Sehanobish3, , Somnath Basu Roy Chowdhury4, ,
+∗
+∗
+Han Lin4, , Avinava Dubey5, , Tamas Sarlos5 , Snigdha Chaturvedi4
+1
+
+Google DeepMind, 2 Columbia University, 3 Independent, 4 UNC Chapel Hill, 5 Google Research.
+
+Abstract
+We present a new class of fast polylog-linear algorithms based on the theory of
+structured matrices (in particular low displacement rank) for integrating tensor
+fields defined on weighted trees. Several applications of the resulting fast tree-field
+integrators (FTFIs) are presented, including (a) approximation of graph metrics
+with tree metrics, (b) graph classification, (c) modeling on meshes, and finally
+(d) Topological Transformers (TTs) [Choromanski et al., 2022] for images. For
+Topological Transformers, we propose new relative position encoding (RPE) masking mechanisms with as few as three extra learnable parameters per Transformer
+layer, leading to 1.0-1.5%+ accuracy gains. Importantly, most of FTFIs are exact
+methods, thus numerically equivalent to their brute-force counterparts. When
+applied to graphs with thousands of nodes, those exact algorithms provide 5.7-13x
+speedups. We also provide an extensive theoretical analysis of our methods.
+
+1
+
+Introduction
+
+Matrix-vector multiplication remains a key computational block of virtually all modern machine
+learning (ML) algorithms. For this reason, decades of research have been dedicated towards making
+this fundamental operation more efficient. One approach to achieve this goal is through efficient
+hardware design, e.g., using modern GPU and TPU accelerators [Abadi et al., 2016, Yu et al.,
+2022, 2020]. The alternative method involves developing algorithms for efficient matrix-vector
+multiplication by leveraging either (1) sparse matrices [Wang, 2021, Beniamini et al., 2020], or (2)
+structured dense matrices [Thomas et al., 2018, Chandrasekaran et al., 2018]. These algorithms can be
+applied in modern neural network systems, where weights are pruned to encourage sparsity [Blalock
+et al., 2020] or they can be parameterized with structured matrices [Sindhwani et al., 2015].
+In this work, we aim to accelerate multiplications with a large class of matrices, that we refer to
+as f -distance matrices, which play an important role in several ML algorithms. Consider a matrix
+N ×N
+MG
+, where dist(i, j) stands for the shortest-path distance
+f = [f (dist(i, j))]i,j=1,...,N ∈ R
+between the i-th and j-th vertex of an undirected graph G = (V, E, W). Here V = {1, ..., N } stands
+for the set of vertices (nodes), E denotes the set of edges, W : E → R+ maps them to their positive
+def
+G
+weights, and f : R → R. We call MG
+f a f -distance matrix in G. Note that if f (x) = x, then Mf is
+the Shortest Path Kernel matrix.
+N
+The product MG
+f x (where x ∈ R ) represents a scalar field on V obtained by discretely integrating
+the field defined by x. In this integration, a new field value at a vertex v is calculated by averaging the
+old field values at all vertices u, weighted according to the function f (dist(v, u)). This integration can
+∗
+
+equal contribution
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

@@ -1,0 +1,111 @@
+SparQ Attention: Bandwidth-Efficient LLM Inference
+
+Luka Ribar * 1 Ivan Chelombiev * 2 Luke Hudlass-Galley * 1 Charlie Blake 1 Carlo Luschi 1 Douglas Orr 1
+
+Abstract
+SQuAD Accuracy
+
+0.8
+
+The computational difficulties of large language
+model (LLM) inference remain a significant obstacle to their widespread deployment. The need for
+many applications to support long input sequences
+and process them in large batches typically causes
+token-generation to be bottlenecked by data transfer. For this reason, we introduce SparQ Attention, a technique for increasing the inference
+throughput of LLMs by utilising memory bandwidth more efficiently within the attention layers,
+through selective fetching of the cached history.
+Our proposed technique can be applied directly to
+off-the-shelf LLMs during inference, without requiring any modification to the pre-training setup
+or additional fine-tuning. We show that SparQ Attention brings up to 8× savings in attention data
+transfers without substantial drops in accuracy, by
+evaluating Llama 2 and 3, Mistral, Gemma and
+Pythia models on a wide range of downstream
+tasks.
+
+0.6
+
+0.4
+
+0.2
+
+dense 512 MB
+transfers
+
+1
+2
+
+256 MB
+
+128 MB
+
+1
+8
+
+Attention transfers per token
+Dense
+
+H2 O
+
+1
+4
+
+LM-Infinite
+
+SparQ Attention
+FlexGen (16-bit)
+
+Figure 1: Llama 2 13B SQuAD 1-shot performance versus
+attention transfers over a range of compression ratios. SparQ
+Attention achieves matching performance, while transferring between 1/8 and 1/4 as much data as the original dense
+model. Line thickness shows ± one standard error over
+4000 examples (the uncertainty from a finite test set). This
+pattern is representative of the performance across various
+models and tasks, shown in Figures A1 to A3.
+used to support in-context learning, key-value (KV) caching
+(Pope et al., 2023), is constrained by the need to fetch a large
+amount of data from memory when processing batches of
+long sequences. This in turn limits the speed at which tokens
+can be generated—a key usability metric for LLMs.
+
+1. Introduction
+Transformer models trained on large corpora of text have
+recently shown remarkable performance on complex natural
+language processing tasks (Achiam et al., 2023; Touvron
+et al., 2023). This has been attributed to the in-context
+learning capabilities that emerge with large-scale training,
+enabling arbitrary textual information (e.g. long instructions,
+chat histories, relevant documents) to be incorporated at
+inference-time (Wei et al., 2022).
+
+This bottleneck can be attributed to the auto-regressive nature of transformer generation. For each token generated,
+the full KV cache must be fetched from memory. The size
+of the KV cache scales linearly with the sequence length,
+as well as the batch size, thus rendering generation for long
+batched sequences increasingly memory bandwidth limited.
+Despite this expensive cache-fetch at each step, tokens generally only attend to a small part of the sequence at a time
+(Vig, 2019; Yun et al., 2020). If it were possible to efficiently
+predict which tokens will have high attention scores, memory bandwidth efficiency could be significantly increased by
+only transferring the key-value pairs of high-scoring tokens.
+
+To leverage the benefits of in-context learning, there has
+been demand for LLMs to support increasingly long input
+sequences. However, the standard inference optimisation
+*
+Equal contribution 1 Graphcore Research, United Kingdom
+Synthesia, United Kingdom (work done while at Graphcore Research). Correspondence to: Luka Ribar, Luke Hudlass-Galley,
+Douglas Orr {lukar, lukehg, douglaso}@graphcore.ai.
+2
+
+Building upon this idea, we present SparQ Attention, a
+technique for significantly improving the memory bandwidth efficiency of transformer inference. By approximating
+attention scores using a subset of query and key components,
+
+st
+
+Proceedings of the 41 International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

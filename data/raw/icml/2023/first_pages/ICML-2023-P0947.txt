@@ -1,0 +1,87 @@
+STEP: Learning N:M Structured Sparsity Masks from Scratch
+with Precondition
+Yucheng Lu 1 Shivani Agrawal 2 Suvinay Subramanian 2 Oleg Rybakov 2
+Christopher De Sa 1 Amir Yazdanbakhsh 3
+
+Abstract
+
+such as language modeling (Brown et al., 2020), translation
+(Vaswani et al., 2017) and image classification (Liu et al.,
+2021). However, modern DNNs usually contain millions
+of billions of parameters (e.g. BERT (Devlin et al., 2018)
+and GPT (Brown et al., 2020)), which hinders the inference
+scalability. Recent innovation on hardware architecture
+suggests structured sparsity is a promising way of alleviating
+this issue by deploying N:M masks during inference (N
+out of consecutive M elements in the the weight tensor are
+kept while others are pruned). N:M masks accelerate model
+inference with regular sparse structures (Pool, 2020; Fang
+et al., 2022). Compared to traditional unstructured sparsity
+(Frankle and Carbin, 2018; Lee et al., 2018; Evci et al., 2020)
+or channel/block structured sparsity algorithms (Wen et al.,
+2016; Li et al., 2016; He et al., 2017), adopting N:M masks
+has negligible evaluation degradation and progressively
+co-design algorithm (sparse matrix multiplication) and
+hardware (e.g. Nvidia Ampere Sparse Tensor Core),
+reaching a desirable trade-off.
+
+Recent innovations on hardware (e.g. Nvidia
+A100) have motivated learning N:M structured
+sparsity masks from scratch for fast model inference. However, state-of-the-art learning recipes in
+this regime (e.g. SR-STE) are proposed for nonadaptive optimizers like momentum SGD, while
+incurring non-trivial accuracy drop for Adamtrained models like attention-based LLMs. In this
+paper, we first demonstrate such gap origins from
+poorly estimated second moment (i.e. variance)
+in Adam states given by the masked weights. We
+conjecture that learning N:M masks with Adam
+should take the critical regime of variance estimation into account. In light of this, we propose
+STEP, an Adam-aware recipe that learns N:M
+masks with two phases: first, STEP calculates
+a reliable variance estimate (precondition phase)
+and subsequently, the variance remains fixed and is
+used as a precondition to learn N:M masks (masklearning phase). STEP automatically identifies
+the switching point of two phases by dynamically
+sampling variance changes over the training trajectory and testing the sample concentration. Empirically, we evaluate STEP and other baselines such
+as ASP and SR-STE on multiple tasks including CIFAR classification, machine translation and LLM
+fine-tuning (BERT-Base, GPT-2). We show STEP
+mitigates the accuracy drop of baseline recipes and
+is robust to aggressive structured sparsity ratios.
+
+Following this line of research, recent studies indicate it is
+critical (and also possible) to learn these N:M masks from
+scratch, without additional training or fine-tuning steps. Representative methods in this domain include SR-STE (Zhou
+et al., 2021), DominoSearch (Sun et al., 2021) and Decaying
+Mask (Kao et al., 2022), which sparsify the model weights
+during each forward pass in training to compute gradients,
+and update them to models. While these methods demonstrate promising results with momentum SGD, their performance over adaptive optimizers, such as Adam, is less satisfactory (Section 3). This implies the benefits of sparsity are
+largely traded-off by adaptivity in training, leading to slow
+convergence on many state-of-the-art models (Zhang et al.,
+2020). In light of this, in this paper we answer the question:
+
+1. Introduction
+
+Can we learn N:M structured
+sparsity masks with Adam, without model degradation?
+
+Overparameterized Deep Neural Networks (DNNs) have
+shown promising performance on various applications,
+1
+
+Motivated by the insights from recent studies on critical
+learning regime of Adam in a distributed learning environment (Tang et al., 2021; Lu et al., 2022), we first hypothesize
+that with masked weights, the back propagation leads
+to noisy gradients and gives a poorly estimated variance
+(running average of second moment gradients) in the
+
+Department of Computer Science, Cornell University
+Google 3 Google DeepMind. Correspondence to: Yucheng Lu
+<yl2967@cornell.edu>.
+2
+
+Proceedings of the 40 th International Conference on Machine
+Learning, Honolulu, Hawaii, USA. PMLR 202, 2023. Copyright
+2023 by the author(s).
+
+1
+
+

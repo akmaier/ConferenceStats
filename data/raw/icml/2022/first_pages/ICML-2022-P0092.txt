@@ -1,0 +1,84 @@
+Optimizing Sequential Experimental Design with Deep Reinforcement
+Learning
+
+Tom Blau 1 Edwin V. Bonilla 1 Iadine Chades 2 Amir Dezfouli 1
+
+Abstract
+Bayesian approaches developed to solve the optimal design of sequential experiments are mathematically elegant but computationally challenging. Recently, techniques using amortization have
+been proposed to make these Bayesian approaches
+practical, by training a parameterized policy that
+proposes designs efficiently at deployment time.
+However, these methods may not sufficiently explore the design space, require access to a differentiable probabilistic model and can only optimize
+over continuous design spaces. Here, we address
+these limitations by showing that the problem of
+optimizing policies can be reduced to solving a
+Markov decision process (MDP). We solve the
+equivalent MDP with modern deep reinforcement
+learning techniques. Our experiments show that
+our approach is also computationally efficient at
+deployment time and exhibits state-of-the-art performance on both continuous and discrete design
+spaces, even when the probabilistic model is a
+black box.
+
+1. Introduction
+One of the fundamental building blocks of scientific investigation is the development of predictive models that describe
+natural phenomena. Such models must be learned from
+data, which can only be acquired by conducting experiments.
+Since experiments are often costly and time-consuming, this
+naturally leads to the question of how to design experiments
+so that they are maximally informative. The formalism
+of Bayesian optimal experimental design (BOED, Lindley,
+1956) casts this problem as optimization of expected information gain. BOED is a popular approach in many scientific
+fields (Chaloner & Verdinelli, 1995; Ryan et al., 2016).
+1
+
+CSIRO’s Data61, Australia 2 CSIRO’s Land and
+Water, Australia.
+Correspondence to:
+Tom, Blau
+<tom.blau@data61.csiro.au>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+Following a Bayesian optimal experimental design (BOED)
+approach, let p(y | θ, d) be a probabilistic model describing some phenomenon. Here d represents our independent
+variables, or experimental design, y is the dependent variables, or experimental outcome, and θ the parameters of the
+model. We do not know the exact values of θ, but we have
+some prior belief about it represented as a distribution p(θ).
+The goal is then to find the design d∗ that maximizes the
+expected information gain (EIG) from the experiment:
+d∗ = arg max Ep(y | d) [H(p(θ)) − H(p(θ | y, d))] , (1)
+d∈D
+
+where p(y | d) can be computed as an expectation over the
+original model, H(·) is the entropy of a distribution, and
+D is the space of possible designs. Simply put, this means
+maximizing the expected decrease in entropy from the prior
+to the posterior. In the sequential setting, after conducting
+an experiment and observing its outcome, the new posterior
+p(θ | y, d) is used instead of the prior and a new design is
+computed. This can be repeated for as long as resources
+allow, a process called iterated experimental design.
+Evaluating the above expression requires computing an expectation w.r.t. the joint probability distribution p(y, θ | d) =
+p(y | d)p(θ | y, d), which can be challenging by itself (Hong
+& Juneja, 2009). An even more difficult problem occurs
+when we have a budget of T experiments and wish to find
+the non-myopically optimal design that maximizes expected
+information gain w.r.t. all future experiments. This requires
+computing repeatedly nested expectations, with the depth of
+nesting growing at a rate of O(T ), and the convergence rate
+1
+of evaluating this expectation being O(n− T +1 ) (Rainforth
+et al., 2018), where n is the number of samples. Approaches
+to non-myopically optimal design that rely on estimating
+this expectation are therefore intractable.
+Recently amortized methods have been introduced to solve
+the problem of non-myopic optimization (Foster et al., 2021;
+Ivanova et al., 2021). In this amortized approach a design
+policy is introduced that maps the history of designs and
+outcomes to the next design. A lower bound estimate of
+the non-myopic EIG is optimized w.r.t. the parameters of
+this policy, rather than optimizing the designs directly. After training, the policy achieves inference times orders of
+magnitude faster and EIG superior to (non-amortized) itera-
+
+

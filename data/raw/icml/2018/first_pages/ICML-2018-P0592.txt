@@ -1,0 +1,83 @@
+Large-Scale Sparse Inverse Covariance Estimation via Thresholding and
+Max-Det Matrix Completion
+
+Richard Y. Zhang 1 Salar Fattahi 1 Somayeh Sojoudi 2
+
+Abstract
+The sparse inverse covariance estimation problem is commonly solved using an `1 -regularized
+Gaussian maximum likelihood estimator known
+as “graphical lasso”, but its computational cost
+becomes prohibitive for large data sets. A recent line of results showed–under mild assumptions–that the graphical lasso estimator can be retrieved by soft-thresholding the sample covariance matrix and solving a maximum determinant matrix completion (MDMC) problem. This
+paper proves an extension of this result, and
+describes a Newton-CG algorithm to efficiently
+solve the MDMC problem. Assuming that the
+thresholded sample covariance matrix is sparse
+with a sparse Cholesky factorization, we prove
+that the algorithm converges to an -accurate solution in O(n log(1/)) time and O(n) memory.
+The algorithm is highly efficient in practice: we
+solve the associated MDMC problems with as
+many as 200,000 variables to 7-9 digits of accuracy in less than an hour on a standard laptop
+computer running MATLAB.
+
+1. Introduction
+Consider the problem of estimating an n × n covariance
+matrix Σ (or its inverse Σ−1 ) of a n-variate probability distribution from N independently and identically distributed
+samples x1 , x2 , . . . , xN drawn from the same probability
+distribution. In applications spanning from computer vision, natural language processing, to economics (Li, 1994;
+Manning & Schütze, 1999; Durlauf, 1993), the matrix Σ−1
+is often sparse, meaning that its matrix elements are mostly
+MATLAB source code: http://alum.mit.edu/www/
+1
+ryz.
+Department of Industrial Engineering and Operations
+Research, University of California, Berkeley, USA. 2 Department
+of Electrical Engineering and Computer Science, University of
+California, Berkeley, USA.. Correspondence to: R.Y. Zhang
+<ryz@berkeley.edu>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+zero. For Gaussian distributions, the statistical interpretation of sparsity in Σ−1 is that most of the variables
+are pairwise conditionally independent (Meinshausen &
+Bühlmann, 2006; Yuan & Lin, 2007; Friedman et al., 2008;
+Banerjee et al., 2008).
+Imposing sparsity upon Σ−1 can regularize the associated estimation problem and greatly reduce the number of
+samples required. This is particularly important in highdimensional settings where n is large, often significantly
+larger than the number of samples N  n. One popular approach regularizes the associated maximum likelihood estimation (MLE) problem by a sparsity-promoting
+`1 term, as in
+minimize tr CX − log det X + λ
+X0
+
+n
+X
+X n
+
+|Xi,j |.
+
+(1)
+
+i=1 j=1
+
+PN
+Here, C = N1 i=1 (xi − x̄)(xi − x̄)T is the sample
+PN
+covariance matrix with sample mean x̄ = N1 i=1 xi ,
+and X is the resulting estimator for Σ−1 . This approach,
+commonly known as the graphical lasso (Friedman et al.,
+2008), is known to enjoy a number of statistical guarantees (Rothman et al., 2008; Ravikumar et al., 2011), some
+of which are direct extensions of earlier work on the classical lasso (Obozinski et al., 2008; Negahban & Wainwright,
+2008; Wainwright, 2009; Huang & Zhang, 2010). A variation on this theme is to only impose the `1 penalty on the
+off-diagonal elements of X, or to place different weights
+λ on the elements of the matrix X, as in the classical
+weighted lasso.
+While the `1 -regularized problem (1) is technically convex, it is commonly considered intractable for large-scale
+datasets. The decision variable is an n×n matrix, so simply
+fitting all O(n2 ) variables into memory is already a significant issue. General-purpose algorithms have either prohibitively high complexity or slow convergence. In practice, (1) is solved using problem-specific algorithms. The
+state-of-the-art include GLASSO (Friedman et al., 2008),
+QUIC (Hsieh et al., 2014), and its “big-data” extension
+BIG-QUIC (Hsieh et al., 2013). These algorithms use between O(n) and O(n3 ) time and between O(n2 ) and O(n)
+memory per iteration, but the number of iterations needed
+to converge to an accurate solution can be very large.
+
+

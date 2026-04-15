@@ -1,0 +1,63 @@
+LAG: Lazily Aggregated Gradient for
+Communication-Efficient Distributed Learning
+
+Tianyi Chen⋆
+
+Georgios B. Giannakis⋆
+
+Tao Sun†,∗
+
+Wotao Yin∗
+
+⋆
+
+University of Minnesota - Twin Cities, Minneapolis, MN 55455, USA
+National University of Defense Technology, Changsha, Hunan 410073, China
+∗
+University of California - Los Angeles, Los Angeles, CA 90095, USA
+{chen3827,georgios@umn.edu} nudtsuntao@163.com wotaoyin@math.ucla.edu
+†
+
+Abstract
+This paper presents a new class of gradient methods for distributed machine learning that adaptively skip the gradient calculations to learn with reduced communication and computation. Simple rules are designed to detect slowly-varying
+gradients and, therefore, trigger the reuse of outdated gradients. The resultant
+gradient-based algorithms are termed Lazily Aggregated Gradient — justifying
+our acronym LAG used henceforth. Theoretically, the merits of this contribution
+are: i) the convergence rate is the same as batch gradient descent in stronglyconvex, convex, and nonconvex cases; and, ii) if the distributed datasets are heterogeneous (quantified by certain measurable constants), the communication rounds
+needed to achieve a targeted accuracy are reduced thanks to the adaptive reuse of
+lagged gradients. Numerical experiments on both synthetic and real data corroborate a significant communication reduction compared to alternatives.
+
+1
+
+Introduction
+
+In this paper, we develop communication-efficient algorithms to solve the following problem
+∑
+min L(θ) with L(θ) :=
+Lm (θ)
+θ ∈Rd
+m∈M
+
+(1)
+
+where θ ∈ Rd is the unknown vector, L and {Lm , m ∈ M} are smooth (but not necessarily convex)
+functions with M := {1, . . . , M }. Problem (1) naturally arises in a number of areas, such as
+multi-agent optimization [1], distributed signal processing [2], and distributed machine learning [3].
+Considering
+∑ the distributed machine learning paradigm, each Lm is also a sum of functions, e.g.,
+Lm (θ) := n∈Nmℓn (θ), where ℓn is the loss function (e.g., square or the logistic loss) with respect
+to the vector θ (describing the model) evaluated at the training sample xn ; that is, ℓn (θ) := ℓ(θ; xn ).
+While machine learning tasks are traditionally carried out at a single server, for datasets with massive
+samples {xn }, running gradient-based iterative algorithms at a single server can be prohibitively
+slow; e.g., the server needs to sequentially compute gradient components given limited processors.
+A simple yet popular solution in recent years is to parallelize the training across multiple computing
+units (a.k.a. workers) [3]. Specifically, assuming batch samples distributedly stored in a total of
+M workers with the worker m ∈ M associated with samples {xn , n ∈ Nm }, a globally shared
+model θ will be updated at the central server by aggregating gradients computed by workers. Due
+to bandwidth and privacy concerns, each worker m will not upload its data {xn , n ∈ Nm } to the
+server, thus the learning task needs to be performed by iteratively communicating with the server.
+We are particularly interested in the scenarios where communication between the central server and
+the local workers is costly, as is the case with the Federated Learning setting [4, 5], the cloud-edge
+32nd Conference on Neural Information Processing Systems (NeurIPS 2018), Montréal, Canada.
+
+

@@ -1,0 +1,74 @@
+KV-Runahead: Scalable Causal LLM Inference by
+Parallel Key-Value Cache Generation
+
+Minsik Cho 1 Mohammad Rastegari 2 Devang Naik 1
+
+Abstract
+
+two challenges for efficient inferences: a) Time-to-firsttoken or TTFT: consuming potentially a long user context
+and generate the first token b) Time Per Output Token
+or TPOT: generating the subsequent tokens fast (Liu et al.,
+2023a). The second challenge is known to be a memorybound problem, and a large body of research has been
+done (Pope et al., 2022), including sparsification, quantization, or weight clustering (Frantar et al., 2023; Lin et al.,
+2023; Cho et al., 2023; Liu et al., 2023b) or speculative decoding (Leviathan et al., 2023; Chen et al., 2023). But, the
+first challenge for a long user context is largely a computebound problem (Liu et al., 2023a; NVidia-LLM, 2023) and
+critical for favorable user experience with retrieval augmentation (Ram et al., 2023), in-context learning (Dong et al.,
+2023), summarization (Zhang et al., 2023b), story generation (Zhang et al., 2023a), and so on.
+
+Large Language Model or LLM inference has two
+phases, the prompt (or prefill) phase to output the
+first token and the extension (or decoding) phase
+to the generate subsequent tokens. In this work,
+we propose an efficient parallelization scheme,
+KV-Runahead to accelerate the prompt phase.
+The key observation is that the extension phase
+generates tokens faster than the prompt phase because of key-value cache (KV-cache). Hence,
+KV-Runahead parallelizes the prompt phase by
+orchestrating multiple processes to populate the
+KV-cache and minimizes the time-to-first-token
+(TTFT). Dual-purposing the KV-cache scheme
+has two main benefits. First, since KV-cache is
+designed to leverage the causal attention map, we
+minimize computation and computation automatically. Second, since it already exists for the extension phase, KV-Runahead is easy to implement.
+We further propose context-level load-balancing
+to handle uneven KV-cache generation (due to
+the causal attention) and to optimize TTFT. Compared with an existing parallelization scheme such
+as tensor or sequential parallelization where keys
+and values are locally generated and exchanged
+via all-gather collectives, our experimental results
+demonstrate that KV-Runahead can offer over
+1.4× and 1.6× speedups for Llama 7B and Falcon
+7B respectively.
+
+Since TTFT for a long context is compute-bound, one solution is to use more computing power in the form of parallelization. The current SOTA in LLM parallelization inlcudes tensor and sequential parallelization (Patel et al., 2023;
+Li et al., 2023; Korthikanti et al., 2022; NVidia-LLM, 2023)
+where the key and value computations are distributed over
+multiple processes and subsequently exchanged, aiming
+to compute the attention map perfectly in parallel. The
+methods above are generic enough to drive LLM inference (Vaswani et al., 2017), but not specialized enough
+for scalable LLM inference, as the causality in attention is
+not fully leveraged, resulting in up to 2× overhead in terms
+of both computation and communication over the ideal case.
+Therefore, we propose a novel yet effective parallelization
+technique tailed for LLM inference, KV-Runahead to minimize TTFT. By re-purposing the key-value cache or KVcache (NVidia-LLM, 2023) mechanism (which exists anyway for subsequent token generation), our proposed KVRunahead uses other processes to populate KV-cache for the
+last process with context-level load-balancing. Since KVcache assumes causal attention computation, KV-Runahead
+reduces the computation and communication costs and offers lower TTFT over the existing methods. Further, KVRunahead requires minimal engineering costs, as it simply
+makes the KV-cache interface dual-purposed. In detail, our
+contributions are the following:
+
+1. Introduction
+Large language models or LLMs, and especially Generative
+Pre-trained Transformer (GPT) models have shown excellent performance on many complex language tasks (Ouyang
+et al., 2022; Zhang et al., 2022a). However, the decoder
+architecture and autoregression execution in LLMs pose
+1
+Apple. USA 2 Meta. USA (the work done while being with
+Apple). Correspondence to: Minsik Cho <minsik@apple.com>.
+
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

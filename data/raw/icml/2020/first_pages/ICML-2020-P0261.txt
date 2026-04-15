@@ -1,0 +1,80 @@
+Efficient and Scalable Bayesian Neural Nets with Rank-1 Factors
+Michael W. Dusenberry * † 1 Ghassen Jerfel * 1 2 Yeming Wen 1 3 Yi-An Ma 1 4 Jasper Snoek 1
+Katherine Heller 1 2 Balaji Lakshminarayanan 1 Dustin Tran 1
+
+Abstract
+Bayesian neural networks (BNNs) demonstrate
+promising success in improving the robustness
+and uncertainty quantification of modern deep
+learning. However, they generally struggle with
+underfitting at scale and parameter efficiency. On
+the other hand, deep ensembles have emerged
+as alternatives for uncertainty quantification that,
+while outperforming BNNs on certain problems,
+also suffer from efficiency issues. It remains unclear how to combine the strengths of these two
+approaches and remediate their common issues.
+To tackle this challenge, we propose a rank-1
+parameterization of BNNs, where each weight
+matrix involves only a distribution on a rank-1
+subspace. We also revisit the use of mixture approximate posteriors to capture multiple modes,
+where unlike typical mixtures, this approach admits a significantly smaller memory increase (e.g.,
+only a 0.4% increase for a ResNet-50 mixture of
+size 10). We perform a systematic empirical study
+on the choices of prior, variational posterior, and
+methods to improve training. For ResNet-50 on
+ImageNet, Wide ResNet 28-10 on CIFAR-10/100,
+and an RNN on MIMIC-III, rank-1 BNNs achieve
+state-of-the-art performance across log-likelihood,
+accuracy, and calibration on the test sets and outof-distribution variants.1
+
+1. Introduction
+Bayesian neural networks (BNNs) marginalize over a distribution of neural network models for prediction, allowing
+for uncertainty quantification and improved robustness in
+*
+
+Equal contribution † Work completed as a Google AI Resident. 1 Google Brain, Mountain View, USA 2 Duke University,
+Durham, USA 3 University of Toronto, Toronto, CA 4 University
+of California, San Diego, USA. Correspondence to: Michael
+W. Dusenberry <dusenberrymw@google.com>, Ghassen Jerfel
+<ghassen@google.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+1
+Code: https://github.com/google/edward2.
+
+deep learning. In principle, BNNs can permit graceful failure, signalling when a model does not know what to predict
+(Kendall & Gal, 2017; Dusenberry et al., 2019), and can also
+generalize better to out-of-distribution examples (Louizos &
+Welling, 2017; Malinin & Gales, 2018). However, there are
+two important challenges prohibiting their use in practice.
+First, Bayesian neural networks often underperform on metrics such as accuracy and do not scale as well as simpler
+baselines (Gal & Ghahramani, 2016; Lakshminarayanan
+et al., 2017; Maddox et al., 2019). A possible reason is that
+the best configurations for BNNs remain unknown. What
+is the best parameterization, weight prior, approximate posterior, or optimization strategy? The flexibility that accompanies these choices makes BNNs broadly applicable, but
+adds a high degree of complexity.
+Second, maintaining a distribution over weights incurs a
+significant cost both in additional parameters and runtime
+complexity. Mean-field variational inference (Blundell et al.,
+2015), for example, requires doubling the existing millions
+or billions of network weights (i.e., mean and variance for
+each weight). Using an ensemble of size 5, or 5 MCMC
+samples, requires 5x the number of weights. In contrast,
+simply scaling up a deterministic model to match this parameter count can lead to much better predictive performance
+on both in- and out-of-distribution data (Recht et al., 2019).
+In this paper, we develop a flexible distribution over neural network weights that achieves state-of-the-art accuracy
+and uncertainty while being highly parameter-efficient. We
+address the first challenge by building on ideas from deep
+ensembles (Lakshminarayanan et al., 2017), which work by
+aggregating predictions from multiple randomly initialized,
+stochastic gradient descent (SGD)-trained models. Fort et al.
+(2019) identified that deep ensembles’ multimodal solutions
+provide uncertainty benefits that are distinct and complementary to distributions centered around a single mode.
+We address the second challenge by leveraging recent work
+that has identified neural network weights as having low
+effective dimensionality for sufficiently diverse and accurate predictions. For example, Li et al. (2018) find that
+the “intrinsic” dimensionality of popular architectures can
+be on the order of hundreds to a few thousand. Izmailov
+et al. (2019) perform Bayesian inference on a learned 5-
+
+

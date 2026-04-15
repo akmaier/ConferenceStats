@@ -1,0 +1,60 @@
+Language Model Alignment with Elastic Reset
+
+Michael Noukhovitch∗
+Mila, Université de Montréal
+
+Samuel Lavoie
+Mila, Université de Montréal
+
+Florian Strub
+Google Deepmind
+
+Aaron Courville
+Mila, Université de Montréal
+CIFAR AI Chair
+
+Abstract
+Finetuning language models with reinforcement learning (RL), e.g. from human
+feedback (HF), is a prominent method for alignment. But optimizing against a
+reward model can improve on reward while degrading performance in other areas,
+a phenomenon known as reward hacking, alignment tax, or language drift. First,
+we argue that commonly-used test metrics are insufficient and instead measure
+how different algorithms tradeoff between reward and drift. The standard method
+modified the reward with a Kullback-Lieber (KL) penalty between the online and
+initial model. We propose Elastic Reset, a new algorithm that achieves higher
+reward with less drift without explicitly modifying the training objective. We
+periodically reset the online model to an exponentially moving average (EMA) of
+itself, then reset the EMA model to the initial model. Through the use of an EMA,
+our model recovers quickly after resets and achieves higher reward with less drift in
+the same number of steps. We demonstrate that fine-tuning language models with
+Elastic Reset leads to state-of-the-art performance on a small scale pivot-translation
+benchmark, outperforms all baselines in a medium-scale RLHF-like IMDB mock
+sentiment task and leads to a more performant and more aligned technical QA
+chatbot with LLaMA-7B. Code available at github.com/mnoukhov/elastic-reset.
+
+1
+
+Introduction
+
+Dialogue agents that can effectively interpret and use language are a long-term challenge for NLP. The
+rise of large pretrained language models (LMs) [Brown et al., 2020] made language model finetuning
+one of the most promising research directions to achieving capable dialogue agents [Bender and
+Koller, 2020]. Recently, reinforcement learning (RL) has become a key ingredient of finetuning large
+LMs for interaction with humans [Ziegler et al., 2019, Ouyang et al., 2022, Bai et al., 2022], notably
+shown in ChatGPT [OpenAI, 2022]. A reward model is learned on the alignment objective, such as
+learned human preferences [RLHF; Christiano et al., 2017, Stiennon et al., 2020], and the language
+model is finetuned to optimize the reward. But training on the RL objective moves the model away
+from its pretraining and can reduce performance on important benchmarks [Ouyang et al., 2022] and
+even drifting away from natural language syntax and semantics [Lazaridou et al., 2020].
+“Language drift” [Lee et al., 2019, Lazaridou et al., 2020], “alignment tax” [Askell et al., 2021],
+“reward model overoptimization” [Gao et al., 2022], or LM-specific “reward-hacking” [Clark and
+Amodei, 2016] is inherent to RLHF. In the extreme case, models learn to achieve high reward by
+generating nonsense text that is unintelligible to humans [Lewis et al., 2017]. Methods to mitigate this
+issue range from re-running pretraining [Lowe* et al., 2021], grounding in other modalities [Lee et al.,
+∗
+
+Correspondance to michael.noukhovitch@umontreal.ca
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

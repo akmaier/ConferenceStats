@@ -1,0 +1,95 @@
+Stochastic Sign Descent Methods: New Algorithms and Better Theory
+
+Mher Safaryan 1 Peter Richtárik 1 2
+
+Abstract
+Various gradient compression schemes have been
+proposed to mitigate the communication cost
+in distributed training of large scale machine
+learning models. Sign-based methods, such as
+signSGD (Bernstein et al., 2018), have recently
+been gaining popularity because of their simple
+compression rule and connection to adaptive gradient methods, like ADAM. In this paper, we analyze sign-based methods for non-convex optimization in three key settings: (i) standard single node,
+(ii) parallel with shared data and (iii) distributed
+with partitioned data. For single machine case,
+we generalize the previous analysis of signSGD
+relying on intuitive bounds on success probabilities and allowing even biased estimators. Furthermore, we extend the analysis to parallel setting
+within a parameter server framework, where exponentially fast noise reduction is guaranteed with
+respect to number of nodes, maintaining 1-bit
+compression in both directions and using small
+mini-batch sizes. Next, we identify a fundamental issue with signSGD to converge in distributed
+environment. To resolve this issue, we propose a
+new sign-based method, Stochastic Sign Descent
+with Momentum (SSDM), which converges under
+standard bounded variance assumption with the
+optimal asymptotic rate. We validate several aspects of our theoretical findings with numerical
+experiments.
+
+1. Introduction
+One of the key factors behind the success of modern machine learning models is the availability of large amounts
+of training data (Bottou & Le Cun, 2003; Krizhevsky et al.,
+2012; Schmidhuber, 2015). However, the state-of-the-art
+deep learning models deployed in industry typically rely on
+datasets too large to fit the memory of a single computer, and
+1
+
+KAUST, Saudi Arabia 2 MIPT, Russia. Correspondence to:
+Mher Safaryan <mher.safaryan@gmail.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+hence the training data is typically split and stored across
+a number of compute nodes capable of working in parallel.
+Training such models then amounts to solving optimization
+problems of the form
+1
+min f (x) := M
+
+x∈Rd
+
+M
+P
+
+fn (x),
+
+(1)
+
+n=1
+
+where fn : Rd → R represents the non-convex loss of
+a deep learning model parameterized by x ∈ Rd associated with data stored on node n. Arguably, stochastic gradient descent (SGD) (Robbins & Monro, 1951; Vaswani
+et al., 2019; Qian et al., 2019) in of its many variants
+(Kingma & Ba, 2015; Duchi et al., 2011; Schmidt et al.,
+2017; Zeiler, 2012; Ghadimi & Lan, 2013) is the most popular algorithm for solving (1). In its basic implementation, all workers n ∈ {1, 2, . . . , M } in parallel compute
+a random approximation ĝ n (xk ) of ∇fn (xk ), known as
+the stochastic gradient. These approximations are then
+sent to a master
+which performs the aggregation
+PM node
+1
+n
+ĝ(xk ) := M
+ĝ
+(x
+k ). The aggregated vector is subsen=1
+quently broadcast back to the nodes, each of which performs
+an update of the form
+xk+1 = xk − γk ĝ(xk ),
+updating their local copies of the parameters of the model.
+1.1. Gradient Compression
+Typically, communication of the local gradient estimators
+ĝ n (xk ) to the master forms the bottleneck of such a system
+(Seide et al., 2014; Zhang et al., 2017; Lin et al., 2018). In an
+attempt to alleviate this communication bottleneck, a number of compression schemes for gradient updates have been
+proposed and analyzed (Alistarh et al., 2017; Wang et al.,
+2018; Wen et al., 2017; Khirirat et al., 2018; Mishchenko
+et al., 2019). A compression scheme is a (possibly randomized) mapping Q : Rd → Rd , applied by the nodes
+to ĝ n (xk ) (and possibly also by the master to aggregated
+update in situations when broadcasting is expensive as well)
+in order to reduce the number of bits of the communicated
+message.
+Sign-based compression. Although most of the existing
+theory is limited to unbiased compression schemes, i.e.,
+EQ(x) = x, biased schemes such as those based on communicating signs of the update entries only often perform
+
+

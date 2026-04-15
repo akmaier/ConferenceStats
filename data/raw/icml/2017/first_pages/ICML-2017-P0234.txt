@@ -1,0 +1,69 @@
+Stochastic Gradient MCMC Methods for Hidden Markov Models
+Yi-An Ma 1 Nicholas J. Foti 1 Emily B. Fox 1
+
+Abstract
+Stochastic gradient MCMC (SG-MCMC) algorithms have proven useful in scaling Bayesian
+inference to large datasets under an assumption of i.i.d data. We instead develop an SGMCMC algorithm to learn the parameters of hidden Markov models (HMMs) for time-dependent
+data. There are two challenges to applying SGMCMC in this setting: The latent discrete states,
+and needing to break dependencies when considering minibatches. We consider a marginal likelihood representation of the HMM and propose an
+algorithm that harnesses the inherent memory decay of the process. We demonstrate the effectiveness of our algorithm on synthetic experiments
+and an ion channel recording data, with runtimes
+significantly outperforming batch MCMC.
+
+1. Introduction
+Stochastic gradient based algorithms have proven crucial
+in numerous areas for scaling inference algorithms to large
+datasets. The key idea is to employ noisy estimates of the
+gradient based on minibatches of data, avoiding a costly
+gradient computation using the full dataset (Robbins &
+Monro, 1951). Assuming the data are i.i.d. and the minibatches are properly scaled, the stochastic gradient is an
+unbiased estimate of the true gradient. In the context of
+Bayesian inference, such approaches have proven useful in
+scaling variational inference (Hoffman et al., 2013; Bryant
+& Sudderth, 2012; Broderick et al., 2013; Foti et al., 2014)
+and Markov chain Monte Carlo (MCMC) (Welling & Teh,
+2011; Patterson & Teh, 2013; Chen et al., 2014; Ding et al.,
+2014; Shang et al., 2015). For the latter, a primary focus
+has been on the influence of the stochastic gradient noise
+on the MCMC iterates; in contrast to many optimizationbased procedures, it is non-trivial to show that the underlying (stochastic) dynamics maintain the correct stationary
+1
+University of Washington, Seattle, WA, USA. Correspondence to: Yi-An Ma <yianma@uw.edu>.
+
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+distribution in the presence of such noise. Significant headway has been made in developing such correct SG-MCMC
+procedures. These algorithms have shown great practical
+benefits and have gained significant traction.
+A separate challenge, however, is the important and often
+overlooked question of whether such stochastic gradient
+techniques can be applied to massive amounts of sequential
+or otherwise non-i.i.d. data. In such cases, crucial dependencies must be broken to form the necessary minibatches.
+This question received some attention in the stochastic variational inference (SVI) algorithm of Foti et al. (2014) for
+hidden Markov models (HMMs). In this work, we also focus in on HMMs as a simple example of a sequential data
+model, but turn our attention to SG-MCMC algorithms.
+There are many existing algorithms for inferring
+the model parameters of an HMM including Monte
+Carlo methods (Scott, 2002), expectation-maximization
+(EM) (Bishop, 2006), and variational algorithms (Beale,
+2003). All of these ideas operate by iterating between a
+local update for the latent states, followed by a global
+update of the model parameters. The local update is
+usually performed using the forward-backward algorithm
+that allows computation of any marginal, or pair-wise
+marginal, in time linear in the length of the sequence.
+In the variational context, recent work has focused on scaling these local-global inference schemes to settings with
+a large number of replicates of short sequences (Johnson
+& Willsky, 2014; Hughes et al., 2015). These methods
+utilize the fact that independent replicates of the observation sequence can be used to compute unbiased gradient estimates (Johnson & Willsky, 2014), and can be used
+to incrementally update sufficient statistics (Hughes et al.,
+2015). In contrast, the SVI-HMM algorithm of Foti et al.
+(2014) examines how to deal with extremely long observation sequences. The algorithm heuristically breaks the
+dependence between observations and performs local updates on short subsequences of observations using a limited forward-backward algorithm. These existing methods
+suffer from a number of drawbacks. The variational approaches must use an approximate posterior distribution
+for both the state- and model-parameters, which may not
+be representative of the true distributions. The methods are
+also limited to conjugate prior distributions over the parameters, which can severely limit the expressiveness of the
+
+

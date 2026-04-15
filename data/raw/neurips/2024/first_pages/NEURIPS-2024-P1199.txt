@@ -1,0 +1,57 @@
+Soft ascent-descent as a stable and flexible
+alternative to flooding
+
+Matthew J. Holland∗
+Osaka University
+
+Kosuke Nakatani
+Osaka University
+
+Abstract
+As a heuristic for improving test accuracy in classification, the “flooding” method
+proposed by Ishida et al. (2020) sets a threshold for the average surrogate loss at
+training time; above the threshold, gradient descent is run as usual, but below the
+threshold, a switch to gradient ascent is made. While setting the threshold is nontrivial and is usually done with validation data, this simple technique has proved
+remarkably effective in terms of accuracy. On the other hand, what if we are also
+interested in other metrics such as model complexity or average surrogate loss at
+test time? As an attempt to achieve better overall performance with less fine-tuning,
+we propose a softened, pointwise mechanism called SoftAD (soft ascent-descent)
+that downweights points on the borderline, limits the effects of outliers, and retains
+the ascent-descent effect of flooding, with no additional computational overhead.
+We contrast formal stationarity guarantees with those for flooding, and empirically
+demonstrate how SoftAD can realize classification accuracy competitive with
+flooding (and the more expensive alternative SAM) while enjoying a much smaller
+loss generalization gap and model norm.
+
+1
+
+Introduction
+
+Modern machine learning makes use of sophisticated models that are trained through optimization of
+non-convex objective functions, which typically admit numerous local minima that make for natural
+candidates when taken at face value. While many such candidates are indeed essentially “optimal”
+from the viewpoint of classification error rates or other average losses incurred at training time,
+these often turn out to be highly sub-optimal in terms of performance at test time. It goes without
+saying that understanding and closing this gap is the problem of “generalization” that underlies most
+machine learning research (Jiang et al., 2020; Dziugaite et al., 2020; Johnson and Zhang, 2023).
+When we are faced with multiple candidates which are essentially optimal and thus indistinguishable
+in terms of some “base” objective function (e.g., the average loss) at training time, one of best-known
+heuristics for identifying good candidates is that of the “landscape” or “geometry” of the base
+objective in a neighborhood around each candidate. Roughly speaking, one expects that candidates
+in regions which are in some sense “flat” (often said to be less “sharp”) tend to perform better at
+test time. Strictly speaking, flatness is not necessary for generalization (Dinh et al., 2017), but our
+intuition can often be empirically verified to be correct, as good generalization is regularly observed
+in flat regions where the eigenvalues of the Hessian are mostly concentrated near zero (Chaudhari
+et al., 2017). The spectral density of the Hessian can in principle be used to evaluate sharpness, and
+has well-known links to norms that can be used for explicit regularization (Karakida et al., 2019),
+but for large-scale neural network training in practice, first-order approximations have shown the
+greatest utility. In particular, the sharpness-aware minimization (SAM) algorithm of Foret et al.
+(2021), extended for scale invariance by Kwon et al. (2021) and later captured as a special case
+of the gradient norm penalization (GNP) scheme of Zhao et al. (2022), has shown state-of-the-art
+∗
+
+Corresponding author.
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

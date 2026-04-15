@@ -1,0 +1,61 @@
+Aligner-Encoders:
+Self-Attention Transformers Can Be Self-Transducers
+Adam Stooke
+Google, USA
+astooke@google.com
+
+Rohit Prabhavalkar
+Google, USA
+
+Khe Chai Sim
+Google, USA
+
+Pedro Moreno Mengibar∗
+
+Abstract
+Modern systems for automatic speech recognition, including the RNN-Transducer
+and Attention-based Encoder-Decoder (AED), are designed so that the encoder is
+not required to alter the time-position of information from the audio sequence into
+the embedding; alignment to the final text output is processed during decoding.
+We discover that the transformer-based encoder adopted in recent years is actually
+capable of performing the alignment internally during the forward pass, prior to
+decoding. This new phenomenon enables a simpler and more efficient model, the
+“Aligner-Encoder”. To train it, we discard the dynamic programming of RNN-T
+in favor of the frame-wise cross-entropy loss of AED, while the decoder employs
+the lighter text-only recurrence of RNN-T without learned cross-attention—it
+simply scans embedding frames in order from the beginning, producing one token
+each until predicting the end-of-message. We conduct experiments demonstrating
+performance remarkably close to the state of the art, including a special inference
+configuration enabling long-form recognition. In a representative comparison, we
+measure the total inference time for our model to be 2x faster than RNN-T and
+16x faster than AED. Lastly, we find that the audio-text alignment is clearly visible
+in the self-attention weights of a certain layer, which could be said to perform
+“self-transduction”.
+
+1
+
+Introduction
+
+The task of sequence transduction requires mapping from an input sequence to an output sequence.
+It appears in several widespread applications including machine translation and automatic speech
+recognition (ASR). In ASR, which is the focus of this paper, the two sequences lie in completely
+different modalities, and the audio input representation is typically much longer than the output text.
+Thus, in addition to identifying and converting speech sounds, the model must find an “alignment”
+that moves information from wherever it appears in the input sequence to wherever it belongs in
+the output. Among other issues, the many possible variations in the pace of pronunciation make
+transduction a challenging problem.
+More than a decade ago, and almost a decade apart, two powerful algorithms relying on dynamic
+programming were developed to perform the sequence transduction task with recurrent neural networks (RNNs). The motivation behind these algorithms was that RNNs require training every output
+frame in the sequence—with one output per input frame, they needed to be trained with alignments
+already prepared. The new algorithms allowed training without prepared alignments by computing
+the probability of the label marginalized over all possible alignments as the optimization objective.
+The differences in sequence length are accommodated by learning to output “blank” symbols in
+between true labels and post-processing them out at inference time. The first algorithm, Connectionist
+Temporal Classification (CTC) [1], models the output frames as conditionally independent, and this
+∗
+
+Work performed while at Google, USA.
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

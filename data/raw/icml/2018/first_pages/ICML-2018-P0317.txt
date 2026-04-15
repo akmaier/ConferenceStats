@@ -1,0 +1,74 @@
+Reviving and Improving Recurrent Back-Propagation
+
+Renjie Liao * 1 2 3 Yuwen Xiong * 1 2 Ethan Fetaya 1 3 Lisa Zhang 1 3 KiJung Yoon 4 5 Xaq Pitkow 4 5
+Raquel Urtasun 1 2 3 Richard Zemel 1 3 6
+
+Abstract
+In this paper, we revisit the recurrent backpropagation (RBP) algorithm (Almeida, 1987;
+Pineda, 1987), discuss the conditions under which
+it applies as well as how to satisfy them in deep
+neural networks. We show that RBP can be unstable and propose two variants based on conjugate
+gradient on the normal equations (CG-RBP) and
+Neumann series (Neumann-RBP). We further investigate the relationship between Neumann-RBP
+and back propagation through time (BPTT) and
+its truncated version (TBPTT). Our NeumannRBP has the same time complexity as TBPTT but
+only requires constant memory, whereas TBPTT’s
+memory cost scales linearly with the number of
+truncation steps. We examine all RBP variants,
+along with BPTT and TBPTT, in three different
+application domains: associative memory with
+continuous Hopfield networks, document classification in citation networks using graph neural networks, and hyperparameter optimization for fully
+connected networks. All experiments demonstrate
+that RBPs, especially the Neumann-RBP variant,
+are efficient and effective for optimizing convergent recurrent neural networks.
+
+1. Introduction
+Back-propagation through time (BPTT) (Werbos, 1990) is
+nowadays the standard approach for training recurrent neural networks (RNNs). However, the computation and memory cost of BPTT scale linearly with the number of steps
+which makes BPTT impractical for applications where long
+sequences are common (Sutskever et al., 2014; Goodfellow
+*
+Equal contribution 1 Department of Computer Science,
+University of Toronto 2 Uber ATG Toronto 3 Vector Institute
+4
+Department of Electrical and Computer Engineering, Rice University 5 Department of Neuroscience, Baylor College of Medicine
+6
+Canadian Institute for Advanced Research. Correspondence to:
+Renjie Liao <rjliao@cs.toronto.edu>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+et al., 2016). Moreover, as the number of unrolling steps increases, the numerical error accumulates which may render
+the algorithm useless in some applications, e.g., gradientbased hyperparameter optimization (Maclaurin et al., 2015).
+This issue is often solved in practice by using truncated
+back-propagation through time (TBPTT) (Williams & Peng,
+1990; Sutskever, 2013) which has constant computation and
+memory cost, is simple to implement, and effective in some
+applications. However, the quality of the TBPTT approximate gradient is not well understood. A natural question to
+ask is, can we get better gradient approximations while still
+using the same computational cost as TBPTT?
+Here will show that under certain conditions on the underlying model, the answer is positive. In particular, we consider
+a class of RNNs whose hidden state converges to a steady
+state. For this class of RNNs, we can bypass BPTT and
+compute the exact gradient using an algorithm called recurrent back-propagation (RBP) (Almeida, 1987; Pineda,
+1987). The key observation exploited by RBP is that the
+gradient of the steady state w.r.t. the learnable parameters
+can be directly computed using the implicit function theorem, alleviating the need to unroll the entire forward pass.
+The main computational cost of RBP is in solving a linear
+system which has constant memory and computation time
+w.r.t. the number of unrolling steps. However, due to the
+strong assumptions that RBP imposes, TBPTT has become
+the standard approach used in practice and RBP did not get
+much attention for many years.
+In this paper, we first revisit RBP in the context of modern deep learning. We discuss the original algorithm, the
+assumptions it imposes and how to satisfy them for deep neural networks. Second, we notice that although the fixed point
+iteration method used in (Almeida, 1987; Pineda, 1987) is
+guaranteed to converge if the steady hidden state is achievable, in practice it can fail to do so within a reasonable
+amount of steps. This may be caused by the fact that there
+are many fixed points and the algorithm is sensitive to initialization. We try to overcome the instability issue by
+proposing two variants of RBP based on conjugate gradient on normal equations (CG-RBP) and Neumann series
+(Neumann-RBP). We show a connection between NeumannRBP and TBPTT which sheds some new light on the approximation quality of TBPTT. In the experiments, we show
+
+

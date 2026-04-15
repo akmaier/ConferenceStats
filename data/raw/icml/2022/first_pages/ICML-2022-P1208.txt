@@ -1,0 +1,84 @@
+Model Agnostic Sample Reweighting for Out-of-Distribution Learning
+
+Xiao Zhou * 1 Yong Lin * 1 Renjie Pi * 1 Weizhong Zhang 1 Renzhe Xu 2 Peng Cui 2 Tong Zhang 1 3
+
+Abstract
+Distributionally robust optimization (DRO) and
+invariant risk minimization (IRM) are two popular
+methods proposed to improve out-of-distribution
+(OOD) generalization performance of machine
+learning models. While effective for small models, it has been observed that these methods can
+be vulnerable to overfitting with large overparameterized models. This work proposes a principled
+method, Model Agnostic samPLe rEweighting
+(MAPLE), to effectively address OOD problem,
+especially in overparameterized scenarios. Our
+key idea is to find an effective reweighting of
+the training samples so that the standard empirical risk minimization training of a large model
+on the weighted training data leads to superior
+OOD generalization performance. The overfitting issue is addressed by considering a bilevel
+formulation to search for the sample reweighting,
+in which the generalization complexity depends
+on the search space of sample weights instead
+of the model size. We present theoretical analysis in linear case to prove the insensitivity of
+MAPLE to model size, and empirically verify its
+superiority in surpassing state-of-the-art methods
+by a large margin. Code is available at https:
+//github.com/x-zho14/MAPLE.
+
+1. Introduction
+Despite the unprecedented success of deep learning in recent
+decades, machine learning methods are vulnerable to even
+slight distributional shift (Goyal et al., 2019; Sagawa et al.,
+2020; Gulrajani & Lopez-Paz, 2020). Actually, the common
+independent and identical distribution (IID) assumption in
+machine learning can be easily violated due to data selection
+biases or unobserved confounders that widely exist in real
+data (Liu et al., 2021b). Arjovsky et al. (2019) suggests that
+*
+
+Equal contribution 1 The Hong Kong University of Science
+and Technology 2 Tsinghua University 3 Google Research. Correspondence to: Tong Zhang <tongzhang@tongzhang-ml.org>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+models trained by empirical risk minimization (ERM) can
+fail to learn causal factors but instead exploit the easier-tofit spurious correlations, which are prone to distributional
+shift from training to testing domains (Gulrajani & LopezPaz, 2020). A typical example is that deep neural networks
+(DNN) can rely on the background (spurious features: sand
+or grassland) to distinguish between caw and camel (core
+features) (Beery et al., 2018). Such model can fail dramatically in recognizing a cow in desert. How to enable the deep
+models to generalize well under distributional shifts is an
+important long-standing problem.
+In an effort to prevent DNN from exploiting the undesired
+spurious correlation, a popular research direction targets on
+regularizing DNN during training, including distributionally
+robust optimization (DRO) (Ben-Tal et al., 2013; Duchi
+et al., 2019; 2021; Sagawa et al., 2020) and invariant risk
+minimization (IRM) (Arjovsky et al., 2019; Krueger et al.,
+2021a; Xie et al., 2020). We refer them as regularizationbased methods in this paper. DRO aims to optimize the
+worst case performance in a set of distributions within a
+certain distance to the original training distribution while
+IRM tries to learn an invariant representation that discards
+the spurious features. DRO and IRM have gained their
+popularity owed to promising performance on small models
+and datasets (Arjovsky et al., 2019; Duchi et al., 2019)
+and simplicity to perform training in an end-to-end manner.
+However, they are reported to be less effective when applied
+to DNNs in recent studies (Sagawa et al., 2019; Cherepanova
+et al., 2021; Yong Lin, 2021). Overparamterized DNN can
+easily reduce the regularization term of DRO or IRM to zero
+during training while still relying on the spurious features.
+Another line of research is based on reweighting including
+importance sampling (Kanamori et al., 2009; Ben-Tal et al.,
+2013; Fang et al., 2020) and stable learning (Kuang et al.,
+2020; Shen et al., 2020; Xu et al., 2021). We refer to them
+as reweighting-based methods. They generally perform
+a two-stage pipeline: 1) reweight the data distribution by
+some heuristics; 2) perform ERM training on the reweighted
+distribution. In the first stage, they assign a weight to each
+sample: importance sampling upweights the rare group inversely to its group size and stable learning tries to find a
+weight that makes each feature orthogonal. With the weights
+found in the first stage, the second stage of weighted ERM
+training becomes resistant to spurious features. Since the
+
+

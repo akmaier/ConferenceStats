@@ -1,0 +1,87 @@
+Certifying Out-of-Domain Generalization for Blackbox Functions
+
+Maurice Weber 1 Linyi Li 2 Boxin Wang 2 Zhikuan Zhao 1 Bo Li 2 Ce Zhang 1
+
+Abstract
+Certifying the robustness of model performance
+under bounded data distribution drifts has recently
+attracted intensive interest under the umbrella of
+distributional robustness. However, existing techniques either make strong assumptions on the
+model class and loss functions that can be certified, such as smoothness expressed via Lipschitz
+continuity of gradients, or require to solve complex optimization problems. As a result, the wider
+application of these techniques is currently limited by its scalability and flexibility — these techniques often do not scale to large-scale datasets
+with modern deep neural networks or cannot handle loss functions which may be non-smooth such
+as the 0-1 loss. In this paper, we focus on the
+problem of certifying distributional robustness for
+blackbox models and bounded loss functions, and
+propose a novel certification framework based on
+the Hellinger distance. Our certification technique
+scales to ImageNet-scale datasets, complex models, and a diverse set of loss functions. We then
+focus on one specific application enabled by such
+scalability and flexibility, i.e., certifying out-ofdomain generalization for large neural networks
+and loss functions such as accuracy and AUC. We
+experimentally validate our certification method
+on a number of datasets, ranging from ImageNet,
+where we provide the first non-vacuous certified
+out-of-domain generalization, to smaller classification tasks where we are able to compare with
+the state-of-the-art and show that our method performs considerably better.
+
+1. Introduction
+The wide application of machine learning models in the real
+world brings an emerging challenge of understanding the
+1
+
+Department of Computer Science, ETH Zurich
+UIUC, USA. Correspondence to: Maurice Weber <maurice.weber@inf.ethz.ch>, Ce Zhang <ce.zhang@inf.ethz.ch>.
+2
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+performance of a machine learning model under different
+data distributions — ML systems operating autonomous
+vehicles which are trained based on data collected in the
+northern hemisphere might fail when deployed in desert-like
+environments or under different weather conditions (Volk
+et al., 2019; Dai & Van Gool, 2018), while recognition
+systems have been shown to fail when deployed in new
+environments (Beery et al., 2018). Similar concerns also
+apply to many mission-critical applications such as medicine
+and cyber-security (Koh et al., 2021; AlBadawy et al., 2018;
+Gulrajani & Lopez-Paz, 2021). In all these applications, it
+is imperative to have a sound understanding of the model’s
+robustness and possible failure cases in the presence of a
+shift in the data distribution, and to have corresponding
+guarantees on the performance.
+Recently, this problem has attracted intensive interest under
+the umbrella of distributional robustness (Scarf, 1958; BenTal et al., 2013; Gao & Kleywegt, 2016; Kuhn et al., 2019;
+Blanchet & Murthy, 2019; Duchi et al., 2021). Specifically,
+let P be a joint data distribution over features X ∈ X
+and labels Y ∈ Y, and let hθ : X → Y be a machine
+learning model parameterized by θ. For a loss function
+` : Y × Y → R, we hope to compute
+Rθ (UP ) := sup E(X,Y )∼Q [`(hθ (X), Y )]
+
+(1)
+
+Q∈UP
+
+where UP ⊆ P(Z) is a set of probability distributions on
+Z, called the uncertainty set. Intuitively, this measures the
+worst-case risk of hθ when the data distribution drifts from
+P to another distribution in UP .
+Providing a technical solution to this problem has gained
+increased attention over the years, as summarized in Table 1.
+However, most — if not all — existing approaches, impose
+strong constraints such as bounded Lipschitz gradients on
+both h and ` and rely on expensive certification methods
+such as direct minimax optimization. As a result, these
+methods have been applied only to small-scale datasets and
+ML models.
+In this paper, we consider the case that both h and ` can be
+non-convex and non-smooth — h can be a full-fledged neural network, e.g., ImageNet-scale EfficientNet-B7 (Tan &
+Le, 2019), and ` can be a general non-smooth loss function
+such as the 0-1 loss. We provide, to our best knowledge, the
+first practical method for blackbox functions that scales to
+
+

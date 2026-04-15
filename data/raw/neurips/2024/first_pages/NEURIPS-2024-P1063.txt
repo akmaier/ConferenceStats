@@ -1,0 +1,51 @@
+S-STE: Continuous Pruning Function for
+Efficient 2:4 Sparse Pre-training
+
+Yuezhou Hu1 , Jun Zhu1 , Jianfei Chen1†
+Dept. of Comp. Sci. & Tech., Institute for AI, BNRist Center,
+Tsinghua-Bosch Joint ML Center, THBI Lab, Tsinghua University.
+huyz21@mails.tsinghua.edu.cn, {dcszj,jianfeic}@tsinghua.edu.cn
+1
+
+Abstract
+Training deep neural networks (DNNs) is costly. Fortunately, Nvidia Ampere
+and Hopper GPUs can accelerate matrix multiplications twice as fast as a dense
+equivalent by implementing 2:4 sparsity. However, previous STE-based 2:4 pretraining methods (e.g. STE with hard-thresholding, SR-STE) suffer from optimization difficulties because of discontinuous pruning function. In this study, we
+comprehensively analyse the bottleneck of traditional N:M sparse training and
+recognize three drawbacks with discontinuity: incorrect descending direction, inability to predict the amount of descent and sparse mask oscillation. In light of
+this, we propose S-STE, a simple yet powerful 2:4 training method that contains
+two parts: to continuously project weights to be 2:4 sparse, and to rescale sparse
+weights with a per-tensor fixed scaling factor. Besides, we adopt minimum-variance
+unbiased estimation for activation gradient and FP8 quantization for whole process. Results show that our method surpasses previous 2:4 pre-training recipes
+and is comparable even with full parameter models. Our toolkit is available at
+https://github.com/huyz2023/2by4-pretrain.
+
+1
+
+Introduction
+
+Large scale transformers have achieved many impressive results such as chatbots [43], text-to-video
+generation [27], and robot manipulation [53]. However, the pre-training of these models is extremely
+expensive, typically requiring thousands of GPUs to train for months [5]. One possible way to
+accelerate deep learning computation is sparsity. N:M sparsity [31] is a hardware-friendly sparsity
+pattern, where every group of M dimensions only has N non-zero entries. Nvidia Ampere GPUs can
+multiply a 2:4 sparse matrix with a dense matrix, twice as fast as multiplying two dense matrices.
+While N:M sparsity has been successfully applied to accelerate inference [31, 40, 15, 35, 9], extending
+the acceleration to pre-training is highly challenging. To accelerate pre-training, the sparse model
+must be trained from scratch (random initialization), and the network must stay sparse at all training
+iterations. To meet these requirements, the algorithm should be able to actively explore connectivity
+patterns within the constrained N:M parameter space. Therefore, popular pruning methods such
+as single-shot pruning [24], iterative magnitude pruning [13, 29], and RigL [11] cannot be directly
+applied to this scenario. Moreover, besides forward propagation, the matrix multiplications in back
+propagation must be sparsified as well, to provide reasonable training speedup.
+Methods based on the straight-through estimator (STE) [52, 2] have shown promise towards solving
+the challenging problem of sparse pre-training. They maintain a dense weight, which is sparsified in
+each iteration for fast forward&backward computation, and the dense weight is then updated with
+STE gradients. In this way, connectivity patterns can be learned jointly with weights in an end-to-end
+†
+
+Corresponding author.
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

@@ -1,0 +1,72 @@
+Learning to Rehearse in Long Sequence Memorization
+
+Zhu Zhang * 1 2 Chang Zhou * 2 Jianxin Ma 2 Zhijie Lin 1 Jingren Zhou 2 Hongxia Yang 2 Zhou Zhao 1
+
+Abstract
+Existing reasoning tasks often have an important assumption that the input contents can be
+always accessed while reasoning, requiring unlimited storage resources and suffering from severe time delay on long sequences. To achieve
+efficient reasoning on long sequences with limited storage resources, memory augmented neural networks introduce a human-like write-read
+memory to compress and memorize the long input sequence in one pass, trying to answer subsequent queries only based on the memory. But
+they have two serious drawbacks: 1) they continually update the memory from current information
+and inevitably forget the early contents; 2) they
+do not distinguish what information is important
+and treat all contents equally. In this paper, we
+propose the Rehearsal Memory (RM) to enhance
+long-sequence memorization by self-supervised
+rehearsal with a history sampler. To alleviate the
+gradual forgetting of early information, we design
+self-supervised rehearsal training with recollection and familiarity tasks. Further, we design a
+history sampler to select informative fragments
+for rehearsal training, making the memory focus
+on the crucial information. We evaluate the performance of our rehearsal memory by the synthetic
+bAbI task and several downstream tasks, including text/video question answering and recommendation on long sequences.
+
+1. Introduction
+In recent years, the tremendous progress of neural networks
+has enabled machines to perform reasoning given the input
+contents X and a query Q, e.g., infer the answer of given
+questions from the text/video stream in text/video question
+answering (Seo et al., 2016; Jin et al., 2019a; Le et al.,
+*
+Equal contribution 1 Zhejiang University, China 2 DAMO
+Academy, Alibaba Group, China. Correspondence to: Zhou Zhao
+<zhaozhou@zju.edu.cn>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+2020b), or predict whether a user will click the given item
+based on the user behavior sequence in recommender systems (Ren et al., 2019; Pi et al., 2019; Zhang et al., 2021).
+Studies that achieve top performances at such reasoning
+tasks usually have an important assumption that the raw input contents X can be always accessed while answering the
+query Q. In this setting, the complex interaction between
+X and Q can be designed to extract query-relevant information from X with little loss, such as co-attention interaction (Xiong et al., 2016; Jin et al., 2019b). Though these
+methods (Seo et al., 2016; Le et al., 2020b) can effectively
+handle these reasoning tasks, they require unlimited storage
+resources to hold the original input X. Further, they have to
+encode the whole input contents and develop the elaborate
+interaction from scratch, which are time-consuming. This
+is not acceptable for online services that require instant response such as recommender systems, as the input sequence
+becomes extremely long (Ren et al., 2019).
+To achieve efficient reasoning on long sequences with
+limited storage resources, memory augmented neural networks (MANNs) (Graves et al., 2014; 2016) introduce a
+write-read memory M with fixed-size capacity (size much
+smaller than |X|) to compress and remember the input contents X. In the inference phase, they can capture queryrelevant clues directly from the memory M , i.e., the raw
+input X is not needed at the time of answering Q. This
+procedure is very similar to the daily situation of our human
+beings, i.e., we may not know the tasks Q that we will answer in the future when we are experiencing current events,
+but we have the instincts to continually memorize our experiences within the limited memory capacity, from which we
+can rapidly recall and draw upon past events to guide our
+behaviors given the present tasks (Moscovitch et al., 2016;
+Baddeley, 1992). Such human-like memory-based methods
+bring three benefits for long-sequence reasoning: 1) storage
+efficiency: we only need to maintain the limited memory
+M rather than X; 2) reasoning efficiency: inference over
+M and Q is more lightweight than inference over X and Q
+from scratch ; 3) high reusability: the maintained memory
+M can be reused for any query Q.
+However, existing MANNs have two serious drawbacks for
+memory-based long-sequence reasoning. First, these approaches ignore the long-term memorization ability of the
+memory. They learn how to maintain the memory M only
+
+

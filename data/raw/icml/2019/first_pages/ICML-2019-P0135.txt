@@ -1,0 +1,78 @@
+A Fully Differentiable Beam Search Decoder
+
+Ronan Collobert 1 Awni Hannun 1 Gabriel Synnaeve 1
+
+Abstract
+We introduce a new beam search decoder that is
+fully differentiable, making it possible to optimize
+at training time through the inference procedure.
+Our decoder allows us to combine models which
+operate at different granularities (e.g. acoustic and
+language models). It can be used when target sequences are not aligned to input sequences by considering all possible alignments between the two.
+We demonstrate our approach scales by applying
+it to speech recognition, jointly training acoustic
+and word-level language models. The system is
+end-to-end, with gradients flowing through the
+whole architecture from the word-level transcriptions. Recent research efforts have shown that
+deep neural networks with attention-based mechanisms can successfully train an acoustic model
+from the final transcription, while implicitly learning a language model. Instead, we show that it
+is possible to discriminatively train an acoustic
+model jointly with an explicit and possibly pretrained language model.
+
+1. Introduction
+End-to-end models for tasks such as automatic speech
+recognition require the use of either structured loss functions like Connectionist Temporal Classification (Graves
+et al., 2006) or unstructured models like sequence-tosequence (Sutskever et al., 2014) which leverage an attention mechanism (Bahdanau et al., 2014) to learn an implicit
+alignment. Both of these types of models suffer from an
+exposure bias and a label bias problem.
+Exposure-bias results from the mismatch between how these
+models are trained and how they are used at inference (Ranzato et al., 2016; Wiseman & Rush, 2016; Baskar et al.,
+2018). While training, the model is never exposed to its
+*
+
+Equal contribution 1 Facebook AI Research. Correspondence to: Ronan Collobert <locronan@fb.com>, Awni Hannun
+<awni@fb.com>, Gabriel Synnaeve <gab@fb.com>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+own mistakes since it uses the ground-truth target as guidance. At inference the target is unavailable and a beam
+search is typically used, often with the constraints of either
+a lexicon, a transition model, or both. The model must rely
+on past predictions to inform future decisions and may not
+be robust to even minor mistakes.
+Label-bias occurs when locally normalized transition scores
+are used (LeCun et al., 1998; Lafferty et al., 2001; Bottou
+& LeCun, 2005). Local normalization causes outgoing transitions at a given time-step to compete with one another.
+A symptom of this is that it can be difficult for the model
+to revise its past predictions based on future observations.
+As a consequence, globally normalized models are strictly
+more powerful than locally normalized models (Andor et al.,
+2016).
+In this work we build a fully differentiable beam search
+decoder (DBD) which can be used to efficiently approximate
+a powerful discriminative model without either exposure
+bias or label bias. We alleviate exposure bias by performing
+a beam search which includes the constraints from a lexicon
+and transition models. In fact, DBD can also jointly train
+multiple models operating at different granularities (e.g.
+token and word-level language models). The DBD avoids
+the label bias problem since it uses unnormalized scores
+and combines these scores into a global (sequence-level)
+normalization term.
+Our differentiable decoder can handle unaligned input and
+output sequences where multiple alignments exist for a
+given output. We do this without the use of an attention mechanism, but rather by approximately marginalizing over the alignments when computing the loss. Also,
+unlike sequence-to-sequence models with attention, the
+DBD can seamlessly and efficiently train token-level, wordlevel or other granularity transition models on their own
+or in conjunction. Connectionist Temporal Classification
+(CTC) (Graves et al., 2006) can handle unaligned sequences
+and is commonly used in automatic speech recognition
+(ASR) (Amodei et al., 2016) and other sequence labeling
+tasks (Liwicki et al., 2007; Huang et al., 2016). The Auto
+Segmentation criterion (ASG) (Collobert et al., 2016) can
+also deal with unaligned sequences. However, neither of
+these criteria allow for joint training of arbitrary transition
+models.
+
+

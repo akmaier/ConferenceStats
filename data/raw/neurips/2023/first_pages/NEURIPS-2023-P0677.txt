@@ -1,0 +1,63 @@
+Rethinking the Role of Token Retrieval in
+Multi-Vector Retrieval
+∗
+
+Jinhyuk Lee
+Tao Lei
+
+Zhuyun Dai
+
+Iftekhar Naim
+
+Sai Meher Karthik Duddu
+
+Ming-Wei Chang
+
+Vincent Y. Zhao
+
+Google DeepMind
+
+Abstract
+Multi-vector retrieval models such as ColBERT [Khattab and Zaharia, 2020]
+allow token-level interactions between queries and documents, and hence achieve
+state of the art on many information retrieval benchmarks. However, their nonlinear scoring function cannot be scaled to millions of documents, necessitating a
+three-stage process for inference: retrieving initial candidates via token retrieval,
+accessing all token vectors, and scoring the initial candidate documents. The
+non-linear scoring function is applied over all token vectors of each candidate
+document, making the inference process complicated and slow. In this paper, we
+aim to simplify the multi-vector retrieval by rethinking the role of token retrieval.
+We present XTR, ConteXtualized Token Retriever, which introduces a simple, yet
+novel, objective function that encourages the model to retrieve the most important
+document tokens first. The improvement to token retrieval allows XTR to rank
+candidates only using the retrieved tokens rather than all tokens in the document,
+and enables a newly designed scoring stage that is two-to-three orders of magnitude
+cheaper than that of ColBERT. On the popular BEIR benchmark, XTR advances
+the state-of-the-art by 2.8 nDCG@10 without any distillation. Detailed analysis
+confirms our decision to revisit the token retrieval stage, as XTR demonstrates
+much better recall of the token retrieval stage compared to ColBERT.
+
+1
+
+Introduction
+
+The performance of a dense retrieval model is largely affected by how it defines expressive representations over queries and documents, and whether it can efficiently retrieve and score a document
+using these vector representations. For example, dual encoder models [Yih et al., 2011, Lee et al.,
+2019, Karpukhin et al., 2020, Ni et al., 2021] encode queries and documents into single vectors and
+compute query-document similarities using dot products. While these models are very efficient for
+retrieval, their expressivity is limited due to the absence of token-level modeling for scoring. In
+contrast, multi-vector models such as ColBERT [Khattab and Zaharia, 2020, Santhanam et al., 2022b]
+are directly designed to capture token-level interactions. By utilizing a (non-linear) scoring function
+over all query and document token representations, multi-vector models enjoy much better model
+expressivity and often achieve superior results across various benchmarks [Thakur et al., 2021].
+The enhanced model expressivity, however, comes at a great cost of inference complexity. Unlike the
+case in dual encoders, the non-linear scoring function in multi-vector retrieval models prohibits the
+use of efficient Maximum Inner Product Search (MIPS) [Ram and Gray, 2012, Shrivastava and Li,
+2014, 2015, Shen et al., 2015] for finding the maximum scoring documents. As a result, models such
+as ColBERT adopt an intricate and resource-intensive inference pipeline, which typically consists
+∗
+
+Correspondence: jinhyuklee@google.com
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

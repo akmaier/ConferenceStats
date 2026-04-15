@@ -1,0 +1,73 @@
+Mixture Models for Diverse Machine Translation: Tricks of the Trade
+Tianxiao Shen * 1 Myle Ott * 2 Michael Auli 2 Marc’Aurelio Ranzato 2
+
+Abstract
+Mixture models trained via EM are among the
+simplest, most widely used and well understood
+latent variable models in the machine learning
+literature. Surprisingly, these models have been
+hardly explored in text generation applications
+such as machine translation. In principle, they provide a latent variable to control generation and produce a diverse set of hypotheses. In practice, however, mixture models are prone to degeneracies—
+often only one component gets trained or the latent variable is simply ignored. We find that disabling dropout noise in responsibility computation is critical to successful training. In addition,
+the design choices of parameterization, prior distribution, hard versus soft EM and online versus
+offline assignment can dramatically affect model
+performance. We develop an evaluation protocol
+to assess both quality and diversity of generations
+against multiple references, and provide an extensive empirical study of several mixture model
+variants. Our analysis shows that certain types of
+mixture models are more robust and offer the best
+trade-off between translation quality and diversity compared to variational models and diverse
+decoding approaches.1
+
+1. Introduction
+Machine translation (MT) is a challenging task not only
+because of the large and structured output space, but also because it is inherently a one-to-many mapping. There are often many plausible and semantically equivalent translations
+due to information asymmetry between different languages,
+e.g., translating from a language without grammatical gender to a language that has grammatical gender leads to two
+valid translation options, as well as different translation
+*
+Equal contribution 1 MIT CSAIL 2 Facebook AI Research. Correspondence to: Tianxiao Shen <tianxiao@csail.mit.edu>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+1
+Code to reproduce the results in this paper is available at
+https://github.com/pytorch/fairseq
+
+styles such as formal/informal, literal/not literal, etc. This
+raises the question of how to model such multi-modal output
+distributions and how to evaluate these models.
+Our first contribution is a better evaluation protocol that uses
+multiple references during evaluation to measure both the
+quality of translation and diversity of a generated hypothesis
+set. The second contribution of this paper is an in-depth empirical analysis of mixture models for machine translation,
+although we conjecture that the findings are general and
+might apply to other text generation tasks, such as dialogue,
+summarization, image captioning, etc.
+Conditional mixture models, also known as mixture of experts (MoE) (Jacobs et al., 1991), are in principle well suited
+to generating diverse hypotheses which can be achieved
+through different mixture components. However, they have
+been largely overlooked in favor of models with richer latent
+structure (Zhang et al., 2016; Kaiser et al., 2018). There has
+been some previous work on mixture models for sequence to
+sequence learning (Shazeer et al., 2017; He et al., 2018), but
+these did not evaluate generations in terms of both quality
+and diversity, or they focus on a particular model variant.
+There is a lack of consensus whether mixture models are
+competitive with more complex models that rely on approximate Bayesian inference, whether they are plagued by the
+same “posterior collapse” degeneracy as variational models (Bowman et al., 2016), how model configurations affect
+performance and which one works best in practice.
+This work considers all the major design choices involved
+in the construction of mixture models, including hard versus soft EM training, different parameterizations of mixture
+components, the choice of conditional prior, update frequency of responsibilities (also called membership weights),
+and how regularization noise is injected. We experiment on
+the large scale WMT English to German benchmark with
+a state-of-the-art model architecture and the results demonstrate intricate dependencies between these design choices.
+They also reveal that some ingredients are key to successful
+training of mixture models.
+First, we show that mixture models are prone to degeneracies when trained with dropout noise, but that this can be
+mitigated by turning off dropout in the computation of responsibilities. The key to the specialization of experts is to
+make consistent use of them, and even a small amount of
+
+

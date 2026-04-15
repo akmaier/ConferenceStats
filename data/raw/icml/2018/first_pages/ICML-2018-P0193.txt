@@ -1,0 +1,69 @@
+K-Beam Minimax: Efficient Optimization for Deep Adversarial Learning
+
+Jihun Hamm 1 Yung-Kyun Noh 2
+
+Abstract
+Minimax optimization plays a key role in adversarial training of machine learning algorithms, such as learning generative models, domain adaptation, privacy preservation, and robust
+learning. In this paper, we demonstrate the failure of alternating gradient descent in minimax
+optimization problems due to the discontinuity of
+solutions of the inner maximization. To address
+this, we propose a new -subgradient descent algorithm that addresses this problem by simultaneously tracking K candidate solutions. Practically, the algorithm can find solutions that previous saddle-point algorithms cannot find, with
+only a sublinear increase of complexity in K.
+We analyze the conditions under which the algorithm converges to the true solution in detail. A
+significant improvement in stability and convergence speed of the algorithm is observed in simple representative problems, GAN training, and
+domain-adaptation problems.
+
+1. Introduction
+There is a wide range of problems in machine learning
+which can be formulated as continuous minimax optimization problems. Examples include generative adversarial
+nets (GANs) (Goodfellow et al., 2014), privacy preservation (Hamm, 2015; Edwards & Storkey, 2015), domain
+adaption (Ganin & Lempitsky, 2015), and robust learning
+(Globerson & Roweis, 2006) to list a few. More broadly,
+the problem of finding a worst-case solution or an equilibrium of a leader-follower game (Brückner & Scheffer,
+2011) can be formulated as a minimax problem. Furthermore, the KKT condition for a convex problem can be considered a minimax point of the Lagrangian (Arrow et al.,
+1958). Efficient solvers for minimax problems can have
+positive impacts on all these fronts.
+1
+
+The Ohio State University, Columbus, OH, USA. 2 Seoul National University, Seoul, Korea. Correspondence to: Jihun Hamm
+<hammj@cse.ohio-state.edu>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+To define the problem, consider a real-valued function
+f (u, v) on a subset U ×V ⊆ Rd ×RD . A (continuous) minimax optimization problem is minu∈U maxv∈V f (u, v)1 . It
+is called a discrete minimax problem if the maximization
+domain V is finite. A related notion is the (global) saddle
+point (u∗ , v ∗ ) which is a point that satisfies
+f (u∗ , v) ≤ f (u∗ , v ∗ ) ≤ f (u, v ∗ ), ∀(u, v) ∈ U × V.
+When f (u, v) is convex in u and concave in v, saddle points
+coincide with minimax points, due to the Von Neumann’s
+theorem (v. Neumann, 1928): maxv minu f (u, v) =
+f (u∗ , v ∗ ) = minu maxv f (u, v). The problem of finding
+saddle points has been studied intensively since the seminal work of Arrow et al. (1958), and a gradient descent
+method was proposed by Uzawa (1958). Much theoretical work has ensued, in particular on the stability of saddle points and convergence (see Sec. 2). However, the
+cost function f in realistic machine learning applications
+is seldom convex-concave and may not have a global saddle point. Fig. 1 shows motivating examples of surfaces
+on [−0.5, 0.5]2 ⊆ R2 . Examples (a),(b), and (c) are saddle point problems: all three have a critical point at the
+origin (u, v) = (0, 0), which is also a saddle point and
+a minimax point. However, examples (d),(e), and (f) do
+not have global saddle points: example (d) has minimax
+points (u, v) ∈ {(±0.25, −0.25), (±0.25, 0.5)} and examples (e) and (f) have minimax points (u, v) = (0, ±0.5).
+These facts are not obvious until one analyzes each surface. (See Supplementary Material for more information.)
+Furthermore, the non-existence of saddle points also happens with unconstrained problems: consider the function
+f (u, v) = −0.5u2 + 2uv − v 2 defined on R2 . The inner
+maximum has the closed-form solution φ(u) = 0.5u2 , and
+the outer minimum minu φ(u) is 0 at u = 0. Therefore,
+(u, v) = (0, 0) is the global minimax point (and also a critical point). However, f cannot have a saddle point, local or
+global, since f is strictly concave in u and v respectively.
+Despite the fact that saddle points and minimax points are
+conceptually different, many machine learning applications
+in the literature do not distinguish the two. This is a mistake, because a local saddle point is only an equilibrium
+1
+
+A more general problem is inf u∈U supv∈V f (u, v), but we
+will assume that the min and the max exist and are achievable,
+which are explained further in Sec. 3.
+
+

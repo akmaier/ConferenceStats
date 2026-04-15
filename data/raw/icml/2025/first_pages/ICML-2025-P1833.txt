@@ -1,0 +1,77 @@
+µnit Scaling: Simple and Scalable FP8 LLM Training
+
+Saaketh Narayan 1 Abhay Gupta 2 Mansheej Paul 1 Davis Blalock 2
+
+Abstract
+
+strate a simple, scalable FP8 training method with straightforward hyperparameter transfer on large LLMs, called
+“µnit Scaling” (µS).
+
+Large language model training with 8-bit floating point (FP8) formats promises significant efficiency improvements, but reduced numerical precision makes training challenging. It is currently
+possible to train in FP8 only if one is willing
+to tune various hyperparameters, reduce model
+scale, or accept the overhead of computing dynamic scale factors. We demonstrate simple, scalable FP8 training that requires no dynamic scaling
+factors or special hyperparameters, even at large
+model sizes. Our method, µnit Scaling (µS), also
+enables simple hyperparameter transfer across
+model widths, matched numerics across training
+and inference, and other desirable properties. µnit
+Scaling is straightforward to implement, consisting of a set of minimal interventions based on a
+first-principles analysis of transformer operations.
+We validate our method by training models with
+parameters ranging from 1B to 13B, performing
+all hidden linear layer computations in FP8. We
+achieve quality equal to higher-precision baselines while also training up to 33% faster.
+
+Our µnit Scaling method builds on Unit Scaling (Blake et al.,
+2023), which aims to maintain unit variance in weights, activations, and gradients. To ensure this, it scales neural
+network operations with static constants and initializes network parameters to have unit variance. If all tensors used in
+training can maintain unit variance, they are representable
+with sufficient range and resolution by low-precision formats like FP16 and FP8. However, preserving high-quality
+tensor representations in low-precision formats is challenging for large models.
+Besides faster training, several other properties are desirable in a low-precision training scheme. Examples include
+minimizing extra hyperparameters, avoiding dynamic scale
+factor overhead, and allowing optimal hyperparameters from
+small models to transfer to large models. As summarized
+in Fig. 1, µS is the only method that provides these benefits.
+We elaborate on each of these properties below.
+Straightforward hyperparameter transfer Tuning hyperparameters for large LLMs is expensive. A promising
+way to reduce this cost is to tune the hyperparameters for
+smaller LLMs and “transfer” them to large ones, either
+by using them directly or by applying a model-size-based
+formula as explored in µ-Parametrization (µP)(Yang et al.,
+2021; 2024a;b). However, applying hyperparameter transfer techniques in practice to low-precision training can be
+challenging; frequent divergences due to numerical issues
+may require training in higher precisions like FP32 (Yang
+et al., 2021). To address this, Blake et al. (2024) introduced
+u-µP, which combines Unit Scaling (Blake et al., 2023)
+and µP to enable hyperparameter transfer in low precision.
+Unfortunately, compared to conventional BF16 mixed precision training (henceforth termed “standard parametrized”
+(SP) models), both µP and u-µP have many more hyperparameters to sweep over (see Table 3), diminishing realized
+compute savings and increasing complexity. Specific implementation intricacies, such as zero-initialized queries in
+µP or LR scaling for embeddings by fan-out in u-µP, make
+these schemes harder to use in practice than SP. In contrast,
+our µnit Scaling (µS) scheme combines µP and Unit Scaling
+in a greatly simplified way, making it easier to use and more
+
+1. Introduction
+Because LLM training is computationally expensive, lowprecision training provides large compute savings. Modern LLMs are typically trained in mixed-precision bfloat16
+(BF16), where most computation occurs in BF16, but some
+components requiring higher precision (such as accumulators and master weights) use FP32 (Micikevicius et al.,
+2018). Thanks to increased hardware support for FP8
+formats, mixed precision training using FP8 computation
+promises even greater training efficiency (Micikevicius et al.,
+2022). However, the reduced range and resolution of FP8
+make LLM training challenging. In this work, we demon1
+Work done while at Databricks Mosaic Research 2 Databricks
+Mosaic Research, San Francisco, CA. Correspondence to:
+Saaketh Narayan <narayan.saaketh@gmail.com>, Davis Blalock
+<davis.blalock@databricks.com>.
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

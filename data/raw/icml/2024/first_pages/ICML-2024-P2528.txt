@@ -1,0 +1,95 @@
+GaLore: Memory-Efficient LLM Training by Gradient Low-Rank Projection
+
+Jiawei Zhao 1 Zhenyu Zhang 3 Beidi Chen 2 4 Zhangyang Wang 3 Anima Anandkumar * 1 Yuandong Tian * 2
+
+Abstract
+
+BF16 AdamW
+
+Training Large Language Models (LLMs)
+presents significant memory challenges, predominantly due to the growing size of weights and
+optimizer states. Common memory-reduction
+approaches, such as low-rank adaptation
+(LoRA), add a trainable low-rank matrix to the
+frozen pre-trained weight in each layer. However, such approaches typically underperform
+training with full-rank weights in both pretraining and fine-tuning stages since they limit
+the parameter search to a low-rank subspace
+and alter the training dynamics, and further,
+may require full-rank warm start. In this work,
+we propose Gradient Low-Rank Projection
+(GaLore), a training strategy that allows fullparameter learning but is more memory-efficient
+than common low-rank adaptation methods
+such as LoRA. Our approach reduces memory
+usage by up to 65.5% in optimizer states while
+maintaining both efficiency and performance for
+pre-training on LLaMA 1B and 7B architectures
+with C4 dataset with up to 19.7B tokens, and on
+fine-tuning RoBERTa on GLUE tasks. Our 8-bit
+GaLore further reduces optimizer memory by up
+to 82.5% and total training memory by 63.3%,
+compared to a BF16 baseline. Notably, we
+demonstrate, for the first time, the feasibility of
+pre-training a 7B model on consumer GPUs with
+24GB memory (e.g., NVIDIA RTX 4090) without model parallel, checkpointing, or offloading
+strategies. Code is provided in the link.
+
+Adafactor
+AdamW (no retaining grad)
+8-bit Adam
+8-bit Adam (no retaining grad)
+8-bit GaLore (no retaining grad)
+
+RTX 4090
+
+Figure 1: Estimated memory consumption of pre-training a
+LLaMA 7B model with a token batch size of 256 on a single device, without activation checkpointing and memory offloading2 .
+Details refer to Section 5.5.
+Algorithm 1: GaLore, PyTorch-like
+for weight in model.parameters():
+grad = weight.grad
+# original space -> compact space
+lor grad = project(grad)
+# update by Adam, Adafactor, etc.
+lor update = update(lor grad)
+# compact space -> original space
+update = project back(lor update)
+weight.data += update
+
+and fine-tuning LLMs require not only a huge amount of
+computation but is also memory intensive. The memory
+requirements include not only billions of trainable parameters, but also their gradients and optimizer states (e.g., gradient momentum and variance in Adam) that can be larger
+than parameter storage themselves (Raffel et al., 2020;
+Touvron et al., 2023; Chowdhery et al., 2023). For example, pre-training a LLaMA 7B model from scratch with a
+single batch size requires at least 58 GB memory (14GB for
+trainable parameters, 42GB for Adam optimizer states and
+weight gradients, and 2GB for activations1 ). This makes
+the training not feasible on consumer-level GPUs such as
+NVIDIA RTX 4090 with 24GB memory.
+
+1. Introduction
+Large Language Models (LLMs) have shown impressive
+performance across multiple disciplines, including conversational AI and language translation. However, pre-training
+
+In addition to engineering and system efforts, such as gradient checkpointing (Chen et al., 2016), memory offload-
+
+*
+Equal advising 1 California Institute of Technology 2 Meta AI
+University of Texas at Austin 4 Carnegie Mellon University. Correspondence to: Jiawei Zhao <jiawei@caltech.edu>, Yuandong
+Tian <yuandong@meta.com>.
+3
+
+1
+
+The calculation is based on LLaMA architecture, BF16 numerical format, and maximum sequence length of 2048.
+2
+In the figure, “no retaining grad” denotes the application of
+per-layer weight update to reduce memory consumption of storing
+weight gradient (Lv et al., 2023b).
+
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024
+by the author(s).
+
+1
+
+

@@ -1,0 +1,86 @@
+Semi-Cyclic Stochastic Gradient Descent
+
+Hubert Eichner 1 Tomer Koren 1 H. Brendan McMahan 1 Nathan Srebro 2 Kunal Talwar 1
+
+Abstract
+We consider convex SGD updates with a blockcyclic structure, i.e., where each cycle consists
+of a small number of blocks, each with many
+samples from a possibly different, block-specific,
+distribution. This situation arises, e.g., in Federated Learning where the mobile devices available for updates at different times during the day
+have different characteristics. We show that such
+block-cyclic structure can significantly deteriorate
+the performance of SGD, but propose a simple
+approach that allows prediction with the same
+guarantees as for i.i.d., non-cyclic, sampling.
+
+1. Introduction
+When using Stochastic Gradient Descent (SGD), it is important that samples are drawn at random. In contrast, cycling
+over a specific permutation of data points (e.g., sorting data
+by label, or even alphabetically or by time of collection)
+can be detrimental to the performance of SGD. But in some
+applications, such as in Federated Learning (Konečný et al.,
+2016; McMahan et al., 2017) or when running SGD in “real
+time”, some cyclic patterns in the data samples are hard to
+avoid. In this paper we investigate how such cyclic structure hurts the effectiveness of SGD, and how this can be
+corrected. We model this semi-cyclicity through a “blockcyclic” structure, where during the course of training, we
+cycle over blocks in a fixed order and samples for each block
+are drawn from a block-specific distribution.
+Our primary motivation is Federated Learning. In this setting, mobile devices collaborate in the training of a shared
+model while keeping the training data decentralized. Devices communicate updates (e.g., gradients) to a coordinating server, which aggregates the updates and applies them to
+the global model. In each iteration (or round) of Federated
+1
+
+2
+Google.
+Toyota Technological Institute at Chicago.
+Part of this work was done while NS was visiting
+Google.
+Authors are listed alphabetically.
+Correspondence to:
+<{huberte,tkoren,mcmahan,kunal}@google.com,
+nati@ttic.edu>.
+
+Proceedings of the 36th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+SGD, typically a few hundred devices are chosen randomly
+by the server to participate; critically, however, only devices
+that are idle, charging, and on a free wireless connection
+are selected (McMahan & Ramage, 2017; Bonawitz et al.,
+2019). This ensures Federated Learning does not impact
+the user’s experience when using their phone, but also can
+produce significant diurnal variation in the devices available,
+since devices are more likely to meet the training eligibility requirements at night local time. For example, for a
+language model (Hard et al., 2018), devices from English
+speakers in India and America are likely available at different times of day.
+When the number of blocks in each cycle is high and the
+number of samples per block is low, the setting approaches
+fully-cyclic SGD, which is known to be problematic. But
+what happens when the number of blocks is fairly small and
+each blocks consists of a large number of samples? E.g.,
+if there are only two blocks corresponding to “day” and
+“night”, with possibly millions of samples per block. An
+optimist would hope that this “slightly cyclic” case is much
+easier than the fully cyclic case, and the performance of
+SGD degrades gracefully as the number of blocks increases.
+Unfortunately, in Section 3 we show that even with only two
+blocks, the block-cyclic sampling can cause an arbitrarily
+bad slowdown. One might ask whether alternative forms
+of updates, instead of standard stochastic gradient updates,
+can alleviate this degradation in performance. We show that
+such a slowdown is unavoidable for any iterative method
+based on semi-cyclic samples.
+Instead, the solution we suggest is to embrace the heterogeneity in the data and resort to a pluralistic solution, allowing a potentially different model for each block in the
+cycle (e.g., a “daytime” model and a “nighttime” model).
+A naive pluralistic approach would still suffer a significant
+slowdown as it would not integrate information between
+blocks (Section 4). In Section 5 we show a remarkably
+simple and practical pluralistic approach that allows us to
+obtain exactly the same guarantees as with i.i.d. non-cyclic
+sampling, thus entirely alleviating the problem introduced
+by such data heterogeneity—as we also demonstrate empirically in Section 8. In Section 6 we go even further and
+show how we can maintain the same guarantee without any
+deterioration while also being competitive with separately
+
+

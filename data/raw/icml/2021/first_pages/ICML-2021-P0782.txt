@@ -1,0 +1,91 @@
+DG-LMC: A Turn-key and Scalable Synchronous Distributed MCMC Algorithm
+via Langevin Monte Carlo within Gibbs
+
+Vincent Plassier 1 2 * Maxime Vono 2 * Alain Durmus 3 * Eric Moulines 1
+
+Abstract
+Performing reliable Bayesian inference on a big
+data scale is becoming a keystone in the modern
+era of machine learning. A workhorse class of
+methods to achieve this task are Markov chain
+Monte Carlo (MCMC) algorithms and their design to handle distributed datasets has been the
+subject of many works. However, existing methods are not completely either reliable or computationally efficient. In this paper, we propose to fill
+this gap in the case where the dataset is partitioned
+and stored on computing nodes within a cluster
+under a master/slaves architecture. We derive a
+user-friendly centralised distributed MCMC algorithm with provable scaling in high-dimensional
+settings. We illustrate the relevance of the proposed methodology on both synthetic and real
+data experiments.
+
+1. Introduction
+In the current machine learning era, data acquisition has seen
+significant progress due to rapid technological advances
+which now allow for more accurate, cheaper and faster data
+storage and collection. This data quest is motivated by
+modern machine learning techniques and algorithms which
+are now well-proven and have become common tools for
+data analysis. In most cases, the empirical success of these
+methods are based on a very large sample size (Bardenet
+et al., 2017; Bottou et al., 2018). This need for data is also
+theoretically justified by data probabilistic modelling which
+asserts that under appropriate conditions, the more data can
+be processed, the more accurate the inference can be performed. However, in recent years, several challenges have
+emerged regarding the use and access to data in mainstream
+*
+
+Equal contribution 1 CMAP, Ecole Polytechnique, Institut
+Polytechnique de Paris, Palaiseau, France 2 Lagrange Mathematics and Computing Research Center, Paris, 75007, France
+3
+Université Paris-Saclay, Ecole Normale Supérieure Paris-Saclay,
+Cachan, France. Correspondence to: Vincent Plassier <vincent.plassier@huawei.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+machine learning methods. Indeed, first the amount of data
+is now so large that it has outpaced the increase in computation power of computing resources (Verbraeken et al.,
+2020). Second, in many modern applications, data storage
+and/or use are not on a single machine but shared across
+several units (Raicu et al., 2006; Bernstein & Newcomer,
+2009). Third, life privacy is becoming a prime concern
+for many users of machine learning applications who are
+therefore asking for methods preserving data anonymity
+(Shokri & Shmatikov, 2015; Abadi et al., 2016). Distributed
+machine learning aims at tackling these issues. One of its
+popular paradigms, referred to as data-parallel approach, is
+to consider that the training data are divided across multiple
+machines. Each of these units constitutes a worker node
+of a computing network and can perform a local inference
+based on the data it has access. Regarding the choice of the
+network, several options and frameworks have been considered. We focus here on the master/slaves architecture where
+the worker nodes communicate with each other through a
+device called the master node.
+Under this framework, we are interested in carrying
+Bayesian inference about a parameter θ ∈ Rd based on
+observed data {yk }nk=1 ∈ Yn (Robert, 2001). The dataset
+is assumed to be partitioned into S shards and stored on
+S machines among a collection of b worker nodes. The
+subset of observations associated to worker i ∈ [b] is denoted by Di , where [b] = {1, . . . , b}. Potentially, Di = {∅}
+if i ∈ [S + 1 : b] for b > S, where we use the notation
+[S + 1 : b] = {S + 1, . . . , b}. The posterior distribution
+of interest is assumed to admit a density with respect to
+(w.r.t.) the d-dimensional Lebesgue measure which factorises across workers, i.e.,
+π(θ | y1:n ) = Zπ−1
+
+b
+Y
+
+e−Ui (Ai θ) ,
+
+(1)
+
+i=1
+
+R Qb
+where Zπ = Rd i=1 e−Ui (Ai θ) dθ is a normalisation constant and Ai ∈ Rdi ×d are matrices that might act on the
+parameter of interest. For i ∈ [b], the potential function
+Ui : Rdi → R is assumed to depend only on the subset of
+observations Di . Note that for i ∈ [S + 1 : b], b > S, Ui
+does not depend on the data but only on the prior. For the
+sake of brevity, the dependency of π w.r.t. the observations
+
+

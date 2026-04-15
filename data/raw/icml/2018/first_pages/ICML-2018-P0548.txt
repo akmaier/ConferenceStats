@@ -1,0 +1,71 @@
+Error Compensated Quantized SGD and its Applications to Large-scale
+Distributed Optimization
+
+Jiaxiang Wu 1 Weidong Huang 1 Junzhou Huang 1 Tong Zhang 1
+
+Abstract
+Large-scale distributed optimization is of great
+importance in various applications. For dataparallel based distributed learning, the inter-node
+gradient communication often becomes the performance bottleneck. In this paper, we propose
+the error compensated quantized stochastic gradient descent algorithm to improve the training
+efficiency. Local gradients are quantized to reduce the communication overhead, and accumulated quantization error is utilized to speed up the
+convergence. Furthermore, we present theoretical analysis on the convergence behaviour, and
+demonstrate its advantage over competitors. Extensive experiments indicate that our algorithm
+can compress gradients by a factor of up to two
+magnitudes without performance degradation.
+
+1. Introduction
+Due to the explosive growth of data in recent years, largescale machine learning has attracted increasing attention
+in various domains, such as computer vision and speech
+recognition. Distributed optimization is one of the core
+building blocks in these applications, where the training
+data is often too massive to be efficiently handled by a single computation node.
+A commonly used distributed learning framework is data
+parallelism, in which the whole data set is split and stored
+on multiple nodes within a cluster. Each node computes
+its local gradients and communicates gradients with other
+nodes to update model parameters. For such learning systems, the time consumption can be roughly categorized as
+either computation or communication. The communication
+often becomes the performance bottleneck, especially for
+large clusters and/or models with tons of parameters.
+1
+Tencent AI Lab, Shenzhen, China. Correspondence to: Jiaxiang Wu <jonathanwu@tencent.com>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+There have been several works attempting to improve the
+efficiency of distributed learning by reducing the communication cost. Some methods focused on quantizing
+gradients into the fixed-point numbers (Zhou et al., 2016;
+Alistarh et al., 2017), so that much fewer bits are needed
+to be transimitted. More aggressive quantization, such as
+the binary or ternary representation, has also been investigated in (Seide et al., 2014; Strom, 2015; Wen et al., 2017).
+Other methods imposed sparsity onto gradients during communication, where only a small fraction of gradients get
+exchanged across nodes in each iteration (Wangni et al.,
+2017; Lin et al., 2018).
+The underlying ideas of these methods are basically to compress gradients into some special form, in which each entry
+can be represented by much fewer bits than the original
+32-bit floating-point number. Such compression introduces
+extra stochastic noises, i.e. quantization error, into the optimization process, and will slow down the convergence or
+even leads to divergence. 1Bit-SGD (Seide et al., 2014)
+adopted the error feedback scheme, which was to compensate the current local gradients with quantization error from
+the last iteration, before feeding it into the quantization
+function. Although authors stated that this improved the
+convergence behaviour, no theoretical analysis was given
+to evidence its effectiveness.
+In this paper, we propose the error compensated quantized
+stochastic gradient descent method, namely ECQ-SGD.
+Our algorithm also utilizes the error feedback scheme, but
+here we accumulate all the previous quantization errors,
+rather than only from the last iteration as in 1Bit-SGD. Although empirical evaluation shows that this modification
+leads to faster and more stable convergence than many baseline methods, it is non-trivial to establish the theoretical
+guarantee for this phenomenon.
+In (Alistarh et al., 2017), authors proved that for their proposed QSGD algorithm, the number of iterations required
+to reach a certain sub-optimality gap is proportional to the
+variance bound of stochastic quantized gradients. However,
+this cannot explain our method’s convergence behaviour,
+since our quantized gradients are biased estimations, unlike
+in QSGD. Actually, the variance bound of quantized gradients is even larger than that in QSGD, due to the accumu-
+
+

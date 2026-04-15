@@ -1,0 +1,79 @@
+Trajectory Diversity for Zero-Shot Coordination
+
+Andrei Lupu 1 Brandon Cui 2 Hengyuan Hu 2 Jakob Foerster 2
+
+Abstract
+We study the problem of zero-shot coordination
+(ZSC), where agents must independently produce
+strategies for a collaborative game that are compatible with novel partners not seen during training. Our first contribution is to consider the need
+for diversity in generating such agents. Because
+self-play (SP) agents control their own trajectory
+distribution during training, each policy typically
+only performs well on this exact distribution. As
+a result, they achieve low scores in ZSC, since
+playing with another agent is likely to put them
+in situations they have not encountered during
+training. To address this issue, we train a common best response (BR) to a population of agents,
+which we regulate to be diverse. To this end, we
+introduce Trajectory Diversity (TrajeDi) – a differentiable objective for generating diverse reinforcement learning policies. We derive TrajeDi as a
+generalization of the Jensen-Shannon divergence
+between policies and motivate it experimentally
+in two simple settings. We then focus on the collaborative card game Hanabi, demonstrating the
+scalability of our method and improving upon the
+cross-play scores of both independently trained
+SP agents and BRs to unregularized populations.
+
+1. Introduction
+In this paper, we use policy diversity as a tool to improve
+cross-play (XP) scores in zero-shot coordination (ZSC).
+Introduced by Hu et al., ZSC is the problem of independently training two or more agents in a cooperative game
+such that their strategies are compatible and achieve high
+return when they are paired together at test time. Since it is
+impossible to exactly agree on an arbitrary strategy with all
+humans ahead of time, solving ZSC is required for AI agents
+that can cooperate with humans , such as rescue robots or
+1
+Mila, McGill University (Work done while at Facebook AI
+Research) 2 Facebook AI Research. Correspondence to: Andrei
+Lupu <andrei.lupu@mail.mcgill.ca>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Figure 1: The corridor coordination task admits three optimal SP policies, only one of which is suitable for ZSC.
+self-driving cars.
+The challenge of the ZSC framework arises from the fact that
+many collaborative settings admit multiple joint-strategies
+that are optimal under self-play (SP) (Tesauro, 1994) yet
+incompatible. Thus, if we naively train two independent
+agents in SP, there is no guarantee that they will converge to
+compatible policies.
+For instance, consider the task of two robots coordinating
+in a corridor presented in Figure 1. At each step, robot A
+moves first, then robot B does the same after observing A’s
+action. The robots can occupy the same cell and receive
+a positive reward only if they both reach the same end of
+the corridor. In pure SP, robots can form conventions, and
+so an optimal solution is for both to agree to always go in
+one direction (left or right). However, another pair of robots
+can reach the opposite convention, in which case pairing the
+two in XP would result in robots A and B going in separate
+directions, failing to solve the task. Instead, to be optimal
+under ZSC, robot B must learn to follow A, regardless of
+the direction in which A moves.
+Hu et al. address the problem of ZSC by proposing OtherPlay (OP), a method of preventing those conventions (e.g.
+agreeing on a given direction in the corridor) that rely on
+arbitrarily breaking the symmetries of the setting. However,
+OP reduces to SP if the symmetries are not known a priori
+or if they are absent from the game. In the corridor task, this
+occurs if the transition probabilities in each direction are
+slightly different or if the rewards at the end have different
+variances – all while maintaining the same expected return.
+Instead, we propose a complementary approach that relies
+on the best response (BR) relationships of the optimal SP
+policies. In particular, if we have access to the entire solution space (e.g. robot A either going left or right in the
+corridor), we can train an agent to be the common BR to
+the largest possible subset of that space. The resulting agent
+would then be robust to the maximum number of potential
+
+

@@ -1,0 +1,69 @@
+Diffusion Models for Adversarial Purification
+Weili Nie 1 Brandon Guo 2 Yujia Huang 2 Chaowei Xiao 1 3 Arash Vahdat 1 Anima Anandkumar 1 2
+
+Abstract
+Adversarial purification refers to a class of defense methods that remove adversarial perturbations using a generative model. These methods
+do not make assumptions on the form of attack
+and the classification model, and thus can defend pre-existing classifiers against unseen threats.
+However, their performance currently falls behind adversarial training methods. In this work,
+we propose DiffPure that uses diffusion models for adversarial purification: Given an adversarial example, we first diffuse it with a small
+amount of noise following a forward diffusion
+process, and then recover the clean image through
+a reverse generative process. To evaluate our
+method against strong adaptive attacks in an efficient and scalable way, we propose to use the
+adjoint method to compute full gradients of the
+reverse generative process. Extensive experiments on three image datasets including CIFAR10, ImageNet and CelebA-HQ with three classifier architectures including ResNet, WideResNet
+and ViT demonstrate that our method achieves
+the state-of-the-art results, outperforming current
+adversarial training and adversarial purification
+methods, often by a large margin. Project page:
+https://diffpure.github.io.
+
+1. Introduction
+Neural networks are vulnerable to adversarial attacks:
+adding imperceptible perturbations to the input can mislead
+trained neural networks to predict incorrect classes (Szegedy
+et al., 2014; Goodfellow et al., 2015). There have been many
+works on defending neural networks against such adversarial attacks (Madry et al., 2018; Song et al., 2018; Gowal
+et al., 2020). Among them, adversarial training (Madry
+et al., 2018), which trains neural networks on adversarial
+examples, has become a standard defense form, due to its
+1
+NVIDIA 2 Caltech 3 ASU. Correspondence to: Weili Nie
+<wnie@nvidia.com>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+effectiveness (Zhang et al., 2019; Gowal et al., 2021). However, most adversarial training methods can only defend
+against a specific attack that they are trained with. Recent
+works on defending against unseen threats add a carefully
+designed threat model into their adversarial training pipeline,
+but they suffer from a significant performance drop (Laidlaw et al., 2021; Dolatabadi et al., 2021). Additionally, the
+computational complexity of adversarial training is usually
+higher than standard training (Wong et al., 2020).
+In contrast, another class of defense methods, often termed
+adversarial purification (Shi et al., 2021; Yoon et al., 2021),
+relies on generative models to purify adversarially perturbed
+images before classification (Samangouei et al., 2018; Hill
+et al., 2021). Compared to the adversarial training methods, adversarial purification can defend against unseen
+threats in a plug-n-play manner without re-training the classifiers. This is because the generative purification models
+are trained independently from both threat models and classifiers. Despite these advantages, their performance usually
+falls behind current adversarial training methods (Croce &
+Hein, 2020), in particular against adaptive attacks where the
+attacker has the full knowledge of the defense method (Athalye et al., 2018; Tramer et al., 2020). This is usually attributed to the shortcomings of current generative models
+that are used as a purification model, such as mode collapse
+in GANs (Goodfellow et al., 2014), low sample quality in
+energy-based models (EBMs) (LeCun et al., 2006), and the
+lack of proper randomness (Pinot et al., 2020).
+Recently, diffusion models have emerged as powerful generative models (Ho et al., 2020; Song et al., 2021b). These
+models have demonstrated strong sample quality, beating
+GANs in image generation (Dhariwal & Nichol, 2021; Vahdat et al., 2021). They have also exhibited strong mode coverage, indicated by high test likelihood (Song et al., 2021a).
+Diffusion models consist of two processes: (i) a forward
+diffusion process that converts data to noise by gradually
+adding noise to the input, and (ii) a reverse generative process that starts from noise and generates data by denoising
+one step at a time. Intuitively in the generative process, diffusion models purify noisy samples, playing a similar role of
+a purification model. Their good generation quality and diversity ensure the purified images closely follow the original
+distribution of clean data. Moreover, the stochasticity in diffusion models can make a powerful stochastic defense (He
+
+

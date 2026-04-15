@@ -1,0 +1,70 @@
+Fast Video Generation with S LIDING T ILE ATTENTION
+Peiyuan Zhang 1 Yongqi Chen * 2 Runlong Su * 1 Hangliang Ding 3
+Ion Stoica 4 Zhengzhong Liu 5 Hao Zhang 1
+
+Abstract
+Diffusion Transformers (DiTs) with 3D full attention power state-of-the-art video generation, but
+suffer from prohibitive compute cost – when generating just a 5-second 720P video, attention alone
+takes 800 out of 945 seconds of total inference
+time. This paper introduces sliding tile attention
+(STA) to address this challenge. STA leverages
+the observation that attention scores in pretrained
+video diffusion models predominantly concentrate within localized 3D windows. By sliding and
+attending over the local spatial-temporal region,
+STA eliminates redundancy from full attention.
+Unlike traditional token-wise sliding window attention (SWA), STA operates tile-by-tile with
+a novel hardware-aware sliding window design,
+preserving expressiveness while being hardwareefficient. With careful kernel-level optimizations, STA offers the first efficient 2D/3D slidingwindow-like attention implementation, achieving
+58.79% MFU. Precisely, STA accelerates attention by 2.8–17× over FlashAttention-2 (FA2) and
+1.6–10× over FlashAttention-3 (FA3). On the
+leading video DiT, HunyuanVideo, STA reduces
+end-to-end latency from 945s (FA3) to 501s without quality degradation, requiring no training. Enabling finetuning further lowers latency to 268s
+with only a 0.09% drop on VBench. We make
+our codebase public at https://github.com/hao-ailab/FastVideo.
+
+(a) FLOPS distribution
+
+(b) Attention kernel latency(ms)
+
+Figure 1. (a) Generating a 5s 720P clip in Hunyuan involves processing 115K tokens, making attention the dominant cost. (b)
+Attention latency comparison: existing methods fail to translate FLOP reduction into wall-clock speedup; STA is hardwareefficient and achieves proportional speedup with sparsity.
+
+synthesizing long-duration, visually coherent outputs (Peebles & Xie, 2023; OpenAI, 2024). Central to their success
+is 3D attention mechanism, which models spatial and temporal dependencies by flatterning video frames as a unified
+sequence of visual tokens (Yang et al., 2024b; Genmo-Team,
+2024; HunyuanVideo-Team, 2025). However, this design
+introduces significant computational overhead due to the
+quadratic complexity of attention, making training and inference prohibitively slow as video resolutions and durations
+increase. As illustrated in Figure 1, attention computation
+dominates the overall inference cost. Even with FlashAttention 3 (FA3) (Shah et al., 2024) and a high-end H100
+GPU, HunyuanVideo (HunyuanVideo-Team, 2025) still requires 16 minutes to generate a 5-seconds 720p video. This
+bottleneck severely limits the practical deployment of DiTs.
+Video data inherently exhibit high redundancy – adjacent
+frames exhibit minimal differences, and spatially close pixels tend to have stronger correlations. This redundancy suggests that treating every token independently in 3D attention
+may be unnecessarily expensive. In this paper, we hypothesize that such redundancies are carried by 3D full attention
+in pretrained video diffusion models, which, if properly
+exploited, can drastically accelerate inference. To verify
+this, we visualize the attention scores of HunyuanVideo in
+Figure 2. The results reveal an intriguing 3D locality pattern: queries assign significantly higher attention scores to
+spatially and temporally nearby keys. To quantify this effect,
+we compute attention recall, measuring the fraction of total
+
+1. Introduction
+Diffusion Transformers (DiTs) have emerged as the leading
+architecture for high-resolution video generation, capable of
+*
+
+Co-second authorship 1 University of California, San Diego
+University of Michigan, Ann Arbor 3 Tsinghua University
+4
+University of California, Berkeley 5 Mohamed bin Zayed University of Artificial Intelligence. Correspondence to: Hao Zhang
+<haozhang@ucsd.edu>.
+2
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

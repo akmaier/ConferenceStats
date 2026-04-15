@@ -1,0 +1,70 @@
+Learning the Stein Discrepancy
+for Training and Evaluating Energy-Based Models without Sampling
+
+Will Grathwohl 1 Kuan-Chieh Wang 1 Jörn-Henrik Jacobsen 1 David Duvenaud 1 Richard Zemel 1
+
+Abstract
+We present a new method for evaluating and training unnormalized density models. Our approach
+only requires access to the gradient of the unnormalized model’s log-density. We estimate the
+Stein discrepancy between the data density p(x)
+and the model density q(x) defined by a vector
+function of the data. We parameterize this function with a neural network and fit its parameters
+to maximize the discrepancy. This yields a novel
+goodness-of-fit test which outperforms existing
+methods on high dimensional data. Furthermore,
+optimizing q(x) to minimize this discrepancy produces a novel method for training unnormalized
+models which scales more gracefully than existing methods. The ability to both learn and compare models is a unique feature of the proposed
+method.
+
+Figure 1. Density models trained with approximate MCMC samplers can fail to match the data density while still generating highquality samples. Samples from approximate MCMC samplers
+follow a different distribution than the density they are applied to.
+It is this induced distribution which is trained to match the data. In
+contrast, our approach LSD directly matches the model density
+to the data density without reliance on a sampler.
+
+1. Introduction
+Energy-Based Models (EBMs), also known as unnormalized density models, are perhaps the most flexible way to
+parameterize a density. They hinge on the observation that
+any density p(x) can be expressed as
+p(x) =
+
+exp(−E(x))
+,
+Z
+
+(1)
+
+where E : RD → R, known as the Renergy function, maps
+each point to a scalar, and Z = x exp(−E(x)) is the
+normalizing constant.
+A major benefit of EBMs is that they allow maximal freedom in designing the energy function E. This makes
+it straightforward to incorporate prior knowledge about
+the problem, such as symmetries or domain-specific design choices, into the structure of the model. This has
+1
+
+University of Toronto and Vector Institute, Toronto,
+Canada.
+Correspondence to: Will Grathwohl <wgrathwohl@cs.toronto.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+made EBMs an appealing candidate for applications in
+physics (Noé et al., 2019), biology (Ingraham et al., 2019),
+neuroscience (Scellier & Bengio, 2017), and computer vision (LeCun et al., 2007; Osadchy et al., 2007; Xie et al.,
+2016; 2019; 2018), to name a few.
+Despite their many benefits, EBMs present a central challenge which complicates their use: because we cannot efficiently compute the normalizing constant, we cannot compute likelihoods under our model, making training and evaluation difficult. Much prior work on EBMs has relied on
+MCMC sampling techniques to estimate the likelihood (for
+evaluation) and its gradient (for training). Other approaches
+train EBMs by finding easier-to-compute surrogate objectives which have similar optima to the maximum likelihood
+objective. These include Score Matching (Hyvärinen, 2005)
+and Noise-Contrastive Estimation (Gutmann & Hyvärinen,
+2010).
+These original sampling- and score-based approaches were
+not able to scale to large, high-dimensional datasets as well
+as subsequently developed alternative models, such as Variational Autoencoders (VAEs) (Kingma & Welling, 2013)
+and Normalizing Flows (NFs) (Rezende & Mohamed, 2015).
+These approaches offer more easily scalable training, evaluation, and sampling, but do so at the cost of a more restrictive
+model parameterization which can lead to well-known prob-
+
+

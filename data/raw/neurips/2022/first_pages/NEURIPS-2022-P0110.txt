@@ -1,0 +1,58 @@
+Multi-Sample Training for Neural Image Compression
+
+Tongda Xu1,2 , Yan Wang1,2 ∗, Dailan He1 , Chenjian Gao1,3 , Han Gao1,4 ,
+Kunzan Liu1,5 , Hongwei Qin1
+1
+2
+SenseTime Research, Institute for AI Industry Research (AIR), Tsinghua University,
+3
+Beihang University, 4 University of Electronic Science and Technology of China,
+5
+Department of Electronic Engineering, Tsinghua University
+{xutongda, wangyan}@air.tsinghua.edu.cn,
+{hedailan, gaochenjian, gaohan1, liukunzan, qinhongwei}@sensetime.com
+
+Abstract
+This paper considers the problem of lossy neural image compression (NIC). Current
+state-of-the-art (sota) methods adopt uniform posterior to approximate quantization noise, and single-sample pathwise estimator to approximate the gradient
+of evidence lower bound (ELBO). In this paper, we propose to train NIC with
+multiple-sample importance weighted autoencoder (IWAE) target, which is tighter
+than ELBO and converges to log likelihood as sample size increases. First, we
+identify that the uniform posterior of NIC has special properties, which affect the
+variance and bias of pathwise and score function estimators of the IWAE target.
+Moreover, we provide insights on a commonly adopted trick in NIC from gradient
+variance perspective. Based on those analysis, we further propose multiple-sample
+NIC (MS-NIC), an enhanced IWAE target for NIC. Experimental results demonstrate that it improves sota NIC methods. Our MS-NIC is plug-and-play, and can
+be easily extended to other neural compression tasks.
+
+1
+
+Introduction
+
+Latent variable-based lossy neural image compression (NIC) has witnessed significant success. The
+majority of NIC follows the framework proposed by Ballé et al. [2017]: For encoding, the original
+image x is transformed into y by the encoder. Then y is scalar-quantized into integer ȳ, estimated
+with an entropy model p(ȳ) and coded. For decoding, ȳ is transformed back by the decoder to obtain
+reconstructed x̄. The optimization target of NIC is R-D cost: R + λD. R denotes the bitrate of ȳ, D
+denotes the distortion between x and x̄, and λ denotes the hyper-parameter controlling their trade-off.
+During training, the quantization ȳ = ⌊y⌉ is relaxed withQ
+ỹ = y + ϵ to simulate the quantization
+noise. And ϵ is fully factorized uniform noise ϵ ∼ p(ϵ) = U(− 12 , + 12 ).
+Ballé et al. [2017] further recognises that such training framework is closely related to variational
+inference. Indeed, the above process can be formulated as a graphic model x ← ỹ. During encoding,
+x is transformed into variational parameter y by inference model (encoder), and ỹ is sampled from
+variational posterior q(ỹ|x), which is a unit unifrom distribution centered in y. The prior likelihood
+p(ỹ) is computed, and ỹ is transformed back by the generative model (decoder) to compute the
+likelihood p(x|ỹ). Under such formulation, the prior is connected to the bitrate, the likelihood is
+connected to the distortion, and the posterior likelihood is connected to the bits-back bitrate (See
+Appendix. 2.3), which is 0 in NIC. Finally, the evidence lower bound (ELBO) is the negative R + λD
+target (Eq. 1). Denote the transform function ỹ(ϵ; ϕ) = y +ϵ, and sampling ỹ ∼ q(ỹ|x) is equivalent
+to transforming ϵ through ỹ(ϵ; ϕ). Then the gradient of ELBO is estimated via pathwise estimator
+with single-sample Monte Carlo (Eq. 2). This is the same as SGVB-1 [Kingma and Welling, 2013].
+∗
+
+Yan Wang is the corresponding author.
+
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+

@@ -1,0 +1,100 @@
+Learning Steady-States of Iterative Algorithms over Graphs
+
+Hanjun Dai 1 Zornitsa Kozareva 2 Bo Dai 1 Alexander J. Smola 2 Le Song 1 3
+
+Abstract
+Many graph analytics problems can be solved via
+iterative algorithms where the solutions are often
+characterized by a set of steady-state conditions.
+Different algorithms respect to different set of fixed
+point constraints, so instead of using these traditional algorithms, can we learn an algorithm which
+can obtain the same steady-state solutions automatically from examples, in an effective and scalable
+way? How to represent the meta learner for such
+algorithm and how to carry out the learning? In this
+paper, we propose an embedding representation for
+iterative algorithms over graphs, and design a learning method which alternates between updating the
+embeddings and projecting them onto the steadystate constraints. We demonstrate the effectiveness
+of our framework using a few commonly used
+graph algorithms, and show that in some cases, the
+learned algorithm can handle graphs with more
+than 100,000,000 nodes in a single machine.
+
+1. Introduction
+Graphs and networks arise in various real-world applications
+and machine learning problems, such as social network analysis (Hamilton et al., 2017b), molecule screening (Hachmann
+et al., 2011; Duvenaud et al., 2015; Lei et al., 2017) and
+knowledge base reasoning (Trivedi et al., 2017). Many graph
+analytics problems can be solved via iterative algorithms
+according to the graph structure, and the solutions of the algorithms are often characterized by a set of steady-state conditions. For instance, the PageRank (Page et al., 1999) score of
+a node in a graph can be computed iteratively by averaging the
+scores of its neighbors, until the node score and this neighbor
+averaging are approximately equal. Mean field inference for
+the posterior distribution of a variable in a graphical model
+can be updated iteratively by aggregating the messages from
+its neighbors until the posterior is approximately equal to
+1
+Georgia Institute of Technology 2 Amazon 3 Ant Financial.
+Correspondence to: Hanjun Dai <hanjundai@gatech.edu>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+the results of the aggregation operator. More generally, the
+intermediate representation hv for each node v in the node
+set V is updated iteratively according to an operator T as
+
+
+(t)
+h(t+1)
+←
+T
+{h
+}
+v
+u u∈N (v) , ∀t ⩾ 1, and
+h(0)
+v ← constant, ∀v ∈ V
+
+(1)
+
+until the steady-state conditions are met
+
+h∗v = T {h∗u }u∈N (v) , ∀v ∈ V.
+
+(2)
+
+Variants of graph neural network (GNN) (Scarselli et al.,
+2009), like GCN (Kipf & Welling, 2016), neural message
+passing network (Gilmer et al., 2017), GATs (Veličković
+et al., 2017) etc., perform fixed T rounds of updates to
+Eq (1) without respecting the steady state. Thus for learning
+algorithms like PageRank or mean field inference, a large
+T is required. In such case, both the computational cost
+and gradient updates will become problematic. Also note
+that due to the batch-update nature of GNN family models,
+multiple rounds of update over all nodes are needed. These
+two limitations make them not scalable and effective enough,
+regarding the computational cost and convergence.
+In this paper, instead of designing algorithms for each
+individual graph problem, we take a different perspective,
+and ask the question:
+Can we design a learning framework for a diverse
+range of graph problems that learns the algorithm
+over large graphs achieving the steady-state
+solutions efficiently and effectively?
+Furthermore, how to represent the meta learner for such algorithm and how to carry out the learning of these algorithms?
+In this paper we propose a stochastic learning framework
+of algorithm design based on the idea of embedding the intermediate representation of an iterative algorithm over graphs
+into vector spaces, and then learn such algorithms using
+example outputs from the desired algorithms to be learned.
+More specifically, in our framework, each node in the graph
+will maintain an embedding vector, and these embedding
+vectors will be updated using a parameterized operator
+Tθ where the parameters θ will be learned. Furthermore,
+following each embedding update step, the embedding
+will also be projected towards the steady state constraint
+space, gradually enforcing the steady-state conditions. As
+illustrated in Figure 1, both of the two steps are stochastic,
+
+

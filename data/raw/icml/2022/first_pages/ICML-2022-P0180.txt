@@ -1,0 +1,74 @@
+Diffusion bridges vector quantized variational autoencoders
+
+Max Cohen 1 2 Guillaume Quispe 3 Sylvain Le Corff 1 Charles Ollion 3 Éric Moulines 3
+
+Abstract
+Vector Quantized-Variational AutoEncoders (VQVAE) are generative models based on discrete latent representations of the data, where inputs are
+mapped to a finite set of learned embeddings. To
+generate new samples, an autoregressive prior distribution over the discrete states must be trained
+separately. This prior is generally very complex
+and leads to slow generation. In this work, we
+propose a new model to train the prior and the
+encoder/decoder networks simultaneously. We
+build a diffusion bridge between a continuous
+coded vector and a non-informative prior distribution. The latent discrete states are then given
+as random functions of these continuous vectors.
+We show that our model is competitive with the
+autoregressive prior on the mini-Imagenet and CIFAR dataset and is efficient in both optimization
+and sampling. Our framework also extends the
+standard VQ-VAE and enables end-to-end training.
+
+1. Introduction
+Variational AutoEncoders (VAE) have emerged as important generative models based on latent representations of
+the data. While the latent states are usually continuous vectors, Vector Quantized Variational AutoEncoders (VQ-VAE)
+have demonstrated the usefulness of discrete latent spaces
+and have been successfully applied in image and speech
+generation (Oord et al., 2017; Esser et al., 2021; Ramesh
+et al., 2021).
+In a VQ-VAE, the distribution of the inputs is assumed
+to depend on a hidden discrete state. Large scale image
+1
+
+Samovar, Télécom SudParis, Département CITI, Institut Polytechnique de Paris, Palaiseau, France. 2 Oze Énergies, Charenton3
+Le-Pont, France.
+Centre de Mathématiques Appliquées,
+École polytechnique, Institut Polytechnique de Paris, Palaiseau,
+France. Correspondence to: Max Cohen <max.cohen@telecomsudparis.eu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+generation VQ-VAEs use for instance multiple discrete latent states, typically organized as 2-dimensional lattices.
+In the original VQ-VAE, the authors propose a variational
+approach to approximate the posterior distribution of the
+discrete states given the observations. The variational distribution takes as input the observation, which is passed
+through an encoder. The discrete latent variable is then
+computed by a nearest neighbour procedure that maps the
+encoded vector to the nearest discrete embedding.
+It has been argued that the success of VQ-VAEs lies in the
+fact that they do not suffer from the usual posterior collapse
+of VAEs (Oord et al., 2017). However, the implementation
+of VQ-VAE involves many practical tricks and still suffers
+from several limitations. First, the quantization step leads
+the authors to propose a rough approximation of the gradient of the loss function by copying gradients from the
+decoder input to the encoder output. Second, the prior distribution of the discrete variables is initially assumed to be
+uniform when training the VQ-VAE. In a second training
+step, high-dimensional autoregressive models such as PixelCNN (van den Oord et al., 2016; Salimans et al., 2017; Chen
+et al., 2018) and WaveNet (Oord et al., 2016) are estimated
+to obtain a complex prior distribution. Joint training of the
+prior and the VQ-VAE is a challenging task for which no
+satisfactory solutions exist yet. Our work addresses both
+problems by introducing a new mathematical framework
+that extends and generalizes the standard VQ-VAE. Our
+method enables end-to-end training and, in particular, bypasses the separate training of an autoregressive prior.
+An autoregressive pixelCNN prior model has several drawbacks, which are the same in the pixel space or in the latent
+space. The data is assumed to have a fixed sequential order, which forces the generation to start at a certain point,
+typically in the upper left corner, and span the image or the 2dimensional latent lattice in an arbitrary way. At each step, a
+new latent variable is sampled using the previously sampled
+pixels or latent variables. Inference may then accumulate
+prediction errors, while training provides ground truth at
+each step. The runtime process, which depends mainly on
+the number of network evaluations, is sequential and depends on the size of the image or the 2-dimensional latent
+lattice, which can become very large for high-dimensional
+objects.
+
+

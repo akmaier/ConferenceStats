@@ -1,0 +1,77 @@
+Efficient Differentiable Simulation of Articulated Bodies
+Yi-Ling Qiao * 1 2 Junbang Liang * 1 Vladlen Koltun 2 Ming C. Lin 1
+
+Abstract
+We present a method for efficient differentiable
+simulation of articulated bodies. This enables integration of articulated body dynamics into deep
+learning frameworks, and gradient-based optimization of neural networks that operate on articulated bodies. We derive the gradients of the
+contact solver using spatial algebra and the adjoint
+method. Our approach is an order of magnitude
+faster than autodiff tools. By only saving the initial states throughout the simulation process, our
+method reduces memory requirements by two orders of magnitude. We demonstrate the utility of
+efficient differentiable dynamics for articulated
+bodies in a variety of applications. We show that
+reinforcement learning with articulated systems
+can be accelerated using gradients provided by
+our method. In applications to control and inverse
+problems, gradient-based optimization enabled by
+our work accelerates convergence by more than
+an order of magnitude.
+
+1. Introduction
+Differentiable physics enables efficient gradient-based optimization with dynamical systems. It has achieved promising
+results in both simulated (Hu et al., 2019; Qiao et al., 2020)
+and real environments (Bern et al., 2019; Song & Boularias,
+2020a). Our goal is to make articulated body simulation
+efficiently differentiable. We aim to maximize efficiency in
+both computation and memory use, in order to support fast
+gradient-based optimization of differentiable systems that
+interact with articulated bodies in physical environments.
+Articulated bodies play a central role in robotics, computer
+graphics, and embodied AI. Many control systems are optimized via experiences collected in simulation (Todorov
+et al., 2012; Coumans, 2015; Lee et al., 2018; Tedrake et al.,
+*
+
+Equal contribution 1 University of Maryland, College Park
+Intel Labs. Correspondence to: Yi-Ling Qiao, Junbang Liang,
+and Ming C. Lin <{yilingq,liangjb,lin}@cs.umd.edu>, Vladlen
+Koltun <vladlen.koltun@intel.com>.
+2
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+2019). However, they do not have access to analytic derivatives of the articulated dynamics. Therefore, nearly all
+gradient-based approaches have to design strategies to compute the gradients indirectly when dealing with articulated
+bodies.
+The straightforward way to differentiate the simulation is
+to use existing automatic differentiation tools (Griewank &
+Walther, 2008; Abadi et al., 2016; Paszke et al., 2019). However, autodiff tools consume prohibitive amounts of memory
+when there are many simulation steps. Autodiff tracks every
+operation and stores the intermediate results in order to perform backpropagation. In articulated body simulation, the
+iterative contact solver and the dynamics algorithm (Featherstone, 2007) yield exceedingly long computational graphs.
+In our experiments, differentiable simulators built with autodiff tools run out of memory after 5,000 simulation steps –
+just a few seconds of experience. As a result, learning is
+constrained to short experiences or forced to used large time
+steps, thus curtailing the scope of behaviors that can be
+learned or undermining the simulation’s stability.
+Furthermore, the overhead of creating and storing the auxiliary variables for autodiff also slows down the forward
+simulation. Although autodiff tools like DiffTaichi (Hu
+et al., 2020) and JAX (Bradbury et al., 2018) can accelerate
+the simulation of fluids and deformable solids by vectorization, it is difficult to achieve the same speedup in articulated
+body simulation because the articulated dynamics algorithm
+is highly serialized, unlike inherently parallel computation
+on grids and particles.
+In this paper, we design a differentiable articulated body simulation method that runs 10x faster with 1% of the memory
+consumption compared to differentiation based on autodiff
+tools. In order to minimize the overhead of differentiation,
+we derive the gradients of articulated body simulation using the adjoint method (Giles & Pierce, 2000). The adjoint
+method has been applied to fluids (McNamara et al., 2004)
+and multi-body systems (Geilinger et al., 2020), but these
+applications do not support physically correct differentiable
+simulation of articulated bodies. Our derivation of the operator adjoints uses spatial algebra (Featherstone, 2008). Our
+method needs almost no additional computation during the
+forward simulation and is an order of magnitude faster than
+autodiff tools.
+
+

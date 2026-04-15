@@ -1,0 +1,83 @@
+Infinite attention: NNGP and NTK for deep attention networks
+
+Jiri Hron 1 Yasaman Bahri 2 Jascha Sohl-Dickstein 2 Roman Novak 2
+
+Abstract
+There is a growing literature on the relationship
+between wide neural networks (NNs) and Gaussian processes (GPs), identifying an equivalence
+between the two for a variety of NN architectures. This equivalence enables, for instance, accurate approximation of the behaviour of wide
+Bayesian NNs without MCMC or variational approximations, or characterisation of the distribution of randomly initialised wide NNs optimised
+by gradient descent without ever running an optimiser. We provide a rigorous extension of these
+results to NNs with attention layers, showing that
+unlike single-head attention which induces nonGaussian behaviour, multi-head attention architectures behave as GPs as the number of heads
+tends to infinity. We discuss the effects of positional encodings and layer normalisation, and
+propose modifications of the attention mechanism
+which improve performance of both finite and infinitely wide NNs. We evaluate attention kernels
+empirically, leading to a moderate improvement
+upon the previous state-of-the-art on CIFAR-10
+for GPs without trainable kernels and advanced
+data preprocessing. Finally, we introduce new features to the Neural Tangents library (Novak et al.,
+2020) allowing applications of NNGP/NTK models, with and without attention, to variable-length
+sequences, with an example on the IMDb dataset.
+
+1. Introduction
+One of the currently most active research directions in theoretical deep learning is the study of NN behaviour as the
+number of parameters in each layer goes to infinity (e.g.,
+Matthews et al., 2018; Lee et al., 2018; Garriga-Alonso
+et al., 2019; Novak et al., 2019; Li & Liang, 2018; AllenZhu et al., 2019; Du et al., 2019; Arora et al., 2019; Yang,
+1
+
+University of Cambridge. Work done while interning at
+Google Brain. 2 Google Brain. Correspondence to: Jiri Hron
+<jh2084@cam.ac.uk>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+2019b). Building upon these efforts, we study the asymptotic behaviour of NNs with attention layers (Bahdanau
+et al., 2015; Vaswani et al., 2017) and derive the corresponding neural network Gaussian proccess (NNGP) and Neural
+Tangent kernels (NTK, Jacot et al., 2018; Lee et al., 2019).
+Beyond their recent empirical successes (e.g., Radford et al.,
+2019; Devlin et al., 2019), attention layers are also interesting from the theoretical perspective as the standard proof
+techniques used to establish asymptotic Gaussianity of the
+input-to-output mappings represented by wide NNs (Matthews et al., 2018; Yang, 2019b) cannot be applied.
+To understand why, consider the following simplified ats
+0
+tention layer model: let x ∈ Rd ×d be the input with ds
+0
+spatial and d embedding dimensions (by spatial, we mean,
+e.g., the number of tokens in a string or pixels in an image),
+0
+W Q , W K , W V ∈ Rd ×d be weight matrices, and define
+Q
+queries Q(x) := xW , keys K(x) := xW K , and values
+V (x) := xW V as usual. The attention layer output is then
+
+
+Q(x)K(x)>
+√
+f (x) := ζ
+V (x) = ζ(G(x))V (x) , (1)
+d
+where ζ is the row-wise softmax function.
+Now observe that dim G(x) = ds × ds where the spatial
+dimension ds stays finite even as the number of parameters—
+here proportional to d—goes to infinity. As we will show
+rigorously in Section 3, this fact combined with the d−1/2
+scaling causes each column of f (x) to be a linear combination of the same stochastic matrix ζ(G(x)), and thus
+statistically dependent even in the infinite width limit.
+Since the exchangeability based arguments (Matthews et al.,
+2018; Garriga-Alonso et al., 2019) require that certain
+moment statistics of f (x) asymptotically behave as if its
+columns were independent (see condition b in lemma 10,
+Matthews et al., 2018), they do not extend to attention layers
+in a straightforward manner. Similarly, the proofs based on
+Gaussian conditioning (Novak et al., 2019; Yang, 2019b)
+require that given the input x, the conditional covariance of
+each column of f (x) converges (in probability) to the same
+deterministic positive semidefinite matrix (see propositions
+5.5 and G.4 in Yang, 2019b) which will not be the case due
+to the aforementioned stochasticity of ζ(G(x)).
+Among the many interesting contributions in (Yang, 2019b),
+the author proposes to resolve the above issue by replacing
+
+

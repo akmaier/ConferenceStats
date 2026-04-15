@@ -1,0 +1,79 @@
+Fair Regression: Quantitative Definitions and Reduction-based Algorithms
+Alekh Agarwal 1 Miroslav Dudı́k 2 Zhiwei Steven Wu 3
+
+Abstract
+In this paper, we study the prediction of a realvalued target, such as a risk score or recidivism
+rate, while guaranteeing a quantitative notion of
+fairness with respect to a protected attribute such
+as gender or race. We call this class of problems
+fair regression. We propose general schemes for
+fair regression under two notions of fairness: (1)
+statistical parity, which asks that the prediction be
+statistically independent of the protected attribute,
+and (2) bounded group loss, which asks that the
+prediction error restricted to any protected group
+remain below some pre-determined level. While
+we only study these two notions of fairness, our
+schemes are applicable to arbitrary Lipschitzcontinuous losses, and so they encompass leastsquares regression, logistic regression, quantile
+regression, and many other tasks. Our schemes
+only require access to standard risk minimization
+algorithms (such as standard classification or
+least-squares regression) while providing theoretical guarantees on the optimality and fairness of
+the obtained solutions. In addition to analyzing
+theoretical properties of our schemes, we empirically demonstrate their ability to uncover fairness–
+accuracy frontiers on several standard datasets.
+
+1. Introduction
+As machine learning touches increasingly critical aspects
+of our life, including education, healthcare, criminal justice
+and lending, there is a growing focus to ensure that the algorithms treat various subpopulations fairly (see, e.g., Barocas
+& Selbst, 2016; Podesta et al., 2014; Corbett-Davies & Goel,
+2018; and references therein). These questions have been
+particularly extensively researched in the context of classification, where several quantitative measures of fairness
+1
+Microsoft Research, Redmond, WA 2 Microsoft Research, New
+York, NY 3 University of Minnesota, Minneapolis, MN. Correspondence to: A. Agarwal <alekha@microsoft.com>, M. Dudı́k
+<mdudik@microsoft.com>, Z. S. Wu <zsw@umn.edu>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+have been proposed (Berk et al., 2017; Chouldechova, 2017;
+Hardt et al., 2016; Kleinberg et al., 2017), leading to a variety of algorithms that aim to satisfy them (see, e.g., CorbettDavies & Goel, 2018, for an overview of the literature).
+These classifier-based formulations appear to fit the settings
+where the decision space is discrete and small, such as accept/reject decisions in hiring, school admissions, or lending.
+However, in practice, the decision makers work with tools
+that estimate a continuous quantity, such as success on the
+job, GPA in the first year of college, or risk of default on a
+loan. Predictions of these quantities are treated as scores,
+which are used by human decision makers, perhaps in the
+context of a partly automated workflow, to reach final decisions (see, e.g., Waters & Miikkulainen, 2014; US Federal
+Reserve, 2007; Northpointe, 2010; Lowenkamp et al., 2012).
+While, in principle, a fair classification tool could be used
+to recommend the yes/no decision directly, such tools are
+often resisted by practitioners, because they limit their autonomy, whereas ranking or scoring tools do not have this
+drawback (Veale et al., 2018). In such situations, it is desirable to work with real-valued scores that satisfy some
+notion of fairness. Yet, despite ample motivation and use
+cases, the prior work on designing fair continuous predictors
+is quite limited in its scope compared with the generality
+of methods for fair classification (e.g., Hardt et al., 2016;
+Agarwal et al., 2018).
+This paper seeks to diminish this gap by developing efficient
+algorithms for a substantially broader set of regression tasks
+and model classes than done before, in many cases providing
+the first method with theoretical performance guarantees.
+We consider the problem of predicting a real-valued
+target, where the prediction quality is measured by any
+Lipschitz-continuous loss function. Each example contains
+a protected attribute, such as race or gender, with respect
+to which we seek to guarantee fairness. We study two
+definitions of fairness from previous literature: statistical
+parity (SP), which asks that the prediction be statistically independent of the protected attribute, and bounded group loss
+(BGL), which asks that the prediction error restricted to any
+protected group stay below some pre-determined level. We
+define fair regression as the task of minimizing the expected
+loss of our real-valued predictions, subject to either of these
+fairness constraints. By choosing the appropriate loss, we
+
+

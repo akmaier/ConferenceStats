@@ -1,0 +1,93 @@
+PipeTransformer: Automated Elastic Pipelining for
+Distributed Training of Large-scale Models
+Chaoyang He 1 Shen Li 2 Mahdi Soltanolkotabi 1 Salman Avestimehr 1
+
+Abstract
+The size of Transformer models is growing at an
+unprecedented rate. It has taken less than one
+year to reach trillion-level parameters since the
+release of GPT-3 (175B). Training such models
+requires both substantial engineering efforts and
+enormous computing resources, which are luxuries most research teams cannot afford. In this
+paper, we propose PipeTransformer, which
+leverages automated elastic pipelining for efficient distributed training of Transformer models.
+In PipeTransformer, we design an adaptive
+on the fly freeze algorithm that can identify and
+freeze some layers gradually during training, and
+an elastic pipelining system that can dynamically
+allocate resources to train the remaining active
+layers. More specifically, PipeTransformer
+automatically excludes frozen layers from the
+pipeline, packs active layers into fewer GPUs,
+and forks more replicas to increase data-parallel
+width. We evaluate PipeTransformer using Vision Transformer (ViT) on ImageNet and
+BERT on SQuAD and GLUE datasets. Our results
+show that compared to the state-of-the-art baseline, PipeTransformer attains up to 2.83fold speedup without losing accuracy. We also
+provide various performance analyses for a more
+comprehensive understanding of our algorithmic
+and system-wise design. Finally, we have modularized our training system with flexible APIs
+and made the source code publicly available at
+https://DistML.ai.
+
+1. Introduction
+Large Transformer models (Brown et al., 2020; Lepikhin
+et al., 2020) have powered accuracy breakthroughs in both
+natural language processing and computer vision. GPT-3 hit
+a new record high accuracy for nearly all NLP tasks. Vision
+1
+
+University of Southern California 2 Facebook AI Research.
+Correspondence to: Chaoyang He <chaoyang.he@usc.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Transformer (ViT) (Dosovitskiy et al., 2020) also achieved
+89% top-1 accuracy in ImageNet, outperforming state-ofthe-art convolutional networks ResNet-152 (He et al., 2016)
+and EfficientNet (Tan & Le, 2019). To tackle the growth in
+model sizes, researchers have proposed various distributed
+training techniques, including parameter servers (Li et al.,
+2014; Jiang et al., 2020; Kim et al., 2019), pipeline parallel (Huang et al., 2019; Park et al., 2020; Narayanan et al.,
+2019), intra-layer parallel (Lepikhin et al., 2020; Shazeer
+et al., 2018; Shoeybi et al., 2019), and zero redundancy data
+parallel (Rajbhandari et al., 2019).
+T0 (0% trained)
+
+T1 (35% trained)
+
+T2 (75% trained)
+
+T3 (100% trained)
+
+Layer (end of training)
+
+Layer (end of training)
+
+Layer (end of training)
+
+Layer (end of training)
+
+Similarity score
+
+Figure 1. Interpretable Freeze Training: DNNs converge bottom
+up (Results on CIFAR10 using ResNet). Each pane shows layerby-layer similarity using SVCCA (Raghu et al., 2017).
+
+Existing distributed training solutions, however, only study
+scenarios where all model weights are required to be optimized throughout the training (i.e., computation and communication overhead remains relatively static over different
+iterations). Recent works on freeze training (Raghu et al.,
+2017; Morcos et al., 2018; Shen et al., 2020) suggest that
+parameters in neural networks usually converge from the
+bottom-up (i.e., not all layers need to be trained all the
+way through training). Figure 1 shows an example of how
+weights gradually stabilize during training in this approach.
+This observation motivates us to utilize freeze training for
+distributed training of Transformer models to accelerate
+training by dynamically allocating resources to focus on a
+shrinking set of active layers. Such a layer freezing strategy
+is especially pertinent to pipeline parallelism, as excluding consecutive bottom layers from the pipeline can reduce
+computation, memory, and communication overhead.
+In this paper, we propose PipeTransformer, an elastic
+pipelining training acceleration framework that automatically reacts to frozen layers by dynamically transforming
+the scope of the pipelined model and the number of pipeline
+replicas. To the best of our knowledge, this is the first paper
+
+

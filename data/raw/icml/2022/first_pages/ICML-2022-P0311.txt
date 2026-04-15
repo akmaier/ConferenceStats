@@ -1,0 +1,77 @@
+Stochastic smoothing of the top-K calibrated hinge loss
+for deep imbalanced classification
+
+Camille Garcin 1 2 Maximilien Servajean 3 4 Alexis Joly 2 Joseph Salmon 1 5
+
+Abstract
+In modern classification tasks, the number of labels is getting larger and larger, as is the size
+of the datasets encountered in practice. As the
+number of classes increases, class ambiguity and
+class imbalance become more and more problematic to achieve high top-1 accuracy. Meanwhile,
+Top-K metrics (metrics allowing K guesses) have
+become popular, especially for performance reporting. Yet, proposing top-K losses tailored for
+deep learning remains a challenge, both theoretically and practically. In this paper we introduce a
+stochastic top-K hinge loss inspired by recent developments on top-K calibrated losses. Our proposal is based on the smoothing of the top-K operator building on the flexible ”perturbed optimizer”
+framework. We show that our loss function performs very well in the case of balanced datasets,
+while benefiting from a significantly lower computational time than the state-of-the-art top-K loss
+function. In addition, we propose a simple variant
+of our loss for the imbalanced case. Experiments
+on a heavy-tailed dataset show that our loss function significantly outperforms other baseline loss
+functions.
+
+1. Introduction
+Fine-grained visual categorization (FGVC) has recently attracted a lot of attention (Wang et al., 2022), in particular
+in the biodiversity domain (Horn et al., 2018; Garcin et al.,
+2021; Van Horn et al., 2015). In FGVC, one aims to classify
+an image into subordinate categories (such as plant or bird
+species) that contain many visually similar instances. The
+1
+IMAG, Univ Montpellier, CNRS, Montpellier, France
+Inria, LIRMM, Univ Montpellier, CNRS, Montpellier, France
+3
+LIRMM, Univ Montpellier, CNRS, Montpellier, France 4 AMIS,
+Paul Valery University, Montpellier, France 5 Institut Universitaire de France (IUF). Correspondence to: Camille Garcin
+<camille.garcin@umontpellier.fr>.
+2
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+intrinsic ambiguity among the labels makes it difficult to
+obtain high levels of top-1 accuracy as is typically the case
+with standard datasets such as CIFAR10 (Krizhevsky, 2009)
+or MNIST (LeCun et al., 1998). For systems like Merlin
+(Van Horn et al., 2015) or Pl@ntNet (Affouard et al., 2017),
+due to the difficulty of the task, it is generally relevant to
+provide the user with a set of classes in the hope that the true
+class belongs to that set. In practical applications, the display limit of the device only allows to give a few labels back
+to the user. A straightforward strategy consists in returning
+a set of K classes for each input, where K is a small integer
+with respect to the total number of classes. Such classifiers
+are called top-K classifiers, and their performance is evaluated with the well known top-K accuracy (Lapin et al.,
+2015; Russakovsky et al., 2015). While such a metric is
+very popular for evaluating applications, common learning
+strategies typically consist in learning a deep neural network
+with the cross-entropy loss, neglecting the top-K constraint
+in the learning step.
+Yet, recent works have focused on optimizing the top-K
+accuracy directly. Lapin et al. (2015) have introduced the
+top-K hinge loss and a convex upper-bound, following techniques introduced by Usunier et al. (2009) for ranking. A
+limit of this approach was raised by Berrada et al. (2018),
+as they have shown that the top-K hinge loss by Lapin et al.
+(2015) can not be directly used for training a deep neural
+network. The main arguments put forward by the authors to
+explain this practical limitation are: (i) the non-smoothness
+of the top-K hinge loss and (ii), the sparsity of its gradient. Consequently, they propose a smoothed alternative
+adjustable with a temperature parameter. However, their
+smoothing procedure is computationally costly when K increases (as demonstrated in our experiments), despite the
+efficient algorithm they provide to cope with the combinatorial nature of the loss. Moreover, this approach has the
+drawback to be specific to the top-K hinge loss introduced
+by Lapin et al. (2015).
+In contrast, we propose a new top-K loss that relies on the
+smoothing of the top-K operator (the operator returning the
+K-th largest value of a vector). The smoothing framework
+we consider, the perturbed optimizers (Berthet et al., 2020),
+can be used to smooth variants of the top-K hinge loss but
+
+

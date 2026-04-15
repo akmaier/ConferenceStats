@@ -1,0 +1,73 @@
+Variational Bayesian Quantization
+
+Yibo Yang * 1 Robert Bamler * 1 Stephan Mandt 1
+
+Abstract
+We propose a novel algorithm for quantizing continuous latent representations in trained models.
+Our approach applies to deep probabilistic models, such as variational autoencoders (VAEs), and
+enables both data and model compression. Unlike current end-to-end neural compression methods that cater the model to a fixed quantization
+scheme, our algorithm separates model design
+and training from quantization. Consequently,
+our algorithm enables “plug-and-play” compression with variable rate-distortion trade-off, using
+a single trained model. Our algorithm can be
+seen as a novel extension of arithmetic coding to
+the continuous domain, and uses adaptive quantization accuracy based on estimates of posterior
+uncertainty. Our experimental results demonstrate
+the importance of taking into account posterior
+uncertainties, and show that image compression
+with the proposed algorithm outperforms JPEG
+over a wide range of bit rates using only a single
+standard VAE. Further experiments on Bayesian
+neural word embeddings demonstrate the versatility of the proposed method.
+
+1. Introduction
+Latent-variable models have become a mainstay of modern
+machine learning. Scalable approximate Bayesian inference methods, in particular Black Box Variational Inference
+(Ranganath et al., 2014; Rezende et al., 2014), have spurred
+the development of increasingly large and expressive probabilistic models, including deep generative probabilistic models such as variational autoencoders (Kingma & Welling,
+2014b) and Bayesian neural networks (MacKay, 1992; Blundell et al., 2015). One natural application of deep latent
+variable modeling is data compression, and recent work has
+focused on end-to-end procedures that optimize a model
+*
+
+Equal contribution 1 Department of Computer Science, University of California, Irvine. Correspondence to: Yibo Yang
+<yibo.yang@uci.edu>, Robert Bamler <rbamler@uci.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+for a particular compression objective. Here, we study a
+related but different problem: given a trained model, what
+is the best way to encode the information contained in its
+continuous latent variables?
+As we show, our proposed solution provides a new “plugand-play” approach to lossy compression of both data instances (represented by local latent variables, e.g., in a VAE)
+as well as model parameters (represented by global latent
+variables that serve as parameters of a Bayesian statistical model). Our approach separates the compression task
+from model design and training, thus implementing variablebitrate compression as an independent post-processing step
+in a wide class of existing latent variable models.
+At the heart of our proposed method lies a novel quantization scheme that optimizes a rate-distortion trade-off by
+exploiting posterior uncertainty estimates. Quantization is
+central to lossy compression, as continuous-valued data like
+natural images, videos, and distributed representations ultimately need to be discretized to a finite number of bits
+for digital storage or transmission. Lossy compression algorithms therefore typically find a discrete approximation
+of some semantic representation of the data, which is then
+encoded with a lossless compression method.
+In classical lossy compression methods such as JPEG or
+MP3, the semantic representation is carefully designed to
+support compression at variable bitrates. By contrast, stateof-the-art deep learning based approaches to lossy data compression (Ballé et al., 2017; 2018; Rippel & Bourdev, 2017;
+Mentzer et al., 2018; Lombardo et al., 2019) are trained to
+minimize a distortion metric at a fixed bitrate. To support
+variable-bitrate compression in this approach, one has to
+train several models for different bitrates. While training
+several models may be viable in many cases, a bigger issue
+is the increase in decoder size as the decoder has to store
+the parameters of not one but several deep neural networks
+for each bitrate setting. In applications like video streaming
+under fluctuating connectivity, the decoder further has to
+load a new deep learning model into memory every time a
+change in bandwidth requires adjusting the bitrate.
+By contrast, we propose a a quantization method for latent
+variable models that decouples training from compression,
+and that enables variable-bitrate compression with a single
+model. We generalize a classical entropy coding algorithm,
+
+

@@ -1,0 +1,73 @@
+Parallel and Flexible Sampling from Autoregressive
+Models via Langevin Dynamics
+
+Vivek Jayaram * 1 John Thickstun * 1
+
+Abstract
+This paper introduces an alternative approach
+to sampling from autoregressive models. Autoregressive models are typically sampled sequentially, according to the transition dynamics
+defined by the model. Instead, we propose a
+sampling procedure that initializes a sequence
+with white noise and follows a Markov chain defined by Langevin dynamics on the global loglikelihood of the sequence. This approach parallelizes the sampling process and generalizes to
+conditional sampling. Using an autoregressive
+model as a Bayesian prior, we can steer the output
+of a generative model using a conditional likelihood or constraints. We apply these techniques to
+autoregressive models in the visual and audio domains, with competitive results for audio source
+separation, super-resolution, and inpainting.
+
+1. Introduction
+Neural autoregressive models (Larochelle & Murray, 2011)
+are a popular family of generative models, with wideranging applications in a variety of domains including audio
+(van den Oord et al., 2016a; Dhariwal et al., 2020), images
+(van den Oord et al., 2016b; Salimans et al., 2017; Parmar
+et al., 2018; Razavi et al., 2019), and text (Radford et al.,
+2019; Brown et al., 2020). These models parameterize the
+conditional distribution over a token in an ordered sequence,
+given previous tokens in the sequence. The standard approach to sampling from an autoregressive model iteratively
+generates tokens, according to a conditional distribution
+over tokens defined by the model, conditioned on the partial
+sequence of previously generated tokens. We will refer to
+this approach to sampling as the ancestral sampler.
+There are two major drawbacks to ancestral sampling that
+*
+
+Equal contribution 1 Department of Computer Science,
+University of Washington. Correspondence to: Vivek Jayaram <vjayaram@cs.washington.edu>, John Thickstun <thickstn@cs.washington.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+limit the usefulness of autoregressive models in practical
+settings. First, ancestral sampling has time complexity that
+scales linearly in the length of the generated sequence. For
+data such as high-resolution images or audio, ancestral sampling from an autoregressive model (where the tokens are
+pixels or sound pressure readings respectively) can be impractically slow. Second, ancestral sampling is frustratingly
+inflexible. It is easy to sample the second half of a sequence
+conditioned on the first, but filling in the first half a sequence
+conditioned on the second naively requires training a new
+model that reverses the ordering of tokens in the autoregressive factorization. Conditioning on arbitrary subsets
+of tokens for tasks such as inpainting or super-resolution
+seems beyond reach of autoregressive modeling.
+This paper introduces an alternative, parallel and flexible
+(PnF) sampler for autoregressive models that can be parallelized and steered using conditioning information or constraints.1 Instead of sampling tokens sequentially, the PnF
+sampler initializes a complete sequence (with random tokens) and proceeds to increase the log-likelihood of this
+sequence by following a Markov chain defined by Langevin
+dynamics (Neal et al., 2011) on a smoothed log-likelihood.
+The smoothing temperature is cooled over time according
+to an annealing schedule informed by Song & Ermon (2019;
+2020). Convergence time of this annealed Langevin dynamics is empirically independent of the sequence length and,
+generalizing Jayaram & Thickstun (2020), the PnF sampler
+can be applied to posterior log-likelihoods to incorporate
+conditional information into the sampling process.
+The primary technical contribution of this paper is the development of the PnF sampler for discretized autoregressive
+models (Section 3.1). Our interest in these models is motivated by their success as unconditional models of audio
+waves (van den Oord et al., 2016a; Mehri et al., 2017; Dhariwal et al., 2020). Defined over a discrete lattice within a
+continuous space, these models occupy a middle ground
+between continuous and discrete models. For continuous
+models such as RNADE (Uria et al., 2013), PnF sampling
+can be directly applied as in Song & Ermon (2019); Jayaram
+1
+Code and examples of PnF sampling are available at:
+https://grail.cs.washington.edu/projects/
+pnf-sampling/.
+
+

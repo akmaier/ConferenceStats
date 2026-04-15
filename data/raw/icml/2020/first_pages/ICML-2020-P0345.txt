@@ -1,0 +1,86 @@
+Ordinal Non-negative Matrix Factorization for Recommendation
+
+Olivier Gouvert 1 Thomas Oberlin 2 Cédric Févotte 1
+
+Abstract
+We introduce a new non-negative matrix factorization (NMF) method for ordinal data, called
+OrdNMF. Ordinal data are categorical data which
+exhibit a natural ordering between the categories.
+In particular, they can be found in recommender
+systems, either with explicit data (such as ratings)
+or implicit data (such as quantized play counts).
+OrdNMF is a probabilistic latent factor model that
+generalizes Bernoulli-Poisson factorization (BePoF) and Poisson factorization (PF) applied to
+binarized data. Contrary to these methods, OrdNMF circumvents binarization and can exploit a
+more informative representation of the data. We
+design an efficient variational algorithm based on
+a suitable model augmentation and related to variational PF. In particular, our algorithm preserves
+the scalability of PF and can be applied to huge
+sparse datasets. We report recommendation experiments on explicit and implicit datasets, and
+show that OrdNMF outperforms BePoF and PF
+applied to binarized data.
+
+1. Introduction
+Collaborative filtering (CF) is a popular recommendation
+technique based only on the feedbacks of users on items.
+These feedbacks can be stored into a matrix Y of size
+U × I, where U and I are the number of users and items
+respectively. Matrix factorization (MF) methods (Hu et al.,
+2008; Koren et al., 2009; Ma et al., 2011) aim to approximate the feedback matrix Y by a low-rank structure WHT
+×K
+where W ∈ RU
+corresponds to user preferences and
++
+I×K
+H ∈ R+ to item attributes.
+Poisson factorization (PF) (Canny, 2004; Cemgil, 2009;
+Gopalan et al., 2015) is a non-negative matrix factorization
+(NMF) model (Lee & Seung, 1999; 2001; Févotte & Idier,
+1
+
+IRIT, Université de Toulouse, CNRS, France 2 ISAESUPAERO, Université de Toulouse, France. Correspondence to:
+Olivier Gouvert <oliviergouvert@gmail.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+2011) which aims to predict future interactions between
+users and items in order to make recommendations. For
+this purpose, PF is often applied to a binarized version of
+the data, i.e., Y ∈ {0, 1}U ×I , containing only the information that a user is interacting with an item or not. A
+variant of PF, called Bernoulli-Poisson factorization (BePoF) (Acharya et al., 2015), has been proposed to explicitly
+model binary data. However, for both PF and BePoF, the
+binarization stage induces a loss of information, since the
+value associated to an interaction is removed. Although
+several attempts in the literature tried to directly model raw
+data, both for explicit (Hernandez-Lobato et al., 2014) and
+implicit data (Basbug & Engelhardt, 2016; Zhou, 2017;
+Gouvert et al., 2019), this remains a challenging problem.
+In an attempt to keep as much information as possible, we
+propose in this paper to consider ordinal rather than binary
+data. Ordinal data (Stevens, 1946) are nominal/categorical
+data which exhibit a natural ordering (for example: cold
+≺ warm ≺ hot). This type of data is encountered in recommender systems with explicit data such as ratings. It
+can also be created by quantizing implicit data such as play
+counts. Such a pre-processing remains softer than binarization and stays closer to the raw data, as soon as the number
+of classes is chosen big enough. In this paper, without loss
+of generality, we will work with ordinal data belonging to
+{0, . . . , V }. Note that for this type of data, the notion of
+distance between the different classes is not defined. For
+example, this implies that the mean is not adapted to these
+data, unlike the median.
+There are two naive ways to process ordinal data. The first
+one consists in applying classification methods. The scale
+of the ordering relation which links the different categories
+is then ignored. The second way considers these data as
+real values in order to apply regression models. By doing
+this, it artificially creates a distance between the different
+categories. These two naive methods do not fully consider
+the specificity of ordinal data, since they remove or add information to the data. Threshold models (McCullagh, 1980;
+Verwaeren et al., 2012) are popular ordinal data processing
+methods that alleviate this issue. They assume that the data
+results from the quantization of continuous latent variables
+with respect to (w.r.t.) an increasing sequence of thresholds.
+The aim of these models is then to train a predictive model
+on the latent variables and to learn the sequence of thresh-
+
+

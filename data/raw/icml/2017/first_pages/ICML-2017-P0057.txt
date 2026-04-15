@@ -1,0 +1,93 @@
+Programming with a Differentiable Forth Interpreter
+Matko Bošnjak 1 Tim Rocktäschel 2 Jason Naradowsky 3 Sebastian Riedel 1
+
+Abstract
+Given that in practice training data is scarce for all but a
+small set of problems, a core question is how to incorporate
+prior knowledge into a model. In this paper, we consider
+the case of prior procedural knowledge for neural networks,
+such as knowing how a program should traverse a sequence,
+but not what local actions should be performed at each
+step. To this end, we present an end-to-end differentiable
+interpreter for the programming language Forth which
+enables programmers to write program sketches with slots
+that can be filled with behaviour trained from program
+input-output data. We can optimise this behaviour directly
+through gradient descent techniques on user-specified
+objectives, and also integrate the program into any larger
+neural computation graph. We show empirically that our
+interpreter is able to effectively leverage different levels
+of prior program structure and learn complex behaviours
+such as sequence sorting and addition. When connected
+to outputs of an LSTM and trained jointly, our interpreter
+achieves state-of-the-art accuracy for end-to-end reasoning
+about quantities expressed in natural language stories.
+
+1. Introduction
+A central goal of Artificial Intelligence is the creation of
+machines that learn as effectively from human instruction
+as they do from data. A recent and important step towards
+this goal is the invention of neural architectures that
+learn to perform algorithms akin to traditional computers,
+using primitives such as memory access and stack manipulation (Graves et al., 2014; Joulin & Mikolov, 2015;
+Grefenstette et al., 2015; Kaiser & Sutskever, 2015; Kurach
+et al., 2016; Graves et al., 2016). These architectures can
+be trained through standard gradient descent methods,
+and enable machines to learn complex behaviour from
+input-output pairs or program traces. In this context, the
+role of the human programmer is often limited to providing
+training data. However, training data is a scarce resource
+for many tasks. In these cases, the programmer may have
+1
+
+Department of Computer Science, University College London, London, UK 2 Department of Computer Science, University
+of Oxford, Oxford, UK 3 Department of Theoretical and Applied Linguistics, University of Cambridge, Cambridge, UK.
+Correspondence to: Matko Bošnjak <m.bosnjak@cs.ucl.ac.uk>.
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017 by
+the author(s).
+
+partial procedural background knowledge: one may know
+the rough structure of the program, or how to implement
+several subroutines that are likely necessary to solve the
+task. For example, in programming by demonstration (Lau
+et al., 2001) or query language programming (Neelakantan
+et al., 2015a) a user establishes a larger set of conditions on
+the data, and the model needs to set out the details. In all
+these scenarios, the question then becomes how to exploit
+various types of prior knowledge when learning algorithms.
+To address the above question we present an approach that
+enables programmers to inject their procedural background
+knowledge into a neural network. In this approach, the
+programmer specifies a program sketch (Solar-Lezama
+et al., 2005) in a traditional programming language. This
+sketch defines one part of the neural network behaviour. The
+other part is learned using training data. The core insight
+that enables this approach is the fact that most programming
+languages can be formulated in terms of an abstract machine
+that executes the commands of the language. We implement
+these machines as neural networks, constraining parts of the
+networks to follow the sketched behaviour. The resulting
+neural programs are consistent with our prior knowledge
+and optimised with respect to the training data.
+In this paper, we focus on the programming language
+Forth (Brodie, 1980), a simple yet powerful stack-based
+language that facilitates factoring and abstraction. Underlying Forth’s semantics is a simple abstract machine. We
+introduce @4, an implementation of this machine that is
+differentiable with respect to the transition it executes at
+each time step, as well as distributed input representations.
+Sketches that users write define underspecified behaviour
+which can then be trained with backpropagation.
+For two neural programming tasks introduced in previous
+work (Reed & de Freitas, 2015) we present Forth sketches
+that capture different degrees of prior knowledge. For
+example, we define only the general recursive structure of
+a sorting problem. We show that given only input-output
+pairs, @4 can learn to fill the sketch and generalise well
+to problems of unseen size. In addition, we apply @4 to
+the task of solving word algebra problems. We show that
+when provided with basic algorithmic scaffolding and
+trained jointly with an upstream LSTM (Hochreiter &
+Schmidhuber, 1997), @4 is able to learn to read natural
+
+

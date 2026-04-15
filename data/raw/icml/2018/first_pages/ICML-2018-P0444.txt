@@ -1,0 +1,73 @@
+Learning Implicit Generative Models with the Method of Learned Moments
+Suman Ravuri 1 Shakir Mohamed 1 Mihaela Rosca 1 Oriol Vinyals 1
+
+Abstract
+We propose a method of moments (MoM) algorithm for training large-scale implicit generative
+models. Moment estimation in this setting encounters two problems: it is often difficult to define the millions of moments needed to learn the
+model parameters, and it is hard to determine
+which properties are useful when specifying moments. To address the first issue, we introduce a
+moment network, and define the moments as the
+network’s hidden units and the gradient of the network’s output with respect to its parameters. To
+tackle the second problem, we use asymptotic theory to highlight desiderata for moments – namely
+they should minimize the asymptotic variance of
+estimated model parameters – and introduce an
+objective to learn better moments. The sequence
+of objectives created by this Method of Learned
+Moments (MoLM) can train high-quality neural
+image samplers. On CIFAR-10, we demonstrate
+that MoLM-trained generators achieve significantly higher Inception Scores and lower Fréchet
+Inception Distances than those trained with gradient penalty-regularized and spectrally-normalized
+adversarial objectives. These generators also
+achieve nearly perfect Multi-Scale Structural Similarity Scores on CelebA, and can create highquality samples of 128×128 images.
+
+1. Introduction
+The method of moments (MoM) is an ancient principle of
+learning (Pearson, 1893; 1936). At its heart lies a simple
+procedure: given a model with parameters θ, estimate θ such
+that the moments — or more generally feature averages —
+of the model match those of the data. While the technique
+is simple and yields consistent estimators under weak conditions, other properties of the moment estimator are less
+desirable. Moment estimators are often biased, sometimes
+1
+DeepMind London, N1C 4AG, UK . Correspondence to:
+Suman Ravuri <ravuris@google.com>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+lie outside the parameter space (such as negative probabilities), and, unless the model is in an exponential family, are
+less statistically efficient than maximum likelihood estimators. It is perhaps this last property that has relegated the
+method of moments to a niche technique.
+There are, however, situations in which moment estimation is preferable to maximum likelihood estimation (MLE).
+One is when MLE is more computationally challenging
+than MoM. For example, one can scale training of Latent
+Dirichlet Allocation to large datasets by moment estimation using the first three order moments (Anandkumar et al.,
+2012a). Second, for latent variable models more generally,
+maximum likelihood estimation using the EM algorithm
+results in a local optimum, while MoM enjoys stronger formal guarantees (Anandkumar et al., 2012b). Finally, one
+can use moment estimation to determine model parameters
+in settings where likelihoods are unnatural. Instrumental
+variable estimation, an example of MoM, is used to learn
+parameters in supply and demand models (Wright, 1928).
+We study another scenario: when data come from unknown
+or difficult-to-capture likelihood models. Data such as images, speech, or music often arise from complicated distributions, and for image data in particular, models based on
+likelihoods often yield low-quality samples. Researchers
+interested in generating more realistic samples have shifted
+their efforts to training neural network samplers with alternative losses. They have studied training these implicit
+generative models with the Wasserstein distance (Arjovsky
+et al., 2017), Maximum Mean Discrepancy (MMD) (Li et al.,
+2015; Dziugaite et al., 2015; Sutherland et al., 2016), and
+other divergences (Nowozin et al., 2016; Mao et al., 2016).
+While direct minimization of these distances or divergences
+– namely Wasserstein (Salimans et al., 2018), and MMD (Li
+et al., 2015; Dziugaite et al., 2015), Cramér (Bellemare et al.,
+2017) – in pixel space has led to poor sample quality, indirect minimization using adversarial training (Goodfellow
+et al., 2014) dramatically improves samples.
+We pursue an alternative strategy: we explicitly define our
+moments and train them so that the moment estimators are
+statistically efficient. This choice creates two practical problems. The first is that traditional neural samplers, such as
+Deep Convolutional Generative Adversarial Networks (DCGANs) (Radford et al., 2015), have millions of parameters,
+and typically one needs at least one moment per parameter
+
+

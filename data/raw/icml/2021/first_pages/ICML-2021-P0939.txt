@@ -1,0 +1,75 @@
+Probabilistic Programs with Stochastic Conditioning
+
+David Tolpin 1 Yuan Zhou 2 Tom Rainforth 3 Hongseok Yang 4
+
+Abstract
+We tackle the problem of conditioning probabilistic programs on distributions of observable variables. Probabilistic programs are usually conditioned on samples from the joint data distribution,
+which we refer to as deterministic conditioning.
+However, in many real-life scenarios, the observations are given as marginal distributions, summary
+statistics, or samplers. Conventional probabilistic
+programming systems lack adequate means for
+modeling and inference in such scenarios. We
+propose a generalization of deterministic conditioning to stochastic conditioning, that is, conditioning on the marginal distribution of a variable
+taking a particular form. To this end, we first define the formal notion of stochastic conditioning
+and discuss its key properties. We then show how
+to perform inference in the presence of stochastic conditioning. We demonstrate potential usage
+of stochastic conditioning on several case studies
+which involve various kinds of stochastic conditioning and are difficult to solve otherwise. Although we present stochastic conditioning in the
+context of probabilistic programming, our formalization is general and applicable to other settings.
+
+1. Introduction
+Probabilistic programs implement statistical models.
+Mostly, probabilistic programming closely follows the
+Bayesian approach (Kim & Pearl, 1983; Gelman et al.,
+2013): a prior distribution is imposed on latent random
+variables, and the posterior distribution is conditioned on
+observations (data). The conditioning may take the form of
+a hard constraint (a random variate must have a particular
+value, e.g. as in Church (Goodman et al., 2008)), but a
+more common practice is that conditioning is soft — the
+observation is assumed to come from a distribution, and
+1
+
+Ben-Gurion University of the Negev 2 Artificial Intelligence Research Center, DII 3 University of Oxford 4 School
+of Computing, KAIST. Correspondence to: David Tolpin
+<david.tolpin@gmail.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+the probability (mass or density) of the observation given
+the distribution is used in inference (Carpenter et al., 2017;
+Goodman & Stuhlmüller, 2014; Tolpin et al., 2016; Ge et al.,
+2018). In the standard setting, the conditioning is deterministic — observations are fixed samples from the joint data
+distribution. For example, in the model of an intensive care
+unit patient, an observation may be a vector of vital sign
+readings at a given time. This setting is well-researched,
+widely applicable, and robust inference is possible (Hoffman & Gelman, 2011; Wood et al., 2014; TensorFlow, 2018;
+Bingham et al., 2019).
+However, instead of samples from the joint data distribution,
+observations may be independent samples from marginal
+data distributions of observable variables, summary statistics, or even data distributions themselves, provided in
+closed form or as samplers. These cases naturally appear
+in real life scenarios: samples from marginal distributions
+arise when different observations are collected by different
+parties, summary statistics are often used to represent data
+about a large population, and data distributions may express
+uncertainty during inference about future states of the world,
+e.g. in planning. Consider the following situations:
+• A study is performed in a hospital on a group of patients carrying a certain disease. To preserve the patients’ privacy, the information is collected and presented as summary statistics of each of the monitored
+symptoms, such that only marginal distributions of the
+symptoms are approximately characterized. It would
+be natural to condition the model on a combination of
+symptoms, but such combinations are not observable.
+• A traveller regularly drives between two cities and
+wants to minimize the time this takes. However, some
+road sections may be closed due to bad weather, which
+can only be discovered at a crossing adjacent to the
+road section. A policy that minimizes average travel
+time, given the probabilities of each road closure, is
+required, but finding this policy requires us to condition on the distribution of states (Papadimitriou &
+Yannakakis, 1989).
+Most existing probabilistic programming systems, which
+condition on samples from the joint data distribution, cannot
+be directly applied to such scenarios for either model specification or performing inference. In principle, such models
+
+

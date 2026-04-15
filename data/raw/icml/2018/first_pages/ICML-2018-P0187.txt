@@ -1,0 +1,78 @@
+Learning to Search with MCTSnets
+
+Arthur Guez * 1 Théophane Weber * 1 Ioannis Antonoglou 1 Karen Simonyan 1
+Oriol Vinyals 1 Daan Wierstra 1 Rémi Munos 1 David Silver 1
+
+Abstract
+Planning problems are among the most important and well-studied problems in artificial intelligence. They are most typically solved by tree
+search algorithms that simulate ahead into the future, evaluate future states, and back-up those evaluations to the root of a search tree. Among these
+algorithms, Monte-Carlo tree search (MCTS) is
+one of the most general, powerful and widely
+used. A typical implementation of MCTS uses
+cleverly designed rules, optimised to the particular characteristics of the domain. These rules
+control where the simulation traverses, what to
+evaluate in the states that are reached, and how
+to back-up those evaluations. In this paper we
+instead learn where, what and how to search. Our
+architecture, which we call an MCTSnet, incorporates simulation-based search inside a neural network, by expanding, evaluating and backing-up
+a vector embedding. The parameters of the network are trained end-to-end using gradient-based
+optimisation. When applied to small searches
+in the well-known planning problem Sokoban,
+the learned search algorithm significantly outperformed MCTS baselines.
+
+1. Introduction
+Many success stories in artificial intelligence are based on
+the application of powerful tree search algorithms to challenging planning problems (Samuel, 1959; Knuth & Moore,
+1975; Jünger et al., 2009). It has been well documented that
+planning algorithms can be highly optimised by tailoring
+them to the domain (Schaeffer, 2000). For example, the
+performance can often be dramatically improved by modifying the rules that select the trajectory to traverse, the states
+to expand, the evaluation function by which performance
+*
+Equal contribution 1 DeepMind, London, UK. Correspondence
+to: A. Guez and T. Weber <{aguez, theophane}@google.com>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+is measured, and the backup rule by which those evaluations are propagated up the search tree. Our contribution
+is a new search algorithm in which all of these steps can
+be learned automatically and efficiently. Our work fits into
+a more general trend of learning differentiable versions of
+algorithms.
+One particularly powerful and general method for planning
+is Monte-Carlo tree search (MCTS) (Coulom, 2006; Kocsis
+& Szepesvári, 2006), as used in the recent AlphaGo program
+(Silver et al., 2016). A typical MCTS algorithm consists of
+several phases. First, it simulates trajectories into the future,
+starting from a root state. Second, it evaluates the performance of leaf states - either using a random rollout, or using
+an evaluation function such as a ’value network’. Third, it
+backs-up these evaluations to update internal values along
+the trajectory, for example by averaging over evaluations.
+We present a neural network architecture that includes the
+same processing stages as a typical MCTS, but inside the
+neural network itself, as a dynamic computational graph.
+The key idea is to represent the internal state of the search,
+at each node, by a memory vector. The computation of
+the network proceeds forwards from the root state, just like
+a simulation of MCTS, using a simulation policy based
+on the memory vector to select the trajectory to traverse.
+The leaf state is then processed by an embedding network
+to initialize the memory vector at the leaf. The network
+proceeds backwards up the trajectory, updating the memory
+at each visited state according to a backup network that
+propagates from child to parent. Finally, the root memory
+vector is used to compute an overall prediction of value or
+action.
+The major benefit of our planning architecture, compared
+to more traditional planning algorithms, is that it can be
+exposed to gradient-based optimisation. This allows us to
+replace every component of MCTS with a richer, learnable
+equivalent — while maintaining the desirable structural
+properties of MCTS such as the use of a model, iterative
+local computations, and structured memory. We jointly
+train the parameters of the evaluation network, backup network and simulation policy so as to optimise the overall
+predictions of the MCTS network (MCTSnet). The majority of the network is fully differentiable, allowing for
+
+

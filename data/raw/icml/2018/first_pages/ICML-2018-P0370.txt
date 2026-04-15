@@ -1,0 +1,84 @@
+Data Summarization at Scale:
+A Two-Stage Submodular Approach
+
+Marko Mitrovic * 1 Ehsan Kazemi * 1 Morteza Zadimoghaddam 2 Amin Karbasi 1
+
+Abstract
+The sheer scale of modern datasets has resulted
+in a dire need for summarization techniques that
+can identify representative elements in a dataset.
+Fortunately, the vast majority of data summarization tasks satisfy an intuitive diminishing returns
+condition known as submodularity, which allows
+us to find nearly-optimal solutions in linear time.
+We focus on a two-stage submodular framework
+where the goal is to use some given training functions to reduce the ground set so that optimizing
+new functions (drawn from the same distribution)
+over the reduced set provides almost as much
+value as optimizing them over the entire ground
+set. In this paper, we develop the first streaming
+and distributed solutions to this problem. In addition to providing strong theoretical guarantees, we
+demonstrate both the utility and efficiency of our
+algorithms on real-world tasks including image
+summarization and ride-share optimization.
+
+1. Introduction
+In the context of machine learning, it is not uncommon to
+have to repeatedly optimize a set of functions that are fundamentally related to each other. In this paper, we focus on
+a class of functions called submodular functions. These
+functions exhibit a mathematical diminishing returns property that allows us to find nearly-optimal solutions in linear
+time. However, modern datasets are growing so large that
+even linear time solutions can be computationally expensive. Ideally, we want to find a sublinear summary of the
+given dataset so that optimizing these related functions over
+this reduced subset is nearly as effective, but not nearly as
+expensive, as optimizing them over the full dataset.
+As a concrete example, suppose Uber is trying to give their
+*
+Equal contribution 1 Department of Computer Science, Yale
+University, New Haven, Connecticut, USA 2 Google Research,
+Zurich, Switzerland. Correspondence to: Ehsan Kazemi
+<ehsan.kazemi@yale.edu>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+drivers suggested waiting locations across New York City
+based on historical rider pick-ups. Even if they discretize the
+potential waiting locations to just include points at which
+pick-ups have occurred in the past, there are still hundreds
+of thousands, if not millions, of locations to consider. If
+they wish to update these ideal waiting locations every day
+(or at any routine interval), it would be invaluable to be able
+to drastically reduce the number of locations that need to be
+evaluated, and still achieve nearly optimal results.
+In this scenario, each day would have a different function
+that quantifies the value of a set of locations for that particular day. For example, in the winter months, spots near ice
+skating rinks would be highly valuable, while in the summer
+months, waterfront venues might be more prominent. On
+the other hand, major tourist destinations like Times Square
+will probably be busy year-round.
+In other words, although the most popular pick-up locations
+undoubtedly vary over time, there is also some underlying
+distribution of the user behavior that remains relatively constant and ties the various days together. This means that
+even though the functions for future days are technically
+unknown, if we can select a good reduced subset of candidate locations based on the functions derived from historical
+data, then this same reduced subset should perform well on
+future functions that we cannot explicitly see yet.
+In more mathematical terms, consider some unknown distribution of functions D and a ground set Ω of n elements
+to pick from. We want to select a subset S of ` elements
+(with `  n) such that optimizing functions (drawn from
+this distribution D) over the reduced subset S is comparable
+to optimizing them over the entire ground set Ω.
+This problem was first introduced by Balkanski et al.
+(2016) as two-stage submodular maximization. This
+name comes from the idea that the overall framework can
+be viewed as two separate stages. First, we want to use
+the given functions to select a representative subset S, that
+is ideally sublinear in size of the entire ground set Ω. In
+the second stage, for any functions drawn from this same
+distribution, we can optimize over S, which will be much
+faster than optimizing over Ω.
+Our Contributions. In today’s era of massive data, an
+algorithm is rarely practical if it is not scalable. In this
+
+

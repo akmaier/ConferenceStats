@@ -1,0 +1,102 @@
+Geodesic Convolutional Shape Optimization
+
+Pierre Baque * 1 Edoardo Remelli * 1 François Fleuret 2 1 Pascal Fua 1
+
+Abstract
+
+Xtrain
+
+Fωy (Xtrain )
+
+Fωz (Xtrain )
+
+Fωy (Xtest )
+
+Fωz (Xtest )
+
+GCNN
+
+Aerodynamic shape optimization has many industrial applications. Existing methods, however, are
+so computationally demanding that typical engineering practices are to either simply try a limited
+number of hand-designed shapes or restrict oneself to shapes that can be parameterized using
+only few degrees of freedom. In this work, we
+introduce a new way to optimize complex shapes
+fast and accurately. To this end, we train Geodesic
+Convolutional Neural Networks to emulate a fluidynamics simulator. The key to making this approach practical is remeshing the original shape
+using a poly-cube map, which makes it possible
+to perform the computations on GPUs instead of
+CPUs. The neural net is then used to formulate
+an objective function that is differentiable with
+respect to the shape parameters, which can then
+be optimized using a gradient-based technique.
+This outperforms state-of-the-art methods by 5 to
+20% for standard problems and, even more importantly, our approach applies to cases that previous
+methods cannot handle.
+
+1. Introduction
+Optimizing the aerodynamic or hydrodynamic properties
+is key to designing shapes, such as those of aircraft wings,
+windmill blades, hydrofoils, car bodies, bicycle shells, or
+submarine hulls. However, it remains challenging and computationally demanding because existing Computational
+Fluid Dynamics (CFD) techniques rely either on solving the
+Navier-Stokes equations or on Lattice Boltzmann methods.
+Since the simulation must be re-run each time an engineer
+wishes to change the shape, this makes the design process
+slow and costly. A typical engineering approach is therefore
+to test only a few designs without a fine-grained search in
+the space of potential variations.
+*
+
+Equal contribution 1 CVLab, EPFL, Lausanne, Switzerland
+Machine Learning Group, Idiap, Martigny, Switzerland. Correspondence to: Pierre Baque <pierre.baque@epfl.ch>.
+2
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+(a)
+
+Xtest
+GCNN
+
+(b)
+
+(c)
+
+G(X)
+−∇X G
+
+−∇X G
+G(X)
+
+G(X)
+
+Figure 1. Car shape optimization. (a) We train a GCNN to emulate
+a CFD simulator and predict from the shape on the left pressures
+shown as colors in the middle and drag shown as a gray vertical bar
+on the right. (b) Convolutional layers enable the GCNN to make
+accurate predictions on previously unseen shapes, such as those
+of cars. (c) We use the GCNN to express drag as a differentiable
+function of the mesh vertex positions. Finally, we minimize it
+under constraints to produce the rightmost shape.
+
+This is a severe limitation and there have been many attempts at overcoming it, but none has been entirely successful yet. Most current algorithms rely on combining
+evolutionary algorithms with heuristic local search (Orman
+& Durmus, 2016) and complex adjoint methods (Allaire,
+2015; Gao et al., 2017), which requires rerunning a simulation at each iteration step and therefore remains costly. A
+classical approach to reduce the computational complexity
+is to use Gaussian Process (GP) regressors trained to interpolate the performance landscape given a low dimensional
+parametrization of the shape space. This interpolator is
+then used as a proxy for the true objective to speed-up the
+computation, which is referred to as Kriging in the CFD literature (Toal & Keane, 2011; Xu et al., 2017). However, those
+regressors are only effective for shape deformations that can
+be parameterized using relatively few parameters (Bengio
+et al., 2006) and their performance therefore hinges on a
+well-designed parameterization. Furthermore, the regressors
+are specific to a particular parameterization and pre-existing
+computed simulation data using different ones cannot be
+easily leveraged.
+By contrast, we propose an approach to optimizing the aero-
+
+

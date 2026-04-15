@@ -1,0 +1,87 @@
+Efficient Graph Field Integrators Meet Point Clouds
+
+Krzysztof Choromanski * 1 2 Arijit Sehanobish * 3 Han Lin * 2 Yunfan Zhao * 2 Eli Berger 4 Tetiana Parshakova 5
+Alvin Pan 2 David Watkins 6 Tianyi Zhang 2 Valerii Likhosherstov 7 Somnath Basu Roy Chowdhury 8
+Avinava Dubey 1 Deepali Jain 1 Tamas Sarlos 1 Snigdha Chaturvedi 8 Adrian Weller 7 9
+
+Abstract
+We present two new classes of algorithms for efficient field integration on graphs encoding point
+clouds. The first class, SeparatorFactorization
+(SF), leverages the bounded genus of point
+cloud mesh graphs, while the second class,
+RFDiffusion (RFD), uses popular ϵ-nearestneighbor graph representations for point clouds.
+Both can be viewed as providing the functionality of Fast Multipole Methods (FMMs, Greengard & Rokhlin, 1987), which have had a tremendous impact on efficient integration, but for nonEuclidean spaces. We focus on geometries induced by distributions of walk lengths between
+points (e.g., shortest-path distance). We provide
+an extensive theoretical analysis of our algorithms,
+obtaining new results in structural graph theory as
+a byproduct. We also perform exhaustive empirical evaluation, including on-surface interpolation
+for rigid and deformable objects (particularly for
+mesh-dynamics modeling), Wasserstein distance
+computations for point clouds, and the GromovWasserstein variant.
+
+Figure 1. Visualization of the problem of integrating vector-field
+F on the mesh-graph. Vector i(v) in the green-node v is defined as
+a weighted sum of the vectors F(w) in all the nodes (red arrows)
+with the coefficients K(w, v) given as K(w, v) = f (dist(w, v))
+for a shortest-path-distance function dist between nodes of the
+mesh-graph and some function f : R → R (with f (0) = 0). The
+shortest-path-distance tree from v is marked in black.
+
+expression i(v) for each v ∈ V, as defined below:
+X
+i(v) :=
+K(w, v)F(w).
+
+(1)
+
+w∈V
+
+The expression i(v) can be interpreted as an integration
+of F on G with respect to measure K(·, v). As such, it
+can also be thought of as a discrete approximation of the
+F-field integration in the continuous non-Euclidean space,
+discretely approximated by G. We refer to the process of
+computing i(v) for every v ∈ V as graph-field integration
+(GFI), see: Fig. 1. We write N = |V| for the size of V.
+
+1. Introduction & Related Work
+Let us consider a weighted undirected graph G =
+(V, E, W), where: V stands for the set of vertices/nodes, E
+is the set of edges and W : E → R+ encodes edge-weights.
+We assume that a tensor-field F : V → Rd1 ×...×dl is defined on V, where: d1 , . . . , dl stand for tensor dimensions.
+A kernel (similarity measure) K : V ×V → R on V is given.
+In this paper, we are interested in efficiently computing the
+*
+Equal contribution 1 Google Research 2 Columbia University
+Independent Researcher 4 Haifa University 5 Stanford University
+6
+The Boston Dynamics AI Institute 7 University of Cambridge
+8
+The University of North Carolina at Chapel Hill 9 The Alan
+Turing Institute. Correspondence to: Krzysztof Choromanski
+<kchoro@google.com>.
+
+A naive, brute-force approach to computing all i(v) is to: (1)
+calculate a kernel matrix K = [K(w, v)]w,v∈V ∈ RN ×N
+(pre-processing), (2) conduct d1 · . . . · dl matrix-vector
+multiplications: Kvc1 ,...,cl (inference) for 0 ≤ ci < di ,
+def
+where vc1 ,...,cl = F(·)[c1 ] . . . [cl ] ∈ RN . Both steps are
+computationally expensive: inference requires O(N 2 d1 ·
+. . .·dl ) time; and pre-processing at least O(N 2 ) (in practice,
+depending on kernel K, often at least O(N 3 )). Therefore for
+large N , this approach becomes computationally infeasible.
+
+Proceedings of the 40 th International Conference on Machine
+Learning, Honolulu, Hawaii, USA. PMLR 202, 2023. Copyright
+2023 by the author(s).
+
+It is thus natural to ask the following: Can pre-processing
+or inference be performed in sub-quadratic time for the
+number of nodes of a graph?
+
+3
+
+1
+
+

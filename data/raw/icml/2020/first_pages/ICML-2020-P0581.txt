@@ -1,0 +1,80 @@
+Hallucinative Topological Memory for Zero-Shot Visual Planning
+
+Kara Liu * 1 Thanard Kurutach * 1 Christine Tung 1 Pieter Abbeel 1 Aviv Tamar 1 2
+
+Abstract
+In visual planning (VP), an agent learns to plan
+goal-directed behavior from observations of a
+dynamical system obtained offline, e.g., images
+obtained from self-supervised robot interaction.
+Most previous works on VP approached the problem by planning in a learned latent space, resulting in low-quality visual plans, and difficult
+training algorithms. Here, instead, we propose
+a simple VP method that plans directly in image
+space and displays competitive performance. We
+build on the semi-parametric topological memory
+(SPTM) method: image samples are treated as
+nodes in a graph, the graph connectivity is learned
+from image sequence data, and planning can be
+performed using conventional graph search methods. We propose two modifications on SPTM.
+First, we train an energy-based graph connectivity
+function using contrastive predictive coding that
+admits stable training. Second, to allow zero-shot
+planning in new domains, we learn a conditional
+VAE model that generates images given a context
+describing the domain, and use these hallucinated
+samples for building the connectivity graph and
+planning. We show that this simple approach significantly outperform the SOTA VP methods, in
+terms of both plan interpretability and success
+rate when using the plan to guide a trajectoryfollowing controller. Interestingly, our method
+can pick up non-trivial visual properties of objects, such as their geometry, and account for it in
+the plans.
+
+1. Introduction
+We are interested in goal-directed planning problems where
+the state observations are high-dimensional images, the sys*
+Equal contribution 1 Berkeley AI Research, University of
+California, Berkeley 2 Technion. Correspondence to: Kara
+Liu <karamarieliu@berkeley.edu>, Thanard Kurutach <thanard.kurutach@berkeley.edu>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+tem dynamics are not known, and only a data set of state
+transitions is available. In particular, given a starting state
+observation and a goal state observation, we wish to generate a sequence of actions that transition the system from
+start to goal. One application for such problems is in selfsupervised robot learning, where it is relatively easy to acquire such data by letting the robot explore its environment
+randomly, and the problem becomes how to process this
+data for solving various tasks (Nair et al., 2017; Wang et al.,
+2019; Pinto & Gupta, 2016; Finn & Levine, 2017).
+Given a reward function, deep reinforcement learning (RL)
+can plan with high-dimensional inputs, and batch off-policy
+RL algorithms (Lange et al., 2012) can be applied to the
+problem above (Haarnoja et al., 2018; Ebert et al., 2018;
+Mnih et al., 2015; Schulman et al., 2015). However, goalbased planning is a sparse reward task, which is known to
+be difficult for RL (Andrychowicz et al., 2017). Moreover,
+RL provides black-box decision policies, which are not interpretable, and can only be evaluated by running them on
+a robot. Addressing both data-driven modeling and interpretability, the visual planning (VP) paradigm seeks to first
+generate a visual plan – a sequence of images that transition
+the system from start to goal, which can be understood by a
+human observer – and only then take actions that follow the
+plan using visual servoing methods.
+Bearing similarity to model-based RL (Sutton et al., 1998),
+most VP approaches learn a low-dimensional latent variable
+model for the system dynamics, and plan a state-to-goal
+sequence by searching in the latent space (Kurutach et al.,
+2018; Asai, 2019; Ebert et al., 2018; Hafner et al., 2018;
+Nair & Finn, 2019). There are two shortcomings to this
+approach: training deep generative models with a structured
+latent space can be tricky in practice (Watter et al., 2015;
+Kurutach et al., 2018), and consequentially, the resulting
+visual plans are often of low visual fidelity.
+In this work, we propose a simple VP method that plans
+directly in image space. We build on the semi-parametric
+topological memory (SPTM) method proposed by Savinov
+et al. (Savinov et al., 2018). In SPTM, images collected
+offline are treated as nodes in a graph and represent the
+possible states of the system. To connect nodes in this
+graph, an image classifier is trained to predict whether pairs
+of images were ‘close’ in the data or not, effectively learning
+
+

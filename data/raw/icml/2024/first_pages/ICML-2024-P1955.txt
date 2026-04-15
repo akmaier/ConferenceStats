@@ -1,0 +1,81 @@
+QUEST: Query-Aware Sparsity for Efficient Long-Context LLM Inference
+
+Jiaming Tang * 1 2 Yilong Zhao * 1 3 Kan Zhu 3 Guangxuan Xiao 2 Baris Kasikci 3 Song Han 2 4
+
+Abstract
+As the demand for long-context large language
+models (LLMs) increases, models with context
+windows of up to 128K or 1M tokens are becoming increasingly prevalent. However, longcontext LLM inference is challenging since the
+inference speed decreases significantly as the sequence length grows. This slowdown is primarily caused by loading a large KV cache during
+self-attention. Previous works have shown that
+a small portion of critical tokens will dominate
+the attention outcomes. However, we observe the
+criticality of a token highly depends on the query.
+To this end, we propose Quest, a query-aware KV
+cache selection algorithm. Quest keeps track of
+the minimal and maximal Key values in KV cache
+pages and estimates the criticality of a given page
+using Query vectors. By only loading the Top-K
+critical KV cache pages for attention, Quest significantly speeds up self-attention without sacrificing
+accuracy. We show that Quest can achieve up to
+7.03× self-attention speedup, which reduces inference latency by 2.23× while performing well
+on tasks with long dependencies with negligible accuracy loss. Code is available at https:
+//github.com/mit-han-lab/quest.
+
+Figure 1. Comparison between Dense Attention(a), QueryAgnostic Sparsity (b) and Quest’s Query-aware Sparsity (c). Quest
+significantly speeds up self-attention while maintaining high accuracy by dynamically determining the critical tokens based on
+the current query. T represents the total sequence length and L
+represents the number of critical tokens for attention.
+
+However, processing long-context requests is challenging.
+Due to the auto-regressive nature of LLMs, generating one
+token would require reading the entire KV cache. For Llama
+7B model (Touvron et al., 2023) with 32k context length,
+the KV cache can occupy 16GB of space, which requires at
+least 11 ms to read, which contributes to more than 50% of
+the inference latency* , limiting the overall throughput.
+Despite the increasingly large size of the KV cache, previous
+works have shown that a small portion of the tokens can
+dominate the accuracy of token generation (Zhang et al.,
+2023b; Ge et al., 2024). Therefore, we can dramatically
+reduce the inference latency by only loading the critical
+tokens, while still maintaining accuracy. Thus, it is essential
+to identify critical portions of the KV cache.
+
+1. Introduction
+The rapid evolution of Large Language Models (LLMs)
+has shaped our daily lives. With the increasing demand
+for multi-round conversations and long document queries,
+the maximum context length of LLMs has dramatically
+grown from 2K to 1M (Liu et al., 2024a; Peng et al., 2023;
+Tworkowski et al., 2023). The 128k context length GPT4 model has already been deployed in large-scale serving,
+which is equivalent to 300 pages of text (OpenAI, 2023).
+
+In this work, we further observe that the criticality of the
+tokens can change with different query tokens. As shown in
+Fig. 2, the critical tokens vary a lot with different queries.
+Therefore, we need a dynamic and efficient approach to determine which portion of the KV cache needs to be attended
+to. To this end, we propose Quest, a query-aware criticality
+estimation algorithm for long-context LLM inference that
+efficiently and effectively identifies critical KV cache tokens
+and performs self-attention selectively on chosen tokens, as
+shown in Fig. 1.
+
+*
+1
+Equal contribution
+Shanghai Jiao Tong University
+MIT 3 University of Washington 4 NVIDIA. Correspondence to: Song Han <songhan@mit.edu>, Baris Kasikci
+<baris@cs.washington.edu>.
+2
+
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+To reduce the overhead of KV cache criticality estimation,
+* Tested with FP16 FlashInfer implementation on an RTX4090
+
+1
+
+

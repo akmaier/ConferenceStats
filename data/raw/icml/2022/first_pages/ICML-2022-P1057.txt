@@ -1,0 +1,72 @@
+Variational Nearest Neighbor Gaussian Process
+
+Luhuan Wu 1 Geoff Pleiss 2 John Cunningham 1 2
+
+Abstract
+Variational approximations to Gaussian processes
+(GPs) typically use a small set of inducing points
+to form a low-rank approximation to the covariance matrix. In this work, we instead exploit a sparse approximation of the precision matrix. We propose variational nearest neighbor
+Gaussian process (VNNGP), which introduces
+a prior that only retains correlations within K
+nearest-neighboring observations, thereby inducing sparse precision structure. Using the variational framework, VNNGP’s objective can be
+factorized over both observations and inducing
+points, enabling stochastic optimization with a
+time complexity of O(K 3 ). Hence, we can arbitrarily scale the inducing point size, even to the
+point of putting inducing points at every observed
+location. We compare VNNGP to other scalable
+GPs through various experiments, and demonstrate that VNNGP (1) can dramatically outperform low-rank methods, and (2) is less prone to
+overfitting than other nearest neighbor methods.
+
+1. Introduction
+Gaussian processes (GPs) provide rich priors over functions (Rasmussen & Williams, 2006). While the GP posterior can be computed in closed form for regression models,
+variational posterior approximations (Titsias, 2009; Hensman et al., 2013; van der Wilk et al., 2020) have become
+increasingly popular as they offer numerous advantages.
+First, variational methods can utilize stochastic minibatching (Hensman et al., 2013), enabling inference for largescale datasets. Second, variational methods are compatible with non-conjugate likelihoods (Hensman et al., 2015)
+and simplify inference for interdomain observation models
+(Lázaro-Gredilla & Figueiras-Vidal, 2009; Álvarez et al.,
+2010; van der Wilk et al., 2020; Wu et al., 2021). Finally,
+1
+
+Department of Statistics, Columbia University 2 Zuckerman
+Institute, Columbia University. Correspondence to: Luhuan Wu
+<lw2827@columbia.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+black box variational methods (Ranganath et al., 2014) make
+it possible to use GP as components of larger models, such
+as Deep Gaussian Processes (Damianou & Lawrence, 2013).
+To apply variational methods to large-scale GP, it is often
+necessary to make additional approximations (Titsias, 2009;
+Hensman et al., 2017). This is because making GP inference
+with N observations incurs a O(N 3 ) computation. A popular variational approach that aids this issue is the Stochastic
+Variational Gaussian Process method (SVGP) (Hensman
+et al., 2013), which essentially forms a low-rank approximation to the prior covariance. These approximations offer
+well understood predictive properties (Bauer et al., 2016),
+probable performance guarantees (Burt et al., 2019), and
+competitive performance on numerous datasets. However,
+there are also many instances when low-rank approximations are ill suited. For example, spatiotemporal datasets
+often have intrinsically low lengthscale, meaning that the
+data can vary rapidly with small changes in space and time.
+In these settings, low-rank approximations cannot capture
+fast variations, often resulting in low fidelity or “blurry” predictions (e.g. Datta et al., 2016a; Pleiss et al., 2020; Wu
+et al., 2021).
+In this paper, we are interested in making variational GP
+methods more amenable to spatiotemporal data and other
+domains with intrinsically low lengthscale, while retaining (and even improving) scalability. To do so, we replace
+SVGP’s low-rank approximation of the prior covariance
+matrix with a sparse approximation of the prior precision
+matrix. Whereas a low-rank approximation assumes that
+observations are explained through a small number of global
+latent variables, a sparse precision approximation instead
+assumes that observations are conditionally independent
+given their nearest neighboring observations. Mathematically, the joint GP prior is approximated by the product
+of one-dimensional conditionals, each of which only depends on a small subset of preceding observations based
+on some predetermined ordering. This assumption is quite
+reasonable in the context of spatiotemporal modeling. For
+example, it is reasonable to assume that the weather in Los
+Angeles and Maine are conditionally independent, given
+neighboring cities in California.
+Sparse precision approximations are common in spatiotemporal modeling throughout the geostatisics literature (e.g.
+
+

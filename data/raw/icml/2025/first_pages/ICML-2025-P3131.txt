@@ -1,0 +1,123 @@
+SkipGPT: Each Token is One of a Kind
+
+Anhao Zhao 1 2 Fanghua Ye 3 Yingqi Fan 1 Junlong Tong 1 4 Jing Xiong 5 Zhiwei Fei 6 Hui Su 7 Xiaoyu Shen 1
+
+Abstract
+
+SkipGPT
+
+Static Structured Pruning
+
+𝐿𝑖+1
+
+Large language models (LLMs) achieve remarkable performance across tasks but incur substantial computational costs due to their deep, multilayered architectures. Layer pruning has emerged
+as a strategy to alleviate these inefficiencies, but
+conventional static pruning methods overlook two
+critical dynamics inherent to LLM inference: (1)
+horizontal dynamics, where token-level heterogeneity demands context-aware pruning decisions,
+and (2) vertical dynamics, where the distinct functional roles of MLP and self-attention layers necessitate component-specific pruning policies. We
+introduce SkipGPT, a dynamic layer pruning
+framework designed to optimize computational
+resource allocation through two core innovations:
+(1) global token-aware routing to prioritize critical tokens and (2) decoupled pruning policies
+for MLP and self-attention components. To mitigate training instability, we propose a two-stage
+optimization paradigm: first, a disentangled training phase that learns routing strategies via soft
+parameterization to avoid premature pruning decisions, followed by parameter-efficient LoRA
+fine-tuning to restore performance impacted by
+layer removal. Extensive experiments demonstrate that SkipGPT reduces over 40% model parameters while matching or exceeding the performance of the original dense model across benchmarks. By harmonizing dynamic efficiency with
+preserved expressivity, SkipGPT advances the
+practical deployment of scalable, resource-aware
+LLMs. Our code is publicly available at: https:
+//github.com/EIT-NLP/SkipGPT.
+
+F
+
+F
+A
+
+𝐿𝑖
+
+F
+
+F
+
+F
+
+F
+
+A
+
+A
+
+A
+
+A
+
+A
+
+A
+
+"the"
+
+"1"
+
+"and"
+
+"the"
+
+"1"
+
+"and"
+
+Redundant
+
+Important
+
+A Self Attention
+
+F FFN
+
+Figure 1. An overview of SkipGPT. Unlike conventional static
+structured pruning, SkipGPT dynamically prunes layers by considering both horizontal and vertical dynamics. In horizontal
+dynamics, different tokens receive varying computational allocations. In vertical dynamics, the MLP and attention modules are
+decoupled to account for their distinct roles within each layer.
+
+1. Introduction
+Large language models (LLMs) are built on a layer-wise
+Transformer architecture, where each layer consists of a
+self-attention mechanism followed by a multi-layer perceptron (MLP) (Vaswani et al., 2017). Scaling up model size
+has driven significant breakthroughs across a wide range
+of tasks (Brown, 2020; Bommasani et al., 2022; Wei et al.,
+2023; Zhao et al., 2024; Xin et al., 2025; Chen et al., 2025).
+However, this progress comes at a steep computational cost,
+requiring vast resources for inference (Chowdhery et al.,
+2022; Wan et al., 2024; OpenAI et al., 2024). In contrast, the
+human brain—despite its 100 trillion synaptic connections,
+far surpassing even the largest LLMs—operates efficiently
+on just 30 watts of power (Bartol et al., 2015; Samsi et al.,
+2023). This stark disparity underscores a fundamental inefficiency in current LLM architectures, highlighting the gap
+between artificial intelligence and human cognition.
+
+1
+
+Ningbo Key Laboratory of Spatial Intelligence and Digital Derivative, Institute of Digital Twin, Eastern Institute of
+Technology, Ningbo 2 Southwest Jiaotong University 3 Tencent
+Inc. 4 Shanghai Jiao Tong University 5 The University of Hong
+Kong 6 Nanjing University 7 Meituan Inc.. Correspondence
+to: Fanghua Ye <fanghua.ye.21@gmail.com>, Xiaoyu Shen
+<xyshen@eitech.edu.cn>.
+
+Given their sequential layer-wise structure, LLMs struggle
+to fully leverage parallelism, even with abundant computational resources. This limitation makes layer pruning a
+crucial strategy for accelerating inference and improving
+efficiency (Men et al., 2024; Kim et al., 2024; Gromov et al.,
+2024; Chen et al., 2024b). While existing pruning methods offer some improvements, they often overlook two key
+aspects of pruning dynamics (see Figure 1):
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

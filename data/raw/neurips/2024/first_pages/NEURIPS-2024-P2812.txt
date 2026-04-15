@@ -1,0 +1,61 @@
+Speculative Monte-Carlo Tree Search
+
+Scott Cheng♢♠
+
+Mahmut Taylan Kandemir♢
+
+Ding-Yong Hong♠
+
+♢
+
+♠
+
+The Pennsylvania State University, USA
+Institute of Information Science, Academia Sinica, Taiwan
+
+{ypc5394,mtk2}@psu.edu
+
+dyhong@iis.sinica.edu.tw
+
+Abstract
+Monte-Carlo tree search (MCTS) is an influential sequential decision-making algorithm notably employed in AlphaZero. Despite its success, the primary challenge
+in AlphaZero training lies in its prolonged time-to-solution due to the high latency
+imposed by the sequential MCTS process. To address this challenge, this paper
+proposes and evaluates an inter-decision parallelization strategy called speculative
+MCTS, a new type of parallelism in AlphaZero which implements speculative
+execution. This approach allows for the parallel execution of future moves before
+the current MCTS computations are completed, thus reducing the latency. Additionally, we analyze factors contributing to the overall speedup by studying the
+synergistic effects of speculation and neural network caching in MCTS. We also
+provide an analytical model that can be used to evaluate the potential of different
+speculation strategies before they are implemented and deployed. Our empirical
+findings indicate that the proposed speculative MCTS can reduce training latency
+by 5.81× in 9x9 Go games. Moreover, our study shows that speculative execution
+can enhance the NN cache hit rate by 26% during midgame. Overall, our end-toend evaluation indicates 1.91× speedup in 19x19 Go training time, compared to
+the state-of-the-art KataGo program.
+
+1
+
+Introduction
+
+Monte-Carlo tree search (MCTS) [1, 2] is a sequential decision-making algorithm that has achieved
+breakthroughs in various fields, such as chemistry [3, 4], medicine [5, 6], and many others. Most
+notably, AlphaZero [7] leverages MCTS to reach superhuman-level performance in “board games”
+such as Go, Chess, and Shogi. AlphaZero training consists of two phases: 1 self-play and 2 neural
+network (NN) training, as depicted in Figure 1. During the self-play stage, AlphaZero generates
+game records by playing against itself, with each move determined by MCTS simulations and NN
+inferences. After the self-play phase, the NN is trained on these self-play game records. By alternating
+between these two phases, AlphaZero continuously enhances its strategies through MCTS.
+Despite AlphaZero’s remarkable decision-making capabilities, the training is considerably timeconsuming, and several factors contribute to long training times. First, AlphaZero training requires
+lots of training data per parameter, which is even higher than the well-known resource-consuming
+large language model (LLM) training.1 Second, the MCTS algorithm involves sequential decisionmaking, where each game move depends on the outcome of the previous move. This sequential
+nature introduces significant latency. Third, the MCTS simulations evaluate the values of game
+positions with neural network (NN) inferences, which also contributes to the prolonged training
+times. In this work, we aim to reduce the training time by exploiting speculation-based pipeline
+1
+AlphaZero’s training data per parameter can be estimated by (21M games × 150 positions/game) / (24M
+parameters) = 131 positions/parameter. In comparison, LLM’s training sample per parameter is about 20
+according to the Chinchilla scaling law [8].
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

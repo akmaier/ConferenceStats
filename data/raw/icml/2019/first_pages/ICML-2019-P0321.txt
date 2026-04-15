@@ -1,0 +1,90 @@
+Molecular Hypergraph Grammar
+with Its Application to Molecular Optimization
+
+Hiroshi Kajino 1
+
+Abstract
+Molecular optimization aims to discover novel
+molecules with desirable properties, and its two
+fundamental challenges are: (i) it is not trivial to
+generate valid molecules in a controllable way due
+to hard chemical constraints such as the valency
+conditions, and (ii) it is often costly to evaluate a
+property of a novel molecule, and therefore, the
+number of property evaluations is limited. These
+challenges are to some extent alleviated by a combination of a variational autoencoder (VAE) and
+Bayesian optimization (BO), where VAE converts
+a molecule into/from its latent continuous vector,
+and BO optimizes a latent continuous vector (and
+its corresponding molecule) within a limited number of property evaluations. While the most recent work, for the first time, achieved 100% validity, its architecture is rather complex due to
+auxiliary neural networks other than VAE, making it difficult to train. This paper presents a
+molecular hypergraph grammar variational autoencoder (MHG-VAE), which uses a single VAE
+to achieve 100% validity. Our idea is to develop
+a graph grammar encoding the hard chemical
+constraints, called molecular hypergraph grammar (MHG), which guides VAE to always generate valid molecules. We also present an algorithm
+to construct MHG from a set of molecules.
+
+1. Introduction
+Molecular optimization aims to discover a novel molecule
+that possesses prescribed properties given by a user. For
+example, Gómez-Bombarelli et al. (2016) aim to maximize
+the efficiency of an organic light-emitting diode. Letting
+M be a set of valid molecules, the molecular optimization
+1
+MIT-IBM Watson AI Lab; IBM Research, Tokyo, Japan. Correspondence to: Hiroshi Kajino <kajino@jp.ibm.com>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+problem is to obtain m? ∈ M such that,
+m? = arg max f (m),
+
+(1)
+
+m∈M
+
+where f : M → R is an unknown function that outputs a
+chemical property of the input molecule to be maximized.
+There are two obstacles to solve Eq. (1). First, the set of feasible solutions M is discrete, and it is difficult to generate
+a candidate m from M in a controllable way. Second, f is
+unknown and costly to evaluate, and only a small sample
+{(mn , yn )}N
+n=1 ⊂ M × R is available, where yn = f (mn ).
+In fact, the function evaluation often requires wet-lab experiments or day-long simulation based on quantum mechanics.
+A recent innovation (Gómez-Bombarelli et al., 2018) facilitates the optimization by leveraging VAE (Kingma &
+Welling, 2014) and BO (Močkus, 1975). The first challenge
+is addressed by casting the discrete optimization problem
+into continuous with the help of VAE. In specific, they first
+train a VAE, a pair of Enc : M → RD and Dec : RD → M
+such that Dec(Enc(m)) ≈ m holds for any m ∈ M, and
+they obtain m? as follows:
+?
+
+
+
+
+
+m = Dec arg max f (Dec(z)) ,
+
+(2)
+
+z∈RD
+
+The second challenge is addressed by using BO, which iteratively optimizes a black-box function in a limited number
+of function evaluations. In specific, at each iteration, the
+inner optimization problem in Eq. (2) is solved by BO with
+training sample {(Enc(m1 ), y1 ), . . . , (Enc(mN ), yN )} ⊂
+RD ×R, and the resultant latent vector xN +1 ∈ RD is added
+to the sample with property evaluation f (Dec(xN +1 )). This
+procedure is iterated for a fixed number of times, and BO
+outputs the best molecule found so far.
+While they elegantly address the two obstacles, the decoding
+sometimes fails, and no molecule is obtained, which we call
+the decoding error issue. This is mainly due to the use of
+SMILES (Weininger, 1988) to represent a molecule. Let Σ
+be a set of symbols used in SMILES, and EncS : M → Σ∗
+be a SMILES encoder. For example, Σ includes atomic
+symbols, e.g., C, H ∈ Σ; given a phenol as input, the encoder outputs c1c(O)cccc1, where the digits represent
+
+

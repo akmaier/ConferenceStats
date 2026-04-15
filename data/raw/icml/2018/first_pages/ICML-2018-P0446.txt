@@ -1,0 +1,95 @@
+Learning to Reweight Examples for Robust Deep Learning
+
+Mengye Ren 1 2 Wenyuan Zeng 1 2 Bin Yang 1 2 Raquel Urtasun 1 2
+
+Abstract
+Deep neural networks have been shown to be
+very powerful modeling tools for many supervised
+learning tasks involving complex input patterns.
+However, they can also easily overfit to training
+set biases and label noises. In addition to various
+regularizers, example reweighting algorithms are
+popular solutions to these problems, but they
+require careful tuning of additional hyperparameters, such as example mining schedules and
+regularization hyperparameters. In contrast to
+past reweighting methods, which typically consist
+of functions of the cost value of each example,
+in this work we propose a novel meta-learning
+algorithm that learns to assign weights to training
+examples based on their gradient directions. To
+determine the example weights, our method
+performs a meta gradient descent step on the
+current mini-batch example weights (which are
+initialized from zero) to minimize the loss on
+a clean unbiased validation set. Our proposed
+method can be easily implemented on any type
+of deep network, does not require any additional
+hyperparameter tuning, and achieves impressive
+performance on class imbalance and corrupted
+label problems where only a small amount of
+clean validation data is available.
+
+1. Introduction
+Deep neural networks (DNNs) have been widely used for
+machine learning applications due to their powerful capacity
+for modeling complex input patterns. Despite their success,
+it has been shown that DNNs are prone to training set
+biases, i.e. the training set is drawn from a joint distribution
+p(x, y) that is different from the distribution p(xv , y v ) of the
+evaluation set. This distribution mismatch could have many
+1
+Uber Advanced Technologies Group, Toronto ON, CANADA
+Department of Computer Science, University of Toronto,
+Toronto ON, CANADA. Correspondence to: Mengye Ren
+<mren3@uber.com>.
+2
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+different forms. Class imbalance in the training set is a very
+common example. In applications such as object detection
+in the context of autonomous driving, the vast majority
+of the training data is composed of standard vehicles but
+models also need to recognize rarely seen classes such as
+emergency vehicles or animals with very high accuracy.
+This will sometime lead to biased training models that do
+not perform well in practice.
+Another popular type of training set bias is label noise.
+To train a reasonable supervised deep model, we ideally
+need a large dataset with high-quality labels, which require
+many passes of expensive human quality assurance (QA).
+Although coarse labels are cheap and of high availability,
+the presence of noise will hurt the model performance, e.g.
+Zhang et al. (2017) has shown that a standard CNN can
+fit any ratio of label flipping noise in the training set and
+eventually leads to poor generalization performance.
+Training set biases and misspecification can sometimes be
+addressed with dataset resampling (Chawla et al., 2002), i.e.
+choosing the correct proportion of labels to train a network
+on, or more generally by assigning a weight to each example
+and minimizing a weighted training loss. The example
+weights are typically calculated based on the training loss,
+as in many classical algorithms such as AdaBoost (Freund
+& Schapire, 1997), hard negative mining (Malisiewicz et al.,
+2011), self-paced learning (Kumar et al., 2010), and other
+more recent work (Chang et al., 2017; Jiang et al., 2017).
+However, there exist two contradicting ideas in training
+loss based approaches. In noisy label problems, we prefer
+examples with smaller training losses as they are more
+likely to be clean images; yet in class imbalance problems,
+algorithms such as hard negative mining (Malisiewicz et al.,
+2011) prioritize examples with higher training loss since
+they are more likely to be the minority class. In cases when
+the training set is both imbalanced and noisy, these existing
+methods would have the wrong model assumptions. In fact,
+without a proper definition of an unbiased test set, solving
+the training set bias problem is inherently ill-defined. As the
+model cannot distinguish the right from the wrong, stronger
+regularization can usually work surprisingly well in certain
+synthetic noise settings. Here we argue that in order to learn
+general forms of training set biases, it is necessary to have
+a small unbiased validation to guide training. It is actually
+
+

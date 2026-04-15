@@ -1,0 +1,71 @@
+Online and Linear-Time Attention by Enforcing Monotonic Alignments
+Colin Raffel 1 Minh-Thang Luong 1 Peter J. Liu 1 Ron J. Weiss 1 Douglas Eck 1
+
+Abstract
+Recurrent neural network models with an attention mechanism have proven to be extremely
+effective on a wide variety of sequence-tosequence problems. However, the fact that soft
+attention mechanisms perform a pass over the
+entire input sequence when producing each element in the output sequence precludes their use
+in online settings and results in a quadratic time
+complexity. Based on the insight that the alignment between input and output sequence elements is monotonic in many problems of interest,
+we propose an end-to-end differentiable method
+for learning monotonic alignments which, at test
+time, enables computing attention online and in
+linear time. We validate our approach on sentence summarization, machine translation, and
+online speech recognition problems and achieve
+results competitive with existing sequence-tosequence models.
+
+1. Introduction
+Recently,
+the “sequence-to-sequence” framework
+(Sutskever et al., 2014; Cho et al., 2014) has facilitated
+the use of recurrent neural networks (RNNs) on sequence
+transduction problems such as machine translation and
+speech recognition. In this framework, an input sequence
+is processed with an RNN to produce an “encoding”; this
+encoding is then used by a second RNN to produce the
+target sequence. As originally proposed, the encoding is
+a single fixed-length vector representation of the input
+sequence. This requires the model to effectively compress
+all important information about the input sequence into a
+single vector. In practice, this often results in the model
+having difficulty generalizing to longer sequences than
+those seen during training (Bahdanau et al., 2015).
+An effective solution to these shortcomings are attention
+1
+Google Brain, Mountain View, California, USA. Correspondence to: Colin Raffel <craffel@gmail.com>.
+
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+mechanisms (Bahdanau et al., 2015). In a sequence-tosequence model with attention, the encoder produces a sequence of hidden states (instead of a single fixed-length
+vector) which correspond to entries in the input sequence.
+The decoder is then allowed to refer back to any of the encoder states as it produces its output. Similar mechanisms
+have been used as soft addressing schemes in memoryaugmented neural network architectures (Graves et al.,
+2014; Sukhbaatar et al., 2015) and RNNs used for sequence
+generation (Graves, 2013). Attention-based sequence-tosequence models have proven to be extremely effective on
+a wide variety of problems, including machine translation
+(Bahdanau et al., 2015; Luong et al., 2015), image captioning (Xu et al., 2015), speech recognition (Chorowski
+et al., 2015; Chan et al., 2016), and sentence summarization (Rush et al., 2015). In addition, attention creates an
+implicit soft alignment between entries in the output sequence and entries in the input sequence, which can give
+useful insight into the model’s behavior.
+A common criticism of soft attention is that the model must
+perform a pass over the entire input sequence when producing each element of the output sequence. This results
+in the decoding process having complexity O(T U ), where
+T and U are the input and output sequence lengths respectively. Furthermore, because the entire sequence must be
+processed prior to outputting any symbols, soft attention
+cannot be used in “online” settings where output sequence
+elements are produced when the input has only been partially observed.
+The focus of this paper is to propose an alternative attention mechanism which has linear-time complexity and
+can be used in online settings. To achieve this, we first
+note that in many problems, the input-output alignment is
+roughly monotonic. For example, when transcribing an
+audio recording of someone saying “good morning”, the
+region of the speech utterance corresponding to “good”
+will always precede the region corresponding to “morning”. Even when the alignment is not strictly monotonic,
+it often only contains local input-output reorderings. Separately, despite the fact that soft attention allows for assignment of focus to multiple disparate entries of the input
+sequence, in many cases the attention is assigned mostly to
+a single entry. For examples of alignments with these characteristics, we refer to e.g. (Chorowski et al. 2015 Figure
+
+

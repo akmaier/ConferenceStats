@@ -1,0 +1,96 @@
+Auto-Differentiation of Relational Computations for Very Large Scale Machine
+Learning
+
+Yuxin Tang 1 Zhimin Ding 1 Dimitrije Jankov 1 Binhang Yuan 2 Daniel Bourgeois 1 Chris Jermaine 1
+
+Abstract
+
+SELECT A.row, B.col,
+SUM (matrix_multiply (A.mat, B.mat))
+3 FROM A, B WHERE A.col = B.row
+4 GROUP BY A.row, B.col
+1
+2
+
+The relational data model was designed to facilitate large-scale data management and analytics.
+We consider the problem of how to differentiate
+computations expressed relationally. We show
+experimentally that a relational engine running an
+auto-differentiated relational algorithm can easily
+scale to very large datasets, and is competitive
+with state-of-the-art, special-purpose systems for
+large-scale distributed machine learning.
+
+In addition to scalability, executing such a code on a relational engine has the advantage that the database query
+optimizer will automatically distribute the computation, taking into account the sizes of the two matrices. If A and B are
+both large matrices, a database optimizer will consider the
+hardware constraints on each compute node (e.g. memory
+size) and choose to co-partition both A and B using the join
+predicate A.col = B.row. If one of the matrices is relatively small (A, for example) and the other matrix is already
+partitioned across nodes, the database will simply broadcast
+the smaller matrix. Effectively, the database system is automatically choosing between various distribution paradigms.
+The first plan is often referred to as mixed data/model parallelism or tensor parallelism (Shazeer et al., 2018; Jia et al.,
+2019; Shoeybi et al., 2019; Lepikhin et al., 2020; Xu et al.,
+2021; Zheng et al., 2022; Barham et al., 2022) in the distributed machine learning literature, and the second plan is
+data parallel (Dean et al., 2012; Li et al., 2014), if A is a
+model matrix.
+
+1. Introduction
+The relational data model (Codd, 1970) is the basis for
+most modern SQL database systems. SQL can be used to
+extract and transform data into formats that can be used
+to train machine learning models. Furthermore, many data
+management systems (MLDB, 2017; BigQuery, 2020; Agarwal et al., 2021; Redshift, 2021; PostgreSQL, 2021) now
+support in-database machine learning (Feng et al., 2012;
+Syed & Vassilvitskii, 2017), where data is stored in relational databases, and machine learning models are trained
+and executed within database management system. This
+can improve performance and scalability without extra data
+transfer overhead. Also, it is natural to express a large
+class of distributed machine learning (ML) computations
+relationally. Consider matrix multiplication which is the
+workhorse of modern ML, assume two matrices A and B
+which have been partitioned into smaller sub-matrices and
+stored as relations (Luo et al., 2018; Jankov et al., 2021):
+
+Relational systems can run a wide variety of ML computations (Yuan et al., 2020; Jankov et al., 2021). For example, consider graph-based convolution operation (Kipf &
+Welling, 2016), which is really a three-way join, followed
+by an aggregation. Assume data is stored in two relations:
+1
+2
+
+Node(ID INT, vec VECTOR[2048])
+Edge(srcID INT, dstID INT)
+
+Here, vec is the current embedding of a node. Then a graph
+convolution operation can be written as:
+
+A(row INT, col INT, mat MATRIX[][])
+2 B(row INT, col INT, mat MATRIX[][])
+1
+
+SELECT n1.ID as n.ID, ReLU(MAT_MUL(AVG (
+Normalize(n2.vec)))) as n.vec
+2 FROM Node as n1, Edge as e, Node as n2
+1
+Department of Computer Science, Rice University, Hous- 3 WHERE n1.ID = e.srcID and n2.ID = e.dstID
+ton, US 2 ETH Zurich, Switzerland.
+Correspondence to: 4 GROUP BY n1.ID
+Yuxin Tang <yuxintang1995@gmail.com>, Chris Jermaine
+<cmj4@rice.edu>.
+Consider a massive, billion-node, 10-billion-edge graph.
+
+A simple SQL code specifies a distributed matrix multiply:
+
+1
+
+Propagating 2048-dimensional embeddings over 10 billion
+edges will require moving 163 TB of data, which a scalable,
+distributed database can handle, but will cause problems for
+
+Proceedings of the 40 th International Conference on Machine
+Learning, Honolulu, Hawaii, USA. PMLR 202, 2023. Copyright
+2023 by the author(s).
+
+1
+
+

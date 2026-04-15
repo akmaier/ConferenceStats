@@ -1,0 +1,76 @@
+Compressive Spectral Clustering
+
+Nicolas Tremblay∗†
+NICOLAS . TREMBLAY @ INRIA . FR
+Gilles Puy§∗
+GILLES . PUY @ TECHNICOLOR . COM
+Rémi Gribonval∗
+REMI . GRIBONVAL @ INRIA . FR
+Pierre Vandergheynst†∗
+PIERRE . VANDERGHEYNST @ EPFL . CH
+∗
+INRIA Rennes - Bretagne Atlantique, Campus de Beaulieu, FR-35042 Rennes Cedex, France
+†
+Institute of Electrical Engineering, Ecole Polytechnique Fédérale de Lausanne (EPFL), CH-1015 Lausanne, Switzerland
+§
+Technicolor, 975 Avenue des Champs Blancs, 35576 Cesson-Sévigné, France
+
+Abstract
+Spectral clustering has become a popular technique due to its high performance in many contexts. It comprises three main steps: create a similarity graph between N objects to cluster, compute the first k eigenvectors of its Laplacian matrix to define a feature vector for each object, and
+run k-means on these features to separate objects
+into k classes. Each of these three steps becomes
+computationally intensive for large N and/or k.
+We propose to speed up the last two steps based
+on recent results in the emerging field of graph
+signal processing: graph filtering of random signals, and random sampling of bandlimited graph
+signals. We prove that our method, with a gain in
+computation time that can reach several orders of
+magnitude, is in fact an approximation of spectral clustering, for which we are able to control
+the error. We test the performance of our method
+on artificial and real-world network data.
+
+1. Introduction
+Spectral clustering (SC) is a fundamental tool in data mining (Nascimento & de Carvalho, 2011). Given a set of N
+data points {x1 , . . . , xN }, the goal is to partition this set
+into k weakly inter-connected clusters. Several spectral
+clustering algorithms exist, e.g., (Belkin & Niyogi, 2003;
+Ng et al., 2002; Shi & Malik, 2000; Zelnik-Manor & Perona, 2004), but all follow the same scheme. First, compute weights Wij ⩾ 0 that model the similarity between
+pairs of data points (xi , xj ). This gives rise to a graph G
+with N nodes and adjacency matrix W = (Wij )1⩽i,j⩽N ∈
+RN ×N . Second, compute the first k eigenvectors Uk :=
+Proceedings of the 33 rd International Conference on Machine
+Learning, New York, NY, USA, 2016. JMLR: W&CP volume
+48. Copyright 2016 by the author(s).
+
+(u1 , . . . , uk ) ∈ RN ×k of the Laplacian matrix L ∈ RN ×N
+associated to G (see Sec. 2 for L’s definition). And finally,
+run k-means using the rows of Uk as feature vectors to partition the N data points into k clusters. This k-way scheme
+is a generalisation of Fiedler’s pioneering work (1973).
+SC is mainly used in two contexts: 1) if the N data
+points show particular structures (e.g., concentric circles)
+for which naive k-means clustering fails; 2) if the input
+data is directly a graph G modeling a network (White &
+Smyth, 2005), such as social, neuronal, or transportation
+networks. SC suffers nevertheless from three main computational bottlenecks for large N and/or k: the creation of
+the similarity matrix W; the partial eigendecomposition of
+the graph Laplacian matrix L; and k-means.
+1.1. Related work
+Circumventing these bottlenecks has raised a significant interest in the past decade. Several authors have proposed
+ideas to tackle the eigendecomposition bottleneck, e.g.,
+via the power method (Boutsidis & Gittens, 2015; Lin &
+Cohen, 2010), via a careful optimisation of diagonalisation algorithms in the context of SC (Liu et al., 2007),
+or via matrix column-subsampling such as in the Nyström
+method (Fowlkes et al., 2004), the nSPEC and cSPEC
+methods of (Wang et al., 2009), or in (Chen & Cai, 2011;
+Sakai & Imiya, 2009). All these methods aim to quickly
+compute feature vectors, but k-means is still applied on N
+feature vectors. Other authors, inspired by research aiming
+at reducing k-means complexity (Jain, 2010), such as the
+line of work on coresets (Har-Peled & Mazumdar, 2004),
+have proposed to circumvent k-means in high dimension
+by subsampling a few data points out of the N available
+ones, applying SC on its reduced similarity graph, and interpolating the results back on the complete dataset. One
+can find similar methods in (Yan et al., 2009) and (Wang
+et al., 2009)’s eSPEC proposition, where two different interpolation methods are used. Both methods are heuristic:
+
+

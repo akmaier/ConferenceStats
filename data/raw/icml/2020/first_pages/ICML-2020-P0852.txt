@@ -1,0 +1,74 @@
+ConQUR: Mitigating Delusional Bias in Deep Q-learning
+
+DiJia (Andy) Su 1 2 Jayden Ooi 1 Tyler Lu 1 Dale Schuurmans 1 3 Craig Boutilier 1
+
+Abstract
+Delusional bias is a fundamental source of error in approximate Q-learning. To date, the only
+techniques that explicitly address delusion require
+comprehensive search using tabular value estimates. In this paper, we develop efficient methods to mitigate delusional bias by training Qapproximators with labels that are “consistent”
+with the underlying greedy policy class. We introduce a simple penalization scheme that encourages Q-labels used across training batches to remain (jointly) consistent with the expressible policy class. We also propose a search framework
+that allows multiple Q-approximators to be generated and tracked, thus mitigating the effect of
+premature (implicit) policy commitments. Experimental results demonstrate that these methods
+can improve the performance of Q-learning in a
+variety of Atari games, sometimes dramatically.
+
+1. Introduction
+Q-learning (Watkins & Dayan, 1992; Sutton & Barto, 2018)
+lies at the heart of many of the recent successes of deep reinforcement learning (RL) (Mnih et al., 2015; Silver et al.,
+2016), with recent advances (e.g., van Hasselt (2010); Bellemare et al. (2017); Wang et al. (2016); Hessel et al. (2017))
+helping to make it among the most widely used methods
+in applied RL. Despite these successes, many properties
+of Q-learning are poorly understood, and it is challenging
+to successfully apply deep Q-learning in practice. Various
+modifications have been proposed to improve convergence
+or approximation error (Gordon, 1995; 1999; Szepesvári
+1
+
+Google Research, Mountain View, California, USA
+Department of Electrical Engineering, Princeton University,
+New Jersey, USA 3 Department of Computing Science, University
+of Alberta, Edmonton, Alberta, Canada. Correspondence to:
+DiJia (Andy) Su <andy.2008.su@gmail.com>, Jayden Ooi
+<jayden@google.com>, Tyler Lu <tylerlu@google.com>,
+Dale Schuurmans <daes@ualberta.ca>, Craig Boutilier
+<cboutilier@google.com>.
+2
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+& Smart, 2004; Melo & Ribeiro, 2007; Maei et al., 2010;
+Munos et al., 2016); but it remains difficult to reliably attain
+both robustness and scalability.
+Recently, Lu et al. (2018) identified a source of error in Qlearning with function approximation known as delusional
+bias. This bias arises because Q-learning updates the value
+of state-action pairs using estimates of (sampled) successorstate values that can be mutually inconsistent given the policy class induced by the approximator. This can result in
+unbounded approximation error, divergence, policy cycling,
+and other undesirable behavior. To handle delusion, the
+authors propose a policy-consistent backup operator that
+maintains multiple Q-value estimates organized into information sets. Each information set has its own backed-up
+Q-values and corresponding “policy commitments” responsible for inducing these values. Systematic management
+of these sets ensures that only consistent choices of maximizing actions are used to update Q-values. All potential
+solutions are tracked to prevent premature convergence on
+specific policy commitments. Unfortunately, the proposed
+algorithms use tabular representations of Q-functions, so
+while this establishes foundations for delusional bias, the
+function approximator is used neither for generalization nor
+to manage the size of the state/action space. Consequently,
+this approach is not scalable to practical RL problems.
+In this work, we develop C ON QUR (CONsistent Q-Update
+Regression), a general framework for integrating policyconsistent backups with regression-based function approximation for Q-learning, and for managing the search through
+the space of possible regressors (i.e., information sets). With
+suitable search heuristics, the proposed framework provides
+a computationally effective means for minimizing the effects
+of delusional bias, while scaling to practical problems.
+Our main contributions are as follows. First, we define
+novel augmentations of Q-regression to increase the degree
+of policy consistency across training batches. Since testing
+exact consistency is expensive, we introduce an efficient softconsistency penalty that promotes consistency of labels with
+earlier policy commitments. Second, using information-set
+structure (Lu et al., 2018), we define a search space over Qregressors to explore multiple sets of policy commitments.
+Third, we propose heuristics to guide the search, critical
+given the combinatorial nature of information sets. Finally,
+
+

@@ -1,0 +1,76 @@
+Bias-Variance Reduced Local SGD for Less Heterogeneous Federated Learning
+
+Tomoya Murata 1 2 Taiji Suzuki 2 3
+
+Abstract
+Recently, local SGD has got much attention and
+been extensively studied in the distributed learning community to overcome the communication
+bottleneck problem. However, the superiority
+of local SGD to minibatch SGD only holds in
+quite limited situations. In this paper, we study
+a new local algorithm called Bias-Variance Reduced Local SGD (BVR-L-SGD) for nonconvex
+distributed optimization. Algorithmically, our proposed bias and variance reduced local gradient
+estimator fully utilizes small second-order heterogeneity of local objectives and suggests randomly
+picking up one of the local models instead of
+taking the average of them when workers are synchronized. Theoretically, under small heterogeneity of local objectives, we show that BVR-L-SGD
+achieves better communication complexity than
+both the previous non-local and local methods
+under mild conditions, and particularly BVR-LSGD is the first method that breaks the barrier of
+communication complexity Θ(1/ε) for general
+nonconvex smooth objectives when the heterogeneity is small and the local computation budget
+is large. Numerical results are given to verify the
+theoretical findings and give empirical evidence
+of the superiority of our method.
+
+1. Introduction
+Nowadays, optimization problems arising in machine learning are often large and require huge computational time.
+Distributed learning is one of the attractive approaches to
+reduce the computational time by utilizing parallel computing. In classical distributed learning, each worker has
+the whole dataset used in optimization or a random sub1
+
+NTT DATA Mathematical Systems Inc., Tokyo, Japan
+2
+Graduate School of Information Science and Technology, The
+University of Tokyo, Tokyo, Japan 3 Center for Advanced Intelligence Project, RIKEN, Tokyo, Japan. Correspondence to: Tomoya Murata <murata@msi.co.jp>, Taiji Suzuki <taiji@mist.i.utokyo.ac.jp>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+set of the whole dataset which is not explicitly exchanged.
+In recent federated learning, introduced by Konečnỳ et al.
+(2015); Shokri & Shmatikov (2015); McMahan et al. (2017),
+we build a global model across multiple devices or servers
+without explicitly exchanging their own local datasets, and
+local datasets can be heterogeneous, i.e., each local dataset
+may be generated from a different distribution. There are
+various federated learning scenarios (e.g., personalization,
+preservation of the privacy of local information, robustness
+to attacks and failures, guarantees of fairness) and refer to
+the extensive survey (Kairouz et al., 2019) for these topics.
+One of the most naive and widely used approaches to distributed learning is minibatch Stochastic Gradient Descent
+(SGD) (Dekel et al., 2012), which is also called as Federated Averaging (FedAvg) (McMahan et al., 2017). Each
+worker computes minibatch stochastic gradient of the own
+local objective and then their average is used to update
+the global model. Also, more computationally efficient
+methods including minibatch Stochastic Variance Reduced
+Gradient (SVRG) (Johnson & Zhang, 2013; Allen-Zhu &
+Hazan, 2016; Reddi et al., 2016a) and its variant (Lei et al.,
+2017), minibatch StochAstic Recursive grAdient algoritHm
+(SARAH) (Nguyen et al., 2017; 2019) and its variants (Fang
+et al., 2018; Zhou et al., 2018) are applicable to the problem.
+Particularly, SARAH achieves the optimal total computational complexity in nonconvex optimization.
+Unfortunately, minibatch methods suffer from their communication cost because of the necessity to communicate
+local gradients for every single global update. One of the
+possible solutions is using a large batch to compute local
+gradients (Goyal et al., 2017), but the communication complexity, that is the necessary number of communication
+rounds to optimize, is theoretically never smaller than the
+one of deterministic GD and thus communication cost is
+still problematic.
+To overcome the communication bottleneck problem, local methods have got much attention due to its empirical
+effectiveness (Konečnỳ et al., 2015; Lin et al., 2018). In
+local SGD (also called Parallel Restart SGD), each worker
+independently updates the local model based on his own
+local dataset, and periodically communicates and averages
+the local models. Many papers (Stich, 2018; Yu et al., 2019;
+Haddadpour & Mahdavi, 2019; Haddadpour et al., 2019;
+
+

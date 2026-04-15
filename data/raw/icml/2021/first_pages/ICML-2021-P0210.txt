@@ -1,0 +1,71 @@
+ConViT: Improving Vision Transformers
+with Soft Convolutional Inductive Biases
+Stéphane d’Ascoli 1 2 Hugo Touvron 2 Matthew L. Leavitt 2 Ari S. Morcos 2 Giulio Biroli 1 2 Levent Sagun 2
+
+Abstract
+Convolutional architectures have proven extremely successful for vision tasks. Their hard
+inductive biases enable sample-efficient learning,
+but come at the cost of a potentially lower performance ceiling. Vision Transformers (ViTs) rely
+on more flexible self-attention layers, and have
+recently outperformed CNNs for image classification. However, they require costly pre-training
+on large external datasets or distillation from pretrained convolutional networks. In this paper, we
+ask the following question: is it possible to combine the strengths of these two architectures while
+avoiding their respective limitations? To this
+end, we introduce gated positional self-attention
+(GPSA), a form of positional self-attention which
+can be equipped with a “soft” convolutional inductive bias. We initialize the GPSA layers to
+mimic the locality of convolutional layers, then
+give each attention head the freedom to escape
+locality by adjusting a gating parameter regulating the attention paid to position versus content information. The resulting convolutionallike ViT architecture, ConViT, outperforms the
+DeiT (Touvron et al., 2020) on ImageNet, while
+offering a much improved sample efficiency. We
+further investigate the role of locality in learning by first quantifying how it is encouraged in
+vanilla self-attention layers, then analyzing how it
+is escaped in GPSA layers. We conclude by presenting various ablations to better understand the
+success of the ConViT. Our code and models are
+released publicly at https://github.com/
+facebookresearch/convit.
+
+1
+Department of Physics, Ecole Normale Supérieure, Paris,
+France 2 Facebook AI Research, Paris, France. Correspondence to:
+Stéphane d’Ascoli <stephane.dascoli@ens.fr>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+1. Introduction
+The success of deep learning over the last decade has largely
+been fueled by models with strong inductive biases, allowing efficient training across domains (Mitchell, 1980;
+Goodfellow et al., 2016). The use of Convolutional Neural
+Networks (CNNs) (LeCun et al., 1998; 1989), which have
+become ubiquitous in computer vision since the success of
+AlexNet in 2012 (Krizhevsky et al., 2017), epitomizes this
+trend. Inductive biases are hard-coded into the architectural
+structure of CNNs in the form of two strong constraints
+on the weights: locality and weight sharing. By encouraging translation equivariance (without pooling layers) and
+translation invariance (with pooling layers) (Scherer et al.,
+2010; Schmidhuber, 2015; Goodfellow et al., 2016), the
+convolutional inductive bias makes models more sampleefficient and parameter-efficient (Simoncelli & Olshausen,
+2001; Ruderman & Bialek, 1994). Similarly, for sequencebased tasks, recurrent networks with hard-coded memory
+cells have been shown to simplify the learning of long-range
+dependencies (LSTMs) and outperform vanilla recurrent
+neural networks in a variety of settings (Gers et al., 1999;
+Sundermeyer et al., 2012; Greff et al., 2017).
+However, the rise of models based purely on attention in
+recent years calls into question the necessity of hard-coded
+inductive biases. First introduced as an add-on to recurrent
+neural networks for Sequence-to-Sequence models (Bahdanau et al., 2014), attention has led to a breakthrough in
+Natural Language Processing through the emergence of
+Transformer models, which rely solely on a particular kind
+of attention: Self-Attention (SA) (Vaswani et al., 2017).
+The strong performance of these models when pre-trained
+on large datasets has quickly led to Transformer-based approaches becoming the default choice over recurrent models
+like LSTMs (Devlin et al., 2018).
+In vision tasks, the locality of CNNs impairs the ability to
+capture long-range dependencies, whereas attention does
+not suffer from this limitation. Chen et al. (2018) and Bello
+et al. (2019) leveraged this complementarity by augmenting
+convolutional layers with attention. More recently, Ramachandran et al. (2019) ran a series of experiments replacing some or all convolutional layers in ResNets with attention, and found the best performing models used convolu-
+
+

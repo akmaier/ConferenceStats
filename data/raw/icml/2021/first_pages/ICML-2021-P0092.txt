@@ -1,0 +1,106 @@
+Multiplying Matrices Without Multiplying
+
+Davis Blalock 1 2 John Guttag 2
+
+Matrix multiplication is among the most fundamental subroutines used in machine learning and scientific computing.
+As a result, there has been a great deal of work on implementing high-speed matrix multiplication libraries (Paszke
+et al., 2017; Guennebaud et al., 2010; Abadi et al., 2016),
+designing custom hardware to accelerate multiplication of
+certain classes of matrices (Han et al., 2016; Chen et al.,
+2016; Parashar et al., 2017; Jouppi et al., 2017), speeding
+up distributed matrix multiplication (Yu et al., 2017; Dutta
+et al., 2016; Yu et al., 2020; Irony et al., 2004), and designing efficient Approximate Matrix Multiplication (AMM)
+algorithms under various assumptions.
+We focus on the AMM task under the assumptions that the
+matrices are tall, relatively dense, and resident in a single
+machine’s memory. In this setting, the primary challenge
+is minimizing the amount of compute time required to approximate linear operations with a given level of fidelity.
+1
+MosaicML, San Francisco, CA, USA 2 MIT CSAIL,
+Cambridge, MA, USA. Correspondence to: Davis Blalock
+<davis@mosaicml.com>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+As a concrete example, consider the task of approximating
+a softmax classifier trained to predict image labels given
+embeddings derived from a neural network. Here, the rows
+of A are the embeddings for each image, and the columns
+of B are the weight vectors for each class. Classification
+is performed by computing the product AB and taking the
+argmax within each row of the result. In Figure 1, we see
+the results of approximating AB using our method and its
+best-performing rivals (Dasgupta et al., 2010; Mairal et al.,
+2009) on the CIFAR-10 and CIFAR-100 datasets.
+Approximating Softmax Classifiers
+CIFAR-10
+Classification
+Accuracy
+
+1. Introduction
+
+This setting arises naturally in machine learning and data
+mining when one has a data matrix A whose rows are samples and a linear operator B one wishes to apply to these
+samples. B could be a linear classifier, linear regressor, or
+an embedding matrix, among other possibilities.
+
+0.75
+0.50
+0.25
+
+CIFAR-100
+Classification
+Accuracy
+
+Abstract
+Multiplying matrices is among the most fundamental
+and compute-intensive operations in machine learning. Consequently, there has been significant work
+on efficiently approximating matrix multiplies. We
+introduce a learning-based algorithm for this task
+that greatly outperforms existing methods. Experiments using hundreds of matrices from diverse domains show that it often runs 100× faster than exact
+matrix products and 10× faster than current approximate methods. In the common case that one matrix is
+known ahead of time, our method also has the interesting property that it requires zero multiply-adds. These
+results suggest that a mixture of hashing, averaging,
+and byte shuffling–the core operations of our method–
+could be a more promising building block for machine
+learning than the sparsified, factorized, and/or scalar
+quantized matrix products that have recently been the
+focus of substantial research and hardware investment.
+
+0.6
+0.4
+0.2
+
+10
+
+0
+
+10
+
+1
+
+10
+
+2
+
+Speedup Over Exact Matrix Multiply
+Ours
+Exact Matrix Multiply
+
+Mairal et al.
+Dasgupta et al.
+
+Figure 1: Our method achieves a dramatically better
+speed-accuracy tradeoff than the best existing methods
+when approximating two linear classifiers.
+Our method represents a significant methodological departure from most traditional approaches to this problem.
+Traditional AMM methods construct matrices VA , VB ∈
+RD×d , d  D such that
+AB ≈ (AVA )(VB> B).
+
+(1)
+
+Often, VA and VB are sparse, embody some sort of sampling scheme, or have other structure such that these pro-
+
+

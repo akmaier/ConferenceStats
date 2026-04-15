@@ -1,0 +1,78 @@
+Generalized Beliefs for Cooperative AI
+
+Darius Muglich 1 Luisa Zintgraf 1 Christian Schroeder de Witt 1 Shimon Whiteson 1 Jakob Foerster 1
+
+Abstract
+Self-play is a common paradigm for constructing
+solutions in Markov games that can yield optimal policies in collaborative settings. However,
+these policies often adopt highly-specialized conventions that make playing with a novel partner
+difficult. To address this, recent approaches rely
+on encoding symmetry and convention-awareness
+into policy training, but these require strong environmental assumptions and can complicate policy
+training. We therefore propose moving the learning of conventions to the belief space. Specifically, we propose a belief learning model that
+can maintain beliefs over rollouts of policies not
+seen at training time, and can thus decode and
+adapt to novel conventions at test time. We show
+how to leverage this model for both search and
+training of a best response over various pools of
+policies to greatly improve ad-hoc teamplay. We
+also show how our setup promotes explainability
+and interpretability of nuanced agent conventions.
+
+1. Introduction
+One of the most popular ways of training a policy in
+multi-agent reinforcement learning (MARL) is via self-play
+(Samuel, 1959), where during training a joint policy controls
+the strategies of every player. This can lead to convergence
+to highly specialized policies that have enjoyed great success in zero-sum settings (Brown et al., 2020; Silver et al.,
+2018). Self-play can also yield highly proficient policies
+in cooperative settings (Hu & Foerster, 2019; Schroeder de
+Witt et al., 2019; Yu et al., 2021); however, if self-play is left
+unconstrained, agents that train independently with self-play
+and then meet at test time to play a cooperative game (i.e.,
+engage in cross-play) may do much worse than when they
+were self-playing.
+Agents in cooperative tasks often must learn to implicitly
+1
+University of Oxford, England, United Kingdom. Correspondence to: Darius Muglich <dariusm1997@yahoo.com>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+communicate, particularly when the available communication channels are too narrow to fully resolve mutual uncertainty (Heider & Simmel, 1944; Tian et al., 2020). In the
+case of the popular and frequently-studied card game Hanabi
+(Bard et al., 2020) (see Appendix A for details on Hanabi),
+consider the example convention that “hinting green” also
+means that the rightmost held card of the player receiving
+the hint is playable. One could then construct a second policy where instead “hinting yellow” bears this implicit cue.
+While these two policies are essentially equivalent, if two
+agents meet and one plays the former policy and the other
+plays the latter, they will perform poorly because they have
+each overfit to their respective conventions.
+To improve the cross-play performance of independent selfplay trained agents (i.e., to effectively engage in zero-shot
+coordination (Hu et al., 2020)), recent approaches have
+explored explicitly encoding environmental symmetries
+(where symmetry refers to state/action sequences that are
+equivalent up to relabelling of the state/action space) into
+policy training (Hu et al., 2020). However, this complicates
+the training process and requires domain knowledge.
+Others have explored modular approaches that separately
+learn the complexities intrinsic to the task (i.e., ruledependent behaviour) and the conventions specific to a
+partner (i.e., convention-dependent behaviour) (Shih et al.,
+2021). However, their method comes at the expense of scalability, with experiments limited to bandit problems and
+1-colour Hanabi.
+Yet another approach that has been explored is in controlling
+the cognitive-reasoning depth (i.e. controlling the extent
+to which agents build more complex conventions on top of
+the baseline expectation that earlier conventions are being
+followed) so to avoid formation of arbitrary conventions
+that can complicate cross-play (Hu et al., 2021b). While an
+interesting direction, it mitigates policies from adopting a
+large class of behaviours, and as well motivates the question
+of whether the true absence of such convention formation is
+strictly necessary for coordination?
+We seek a paradigm to learn policies without the disadvantages listed above; that is, we seek to relax strong environmental assumptions, retain scalability, and to leave policy
+learning unconstrained. As such, in this paper, we propose
+shifting the burden of learning conventions and intent onto
+
+

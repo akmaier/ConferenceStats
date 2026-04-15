@@ -1,0 +1,82 @@
+Understanding INT4 Quantization for Language Models:
+Latency Speedup, Composability, and Failure Cases
+
+Xiaoxia Wu * 1 Cheng Li * 1 Reza Yazdani Aminabadi 1 Zhewei Yao 1 Yuxiong He 1
+
+1. Introduction
+
+Abstract
+
+As pre-trained large language models (LLMs) (Vaswani
+et al., 2017) such as BERT (Tenney et al., 2019),
+BART (Lewis et al., 2020), and GPT (Radford et al.,
+2019) require a significant amount of GPU resources to
+deploy, compression becomes a common practice to optimize model inference, especially for resource-constrained
+environments. One of the widely used compression techniques is quantization where data are stored and manipulated in a lower-precision format, such as 8-bit or 4-bit integers instead of 32-bit or 16-bit floating-point numbers. It
+not only reduces the amount of memory required to store
+the model, but also can leverage the higher GEMM computation throughput for lower-bit data types on supported
+GPUs (e.g., peak INT4 Tensor Core TFLOPS doubles that
+of INT8 and quadruples that of FP16) to improve inference
+latency. Note that only quantizing the model weights without computing in lower-bit data types (i.e., keeping activation in FP16 or FP32) introduces no latency improvement
+(or even slower due to type conversion at runtime) but only
+memory saving.
+
+Improving the deployment efficiency of
+transformer-based language models has been
+challenging given their high computation and
+memory cost. While INT8 quantization has
+recently been shown to be effective in reducing
+both the memory cost and latency while preserving model accuracy, it remains unclear whether
+we can leverage INT4 (which doubles peak
+hardware throughput) to achieve further latency
+improvement. In this study, we explore the
+feasibility of employing INT4 weight and activation (W4A4) quantization for language models.
+Our findings indicate that W4A4 quantization
+introduces no to negligible accuracy degradation for encoder-only and encoder-decoder
+models, but causes a significant accuracy drop
+for decoder-only models. To materialize the
+performance gain using W4A4, we develop a
+highly-optimized end-to-end W4A4 encoder
+inference pipeline supporting different quantization strategies. Our INT4 pipeline is 8.5×
+faster for latency-oriented scenarios and up to
+3× for throughput-oriented scenarios compared
+to the inference of FP16, and improves the
+SOTA BERT INT8 performance from FasterTransformer by up to 1.7×. We provide insights
+into the failure cases when applying W4A4 to
+decoder-only models, and further explore the
+compatibility of INT4 quantization with other
+compression methods, like pruning and layer
+reduction.
+
+Recent work proposes techniques to apply INT8 quantization (using INT8 computation where both weight and activation are quantized, referred to as W8A8) to all linear
+layers without introducing accuracy degradation for transformers (Yao et al., 2022; Xiao et al., 2022; Dettmers et al.,
+2022a;b; Li et al., 2022; Kim et al., 2021). Yao et al. (2022)
+also present an INT8 inference pipeline and show good
+end-to-end (E2E) performance improvement over FP16
+model inference. NVIDIA’s FasterTransformer (NVIDIA,
+2023) holds SOTA open-source INT8 implementations
+where aggressive quantization are explored: mode-1 quantizes the attention computation beyond linear layers, and
+mode-2 further quantizes the residual connection trading
+off accuracy for latency.
+While we are advancing W8A8 quantization algorithms
+and implementations proven to be effective for LLMs, the
+questions arise: (1) whether INT4 inference (using INT4
+computation where both activation and weight are quantized, referred to as W4A4) is feasible (acceptable accuracy
+drop) for these models, and (2) how it can be leveraged
+for performance improvement on real hardware. Although
+
+*
+1
+Equal contribution
+Deepspeed Team @ Microsoft.
+Code is released at https://github.com/microsoft/
+DeepSpeed.
+Correspondence to: Xiaoxia Wu <xiaoxiawu@microsoft.com>, Cheng Li <chengli1@microsoft.com>.
+
+Proceedings of the 40 th International Conference on Machine
+Learning, Honolulu, Hawaii, USA. PMLR 202, 2023. Copyright
+2023 by the author(s).
+
+1
+
+

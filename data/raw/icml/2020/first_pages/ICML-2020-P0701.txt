@@ -1,0 +1,77 @@
+Einsum Networks: Fast and Scalable Learning of
+Tractable Probabilistic Circuits
+Robert Peharz 1 Steven Lang 2 Antonio Vergari 3 Karl Stelzner 2 Alejandro Molina 2 Martin Trapp 4
+Guy Van den Broeck 3 Kristian Kersting 2 Zoubin Ghahramani 5
+
+Abstract
+Probabilistic circuits (PCs) are a promising avenue for probabilistic modeling, as they permit a
+wide range of exact and efficient inference routines. Recent “deep-learning-style” implementations of PCs strive for a better scalability, but are
+still difficult to train on real-world data, due to
+their sparsely connected computational graphs. In
+this paper, we propose Einsum Networks (EiNets),
+a novel implementation design for PCs, improving
+prior art in several regards. At their core, EiNets
+combine a large number of arithmetic operations
+in a single monolithic einsum-operation, leading
+to speedups and memory savings of up to two
+orders of magnitude, in comparison to previous
+implementations. As an algorithmic contribution,
+we show that the implementation of ExpectationMaximization (EM) can be simplified for PCs,
+by leveraging automatic differentiation. Furthermore, we demonstrate that EiNets scale well to
+datasets which were previously out of reach, such
+as SVHN and CelebA, and that they can be used
+as faithful generative image models.
+
+1. Introduction
+The central goal of probabilistic modeling is to approximate the data-generating distribution, in order to answer
+statistical queries by means of probabilistic inference. In
+recent years many novel probabilistic models based on deep
+neural networks have been proposed, such as Variational
+Autoencoders (VAEs) (Kingma & Welling, 2014) (formerly
+known as Density Networks (MacKay, 1995)), Normalizing Flows (Rezende & Mohamed, 2015; Papamakarios
+
+et al., 2019), Autoregressive Models (ARMs) (Larochelle &
+Murray, 2011; Uria et al., 2016), and Generative Adversarial Networks (GANs) (Goodfellow et al., 2014). While all
+these models have achieved impressive results on large-scale
+datasets, i.e. they have been successful in terms of representational power and learning, they unfortunately fall short
+in terms of inference, a main aspect of probabilistic modeling and reasoning (Pearl, 1988; Koller & Friedman, 2009).
+All of the mentioned models allow to draw unbiased samples, enabling inference via Monte Carlo estimation. This
+strategy, however, becomes quickly unreliable and computational expensive for all but the simplest inference queries.
+Also other approximate inference techniques, e.g. variational inference, are often biased and their inference quality
+might be hard to analyse. Besides sampling, only ARMs
+and Flows support efficient evaluation of the probability
+density for a given sample, which can be used, e.g., for
+model comparison and outlier detection.
+However, even for ARMs and Flows the following inference task is computationally hard: Consider a density p(X1 , . . . , XN ) over N random variables, where N
+might be just in the order of a few dozens. For example,
+X1 , . . . , XN might represent medical measurements of a
+particular person drawn from the general population modeled by p(X1 , . . . , XN ). Now assume that we split the variables into three disjoint sets Xq , Xm , and Xe of roughly
+the same size, and that we wish to compute
+R
+p(xq , x0m , xe )dx0m
+p(xq | xe ) = R R
+,
+(1)
+p(x0q , x0m , xe )dx0q dx0m
+
+Eindhoven University of Technology 2 Technical University
+of Darmstadt 3 University of California, Los Angeles 4 Graz University of Technology 5 University of Cambridge, Uber AI Labs.
+Correspondence to: Robert Peharz <r.peharz@tue.nl>, Steven
+Lang <steven.lang.mz@gmail.com>.
+
+for arbitrary values xq and xe . In words, we wish to predict
+query variables Xq , based on evidence Xe = xe , while accounting for all possible values of missing variables Xm , by
+marginalizing them. Conditional densities like (1) highlight
+the role of generative models as “multi-purpose predictors”,
+since the choice of Xq , Xm , and Xe can be arbitrary. However, evaluating conditional densities of this form is notoriously hard for any of the models above, which represents a
+principal drawback of these methods.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+These shortcomings in terms of inference have motivated a
+growing stream of research on tractable probabilistic models, where inference queries like (1) can be computed ex-
+
+1
+
+

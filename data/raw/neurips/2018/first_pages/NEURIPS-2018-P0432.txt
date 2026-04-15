@@ -1,0 +1,75 @@
+MetaAnchor: Learning to Detect Objects with
+Customized Anchors
+Tong Yang∗†
+
+Xiangyu Zhang∗
+
+Zeming Li∗
+
+∗
+
+Wenqiang Zhang†
+
+Megvii Inc (Face++)
+{yangtong,zhangxiangyu,lizeming,sunjian}@megvii.com
+
+Jian Sun∗
+
+†
+
+Fudan University
+wqzhang@fudan.edu.cn
+
+Abstract
+We propose a novel and flexible anchor mechanism named MetaAnchor for object
+detection frameworks. Unlike many previous detectors model anchors via a predefined manner, in MetaAnchor anchor functions could be dynamically generated
+from the arbitrary customized prior boxes. Taking advantage of weight prediction,
+MetaAnchor is able to work with most of the anchor-based object detection systems
+such as RetinaNet. Compared with the predefined anchor scheme, we empirically
+find that MetaAnchor is more robust to anchor settings and bounding box distributions; in addition, it also shows the potential on transfer tasks. Our experiment
+on COCO detection task shows that MetaAnchor consistently outperforms the
+counterparts in various scenarios.
+
+1
+
+Introduction
+
+The last few years have seen the success of deep neural networks in object detection task [5, 39, 9,
+12, 8, 32, 16, 2]. In practice, object detection often requires to generate a set of bounding boxes
+along with their classification labels associated with each object in the given image. However, it is
+nontrivial for convolutional neural networks (CNNs) to directly predict an orderless set of arbitrary
+cardinality1 . One widely-used workaround is to introduce anchor, which employs the thought
+of divide-and-conquer and has been successfully demonstrated in the state-of-the-art detection
+frameworks [39, 32, 25, 30, 31, 11, 22, 23, 2]. In short, anchor method suggests dividing the box
+space (including position, size, class, etc.) into discrete bins (not necessarily disjoint) and generating
+each object box via the anchor function defined in the corresponding bin. Denote x as the feature
+extracted from the input image, then anchor function for i-th bin could be formulated as follows:
+
+Fbi (x; θi ) = Fbcls
+(x; θicls ), Fbreg
+(x; θireg )
+(1)
+i
+i
+where bi ∈ B is the prior (also named anchor box in [32]), which describes the common properties
+of object boxes associated with i-th bin (e.g. averaged position/size and classification label); while
+Fbcls
+(·) discriminates whether there exists an object box associated with the i-th bin, and Fbreg
+(·)
+i
+i
+regresses the relative location of the object box (if any) to the prior bi ; θi represents the parameters
+for the anchor function.
+To model anchors with deep neural networks, one straight-forward strategy is via enumeration,
+which is adopted by most of the previous work [32, 39, 25, 30, 31, 23, 11, 22]. First, a number of
+predefined priors (or anchor boxes) B is chosen by handcraft [32] or statistical methods like clustering
+[39, 31]. Then for each bi ∈ B the anchor function Fbi is usually implemented by one or a few
+neural network layers respectively. Weights for different anchor functions are independent or partially
+shared. Obviously in this framework anchor strategies (i.e. anchor box choices and the definition of
+1
+
+There are a few recent studies on the topic, such as [33, 37].
+
+32nd Conference on Neural Information Processing Systems (NeurIPS 2018), Montréal, Canada.
+
+

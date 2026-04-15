@@ -1,0 +1,73 @@
+StrassenNets: Deep Learning with a Multiplication Budget
+
+Michael Tschannen 1 Aran Khanna 2 Anima Anandkumar 2 3
+
+Abstract
+A large fraction of the arithmetic operations required to evaluate deep neural networks (DNNs)
+consists of matrix multiplications, in both convolution and fully connected layers. We perform
+end-to-end learning of low-cost approximations of
+matrix multiplications in DNN layers by casting
+matrix multiplications as 2-layer sum-product networks (SPNs) (arithmetic circuits) and learning
+their (ternary) edge weights from data. The SPNs
+disentangle multiplication and addition operations
+and enable us to impose a budget on the number of
+multiplication operations. Combining our method
+with knowledge distillation and applying it to image classification DNNs (trained on ImageNet)
+and language modeling DNNs (using LSTMs),
+we obtain a first-of-a-kind reduction in number of
+multiplications (over 99.5%) while maintaining
+the predictive performance of the full-precision
+models. Finally, we demonstrate that the proposed framework is able to rediscover Strassen’s
+matrix multiplication algorithm, learning to multiply 2 × 2 matrices using only 7 multiplications
+instead of 8.
+
+1. Introduction
+The outstanding predictive performance of deep neural networks (DNNs) often comes at the cost of large model size,
+and corresponding computational inefficiency. This can
+make the deployment of DNNs on mobile and embedded
+hardware challenging. For example, a full-precision ResNet152 (He et al., 2016a) contains 60.2 million parameters and
+one forward pass requires 11.3 billion floating point operations. A variety of methods to address this issue were
+proposed recently, including optimizing the network architecture, factorizing the weight tensors, pruning the weights,
+1
+ETH Zürich, Zürich, Switzerland (most of this work was
+done while MT was at Amazon AI) 2 Amazon AI, Palo Alto, CA,
+USA 3 Caltech, Pasadena, CA, USA. Correspondence to: Michael
+Tschannen <michaelt@nari.ee.ethz.ch>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+and reducing the numerical precision of weights and activations (see Section 1.1 for a detailed overview).
+These prior works mainly focused on decreasing the number
+of multiply-accumulate operations used by DNNs. In contrast, in this paper, the objective that guides our algorithm
+design is a reduction of the number of multiplications. This
+algorithm design principle has led to many fast algorithms
+in linear algebra, most notably Strassen’s matrix multiplication algorithm (Strassen, 1969). Strassen’s algorithm uses 7
+instead 8 multiplications to compute the product of two 2×2
+matrices (and requires O(n2.807 ) operations for multiplying
+n × n matrices). In the context of DNNs, the same design
+principle led to the Winograd filter-based convolution algorithm proposed by Lavin & Gray (2016). This algorithm
+only requires 16 instead of 36 multiplications to compute
+2 × 2 outputs of 2D convolutions with 3 × 3 kernels and
+achieves a 2–3× speedup on GPU in practice.
+From a hardware perspective, multipliers occupy considerably more area on chip than adders (for fixed-point data
+types). Field-programmable gate arrays (FPGAs) and
+application-specific integrated circuits (ASICs) can therefore potentially accommodate considerably more adders
+than multipliers, and trading off multiplications against additions is desirable. In fact, it was demonstrated recently
+that DNN architectures which rely on a large number of
+additions and a small number of multiplications (such as (Li
+et al., 2016)) achieve a 60% higher throughput on FPGA
+than on GPU, while being 2.3× better in performance per
+watt (Nurvitadhi et al., 2017). In the context of ASICs,
+reducing the number of multiplications is beneficial as multiplication operations consume significantly more energy
+than addition operations (3–30× depending on the data type
+(Horowitz, 2014; Andri et al., 2018)). More generally, replacing multiplications in DNNs by additions leads to a
+reduction in models size as addition/subtraction can be encoded as a binary weight. This is beneficial in terms of
+throughput for most deep learning applications, which are
+typically memory-bound.
+Motivated by these observations, we propose a novel framework to drastically reduce the number of multiplications
+used by DNNs for inference. Specifically, for every DNN
+layer, we cast the (matrix) multiplication of the weight matrix with the activations as a 2-layer sum-product network
+
+

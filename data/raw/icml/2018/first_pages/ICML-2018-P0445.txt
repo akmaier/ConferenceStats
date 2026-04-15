@@ -1,0 +1,111 @@
+Weightless: Lossy weight encoding for deep neural network compression
+
+Brandon Reagen 1 Udit Gupta 1 Robert Adolf 1 Michael M. Mitzenmacher 1 Alexander M. Rush 1
+Gu-Yeon Wei 1 David Brooks 1 2
+
+Abstract
+
+Train model
+
+The large memory requirements of deep neural
+networks limit their deployment and adoption
+on many devices. Model compression methods
+effectively reduce the memory requirements of
+these models, usually through applying transformations such as weight pruning or quantization.
+In this paper, we present a novel scheme for lossy
+weight encoding co-designed with weight simplification techniques. The encoding is based on the
+Bloomier filter, a probabilistic data structure that
+can save space at the cost of introducing random
+errors. Leveraging the ability of neural networks
+to tolerate these imperfections and by re-training
+around the errors, the proposed technique, named
+Weightless, can compress weights by up to 496×
+without loss of model accuracy. This results in up
+to a 1.51× improvement over the state-of-the-art.
+
+1. Introduction
+The continued success of neural networks comes with increasing demands on compute, memory, and networking
+resources. Moreover, the correlation between model size
+and accuracy suggests that tomorrow’s networks will only
+grow larger. This growth presents a challenge for resourceconstrained platforms such as mobile phones and wireless
+sensors. A common workflow is to train networks in the
+cloud using high-performance devices including GPUs and
+even customized hardware (Google, 2017). Trained neural
+networks are then distributed to edge devices and used to
+make inferences on new data. To make the inferences efficient, devices now leverage special hardware (Apple, 2017;
+Qualcomm, 2017), mobile GPUs, or CPUs with heavily
+optimized code (Hazelwood et al., 2018).
+While many products have been successfully deployed to
+1
+
+Harvard University, Cambridge,
+Menlo Park, CA. Correspondence to:
+<reagen@fas.harvard.edu>.
+
+MA 2 Facebook,
+Brandon Reagen
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+Weightless
+encode
+<496x BW
+reduction
+
+Cloud
+
+Transmit
+compressed
+weights
+0 0 1 0 0 0 0 0
+0 0 0 0 0 0 1 0
+0 0 1 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 1 0
+
+Network
+
+Process
+inferences
+Weightless
+decode
+
+Edge device
+
+Figure 1. Weightless compresses neural networks by up to three
+orders of magnitude, which facilitates efficient transmission of
+trained models from the cloud to edge devices.
+
+alleviate the computational costs of network training and
+inference, one remaining practical issue is reducing the burden of distributing the latest models, especially in regions of
+the world not using high-bandwidth networks. For instance,
+it is estimated that, globally, 800 million users will be using
+2G networks by 2020 (GSMA, 2014), which can take up to
+30 minutes to download just 20 MB of data. By contrast,
+today’s neural networks are on the order of tens to hundreds
+of MBs, making them difficult to distribute. The limited
+storage capacity on resource-constrained devices poses an
+additional challenge as more applications look to leverage
+neural networks.
+Model compression is a popular solution for these problems.
+A variety of compression algorithms have been proposed in
+recent years and many exploit the intrinsic redundancy in
+model weights. Broadly speaking, the majority of this work
+has focused on simplification methods (e.g., weight pruning
+and quantization), while comparatively little effort has been
+spent on devising techniques for encoding and compressing.
+In this paper we propose Weightless: a novel lossy compression method co-designed with weight simplification techniques. Weightless is based on the probabilistic Bloomier
+filter data structure (Chazelle et al., 2004). Bloomier filters
+inexactly store a function map, and by adjusting the filter
+parameter, we can elect to reduce the structure’s size at the
+cost of an increased chance of erroneous values. We use the
+filters to compactly encode the weights of a neural network
+for transmission and storage (Figure 1), exploiting redundancy in the weights to tolerate some errors. Bloomier filters
+excel when the encoded data is sparse and the values have a
+small contiguous range. Therefore, to maximize compression, we simplify the weights for encoding by aggressively
+pruning connections and clustering values. Finally, the size
+of the filters encoding the weights can be further reduced
+
+

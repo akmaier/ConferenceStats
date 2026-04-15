@@ -1,0 +1,82 @@
+Deliberation in Latent Space via Differentiable Cache Augmentation
+
+Luyang Liu 1 Jonas Pfeiffer 1 Jiaxing Wu 1 Jun Xie 1 Arthur Szlam 1
+
+Abstract
+
+sequences of steps before producing a final answer can significantly improve performance on reasoning tasks. More
+broadly, providing LLMs with the ability to allocate compute adaptively during generation can lead to more effective
+generation within a fixed compute budget (Schuster et al.,
+2022). However, at a high level, many of these “extra thinking” approaches are similar in that their sequences of intermediate outputs are discrete, making them difficult to train
+in an end-to-end fashion, and in that their extra “thinking”
+(i.e. computation) is performed just-in-time, as part of the
+output generating process.
+
+Techniques enabling large language models
+(LLMs) to “think more” by generating and attending to intermediate reasoning steps have shown
+promise in solving complex problems. However,
+the standard approaches generate sequences of
+discrete tokens immediately before responding,
+and so they can incur significant latency costs
+and be challenging to optimize. In this work, we
+demonstrate that a frozen LLM can be augmented
+with an offline coprocessor that operates on the
+model’s key-value (kv) cache. This coprocessor
+augments the cache with a set of latent embeddings designed to improve the fidelity of subsequent decoding. We train this coprocessor using
+the language modeling loss from the decoder on
+standard pretraining data, while keeping the decoder itself frozen. This approach enables the
+model to learn, in an end-to-end differentiable
+fashion, how to distill additional computation into
+its kv-cache. Because the decoder remains unchanged, the coprocessor can operate offline and
+asynchronously, and the language model can function normally if the coprocessor is unavailable or
+if a given cache is deemed not to require extra
+computation. We show experimentally that when
+a cache is augmented, the decoder achieves lower
+perplexity on numerous subsequent tokens. Furthermore, even without any task-specific training,
+our experiments demonstrate that cache augmentation consistently improves performance across
+a range of reasoning-intensive tasks.
+
+In this work, we introduce a fundamentally different approach, inspired by the literature on kv-cache compression (Mu et al., 2024; Ge et al., 2024). Our approach takes
+a step towards LLMs that can deliberate on their memories
+(encoded in the kv-cache), and distill these deliberations
+into a form usable for subsequent tasks. Specifically, our
+method processes the transformer’s cache and augments it
+with a set of soft tokens produced in a single forward pass–
+not sequentially. This extra processing is performed by a
+separate model, which we refer to as a “coprocessor”, while
+the base transformer remains frozen. Once the kv-cache is
+augmented with the coprocessor’s output (which we term
+“latent embeddings”), decoding proceeds as normal until
+the coprocessor is called again. This approach offers the
+following key advantages:
+End-to-end Differentiability: Our framework enables endto-end backpropagation during coprocessor training, facilitating efficient optimization without the need for reinforcement learning techniques. We leverage the standard
+language-modeling loss on pre-training data, making the
+method scalable.
+Asynchronous Operation: Because cache augmentation
+improves results many tokens beyond the augmentation
+point, and because the base transformer remains frozen
+during coprocessor training, asynchronous coprocessor operation becomes feasible. This contrasts with existing methods where additional computation occurs sequentially, and
+online. Our approach opens the door to models that can
+strategically bank computation by deliberating and refining
+their internal memory, independent of composing a response
+to a query.
+
+1. Introduction
+Recent research (Wei et al., 2022; Kojima et al., 2022; Wu
+et al., 2024) has shown that enabling large language models (LLMs) to generate, or even search over, intermediate
+1
+
+Google DeepMind.
+Correspondence to:
+Luyang
+Liu <luyang.liu@google.com>,
+Arthur Szlam <aszlam@google.com>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+We evaluate our method using Gemma-2 (Team-Gemma
+et al., 2024) models pretrained on a diverse dataset mixture.
+1
+
+

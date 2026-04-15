@@ -1,0 +1,75 @@
+LIT: Learned Intermediate Representation Training for Model Compression
+
+Animesh Koratana * 1 Daniel Kang * 1 Peter Bailis 1 Matei Zaharia 1
+
+Abstract
+Researchers have proposed a range of model compression techniques to reduce the computational
+and memory footprint of deep neural networks
+(DNNs). In this work, we introduce Learned
+Intermediate representation Training (LIT), a
+novel model compression technique that outperforms a range of recent model compression techniques by leveraging the highly repetitive structure of modern DNNs (e.g., ResNet). LIT uses a
+teacher DNN to train a student DNN of reduced
+depth by leveraging two key ideas: 1) LIT directly compares intermediate representations of
+the teacher and student model and 2) LIT uses
+the intermediate representation from the teacher
+model’s previous block as input to the current
+student block during training, improving stability of intermediate representations in the student
+network. We show that LIT can substantially reduce network size without loss in accuracy on a
+range of DNN architectures and datasets. For example, LIT can compress ResNet on CIFAR10 by
+3.4× outperforming network slimming and FitNets. Furthermore, LIT can compress, by depth,
+ResNeXt 5.5× on CIFAR10 (image classification), VDCNN by 1.7× on Amazon Reviews
+(sentiment analysis), and StarGAN by 1.8× on
+CelebA (style transfer, i.e., GANs).
+
+1. Introduction
+Modern deep networks have improved in accuracy at the
+cost of higher computational overhead (Ioffe & Szegedy,
+2015; He et al., 2016). In response, researchers have proposed many compression techniques to reduce this computational overhead at inference time, which broadly fall
+into two categories. The first category are student/teacher
+methods—introduced in knowledge distillation (KD) (Hin*
+Equal contribution 1 Stanford University, DAWN Project. Correspondence to: Daniel Kang <ddkang@stanford.edu>.
+th
+
+Proceedings of the 36 International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+ton et al., 2014) and further extended (Romero et al., 2015;
+Kim & Rush, 2016; Furlanello et al., 2018)—in which a
+smaller student model learns from a large teacher model
+(e.g., by matching the logits of the teacher and student models). The second category is deep compression (Han et al.,
+2016b; Zhu et al., 2017; Li et al., 2017; Hubara et al., 2017),
+in which parts of a model are pruned or quantized to reduce
+the number of weights and/or the computational footprint.
+In this work, we refer to this class of methods as “deep compression” and methods to reduce model size more generally
+as “model compression.”
+We focus on student/teacher methods since the student
+model can be designed to leverage existing hardware, e.g.,
+hardware that is optimized for dense matrix multiplication.
+In contrast, deep compression typically requires new hardware (such as sparse multipliers) for inference improvements (Han et al., 2016a). Additionally, weight pruning methods achieve lower compression ratios on modern
+DNNs. The majority of compression on older DNNs comes
+from compressing fully connected layers: ResNet can only
+be pruned by ~1.5× (Liu et al., 2019) compared to ~10×
+for older networks (Han et al., 2016b).
+In this work, we introduce Learned Intermediate representation Training (LIT), a student/teacher compression technique that outperforms a range of model compression techniques on modern networks without requiring changes in
+hardware. LIT targets highly structured, modern networks
+that consist of repetitive blocks (i.e., groups of layers) that
+can be scaled up/down for accuracy/speed trade-offs. For
+example, ResNets have standard configurations from 20
+to hundreds of layers (He et al., 2016) across four blocks.
+LIT leverages two key ideas to directly reduce the depth of
+student networks as we illustrate in Figure 1.1 First, LIT
+directly penalizes deviations of one or more student and
+teacher intermediate representations (IRs, i.e., the output
+from a hidden layer). Second, LIT uses the IR from the
+previous block in the teacher model as input to the current student block during training; each student block is
+effectively trained in isolation to match the corresponding
+(deeper) block in the teacher. This improves stability of
+1
+
+LIT is similar to FitNets (Romero et al., 2015) but targets
+modern networks. The key difference is using the teacher model’s
+intermediates as input to the student model. We discuss further
+differences in Section 2.
+
+

@@ -1,0 +1,75 @@
+Semi-Supervised StyleGAN for Disentanglement Learning
+
+Weili Nie∗ 1 Tero Karras 2 Animesh Garg 2 3 Shoubhik Debnath 2 Anjul Patney 2
+Ankit B. Patel 1 Anima Anandkumar 2 4
+
+Abstract
+Disentanglement learning is crucial for obtaining disentangled representations and controllable
+generation. Current disentanglement methods
+face several inherent limitations: difficulty with
+high-resolution images, primarily focusing on
+learning disentangled representations, and nonidentifiability due to the unsupervised setting. To
+alleviate these limitations, we design new architectures and loss functions based on StyleGAN
+(Karras et al., 2019), for semi-supervised highresolution disentanglement learning. We create
+two complex high-resolution synthetic datasets
+for systematic testing. We investigate the impact of limited supervision and find that using
+only 0.25%∼2.5% of labeled data is sufficient for
+good disentanglement on both synthetic and real
+datasets. We propose new metrics to quantify generator controllability, and observe there may exist
+a crucial trade-off between disentangled representation learning and controllable generation. We
+also consider semantic fine-grained image editing
+to achieve better generalization to unseen images.
+
+1. Introduction
+Disentanglement learning with deep generative models has
+attracted much attention recently (Chen et al., 2016; Higgins et al., 2017; Locatello et al., 2019). This is crucial for
+controllable generation, where the style codes specified to
+the generator need to separately control various factors of
+variation for faithful generation. Another goal is learning
+disentangled representations where the input samples can
+be encoded to latent factors that are disentangled. This has
+been argued as a key to success of deep learning (Achille
+& Soatto, 2018). Previous works have primarily focused
+on only one of the above two objectives. Ideally, the ultiRice University (∗ Work done as a part of internship at Nvidia)
+Nvidia 3 University of Toronto 4 California Institute of Technology.
+Correspondence to: Weili Nie <wn8@rice.edu>.
+1
+
+2
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+mate goal of disentanglement learning is to achieve both
+the objectives at the same time, especially on more complex
+high-resolution images, and we pursue this goal in this paper. We first list the three main limitations of the current
+disentanglement methods.
+First, much effort has focused on unsupervised disentanglement methods (Chen et al., 2016; Higgins et al., 2017;
+Nguyen-Phuoc et al., 2019). This is because a large number
+of fully annotated samples is expensive to obtain. These
+methods suffer from non-identifiability, which means multiple repeated runs will not reliably observe the same latent representations (Hyvärinen & Pajunen, 1999; Locatello
+et al., 2019). In addition, human feedback is needed to discern (i) what factors of variation the model has learnt (e.g.,
+object shape and color), and (ii) what semantic meaning
+different values of the discovered factor code represent (e.g.,
+red and blue in a color factor code). To reliably control generation for practical use, adding a small amount of labeled
+data may resolve the non-identifiability issue and lead to
+interpretable factors. Hence, we investigate the impact of
+limited supervision on disentanglement learning.
+Second, current disentanglement methods (Locatello et al.,
+2019; 2020) are mainly developed and evaluated on relatively simple low-resolution images, such as dSprites
+(Matthey et al., 2017) and 3DShapes (Kim & Mnih, 2018),
+which raises concerns about their ability to scale up to more
+diverse, higher-resolution images. For example, the use of
+3D representations to disentangle the 3D pose may not easily apply to high-resolution images due to the computational
+cost. The difficulty of some deep generative models at generating realistic images also limits their application in more
+complex domains. Furthermore, although there exist many
+real image datasets of high resolution, the latent factors
+are typically only partially observed or unbalanced, which
+makes it hard to scientifically study disentanglement. To
+gain practically useful insights, it is critical to first test disentanglement methods on complex, high-resolution, synthetic
+images wherein ground-truth factors are easy to obtain.
+Third, most previous works (Kim & Mnih, 2018; Chen et al.,
+2018) have primarily focused on learning disentangled representations by quantifying encoder disentanglement quality,
+in the hopes that a better disentangled encoder might also
+
+

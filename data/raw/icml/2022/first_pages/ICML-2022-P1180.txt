@@ -1,0 +1,73 @@
+Low-Precision Stochastic Gradient Langevin Dynamics
+
+Ruqi Zhang 1 Andrew Gordon Wilson 2 Christopher De Sa 3
+
+Abstract
+While low-precision optimization has been widely
+used to accelerate deep learning, low-precision
+sampling remains largely unexplored. As a consequence, sampling is simply infeasible in many
+large-scale scenarios, despite providing remarkable benefits to generalization and uncertainty estimation for neural networks. In this paper, we
+provide the first study of low-precision Stochastic
+Gradient Langevin Dynamics (SGLD), showing
+that its costs can be significantly reduced without sacrificing performance, due to its intrinsic
+ability to handle system noise. We prove that
+the convergence of low-precision SGLD with fullprecision gradient accumulators is less affected
+by the quantization error than its SGD counterpart in the strongly convex setting. To further enable low-precision gradient accumulators, we develop a new quantization function for SGLD that
+preserves the variance in each update step. We
+demonstrate that low-precision SGLD achieves
+comparable performance to full-precision SGLD
+with only 8 bits on a variety of deep learning tasks.
+
+1. Introduction
+Low-precision optimization has become increasingly popular in reducing computation and memory costs of training
+deep neural networks (DNNs). It uses fewer bits to represent
+numbers in model parameters, activations, and gradients,
+and thus can drastically lower resource demands (Gupta
+et al., 2015; Zhou et al., 2016; De Sa et al., 2017; Li et al.,
+2017). Prior work has shown that using 8-bit numbers in
+training DNNs achieves about 4× latency speed ups and
+memory reduction compared to 32-bit numbers on a wide
+variety of deep learning tasks (Sun et al., 2019; Yang et al.,
+2019; Wang et al., 2018b; Banner et al., 2018). As datasets
+and architectures grow rapidly, performing low-precision
+1
+
+The University of Texas at Austin 2 New York University 3 Cornell University. Correspondence to: Ruqi Zhang
+<ruqiz@utexas.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+optimization enables training large-scale DNNs efficiently
+and enables many applications on different hardware and
+platforms.
+Despite the impressive progress in low-precision optimization, low-precision sampling remains largely unexplored.
+However, we believe stochastic gradient Markov chain
+Monte Carlo (SGMCMC) methods (Welling & Teh, 2011;
+Chen et al., 2014; Ma et al., 2015) are particularly suited
+for low-precision arithmetic because of their intrinsic robustness to system noise. In particular: (1) SGMCMC explores weight space instead of converging to a single point,
+thus it should not require precise weights or gradients; (2)
+SGMCMC even adds noise to the system to encourage exploration and so is naturally more tolerant to quantization
+noise; (3) SGMCMC performs Bayesian model averaging
+during testing using an ensemble of models, which allows
+coarse representations of individual models to be compensated by the overall model average (Zhu et al., 2019).
+SGMCMC is particularly compelling in Bayesian deep
+learning due to its ability to characterize complex and multimodal DNN posteriors, providing state-of-the-art generalization accuracy and calibration (Zhang et al., 2020; Li et al.,
+2016; Gan et al., 2017; Heek & Kalchbrenner, 2019). Moreover, low-precision approaches are especially appealing in
+this setting, where at test time we must store samples from a
+posterior over millions of parameters, and perform multiple
+forward passes through the corresponding models, which
+incurs significant memory and computational expenses.
+In this paper, we give the first comprehensive study of
+low-precision Stochastic Gradient Langevin Dynamics
+(SGLD) (Welling & Teh, 2011), providing both theoretical convergence bounds and promising empirical results
+in deep learning. On strongly log-concave distributions
+(i.e. strongly convex functions for SGD), we prove that
+the convergence of SGLD with full-precision gradient accumulators is more robust to the quantization error than its
+counterpart in SGD. Surprisingly, we find that SGLD with
+low-precision gradient accumulators can diverge arbitrarily
+far away from the target distribution with small stepsizes.
+We identify the source of the issue and develop a new quantization function to correct the bias with minimal overhead.
+Empirically, we demonstrate low-precision SGLD across
+different tasks, showing that it is able to provide superior
+
+

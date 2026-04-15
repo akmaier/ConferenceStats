@@ -1,0 +1,84 @@
+What if Neural Networks had SVDs?
+Alexander Mathiasen∗
+
+Frederik Hvilshøj∗
+
+Anshul Nasery∗ †
+
+Jakob Rødsgaard Jørgensen∗
+Davide Mottin∗
+
+Abstract
+Various Neural Networks employ time-consuming matrix operations like matrix
+inversion. Many such matrix operations are faster to compute given the Singular
+Value Decomposition (SVD). Techniques from [10, 17] allow using the SVD in
+Neural Networks without computing it. In theory, the techniques can speed up
+matrix operations, however, in practice, they are not fast enough. We present an
+algorithm that is fast enough to speed up several matrix operations. The algorithm
+increases the degree of parallelism of an underlying matrix multiplication H · X
+where H is an orthogonal matrix represented by a product of Householder matrices.
+
+Introduction
+
+What could be done if the Singular Value Decomposition
+(SVD) of the weights in a Neural Network was given?
+Time-consuming matrix operations, such as matrix inversion [6], could be computed faster, reducing training time.
+However, on d × d weight matrices it takes O(d3 ) time
+to compute the SVD, which is not faster than computing
+the matrix inverse in O(d3 ) time. In Neural Networks, one
+can circumvent the SVD computation by using the SVD
+reparameterization from [17], which, in theory, reduces the
+time complexity of matrix inversion from O(d3 ) to O(d2 ).
+However, in practice, the SVD reparameterization attains
+no speed-up for matrix inversion on GPUs.
+
+Time in seconds
+
+1
+
+0.125
+0.100
+0.075
+0.050
+0.025
+0.000
+
+Sequential
+FastH (ours)
+27.1× faster
+
+200
+
+400
+600
+Size of matrix d
+
+800
+
+Figure 1: Time consumption of matrix
+inversion in Neural Networks. The plot
+compares FastH against the sequential
+algorithm from [17] (see Section 4).
+
+The difference between theory and practice occurs because the previous technique increases sequential
+work, which is not taken into account by the time complexity analysis. On a d × d weight matrix,
+the previous technique entails the computation of O(d) sequential inner products, which is ill-fit for
+parallel hardware like a GPU because the GPU cannot utilize all its cores. For example, if a GPU has
+4000 cores and computes sequential inner products on 100-dimensional vectors, it can only utilize
+100 cores simultaneously, leaving the remaining 3900 cores to run idle.
+We introduce a novel algorithm, FastH, which increases core utilization, leaving less cores to run idle.
+This is accomplished by increasing the degree of parallelization of an underlying matrix multiplication
+H · X where H is an orthogonal matrix represented by a product of Householder matrices. FastH
+retains the same desirable time complexity as the sequential algorithm from [17] while reducing the
+number of sequential operations. On a mini-batch of size m > 1, FastH performs O(d/m + m)
+sequential matrix-matrix operations instead of O(d) sequential vector-vector operations.
+In practice, FastH is faster than all algorithms from [17], e.g., FastH is 27 times faster than their
+sequential algorithm, see Figure 1. Code www.github.com/AlexanderMath/fasth.
+34th Conference on Neural Information Processing Systems (NeurIPS 2020), Vancouver, Canada.
+∗
+†
+
+Aarhus University, {alexander.mathiasen, fhvilshoj, mrjakobdk}@gmail.com, davide@cs.au.dk
+Indian Institute of Technology, Bombay, anshulnasery@gmail.com
+
+

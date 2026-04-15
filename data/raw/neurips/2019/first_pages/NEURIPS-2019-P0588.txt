@@ -1,0 +1,59 @@
+Channel Gating Neural Networks
+
+Weizhe Hua
+wh399@cornell.edu
+
+Yuan Zhou
+yz882@cornell.edu
+
+Zhiru Zhang
+zhiruz@cornell.edu
+
+Christopher De Sa
+cdesa@cornell.edu
+
+G. Edward Suh
+gs272@cornell.edu
+
+Abstract
+This paper introduces channel gating, a dynamic, fine-grained, and hardwareefficient pruning scheme to reduce the computation cost for convolutional neural
+networks (CNNs). Channel gating identifies regions in the features that contribute
+less to the classification result, and skips the computation on a subset of the input
+channels for these ineffective regions. Unlike static network pruning, channel
+gating optimizes CNN inference at run-time by exploiting input-specific characteristics, which allows substantially reducing the compute cost with almost no
+accuracy loss. We experimentally show that applying channel gating in state-ofthe-art networks achieves 2.7-8.0× reduction in floating-point operations (FLOPs)
+and 2.0-4.4× reduction in off-chip memory accesses with a minimal accuracy loss
+on CIFAR-10. Combining our method with knowledge distillation reduces the
+compute cost of ResNet-18 by 2.6× without accuracy drop on ImageNet. We
+further demonstrate that channel gating can be realized in hardware efficiently. Our
+approach exhibits sparsity patterns that are well-suited to dense systolic arrays with
+minimal additional hardware. We have designed an accelerator for channel gating
+networks, which can be implemented using either FPGAs or ASICs. Running a
+quantized ResNet-18 model for ImageNet, our accelerator achieves an encouraging
+speedup of 2.4× on average, with a theoretical FLOP reduction of 2.8×.
+
+1
+
+Introduction
+
+The past half-decade has seen unprecedented growth in the use of machine learning with convolutional
+neural networks (CNNs). CNNs represent the state-of-the-art in large scale computer vision, natural
+language processing, and data mining tasks. However, CNNs have substantial computation and
+memory requirements, greatly limiting their deployment in constrained mobile and embedded
+devices [1, 23]. There are many lines of work on reducing CNN inference costs, including lowprecision quantization [3, 21], efficient architectures [14, 30], and static pruning [9, 12, 19, 22].
+However, most of these techniques optimize a network statically, and are agnostic of the input
+data at run time. Several recent efforts propose to use additional fully-connected layers [6, 8, 28]
+or recurrent networks [20, 29] to predict if a fraction of the computation can be skipped based on
+certain intermediate results produced by the CNN at run time. These approaches typically perform
+coarse-grained pruning where an entire output channel or layer is skipped dynamically.
+In this paper, we propose channel gating, a dynamic, fine-grained, and hardware-efficient pruning
+scheme, which exploits the spatial structure of features to reduce CNN computation at the granularity
+of individual output activation. As illustrated in Figure 1, the essential idea is to divide a CNN layer
+into a base path and a conditional path. For each output activation, the base path obtains a partial sum
+of the output activation by performing convolution on a subset of input channels. The activation-wise
+gate function then predicts whether the output activations are effective given the partial sum. Only
+the effective activations take the conditional path which continues computing on the rest of the input
+channels. For example, an output activation is ineffective if the activation is clipped to zero by ReLU
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

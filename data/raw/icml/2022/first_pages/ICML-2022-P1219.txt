@@ -1,0 +1,74 @@
+Detecting Corrupted Labels Without Training a Model to Predict
+
+Zhaowei Zhu 1 Zihao Dong 1 Yang Liu 1
+
+Abstract
+Label noise in real-world datasets encodes wrong
+correlation patterns and impairs the generalization
+of deep neural networks (DNNs). It is critical to
+find efficient ways to detect corrupted patterns.
+Current methods primarily focus on designing robust training techniques to prevent DNNs from
+memorizing corrupted patterns. These approaches
+often require customized training processes and
+may overfit corrupted patterns, leading to a performance drop in detection. In this paper, from
+a more data-centric perspective, we propose a
+training-free solution to detect corrupted labels.
+Intuitively, “closer” instances are more likely to
+share the same clean label. Based on the neighborhood information, we propose two methods: the
+first one uses “local voting” via checking the noisy
+label consensuses of nearby features. The second
+one is a ranking-based approach that scores each
+instance and filters out a guaranteed number of instances that are likely to be corrupted. We theoretically analyze how the quality of features affects
+the local voting and provide guidelines for tuning
+neighborhood size. We also prove the worst-case
+error bound for the ranking-based method. Experiments with both synthetic and real-world label noise demonstrate our training-free solutions
+consistently and significantly improve most of
+the training-based baselines. Code is available at
+github.com/UCSC-REAL/SimiFeat.
+
+1. Introduction
+The generalization of deep neural networks (DNNs) depends
+on the quality and the quantity of the data. Nonetheless, realworld datasets often contain label noise that challenges the
+above assumption (Krizhevsky et al., 2012; Zhang et al.,
+2017; Agarwal et al., 2016; Wang et al., 2021a). Employing
+1
+
+Department of Computer Science and Engineering, University
+of California, Santa Cruz, CA, USA. Correspondence to: Yang Liu
+<yangliu@ucsc.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+human workers to clean annotations is one reliable way to
+improve the label quality, but it is too expensive and timeconsuming for a large-scale dataset. One promising way
+to automatically clean up label errors is to first algorithmically detect possible label errors from a large-scale dataset
+(Cheng et al., 2021a; Northcutt et al., 2021a; Pruthi et al.,
+2020; Bahri et al., 2020), and then correct them using either
+algorithm or crowdsourcing (Northcutt et al., 2021b).
+Almost all the algorithmic detection approaches focus on
+designing customized training processes to learn with noisy
+labels, where the idea is to train DNNs with noisy supervisions and then make decisions based on the output (Northcutt et al., 2021a) or gradients (Pruthi et al., 2020) of the
+last logit layer of the trained model. The high-level intuition of these methods is the memorization effects (Han
+et al., 2020), i.e., instances with label errors, a.k.a., corrupted instances, tend to be harder to be learned by DNNs
+than clean instances (Xia et al., 2021; Liu et al., 2020; Bai
+& Liu, 2021). By setting appropriate hyperparameters to
+utilize the memorization effect, corrupted instances could
+be identified.
+Limitations of the learning-centric methods The above
+methods suffer from two major limitations: 1) the customized training processes are task-specific and may require
+fine-tuning hyperparameters for different datasets/noise; 2)
+as long as the model is trained with noisy supervisions, the
+memorization of corrupted instances exists. The model will
+“subjectively” and wrongly treat the memorized/overfitted
+corrupted instances as clean. For example, some lowfrequency/rare clean instances may be harder to memorize
+than high-frequency/common corrupted instances. Memorizing these corrupted instances lead to unexpected and
+disparate impacts (Liu, 2021).
+Existing solutions to avoid memorizing/overfitting are to
+employ some regularizers (Cheng et al., 2021a) or use
+early-stopping (Bai et al., 2021; Li et al., 2020b). However, their performance depends on hyperparameter settings.
+One promising way to avoid memorizing/overfitting is to
+drop the dependency on the noisy supervision, which motivates us to design a training-free method to find label
+errors. Intuitively, we can carefully use the information
+from nearby features to infer whether one instance is corrupted or not. The comparison between our data-centric and
+
+

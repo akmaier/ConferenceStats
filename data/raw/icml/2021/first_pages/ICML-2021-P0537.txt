@@ -1,0 +1,81 @@
+Meta-Thompson Sampling
+Branislav Kveton 1 Mikhail Konobeev 2 Manzil Zaheer 1 Chih-wei Hsu 1 Martin Mladenov 1 Craig Boutilier 1
+Csaba Szepesvári 3 2
+
+Abstract
+Efficient exploration in bandits is a fundamental
+online learning problem. We propose a variant of
+Thompson sampling that learns to explore better
+as it interacts with bandit instances drawn from
+an unknown prior. The algorithm meta-learns the
+prior and thus we call it MetaTS. We propose several efficient implementations of MetaTS and analyze it in Gaussian bandits. Our analysis shows
+the benefit of meta-learning and is of a broader interest, because we derive a novel prior-dependent
+Bayes regret bound for Thompson sampling. Our
+theory is complemented by empirical evaluation,
+which shows that MetaTS quickly adapts to the
+unknown prior.
+
+1. Introduction
+A stochastic bandit (Lai & Robbins, 1985; Auer et al., 2002;
+Lattimore & Szepesvari, 2019) is an online learning problem where a learning agent sequentially interacts with an
+environment over n rounds. In each round, the agent pulls
+an arm and then receives the arm’s stochastic reward. The
+agent aims to maximize its expected cumulative reward over
+n rounds. It does not know the mean rewards of the arms a
+priori, so must learn them by pulling the arms. This induces
+the well-known exploration-exploitation trade-off : explore,
+and learn more about an arm; or exploit, and pull the arm
+with the highest estimated reward. In a clinical trial, the arm
+might be a treatment and its reward is the outcome of that
+treatment for a patient.
+Bandit algorithms are typically designed to have low regret
+for some problem class of interest to the algorithm designer
+(Lattimore & Szepesvari, 2019). In practice, however, the
+problem class may not be perfectly specified at the time of
+the design. For instance, consider applying Thompson sampling (TS) (Thompson, 1933; Chapelle & Li, 2012; Agrawal
+& Goyal, 2012; Russo et al., 2018) to a 2-armed bandit in
+1
+
+Google Research 2 University of Alberta 3 DeepMind. Correspondence to: Branislav Kveton <bkveton@google.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+which the prior distribution over mean arm rewards, a vital
+part of TS, is unknown. While the prior is unknown, the designer may know that it is one of two possible priors where
+either arm 1 or arm 2 is optimal with high probability. If the
+agent could learn which of the two priors has been realized,
+for instance by interacting repeatedly with bandit instances
+drawn from that prior, it could adapt its exploration strategy
+to the realized prior, and thereby incur much lower regret
+than would be possible without this adaptation.
+We formalize this learning problem as follows. A learning
+agent sequentially interacts with m bandit instances. Each
+interaction has n rounds and we refer to it as a task. The
+instances share a common structure, namely that their mean
+arm rewards are drawn from an unknown instance prior P∗ .
+While P∗ is not known, we assume that it is sampled from a
+meta-prior Q, which the agent knows with certainty. The
+goal of the agent is to minimize the regret in each sampled
+instance almost as well as if it knew P∗ . This is achieved
+by adapting to P∗ through interactions with the instances.
+This is a form of meta-learning (Thrun, 1996; 1998; Baxter,
+1998; 2000), where the agent learns to act from interactions
+with bandit instances.
+We make the following contributions. First, we formalize
+the problem of Bayes regret minimization where the prior
+P∗ is unknown, and is learned by interactions with bandit
+instances sampled from it in m tasks. Second, we propose
+MetaTS, a meta-Thompson sampling algorithm that solves
+this problem. MetaTS maintains a distribution over the unknown P∗ in each task, which we call a meta-posterior Qs ,
+and acts optimistically with respect to it. More specifically,
+in task s, it samples an estimate of P∗ as Ps ∼ Qs and then
+runs TS with prior Ps for n rounds. We show how to implement MetaTS efficiently in Bernoulli and Gaussian bandits.
+In addition, we bound its Bayes regret in Gaussian bandits.
+Our analysis is conservative because it relies only on a single pull of each arm in each task. Nevertheless, it yields an
+improved regret bound due to adapting to P∗ . The analysis
+is of broader interest, as we derive a novel prior-dependent
+upper bound on the Bayes regret of TS. Our theoretical results are complemented by synthetic experiments, which
+show that MetaTS adapts quickly to the unknown prior P∗ ,
+and its regret is comparable to that of TS with a known P∗ .
+
+

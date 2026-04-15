@@ -1,0 +1,79 @@
+Ithemal: Accurate, Portable and Fast Basic Block Throughput Estimation
+using Deep Neural Networks
+
+Charith Mendis 1 Alex Renda 1 Saman Amarasinghe 1 Michael Carbin 1
+
+Abstract
+Predicting the number of clock cycles a processor
+takes to execute a block of assembly instructions
+in steady state (the throughput) is important for
+both compiler designers and performance engineers. Building an analytical model to do so is
+especially complicated in modern x86-64 Complex Instruction Set Computer (CISC) machines
+with sophisticated processor microarchitectures
+in that it is tedious, error prone, and must be performed from scratch for each processor generation. In this paper we present Ithemal, the first
+tool which learns to predict the throughput of
+a set of instructions. Ithemal uses a hierarchical LSTM–based approach to predict throughput
+based on the opcodes and operands of instructions
+in a basic block. We show that Ithemal is more
+accurate than state-of-the-art hand-written tools
+currently used in compiler backends and static machine code analyzers. In particular, our model has
+less than half the error of state-of-the-art analytical models (LLVM’s llvm-mca and Intel’s IACA).
+Ithemal is also able to predict these throughput
+values just as fast as the aforementioned tools,
+and is easily ported across a variety of processor
+microarchitectures with minimal developer effort.
+
+1
+
+Introduction
+
+The throughput of a sequence of instructions—the number processor clock cycles taken to execute the sequence
+when looped in steady state—determines how fast those
+instructions can process data. Accurately predicting the
+throughput of a basic block1 is an essential requirement
+in many systems, to be able to predict and optimize runtime performance. For instance, constraint–based register
+1
+MIT CSAIL. Correspondence to:
+<charithm@mit.edu>.
+
+Charith Mendis
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+1
+In this work, we focus specifically on basic blocks, sequences
+of instructions with no branches or jumps.
+
+allocation and instruction scheduling (Lozano et al., 2012)
+relies on accurate throughput estimations, as do learning–
+based techniques like genetic algorithm based register allocation (Stephenson et al., 2003) and reinforcement learning
+based instruction scheduling (McGovern & Moss, 1999).
+The alternative – measuring throughput on demand by executing the basic block – is too expensive for most compilers
+and learning–based solutions. In practice, most systems
+employ analytical models to predict throughput. For instance, the LLVM compiler team (Lattner & Adve, 2004)
+recently merged2 a command-line tool, llvm-mca (Di Biagio & Davis, 2018), that exposes a machine model for
+throughput estimation. Intel has also released a closedsource machine code analyzer, IACA (Intel, 2017), which
+relies on internal knowledge of Intel’s processor design.
+These models are typically an order of magnitude faster
+than measuring a basic block’s throughput. However, manually writing an accurate and complete model is tedious,
+error-prone, and exceedingly difficult without knowledge of
+the exact mechanisms of the processor.
+In the hunt for accuracy, developers build complicated models which must make significant tradeoffs with the model’s
+portability and speed.
+Accuracy. Modern x86-64 Complex Instruction Set Computer (CISC) processors contain many hardware optimizations that significantly complicate building accurate analytical models. In order to implement an instruction set architecture (ISA) like x86-64, processors actually implement
+an underlying microarchitecture, a physical implementation
+of the ISA specification. Processors translate instructions
+from the ISA to instructions in the latent microarchitectural
+language (termed micro-ops), then execute those micro-ops.
+The micro-ops may undergo optimizations such as micro-op
+fusion, in which micro-ops of different instructions may be
+combined together; out-of-order execution, in which instructions can be executed in any semantics–preserving order;
+register renaming, where false dependencies can be broken
+to enable more parallel execution; and many more vendorspecific optimizations. This makes the prediction problem
+highly complex and non-linear.
+2
+
+lists.llvm.org/pipermail/llvm-dev/2018-March/121490.html
+
+

@@ -1,0 +1,74 @@
+Is Space-Time Attention All You Need for Video Understanding?
+
+Gedas Bertasius 1 Heng Wang 1 Lorenzo Torresani 1 2
+
+Abstract
+We present a convolution-free approach to video
+classification built exclusively on self-attention
+over space and time. Our method, named “TimeSformer,” adapts the standard Transformer architecture to video by enabling spatiotemporal feature learning directly from a sequence of framelevel patches. Our experimental study compares different self-attention schemes and suggests that “divided attention,” where temporal
+attention and spatial attention are separately applied within each block, leads to the best video
+classification accuracy among the design choices
+considered. Despite the radically new design,
+TimeSformer achieves state-of-the-art results on
+several action recognition benchmarks, including the best reported accuracy on Kinetics-400
+and Kinetics-600. Finally, compared to 3D
+convolutional networks, our model is faster to
+train, it can achieve dramatically higher test
+efficiency (at a small drop in accuracy), and
+it can also be applied to much longer video
+clips (over one minute long). Code and models are available at: https://github.com/
+facebookresearch/TimeSformer.
+
+1. Introduction
+Over the last few years, the field of natural language processing (NLP) has been revolutionized by the emergence of
+methods based on self-attention (Vaswani et al., 2017a). Because of their excellent capabilities at capturing long-range
+dependencies among words as well as their training scalability, self-attention architectures, such as the Transformer
+model, represent the current state-of-the-art across a wide
+range of language tasks, including machine translation (Ott
+et al., 2018; Chen et al., 2018a), question answering (Devlin et al., 2019; Dai et al., 2019), and autoregressive word
+generation (Radford et al., 2019; Brown et al., 2020).
+1
+
+Facebook AI 2 Dartmouth College. Correspondence to: Gedas
+Bertasius <gberta@seas.upenn.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Video understanding shares several high-level similarities
+with NLP. First of all, videos and sentences are both sequential. Furthermore, precisely as the meaning of a word can
+often be understood only by relating it to the other words in
+the sentence, it may be argued that atomic actions in shortterm segments need to be contextualized with the rest of the
+video in order to be fully disambiguated. Thus, one would
+expect the long-range self-attention models from NLP to be
+highly effective for video modeling as well. However, in the
+video domain, 2D or 3D convolutions still represent the core
+operators for spatiotemporal feature learning across different video tasks (Feichtenhofer et al., 2019a; Teed & Deng,
+2020; Bertasius & Torresani, 2020). While self-attention
+has shown benefits when applied on top of convolutional
+layers (Wang et al., 2018a), to the best of our knowledge, no
+attempt to use self-attention as the exclusive building block
+for video recognition models has been reported.
+In this work we pose the question of whether it may be
+possible to build a performant convolution-free video architecture by replacing altogether the convolution operator with
+self-attention. We argue that such a design has the potential to overcome a few inherent limitations of convolutional
+models for video analysis. First, while their strong inductive
+biases (e.g., local connectivity and translation equivariance)
+are undoubtedly beneficial on small training sets, they may
+excessively limit the expressivity of the model in settings
+where there is ample availability of data and “all” can be
+learned from examples. Compared to CNNs, Transformers
+impose less restrictive inductive biases. This broadens the
+family of functions they can represent (Cordonnier et al.,
+2020; Zhao et al., 2020), and renders them better suited
+to modern big-data regimes where there is less need for
+strong inductive priors. Second, while convolutional kernels
+are specifically designed to capture short-range spatiotemporal information, they cannot model dependencies that
+extend beyond the receptive field. While deep stacks of
+convolutions (Simonyan & Zisserman, 2015; Szegedy et al.,
+2015; Carreira & Zisserman, 2017) naturally extend the
+receptive field, these strategies are inherently limited in capturing long-range dependencies by means of aggregation
+of shorter-range information. Conversely, the self-attention
+mechanism can be applied to capture both local as well as
+global long-range dependencies by directly comparing feature activations at all space-time locations, much beyond the
+
+

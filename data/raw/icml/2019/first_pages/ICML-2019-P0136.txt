@@ -1,0 +1,99 @@
+Scalable Metropolis–Hastings for Exact Bayesian Inference with Large Datasets
+
+Rob Cornish 1 Paul Vanetti 1 Alexandre Bouchard-Côté 2 George Deligiannidis 1 3 Arnaud Doucet 1 3
+
+Bayesian inference via standard Markov Chain
+Monte Carlo (MCMC) methods is too computationally intensive to handle large datasets, since
+the cost per step usually scales like Θ(n) in the
+number of data points n. We propose the Scalable Metropolis–Hastings (SMH) kernel that exploits Gaussian concentration of the posterior
+to require √
+processing on average only O(1) or
+even O(1/ n) data points per step. This scheme
+is based on a combination of factorized acceptance probabilities, procedures for fast simulation of Bernoulli processes, and control variate
+ideas. Contrary to many MCMC subsampling
+schemes such as fixed step-size Stochastic Gradient Langevin Dynamics, our approach is exact
+insofar as the invariant distribution is the true posterior and not an approximation to it. We characterise the performance of our algorithm theoretically, and give realistic and verifiable conditions
+under which it is geometrically ergodic. This theory is borne out by empirical results that demonstrate overall performance benefits over standard
+Metropolis–Hastings and various subsampling algorithms.
+
+1. Introduction
+Bayesian inference is concerned with the posterior distribution p(θ|y1:n ), where θ ∈ Θ = Rd denotes parameters of
+interest and y1:n = (y1 , · · · , yn ) ∈ Y n are observed data.
+We assume the prior admits a Lebesgue density p(θ) and
+that the data are conditionally independent given θ with
+likelihoods p(yi |θ), which means
+p(θ|y1:n ) ∝ p(θ)
+
+n
+Y
+
+i=1
+
+p(yi |θ).
+
+1
+University of Oxford, Oxford, United Kingdom 2 University
+of British Columbia, Vancouver, Canada 3 The Alan Turing Institute, London, United Kingdom. Correspondence to: Rob Cornish
+<rcornish@robots.ox.ac.uk>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+Likelihood evaluations per iteration
+
+Abstract
+
+105
+
+MH
+SMH-1
+SMH-2
+
+104
+103
+102
+101
+64
+
+128
+
+256
+
+512
+
+1024 2048 4096 8192
+n
+
+32768
+
+131072
+
+Figure 1. Average number of likelihood evaluations per iteration
+required by SMH for a 10-dimensional logistic regression posterior
+as the number of data points n increases. SMH-1 uses a first-order
+approximation to the target and SMH-2 a second-order one.
+
+In most cases of interest, p(θ|y1:n ) does not admit a
+closed-form expression and so we must resort to a Markov
+Chain Monte Carlo (MCMC) approach. However, standard MCMC schemes can become very computationally
+expensive for large datasets. For example, the Metropolis–
+Hastings (MH) algorithm requires computing a likelihood
+ratio p(y1:n |θ0 )/p(y1:n |θ) at each iteration. A direct implementation of this algorithm thus requires computational cost
+Θ(n) per step, which is prohibitive for large n.
+Many ideas for mitigating this cost have been suggested; see
+Bardenet et al. (2017) for a recent review. Broadly speaking
+these approaches are distinguished by whether they exactly
+preserve the true posterior as the invariant distribution of
+the Markov chain produced. Approximate methods that
+have been proposed include divide-and-conquer schemes,
+which run parallel MCMC chains on a partition of the data
+(Neiswanger et al., 2013; Scott et al., 2016). Other approaches replace the likelihood ratio in MH with an approximation computed from a subsample of observations. The
+error introduced can be controlled heuristically using central
+limit theorem approximations (Korattikara et al., 2014) or
+rigorously via concentration inequalities (Bardenet et al.,
+2014; 2017; Quiroz et al., 2018a). Another popular class
+of schemes is based on Stochastic Gradient Langevin Dynamics (SGLD) (Welling & Teh, 2011; Dubey et al., 2016;
+Baker et al., 2018; Brosse et al., 2018; Chatterji et al., 2018),
+
+

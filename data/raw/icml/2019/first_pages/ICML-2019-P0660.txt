@@ -1,0 +1,139 @@
+EigenDamage: Structured Pruning in the Kronecker-Factored Eigenbasis
+Chaoqi Wang 1 2 Roger Grosse 1 2 Sanja Fidler 1 2 3 Guodong Zhang 1 2
+
+Abstract
+Reducing the test time resource requirements
+of a neural network while preserving test accuracy is crucial for running inference on resourceconstrained devices. To achieve this goal, we introduce a novel network reparameterization based
+on the Kronecker-factored eigenbasis (KFE),
+and then apply Hessian-based structured pruning methods in this basis. As opposed to existing
+Hessian-based pruning algorithms which do pruning in parameter coordinates, our method works
+in the KFE where different weights are approximately independent, enabling accurate pruning
+and fast computation. We demonstrate empirically the effectiveness of the proposed method
+through extensive experiments. In particular, we
+highlight that the improvements are especially
+significant for more challenging datasets and networks. With negligible loss of accuracy, an
+iterative-pruning version gives a 10⇥ reduction in
+model size and a 8⇥ reduction in FLOPs on wide
+ResNet32. Our code is available at here.
+
+1. Introduction
+Deep neural networks exhibit good generalization behavior in the over-parameterized regime (Zhang et al., 2016;
+Neyshabur et al., 2018), where the number of network parameters exceeds the number of training samples. However,
+over-parameterization leads to high computational cost and
+memory overhead at test time, making it hard to deploy deep
+neural networks on a resource-limited device.
+Network pruning (LeCun et al., 1990; Hassibi et al., 1993;
+Han et al., 2015; Dong et al., 2017; Zeng & Urtasun, 2019)
+has been identified as an effective technique to improve the
+efficiency of deep networks for applications with limited
+1
+Department of Computer Science, University of Toronto,
+Toronto, Canada 2 Vector Institute, Toronto, Canada 3 NVIDIA.
+Correspondence to: Chaoqi Wang <cqwang@cs.toronto.edu>,
+Guodong Zhang <gdzhang@cs.toronto.edu>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+Original
+
+Weight space
+
+input(32x32x512)
+
+3x3, conv, 512, 512
+Params: 100%, FLOPs: 100%
+
+Bottleneck
+(before pruning)
+
+"
+
+"
+
+Bottleneck
+(after pruning)
+
+input(32x32x512)
+
+input(32x32x512)
+
+1x1, conv, 512, 512
+
+1x1, conv, 512, 32
+
+Params: 11%, FLOPs: 11%
+
+Params: 0.7%, FLOPs: 0.7%
+
+3x3, conv, 512, 512
+
+3x3, conv, 32, 32
+
+Params: 100 %, FLOPs: 100 %
+
+Params: 0.4%, FLOPs: 0.3%
+
+1x1, conv, 512, 512
+
+1x1, conv, 32, 512
+
+Params: 11%, FLOPs: 11%
+
+Params: 0.7%, FLOPs: 0.7%
+
+(a) prune
+
+% (& ⨂% (*
+
+"$
+
+% &⨂% *
+
+%('
+
+"#
+
+%&
+
+"#
+
+(b) prune
+
+"$#
+
+Kronecker-factored
+eigenspace
+
+Figure 1. On the left-hand side, the proposed bottleneck structure
+before and after pruning. The number after ‘Params’ and ‘FLOPs’
+indicates the remaining portion compared to the original one. On
+the right-hand side, we highlight the differences of the pruning
+procedure between traditional methods (a) and our method (b).
+
+test-time computation and memory budgets. Without much
+loss in accuracy, classification networks can be compressed
+by a factor of 10 or even more (Han et al., 2015; Zeng
+& Urtasun, 2019) on ImageNet (Deng et al., 2009). A
+typical pruning procedure consists of three stages: 1) train a
+large, over-parameterized model, 2) prune the trained model
+according to a certain criterion, and 3) fine-tune the pruned
+model to regain the lost performance.
+Most existing work on network pruning focuses on the second stage. A common idea is to select parameters for pruning based on weight magnitudes (Hanson & Pratt, 1989;
+Han et al., 2015). However, weights with small magnitude
+are not necessarily unimportant (LeCun et al., 1990). As a
+consequence, magnitude-based pruning might delete important parameters, or preserve unimportant ones. By contrast,
+Optimal Brain Damage (OBD) (LeCun et al., 1990) and
+Optimal Brain Surgeon (OBS) (Hassibi et al., 1993) prune
+weights based on the Hessian of the loss function; the advantage is that both criteria reflect the sensitivity of the cost
+to the weight. Though OBD and OBS have proven to be
+effective for shallow neural networks, it remains challenging to extend them for deep networks because of the high
+computational cost of computing second derivatives. To
+solve this issue, several approximations to the Hessian have
+been proposed recently which assume layerwise independence (Dong et al., 2017) or Kronecker structure (Zeng &
+Urtasun, 2019).
+All of the aforementioned methods prune individual weights,
+leading to non-structured architectures which do not enjoy
+
+

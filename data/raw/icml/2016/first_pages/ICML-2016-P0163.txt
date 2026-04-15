@@ -1,0 +1,88 @@
+Parallel and Distributed Block-Coordinate Frank-Wolfe Algorithms
+
+Yu-Xiang Wang †
+Veeranjaneyulu Sadhanala †
+Wei Dai †
+Willie Neiswanger †
+Suvrit Sra ‡
+Eric P. Xing †
+†
+Carnegie Mellon University, 5000 Forbes Ave, PA 15213, USA
+‡
+
+YUXIANGW @ CS . CMU . EDU
+VSADHANA @ CS . CMU . EDU
+WDAI @ CS . CMU . EDU
+WILLIE @ CS . CMU . EDU
+SUVRIT @ MIT. EDU
+EPXING @ CS . CMU . EDU
+
+Massachusetts Institute of Technology, 77 Massachusetts Ave, Cambridge, MA 02139, USA
+
+Abstract
+We study parallel and distributed Frank-Wolfe
+algorithms; the former on shared memory machines with mini-batching, and the latter in a
+delayed update framework. In both cases, we
+perform computations asynchronously whenever
+possible. We assume block-separable constraints
+as in Block-Coordinate Frank-Wolfe (BCFW)
+method (Lacoste-Julien et al., 2013), but our
+analysis subsumes BCFW and reveals problemdependent quantities that govern the speedups
+of our methods over BCFW. A notable feature of our algorithms is that they do not depend on worst-case bounded delays, but only
+(mildly) on expected delays, making them robust to stragglers and faulty worker threads.
+We present experiments on structural SVM and
+Group Fused Lasso, and observe significant
+speedups over competing state-of-the-art (and
+synchronous) methods.
+
+1. Introduction
+The classical Frank-Wolfe (FW) algorithm (Frank &
+Wolfe, 1956) has witnessed a huge surge of interest recently (Ahipasaoglu et al., 2008; Clarkson, 2010; Jaggi,
+2011; 2013). The FW algorithm iteratively minimizes a
+smooth function f (typically convex) over a compact convex set M ⊂ Rm . Unlike methods based on projection,
+FW uses just a linear oracle that solves minx∈M hx, gi,
+which can be much simpler and faster than projection.
+This feature underlies the great popularity of FW, which
+Proceedings of the 33 rd International Conference on Machine
+Learning, New York, NY, USA, 2016. JMLR: W&CP volume
+48. Copyright 2016 by the author(s).
+
+has by now witnessed several extensions such as regularized FW (Bredies et al., 2009; Harchaoui et al.,
+2015; Zhang et al., 2013), linearly convergent special
+cases (Garber & Hazan, 2013; Lacoste-Julien & Jaggi,
+2015), stochastic versions (Hazan & Kale, 2012; Lafond
+et al., 2015; Ouyang & Gray, 2010), and a randomized
+block-coordinate FW (Lacoste-Julien et al., 2013).
+Despite this progress, parallel and distributed FW variants
+are barely known. We fill this gap and develop new asynchronous FW algorithms, for the particular setting where
+the constraint set M is block-separable; thus, we solve
+min f (x) s.t. x = [x(1) , ..., x(n) ] ∈
+x
+
+n
+Y
+
+Mi ,
+
+(1)
+
+i=1
+
+where Mi ⊂ Rmi (1 ≤ i ≤ n) is a compact convex set and
+x(i) are coordinate partitions of x. This setting for FW was
+considered in Lacoste-Julien et al. (2013), who introduced
+the Block-Coordinate Frank-Wolfe (B CFW) method.
+Such problems arise in many applications, notably, structural SVMs (Lacoste-Julien et al., 2013), routing (LeBlanc
+et al., 1975), group fused lasso (Alaı́z et al., 2013;
+Bleakley & Vert, 2011), trace-norm based tensor completion (Liu et al., 2013), reduced rank nonparametric regression (Foygel et al., 2012), and structured submodular minimization (Jegelka et al., 2013), among others.
+A standard approach to solve (1) is via block-coordinate
+(gradient) descent (BCD), which forms a local quadratic
+model for a block of variables, and then solves a projection
+subproblem (Beck & Tetruashvili, 2013; Nesterov, 2012;
+Richtárik & Takáč, 2015). However, for many problems,
+including the ones noted above, projection can be expensive (e.g., projecting onto the trace norm ball, onto base
+polytopes Fujishige & Isotani, 2011), and in some cases
+even computationally intractable (Collins et al., 2008).
+Frank-Wolfe methods excel in such scenarios as they rely
+
+

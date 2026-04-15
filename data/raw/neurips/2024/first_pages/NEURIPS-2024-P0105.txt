@@ -1,0 +1,54 @@
+QBB: Quantization with Binary Bases for LLMs
+
+1
+
+Adrian Bulat1,2 Yassine Ouali1 Georgios Tzimiropoulos1,3
+Samsung AI Cambridge 2 Technical University of Iasi 3 Queen Mary University of London
+
+Abstract
+Current post-training quantization methods for LLMs compress the weights down
+to 4-bits, with moderate to low degradation in accuracy. However, further reducing
+the number of bits or accelerating the network while avoiding large accuracy drops,
+especially for smaller, sub 7B models, remains an actively researched and open
+problem. To address this, in this work, we introduce Quantization with Binary
+Bases (QBB), a new approach for low-bit quantization that effectively removes
+(nearly) all multiplications, reducing the implementation to summations. Our novel
+approach works by decomposing the original weights into a set of binary (1-bit)
+matrices using an iterative process. For a given layer, starting from a weight matrix,
+we first construct an initial approximation using an analytical solution, where each
+new binary matrix, paired with a scaling vector, approximates the residual error
+of the previous estimation. Secondly, using gradient descent and a progressive
+learning curriculum, we find the optimal set of binary matrices and scaling vectors
+that minimize the ℓ2 distance between the produced approximation and original
+weights. Thirdly, as previous steps are input agnostic, we holistically optimize the
+scaling vectors alone, calibrating them in student-teacher fashion, with the teacher
+providing both the data, by autoregressive generation starting from a random token,
+and the target logits. When evaluated across multiple LLM families, our approach
+matches and outperforms all prior works, setting a new state-of-the-art result using
+a summation-only based approach.
+
+1
+
+Introduction
+
+Large Language Models (LLMs) demonstrated proficiency in natural language understanding and
+generation across multiple domains, exhibiting strong in-context learning abilities [3; 52; 53]. This
+remarkable performance can be in part attributed to the ever-increasing model and dataset sizes [25;
+9], with the current generation of models being trained on Trillion-sized (tokens) datasets [53],
+using Billions of parameters [53; 24; 29]. This, in turn, made deploying such models, even on
+consumer-grade GPUs, problematic. A promising and flexible direction that disentangles the training
+and the deployment process, while being hardware friendly, is given by post-training and/or datafree quantization [16; 32; 48]. Within this area, current methods have successfully achieved 4×
+compression (i.e. 4-bit quantization) with small drops in accuracy [16; 7; 32], especially for larger
+(7B+) models. However, compressing the model further and/or applying said methods to smaller
+models yields unsatisfactory results [16; 32]. Importantly, on the inference side, this class of PTQ
+approaches replaces 16b multiplications with mixed-precision (i.e., 16b-4b) ones, which have limited
+hardware support and rely on software-based solutions. Our aim is to alleviate these limitations,
+enabling higher compression rates while removing (nearly) all multiplications.
+To this end, departing from prior work, we focus on the most extreme case of quantization, that of
+binarization (which, as we will show, enables us to remove costly multiplications). As binarizing the
+weights directly, without retraining, results in unsatisfactory performance, we propose to approximate
+the weights W using a set of binary matrices Bi , i ∈ {1, ..., N } with corresponding fp16 scaling
+vectors αi . The main case of interest studied is that of N = 4. We note that binarising the weights
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

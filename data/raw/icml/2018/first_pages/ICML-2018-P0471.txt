@@ -1,0 +1,85 @@
+Finding Influential Training Samples for Gradient Boosted Decision Trees
+
+Boris Sharchilev 1 2 Yury Ustinovsky 3 Pavel Serdyukov 2 Maarten de Rijke 1
+
+Abstract
+We address the problem of finding influential
+training samples for a particular case of tree
+ensemble-based models, e.g., Random Forest
+(RF) or Gradient Boosted Decision Trees (GBDT).
+A natural way of formalizing this problem is
+studying how the model’s predictions change
+upon leave-one-out retraining, leaving out each individual training sample. Recent work has shown
+that, for parametric models, this analysis can be
+conducted in a computationally efficient way. We
+propose several ways of extending this framework to non-parametric GBDT ensembles under
+the assumption that tree structures remain fixed.
+Furthermore, we introduce a general scheme of
+obtaining further approximations to our method
+that balance the trade-off between performance
+and computational complexity. We evaluate our
+approaches on various experimental setups and
+use-case scenarios and demonstrate both the quality of our approach to finding influential training
+samples in comparison to the baselines and its
+computational efficiency.1
+
+1. Introduction and Background
+As machine learning-based models become more
+widespread and grow in both scale and complexity, methods
+of interpreting their predictions are increasingly attracting
+attention from the machine learning community. Some
+of the applications and benefits of employing these
+methods outlined in previous work (Ancona et al., 2017)
+include (1) “debugging” the model to expose ways of
+model failures not discoverable via conventional test set
+performance measuring (e.g., data or target leakages);
+1
+Informatics Institute, University of Amsterdam, Amsterdam,
+The Netherlands 2 Yandex, Moscow, Russia 3 Department of Mathematics, Princeton University, Princeton, NJ, USA. Correspondence to: Boris Sharchilev <bshar@yandex-team.ru>, Pavel
+Serdyukov <pavser@yandex-team.ru>, Maarten de Rijke <derijke@uva.nl>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+1
+Supporting code for the paper is available at https://
+github.com/bsharchilev/influence_boosting.
+
+(2) boosting developer’s trust in the model’s performance in
+scenarios when on-line evaluation is not available before
+deployment; and (3) increasing user satisfaction and/or
+confidence in provided predictions, etc. Various problem
+setups (Palczewska et al., 2013; Tolomei et al., 2017;
+Fong & Vedaldi, 2017) and interpretation methods, both
+model-agnostic (Ribeiro et al., 2016; Lundberg & Lee,
+2017) and model-specific (Shrikumar et al., 2017; Tolomei
+et al., 2017; Sundararajan et al., 2017), have recently been
+proposed in the literature.
+A common trait shared by the majority of these methods
+is that they do not provide a way of automatically improving the model, since the model is fixed; the main use-case
+thus becomes manual analytics by the user or the developer, which is both time and resource-consuming. It is thus
+desirable to derive a framework for obtaining actionable insights into the model’s behavior allowing us to automatically
+improve a model’s performance.
+One such framework has recently been introduced by Koh &
+Liang (2017); it deals with finding the most influential training objects. They formalize the notion of “influence” via an
+infinitesimal approximation to leave-one-out retraining: the
+core question that this work aims to answer is “how would
+the model’s performance on a test object xtest change if the
+weight of a training object xtrain is perturbed?” Assuming
+a smooth parametric model family (e.g., linear models or
+neural networks), the authors employ the Influence Functions framework from classical statistics (Cook & Weisberg (1980); also see Koh & Liang (2017) for a literature
+review on the topic) to show that this quantity can be estimated much faster than via straightforward model retraining,
+which makes their method tractable in a real-world scenario.
+A natural use-case of such a framework is to consider individual test objects (or groups of them) on which the model
+performs poorly and either remove the most “harmful” training objects or prioritize a batch of new objects for labeling
+based on which ones are expected to be the most “helpful,”
+akin to active learning.
+Unfortunately, the method suggested by Koh & Liang (2017)
+heavily relies on the smooth parametric nature of the model
+family. While this is a large class of machine learning models, it is by far not the only one. In particular, decision
+tree ensembles such as Random Forests (Ho, 1995, RF) and
+Gradient Boosted Decision Trees (Friedman, 2001, GBDT)
+are probably the most widely used model family in industry,
+largely due to their state-of-the-art performance on struc-
+
+

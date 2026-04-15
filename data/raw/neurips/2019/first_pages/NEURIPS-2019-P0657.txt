@@ -1,0 +1,62 @@
+Fast Structured Decoding for Sequence Models
+
+Zhiqing Sun1,∗ Zhuohan Li2,∗ Haoqing Wang3 Di He3 Zi Lin3 Zhi-Hong Deng3
+1
+Carnegie Mellon University 2 University of California, Berkeley 3 Peking University
+zhiqings@cs.cmu.edu zhuohan@cs.berkeley.edu
+{wanghaoqing,di_he,zi.lin,zhdeng}@pku.edu.cn
+
+Abstract
+Autoregressive sequence models achieve state-of-the-art performance in domains
+like machine translation. However, due to the autoregressive factorization nature, these models suffer from heavy latency during inference. Recently, nonautoregressive sequence models were proposed to reduce the inference time. However, these models assume that the decoding process of each token is conditionally
+independent of others. Such a generation process sometimes makes the output
+sentence inconsistent, and thus the learned non-autoregressive models could only
+achieve inferior accuracy compared to their autoregressive counterparts. To improve the decoding consistency and reduce the inference cost at the same time, we
+propose to incorporate a structured inference module into the non-autoregressive
+models. Specifically, we design an efficient approximation for Conditional Random Fields (CRF) for non-autoregressive sequence models, and further propose a
+dynamic transition technique to model positional contexts in the CRF. Experiments
+in machine translation show that while increasing little latency (8∼14ms), our
+model could achieve significantly better translation performance than previous
+non-autoregressive models on different translation datasets. In particular, for the
+WMT14 En-De dataset, our model obtains a BLEU score of 26.80, which largely
+outperforms the previous non-autoregressive baselines and is only 0.61 lower in
+BLEU than purely autoregressive models.1
+
+1
+
+Introduction
+
+Autoregressive sequence models achieve great success in domains like machine translation and have
+been deployed in real applications [1, 2, 3, 4, 5]. However, these models suffer from high inference
+latency [1, 2], which is sometimes unaffordable for real-time industrial applications. This is mainly
+attributed to the autoregressive factorization nature of the models: Considering a general conditional
+sequence generation framework, given a context sequence x = (x1 , ..., xT ) and a target sequence
+y = (y1 , ..., yT 0 ), autoregressive sequence models are based on a chain of conditional probabilities
+with a left-to-right causal structure:
+0
+
+p(y|x) =
+
+T
+Y
+
+p(yi |y<i , x),
+
+(1)
+
+i=1
+
+where y<i represents the tokens before the i-th token of target y. See Figure 1(a) for the illustration
+of a state-of-the-art autoregressive sequence model, Transformer [1]. The autoregressive factorization
+makes the inference process hard to be parallelized as the results are generated token by token
+sequentially.
+∗
+
+Equal contribution. Work was done while visiting Microsoft Research Asia.
+The reproducible code can be found at https://github.com/Edward-Sun/structured-nart
+
+1
+
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

@@ -1,0 +1,79 @@
+Incremental Sampling Without Replacement for Sequence Models
+
+Kensen Shi 1 David Bieber 1 Charles Sutton 1
+
+Abstract
+Sampling is a fundamental technique, and sampling without replacement is often desirable when
+duplicate samples are not beneficial. Within machine learning, sampling is useful for generating diverse outputs from a trained model. We
+present an elegant procedure for sampling without replacement from a broad class of randomized
+programs, including generative neural models that
+construct outputs sequentially. Our procedure
+is efficient even for exponentially-large output
+spaces. Unlike prior work, our approach is incremental, i.e., samples can be drawn one at a time,
+allowing for increased flexibility. We also present
+a new estimator for computing expectations from
+samples drawn without replacement. We show
+that incremental sampling without replacement is
+applicable to many domains, e.g., program synthesis and combinatorial optimization.
+
+1. Introduction
+Sampling from programmatically-defined distributions is a
+fundamental technique. Machine learning problems often
+involve learning distributions over structured objects such as
+sentences, images, audio, biological sequences, and source
+code. These distributions usually factorize into a product
+of conditional distributions, e.g., the probability of a word
+given the previous words. Such distributions are naturally
+represented as programs with sampling operations, which
+we call randomized programs.
+To predict a structured output, traditional search methods
+like beam search compute a set of predictions that approximately maximize the probability according to a learned
+model. However, recent work has instead favored sampling
+from the model, with the goal of obtaining diverse and
+higher-quality predictions (Shi et al., 2019; Fan et al., 2018;
+Kool et al., 2019b; Holtzman et al., 2018; 2019; Radford
+et al., 2019). The same considerations suggest that sampling
+1
+
+Google. Correspondence to: Kensen Shi <kshi@google.com>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+without replacement could be even more desirable by avoiding duplicate samples, especially in machine learning where
+the training objective often pushes the output distribution to
+become extremely peaked.
+We present a data structure called UniqueRandomizer for
+sampling without replacement from randomized programs.
+The main advantage is that it is incremental, allowing for
+increased flexibility in stopping conditions for the sampling
+procedure. For instance, one can draw more samples until a
+solution is found, or until a sample-based estimate has converged, or enough sample diversity is obtained, and so on. A
+closely related algorithm for sampling without replacement
+is Stochastic Beam Search (SBS) (Kool et al., 2019b), based
+on the Gumbel-top-k trick. SBS is mathematically more
+complex than UniqueRandomizer and does not readily support incrementality, but it has advantages in parallelism and
+in providing an importance-sampling method for statistical
+estimation. Fortunately, we are able to present a combined
+method with both advantages, i.e., the flexibility of incremental sampling and efficiency of batched computations.
+We also derive an improved estimator that can be used with
+any method of sampling without replacement.
+We experimentally demonstrate that using UniqueRandomizer leads to higher-quality samples in program synthesis
+and combinatorial optimization. More broadly, a major contribution of this paper is making the case that UniqueRandomizer is a general technique that can be applied to many
+scenarios.
+
+2. Approach
+As a motivating example, consider a program synthesis task:
+given pseudocode for a short program and some input/output
+examples, generate the corresponding source code. Suppose
+that we train a neural sequence-to-sequence model that takes
+pseudocode as input and generates candidate programs. We
+would like to sample from the model until we find a program
+that satisfies the examples.
+We do not know upfront how many samples are needed to
+find a solution, so to minimize computational waste, we
+want to sample from the model incrementally, one sample
+at a time until a solution is found. Furthermore, we have no
+use for duplicate samples because the quality of a sampled
+
+

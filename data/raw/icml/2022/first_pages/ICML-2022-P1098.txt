@@ -1,0 +1,74 @@
+Regularizing a Model-based Policy Stationary Distribution
+to Stabilize Offline Reinforcement Learning
+
+Shentao Yang 1 Yihao Feng 2 Shujian Zhang 3 Mingyuan Zhou 1 3
+
+Abstract
+Offline reinforcement learning (RL) extends the
+paradigm of classical RL algorithms to purely
+learning from static datasets, without interacting
+with the underlying environment during the learning process. A key challenge of offline RL is
+the instability of policy training, caused by the
+mismatch between the distribution of the offline
+data and the undiscounted stationary state-action
+distribution of the learned policy. To avoid the
+detrimental impact of distribution mismatch, we
+regularize the undiscounted stationary distribution of the current policy towards the offline data
+during the policy optimization process. Further,
+we train a dynamics model to both implement this
+regularization and better estimate the stationary
+distribution of the current policy, reducing the error induced by distribution mismatch. On a wide
+range of continuous-control offline RL datasets,
+our method indicates competitive performance,
+which validates our algorithm. The code is publicly available.
+
+1. Introduction
+Offline reinforcement learning (RL), traditionally known as
+batch RL, eschews environmental interactions during the
+policy learning process and focuses on training policy from
+static dataset collected by one or more data-collecting policies, which we collectively call the behavior policy (Ernst
+et al., 2005; Lange et al., 2012; Levine et al., 2020). This
+paradigm extends the applicability of RL from trial-anderror in the simulator (Mnih et al., 2013; 2015; Silver et al.,
+2016; 2017) to applications where environmental interac1
+
+McCombs School of Business, 2 Department of Computer
+Science, 3 Department of Statistics & Data Science, The University of Texas at Austin. Correspondence to: Shentao
+Yang <shentao.yang@mccombs.utexas.edu>, Mingyuan Zhou
+<mingyuan.zhou@mccombs.utexas.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+tions can be costly or even dangerous (Nie et al., 2019;
+Yurtsever et al., 2020), and to domains with abundant accumulated data (Gilotte et al., 2018). While classical offpolicy RL algorithms (Mnih et al., 2013; Lillicrap et al.,
+2016; Bellemare et al., 2017; Dabney et al., 2018; Fujimoto
+et al., 2018; Haarnoja et al., 2018) can be directly applied
+to the offline setting, they often fail to learn purely from a
+static dataset, especially when the offline dataset exhibits a
+narrow distribution on the state-action space (Fujimoto et al.,
+2019; Kumar et al., 2019). One important cause to such a
+failure is the mismatch between the stationary state-action
+distribution of the behavior policy and that of the learned
+policy, resulting in possibly pathological estimates of the
+queried action-values during the training process and thus
+the instability and failure of the policy learning.
+To successfully learn a policy from the offline dataset,
+prior model-free offline RL works try to avoid the actiondistribution shift during the training process, so that the
+overestimated action-values in out-of-distribution (OOD)
+actions can be mitigated. Their approaches can be mainly
+characterized into three categories: (1) robustly train the
+action-value function or provide a conservative estimate
+of the action-value function whose numerical values distinguish in- and out-of-distribution actions (Agarwal et al.,
+2020; Kumar et al., 2020; Gulcehre et al., 2021; Sinha et al.,
+2022); (2) design a tactful behavior-cloning scheme to learn
+only from “good” actions in the dataset (Wang et al., 2020;
+Chen et al., 2021; Kostrikov et al., 2021a); (3) regularize
+the current policy to be close to the action choice in the offline dataset during the training process, so that the learned
+policy mainly takes action within the reach of the actionvalue function estimate (Fujimoto et al., 2019; Laroche &
+Trichelair, 2019; Kumar et al., 2019; Wu et al., 2019; Jaques
+et al., 2019; Siegel et al., 2020; Urpı́ et al., 2021; Kostrikov
+et al., 2021b; Wu et al., 2021; Fujimoto & Gu, 2021).
+Model-based RL (MBRL) can provide a potential enhancement over the model-free RL. By learning an approximate
+dynamic model and subsequently using that for policy learning, MBRL can provide a sample-efficient solution to answer the counterfactual question pertaining to action-value
+estimation in the online setting (Janner et al., 2019; Rajeswaran et al., 2020), and to provide an augmentation to the
+
+

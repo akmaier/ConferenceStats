@@ -1,0 +1,75 @@
+Selfish Sparse RNN Training
+
+Shiwei Liu 1 Decebal Constantin Mocanu 1 2 Yulong Pei 1 Mykola Pechenizkiy 1
+
+Abstract
+
+Sparse neural networks have been widely applied
+to reduce the computational demands of training and deploying over-parameterized deep neural networks. For inference acceleration, methods that discover a sparse network from a pretrained dense network (dense-to-sparse training)
+work effectively. Recently, dynamic sparse training (DST) has been proposed to train sparse neural networks without pre-training a dense model
+(sparse-to-sparse training), so that the training
+process can also be accelerated. However, previous sparse-to-sparse methods mainly focus on
+Multilayer Perceptron Networks (MLPs) and Convolutional Neural Networks (CNNs), failing to
+match the performance of dense-to-sparse methods in the Recurrent Neural Networks (RNNs)
+setting. In this paper, we propose an approach
+to train intrinsically sparse RNNs with a fixed
+parameter count in one single run, without compromising performance. During training, we allow RNN layers to have a non-uniform redistribution across cell gates for better regularization.
+Further, we propose SNT-ASGD, a novel variant of the averaged stochastic gradient optimizer,
+which significantly improves the performance of
+all sparse training methods for RNNs. Using
+these strategies, we achieve state-of-the-art sparse
+training results, better than the dense-to-sparse
+methods, with various types of RNNs on Penn
+TreeBank and Wikitext-2 datasets. Our codes
+are available at https://github.com/
+Shiweiliuiiiiiii/Selfish-RNN.
+
+1
+Department of Computer Science, Eindhoven University of
+Technology, the Netherlands
+2
+Faculty of Electrical Engineering, Mathematics, and Computer
+Science at University of Twente, the Netherlands
+. Correspondence to: Shiwei Liu <s.liu3@tue.nl>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+1. Introduction
+Recurrent neural networks (RNNs) (Elman, 1990), with a
+variant of long short-term memory (LSTM) (Hochreiter &
+Schmidhuber, 1997), have been highly successful in various
+fields, including language modeling (Mikolov et al., 2010),
+machine translation (Kalchbrenner & Blunsom, 2013), question answering (Hirschman et al., 1999; Wang & Jiang,
+2017), etc. As a standard task to evaluate models’ ability to capture long-range context, language modeling has
+witnessed great progress in RNNs. Mikolov et al. (2010)
+demonstrated that RNNs perform much better than backoff
+models for language modeling. After that, various novel
+RNN architectures such as Recurrent Highway Networks
+(RHNs) (Zilly et al., 2017), Pointer Sentinel Mixture Models (Merity et al., 2017), Neural Cache Model (Grave et al.,
+2017), Mixture of Softmaxes (AWD-LSTM-MoS) (Yang
+et al., 2018), Ordered Neurons LSTM (ON-LSTM) (Shen
+et al., 2019), and effective regularization like Variational
+Dropout (Gal & Ghahramani, 2016), Weight Tying (Inan
+et al., 2017), DropConnect (Merity et al., 2018) have been
+proposed to improve the performance of RNNs on language
+modeling.
+At the same time, as the performance of deep neural networks (DNNs) improves, the resources required to train and
+deploy these deep models are becoming prohibitively large.
+To tackle this problem, various dense-to-sparse methods
+have been developed, including but not limited to pruning
+(LeCun et al., 1990; Han et al., 2015; Molchanov et al.,
+2016), variational dropout (Kingma et al., 2015; Molchanov
+et al., 2017), distillation (Hinton et al., 2015), L1 regularization (Wen et al., 2018), and low-rank decomposition (Jaderberg et al., 2014). Given a pre-trained model, these methods
+work effectively to accelerate the inference process.
+Recently, some dynamic sparse training (DST) approaches
+(Mocanu et al., 2018; Mostafa & Wang, 2019; Dettmers &
+Zettlemoyer, 2019; Evci et al., 2020) have been proposed
+to bring efficiency to the training phase as well. However,
+previous approaches are mainly for CNNs and MLPs. The
+long-term dependencies and repetitive usage of recurrent
+cells make RNNs more difficult to be sparsified (Kalchbrenner et al., 2018; Evci et al., 2020). More importantly, the
+state-of-the-art performance achieved by RNNs on language
+modeling is mainly associated with the optimizer, averaged
+
+

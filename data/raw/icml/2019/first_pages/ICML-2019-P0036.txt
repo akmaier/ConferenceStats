@@ -1,0 +1,78 @@
+Bayesian Optimization of Composite Functions
+
+Raul Astudillo 1 Peter I. Frazier 1 2
+
+Abstract
+We consider optimization of composite objective functions, i.e., of the form f (x) = g(h(x)),
+where h is a black-box derivative-free expensiveto-evaluate function with vector-valued outputs,
+and g is a cheap-to-evaluate real-valued function.
+While these problems can be solved with standard
+Bayesian optimization, we propose a novel approach that exploits the composite structure of the
+objective function to substantially improve sampling efficiency. Our approach models h using a
+multi-output Gaussian process and chooses where
+to sample using the expected improvement evaluated on the implied non-Gaussian posterior on
+f , which we call expected improvement for composite functions (EI-CF). Although EI-CF cannot be computed in closed form, we provide a
+novel stochastic gradient estimator that allows its
+efficient maximization. We also show that our
+approach is asymptotically consistent, i.e., that
+it recovers a globally optimal solution as sampling effort grows to infinity, generalizing previous convergence results for classical expected
+improvement. Numerical experiments show that
+our approach dramatically outperforms standard
+Bayesian optimization benchmarks, reducing simple regret by several orders of magnitude.
+
+1. Introduction
+We consider optimization of composite objective functions,
+i.e., of the form f (x) = g(h(x)), where h is a blackbox expensive-to-evaluate vector-valued function, and g
+is a real-valued function that can be cheaply evaluated.
+We assume evaluations are noise-free. These problems
+arise, for example, in calibration of simulators to real-world
+data (Vrugt et al., 2001; Cullick et al., 2006; Schultz &
+1
+School of Operations Research and Information Engineering,
+Cornell University, Ithaca, NY, USA 2 Uber, San Francisco, CA,
+USA. Correspondence to: Raul Astudillo <ra598@cornell.edu>,
+Peter I. Frazier <pf98@cornell.edu>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+Sokolov, 2018); in materials and drug design (Kapetanovic,
+2008; Frazier & Wang, 2016) when seeking to design a
+compound with a particular set of physical or chemical
+properties; when finding maximum a posteriori estimators with expensive-to-evaluate likelihoods (Bliznyuk et al.,
+2008); and in constrained optimization (Gardner et al., 2014;
+Hernández-Lobato et al., 2016) when seeking to maximize
+one expensive-to-evaluate quantity subject to constraints
+on others (See Section 2 for a more detailed description of
+these problems.).
+One may ignore the composite structure of the objective
+and solve such problems using Bayesian optimization (BO)
+(Brochu et al., 2010), which has been shown to perform well
+compared with other general-purpose optimization methods
+for black-box derivative-free expensive-to-evaluate objectives (Snoek et al., 2012). In the standard BO approach, one
+would build a Gaussian process (GP) prior over f based
+on past observations of f (x), and then choose points at
+which to evaluate f by maximizing an acquisition function
+computed from the posterior. This approach would not use
+observations of h(x) or knowledge of g.
+In this paper, we describe a novel BO approach that leverages the structure of composite objectives to optimize them
+more efficiently. This approach builds a multi-output GP on
+h, and uses the expected improvement (Jones et al., 1998)
+under the implied statistical model on f as its acquisition
+function. This implied statistical model is typically nonGaussian when g is non-linear. We refer to the resulting
+acquisition function as expected improvement for composite functions (EI-CF) to distinguish it from the classical
+expected improvement (EI) acquisition function evaluated
+on a GP posterior on f .
+Intuitively, the above approach can substantially outperform
+standard BO when observations of h(x) provide information
+relevant to optimization that is not available from observations of f (x) alone. As one example, suppose x and h(x)
+are both one-dimensional and g(y) = y 2 . If h is continuous,
+h(0) < 0, and h(1) > 0, then our approach knows that
+there is a global minimum in the interval (0, 1), while the
+standard approach does not. This informational benefit is
+compounded further when h is vector-valued.
+While EI-CF is simply the expected improvement under
+a different statistical model, unlike the classical EI acqui-
+
+

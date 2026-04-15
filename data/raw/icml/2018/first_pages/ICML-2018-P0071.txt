@@ -1,0 +1,80 @@
+Improved Large-Scale Graph Learning through Ridge Spectral Sparsification
+
+Daniele Calandriello 1 2 Ioannis Koutis 3 Alessandro Lazaric 4 Michal Valko 1
+
+Abstract
+The representation and learning benefits of methods based on graph Laplacians, such as Laplacian smoothing or harmonic function solution
+for semi-supervised learning (SSL), are empirically and theoretically well supported. Nonetheless, the exact versions of these methods scale
+poorly with the number of nodes n of the graph.
+In this paper, we combine a spectral sparsification routine with Laplacian learning. Given a
+graph G as input, our algorithm computes a sparsifier in a distributed way in O(n log3 (n)) time,
+O(m log3 (n)) work and O(n log(n)) memory,
+using only log(n) rounds of communication. Furthermore, motivated by the regularization often
+employed in learning algorithms, we show that
+constructing sparsifiers that preserve the spectrum
+of the Laplacian only up to the regularization level
+may drastically reduce the size of the final graph.
+By constructing a spectrally-similar graph, we are
+able to bound the error induced by the sparsification for a variety of downstream tasks (e.g., SSL).
+We empirically validate the theoretical guarantees
+on Amazon co-purchase graph and compare to
+the state-of-the-art heuristics.
+
+1. Introduction
+Graphs are a very effective data structure to represent relationships between entities (e.g., social and collaboration
+networks, influence graphs). Over the years, many machine
+learning problems have been defined and solved exploiting
+the graph representation, such as graph-regularized least
+squares (L AP RLS, Belkin et al. 2005), Laplacian smoothing (L AP S MO, Sadhanala et al. 2016) graph semi-supervised
+learning (SSL, Chapelle et al. 2010; Zhu et al. 2003), laplacian embedding (LE, Belkin & Niyogi 2001, and spectral
+1
+SequeL team, INRIA Lille - Nord Europe, France 2 LCSL,
+IIT, Italy, and MIT, USA. 3 New Jersey Institute of Technology,
+USA 4 Facebook AI Research, Paris, France. Correspondence to:
+Daniele Calandriello <daniele.calandriello@iit.it>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+clustering (SC, Von Luxburg 2007). The intuition behind
+graph-based learning is that the information expressed by
+the graph helps to capture the underlying structure of the
+problem (e.g., a manifold), thus improving the learning.
+For instance, L AP S MO and SSL rely on the assumption
+that nodes that are close in the graph are more likely to
+have similar labels. Similarly, LE and SC try to find a lowdimensional representation of the nodes using the eigenvectors of the Laplacian of the graph. In general, given a graph
+G of n nodes and m edges, most of graph-based learning
+tasks require computing the minimum of a cost function
+based on the associated n × n Laplacian matrix LG , which
+contains m non-zero entries. Solving exactly such optimization problems amounts to O(n3 ) time and O(n2 ) space
+complexity in the worst case and they become infeasible
+even for mildly large/dense graphs.
+A complete review of the literature on large-scale graph
+learning is beyond the scope of this paper and we only
+consider methods that reduce learning space and time complexity starting from a given graph received as input.1 We
+identify mainly three possible approaches. We can (1) reduce runtime replacing the pseudo-inverse operator L+
+G with
+an iterative solver, (2) reduce time and space complexity
+replacing the large graph G with a sparser approximation H,
+or (3) reduce runtime and increase memory capacity by distributing the computation across multiple machines.
+Iterative solvers. Iterative methods can solve a number of
+learning problems without explicitly constructing L+
+G (e.g.,
+gradient descent, GD, for L AP S MO, iterative averaging for
+SSL, and the power method for SC). In this case we only
+need O(m) time per iteration. Unfortunately, all simple
+iterative methods (e.g., GD) converge in a number of iterations proportional to the condition number of the Laplacian,
+κ = λmax (LG )/λmin (LG ), which may grow linearly with
+the number of nodes n, thus removing the advantage of the
+iterative method, whose complexity tends to O(n3 ) in the
+worst case. Advanced iterative methods, such as the preconditioned conjugate gradient, use preconditioning to find
+an accurate solution in a number of iterations independent
+of κ. Koutis et al. (2011) gives a nearly-linear solver for
+Laplacians or strongly diagonally dominant (SDD) matri1
+
+Many algorithms reduce the complexity of graph learning at
+construction time but they cannot be applied to natural graphs
+(e.g., social graphs) and therefore we do not review them.
+
+

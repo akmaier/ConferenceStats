@@ -1,0 +1,63 @@
+Bayesian Online Natural Gradient (BONG)
+
+Matt Jones
+University of Colorado
+mcjones@colorado.edu
+
+Peter Chang
+MIT
+gyuyoung@mit.edu
+
+Kevin Murphy
+Google DeepMind
+kpmurphy@google.com
+
+Abstract
+We propose a novel approach to sequential Bayesian inference based on variational
+Bayes (VB). The key insight is that, in the online setting, we do not need to add the
+KL term to regularize to the prior (which comes from the posterior at the previous
+timestep); instead we can optimize just the expected log-likelihood, performing
+a single step of natural gradient descent starting at the prior predictive. We prove
+this method recovers exact Bayesian inference if the model is conjugate. We also
+show how to compute an efficient deterministic approximation to the VB objective,
+as well as our simplified objective, when the variational distribution is Gaussian
+or a sub-family, including the case of a diagonal plus low-rank precision matrix.
+We show empirically that our method outperforms other online VB methods in the
+non-conjugate setting, such as online learning for neural networks, especially when
+controlling for computational costs.
+
+1
+
+Introduction
+
+Bayesian methods for neural network (NN) training aim to minimize the Kullback-Leibler divergence
+between true and estimated posterior distributions. This is equivalent to minimizing the variational
+loss (or negative ELBO)
+L(ψ) = −Eθ∼qψ [log p(D|θ)] + DKL (qψ |p0 )
+
+(1)
+
+Here θ are the network parameters, ψ are the variational parameters of the approximate posterior
+qψ (θ), D is the training dataset, and p0 (θ) is the prior. The two terms in the variational loss
+correspond to data fit and regularization to the prior, the latter being analogous to a regularizer
+r(θ) = − log p0 (θ) in traditional point estimation methods like SGD.
+An important set of approaches learns the variational parameters by gradient descent on L(ψ)
+[Blundell et al., 2015]. More recently Khan and colleagues [Khan et al., 2018b, Khan and Rue, 2023,
+Shen et al., 2024] have proposed using the natural gradient F−1
+ψ ∇ψ L(ψ) where Fψ is the Fisher
+information matrix of the variational family evaluated at qψ . Natural gradient descent (NGD) is often
+more efficient than vanilla GD because it accounts for the intrinsic geometry of the variational family
+[Amari, 1998]. Khan and Rue [2023] call this approach the "Bayesian Learning Rule" or BLR. Using
+various choices for the variational distribution, generalized losses replacing negative log-likelihood,
+and other approximations, they reproduce many standard optimization methods such as Adam, and
+derive new ones.
+We study Bayesian NN optimization in online learning, where the data are observed in sequence,
+Dt = {(xk , yk )tk=1 }, and the algorithm maintains an approximate posterior qψt (θt ) ≈ p(θt |Dt ),
+which it updates at each step. Fast updates (in terms of both computational speed and statistical
+efficiency) are critical for many online learning applications [Zhang et al., 2024]. To allow for
+nonstationarity in the datastream, we include a time index on θt , to represent that the parameters
+may change over time, as is standard for approaches based on state-space models and the extended
+Kalman filter (see e.g., [Sarkka and Svensson, 2023]). The belief state is updated recursively using
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

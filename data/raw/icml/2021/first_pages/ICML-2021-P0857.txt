@@ -1,0 +1,83 @@
+Learning Intra-Batch Connections for Deep Metric Learning
+
+Jenny Seidenschwarz 1 Ismail Elezi 1 Laura Leal-Taixé 1
+
+Abstract
+The goal of metric learning is to learn a function
+that maps samples to a lower-dimensional space
+where similar samples lie closer than dissimilar
+ones. Particularly, deep metric learning utilizes
+neural networks to learn such a mapping. Most
+approaches rely on losses that only take the relations between pairs or triplets of samples into
+account, which either belong to the same class or
+two different classes. However, these methods do
+not explore the embedding space in its entirety. To
+this end, we propose an approach based on message passing networks that takes all the relations
+in a mini-batch into account. We refine embedding vectors by exchanging messages among all
+samples in a given batch allowing the training process to be aware of its overall structure. Since not
+all samples are equally important to predict a decision boundary, we use an attention mechanism
+during message passing to allow samples to weigh
+the importance of each neighbor accordingly. We
+achieve state-of-the-art results on clustering and
+image retrieval on the CUB-200-2011, Cars196,
+Stanford Online Products, and In-Shop Clothes
+datasets. To facilitate further research, we make
+available the code and the models at https:
+//github.com/dvl-tum/intra_batch.
+
+1. Introduction
+Metric learning is a widely popular technique that constructs
+task-specific distance metrics by learning the similarity or
+dissimilarity between samples. It is often used for object
+retrieval and clustering by training a deep neural network to
+learn a mapping function from the original samples into a
+new, more compact, embedding space. In that embedding
+space, samples coming from the same class should be closer
+than samples coming from different classes.
+1
+Department of Computer Science, Technical University of Munich, Munich, Germany. Correspondence to: Jenny Seidenschwarz
+<j.seidenschwarz@tum.de>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+To learn the mapping function, current approaches utilize
+siamese networks (Bromley et al., 1994), typically trained
+using loss functions that measure distances between pairs
+of samples of the same class (positive) or different classes
+(negative). Contrastive loss (Bromley et al., 1994) minimizes the distance of the feature embeddings for a positive
+pair, and maximizes their distance otherwise. Triplet loss
+(Schultz & Joachims, 2003; Weinberger & Saul, 2009) takes
+a triplet of images and pushes the embedding distance between an anchor and a positive sample to be smaller than
+the distance between the same anchor and a negative sample
+by a given margin. While the number of possible image
+pairs and triplets in a dataset of size n is O(n2 ) and O(n3 ),
+respectively, the vast majority of these pairs (or triplets)
+are not informative and do not contribute to the loss. This
+leads to slow convergence and possible overfitting when
+the pairs (triplets) are not appropriately sampled. Perhaps
+more worryingly, because these losses are focused on pairs
+(triplets), they are unable to consider the global structure
+of the dataset resulting in lower clustering and retrieval
+performance. To compensate for these drawbacks, several
+works resort to training tricks like intelligent sampling (Ge
+et al., 2018; Manmatha et al., 2017), multi-task learning
+(Zhang et al., 2016), or hard-negative mining (Schroff et al.,
+2015; Xuan et al., 2020a). Recently, researchers started
+exploring the global structure of the embedding space by
+utilizing rank-based (Çakir et al., 2019; He et al., 2018a;
+Revaud et al., 2019) or contextual classification loss functions (Çakir et al., 2019; Elezi et al., 2020; He et al., 2018a;
+Revaud et al., 2019; Sohn, 2016; Song et al., 2016; Zheng
+et al., 2019). The Group Loss (Elezi et al., 2020) explicitly
+considers the global structure of a mini-batch and refines
+class membership scores based on feature similarity. However, the global structure is captured using a handcrafted rule
+instead of learning, hence its refinement procedure cannot
+be adapted depending on the samples in the mini-batch.
+1.1. Contributions
+In this work, we propose a fully learnable module that takes
+the global structure into account by refining the embedding
+feature vector of each sample based on all intra-batch relations. To do so, we utilize message passing networks
+(MPNs) (Gilmer et al., 2017). MPNs allow the samples
+in a mini-batch to communicate with each other, and to
+
+

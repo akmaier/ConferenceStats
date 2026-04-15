@@ -1,0 +1,119 @@
+PolySketchFormer: Fast Transformers via Sketching Polynomial Kernels
+
+Praneeth Kacham * 1 2 Vahab Mirrokni * 1 Peilin Zhong * 1
+
+Abstract
+
+Train Step latency per token
+2.5
+
+The quadratic time and memory complexity inherent to self-attention mechanisms, with respect to
+sequence length, presents a critical computational
+bottleneck in the training and deployment of largescale Transformer-based language models. Recent theoretical results indicate the intractability
+of sub-quadratic softmax attention approximation
+under reasonable complexity assumptions. This
+paper addresses this challenge by first demonstrating that polynomial attention with high degree
+can effectively replace softmax without sacrificing model quality. Next, we develop polynomial
+sketching techniques from numerical linear algebra to achieve linear-time polynomial attention
+with approximation guarantees. Crucially, our approach achieves this speedup without requiring
+the sparsification of attention matrices. We also
+present a block-based algorithm to apply causal
+masking efficiently. Combining these techniques,
+we provide PolySketchFormer, a practical lineartime Transformer architecture for language modeling that offers provable guarantees. We validate PolySketchFormer empirically by training
+language models capable of handling long contexts. These experiments utilize both synthetic
+and real-world datasets (PG19, Wikipedia and C4)
+on Google Cloud TPUs. For context lengths of
+32k and GPT-2 style models, our model achieves
+2x speedup in training compared to FlashAttention of the fastest configuration, with no observed
+degradation in quality across our experiments.1
+
+*
+
+1
+
+2.0
+
+µs/token
+
+Vanilla Softmax
+1.5
+
+Polysketch
+
+1.0
+
+FlashAttention
+(Block = 256)
+
+0.5
+
+FlashAttention
+(Block = 512)
+
+0.0
+5000
+
+10000
+
+15000
+
+20000
+
+25000
+
+30000
+
+Context Length
+
+Figure 1. Train step latency per token in µs/token of GPT-2 small
+style models with softmax attention (FlashAttention) v.s. ours.
+Each model is trained with 1M tokens batches. Vanilla softmax
+attention goes out-of-memory (OOM) for context lengths > 8k.
+
+1. Introduction
+Transformer-based models (Vaswani et al., 2017) are stateof-the-art for many natural language tasks, leading to breakthroughs in machine translation, language understanding
+(Devlin et al., 2019), and language modeling (Brown et al.,
+2020; Chowdhery et al., 2023; OpenAI, 2023; Anil et al.,
+2023). However, the quadratic time and space complexity of the attention mechanism limits scalability for long
+context lengths. Numerous “efficient transformers” have
+been proposed to address this issue (Wang et al., 2020;
+Katharopoulos et al., 2020; Choromanski et al., 2020; Han
+et al., 2023). These variants approximate2 the standard attention mechanism. A survey by Tay et al. (2022) provides
+a broad overview of these techniques. While many efficient
+transformer constructions achieve linear theoretical training complexity, the survey observes that practical training
+speedups are often less significant, with potential losses in
+model quality. This explains the continued dominance of
+vanilla transformers.
+In this work, we focus on improving training latency for
+transformer models in decoding-only tasks, specifically language modeling trained via next-word prediction. We will
+first briefly discuss existing approaches to make training of
+transformer models faster and then place our contributions
+in context.
+
+2
+
+Equal contribution
+Google Research
+Carnegie
+Mellon
+University.
+Correspondence
+to:
+Praneeth
+Kacham <pkacham@google.com>, Vahab Mirrokni <mirrokni@google.com>, Peilin Zhong <peilinz@google.com>.
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+1
+Our implementation is available at https://github.
+com/google-research/google-research/tree/master/
+polysketchformer
+
+Memory efficient and I/O aware approach. Recent work
+2
+
+“Approximation” is used informally here, since some “efficient transformers” deviate significantly from the vanilla model.
+
+1
+
+

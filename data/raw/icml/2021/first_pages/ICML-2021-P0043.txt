@@ -1,0 +1,80 @@
+Differentially Private Query Release Through Adaptive Projection
+
+Sergul Aydore 1 William Brown 1 2 Michael Kearns 1 3 Krishnaram Kenthapadi 1
+Luca Melis 1 Aaron Roth 1 3 Ankit Siva 1
+
+Abstract
+We propose, implement, and evaluate a new algorithm for releasing answers to very large numbers
+of statistical queries like k-way marginals, subject to differential privacy. Our algorithm makes
+adaptive use of a continuous relaxation of the Projection Mechanism, which answers queries on the
+private dataset using simple perturbation, and then
+attempts to find the synthetic dataset that most
+closely matches the noisy answers. We use a continuous relaxation of the synthetic dataset domain
+which makes the projection loss differentiable,
+and allows us to use efficient ML optimization
+techniques and tooling. Rather than answering all
+queries up front, we make judicious use of our
+privacy budget by iteratively finding queries for
+which our (relaxed) synthetic data has high error,
+and then repeating the projection. Randomized
+rounding allows us to obtain synthetic data in the
+original schema. We perform experimental evaluations across a range of parameters and datasets,
+and find that our method outperforms existing
+algorithms on large query classes.
+
+1. Introduction
+A basic problem in differential privacy is to accurately answer a large number m of statistical queries (also known
+as linear and counting queries), which have the form,
+“how many people in private dataset D have property P ?”
+Marginal queries (also known as conjunctions) — which
+ask how many people in the dataset have particular combinations of feature values — are one of the most useful
+and most studied special cases. The simplest technique for
+answering such queries is to compute each answer on the
+private dataset, and then perturb them with independent
+1
+Amazon Web Services AI/ML 2 Columbia University, New York, NY, USA 3 University of Pennsylvania,
+Philadelphia, PA, USA. Correspondence to:
+William
+Brown <w.brown@columbia.edu>, Ankit Siva <ankitsiv@amazon.com>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Gaussian noise.
+ a dataset of size n, this results in error
+ √ For
+m
+scaling as Õ n (Dwork et al., 2006a). This simple technique is useful for answering small numbers of queries. But
+it has been known since (Blum et al., 2008) that in principle,
+it is possible to privately and accurately answer very large
+classes of queries (of size exponential in n), and that an
+attractive way of doing so is to encode the answers in a synthetic dataset. Synthetic datasets have several advantages:
+most basically, they are a concise way of representing the answers to large numbers of queries. But they also permit one
+to evaluate queries other than those that have been explicitly
+answered by the mechanism, and to take advantage of generalization. Unfortunately, it is also known that improving
+on the error of the simple Gaussian perturbation technique
+is computationally hard in the worst case (Ullman, 2016).
+Moreover, constructing synthetic datasets is hard even when
+it would be possible to provide accurate answers with simple
+perturbation (Ullman & Vadhan, 2011) for simple classes of
+queries such as the set of all d2 marginal queries restricted
+to 2 out of d binary features (so-called 2-way marginals). As
+a result we cannot hope for a differentially private algorithm
+that can provably answer large numbers of statistical queries
+or generate interesting synthetic data in polynomial time.
+Nevertheless, there has been a resurgence of interest in private synthetic data generation and large-scale private queries
+due to the importance of the problem. Recent methods offer
+provable privacy guarantees, but have run-time and accuracy
+properties that must be evaluated empirically.
+1.1. Our Contributions
+Our starting point is the (computationally inefficient) projection mechanism of (Nikolov et al., 2013), which is informally described as follows. We begin with a dataset D ∈
+X n . First, the values of each of the m queries of interest qi
+are computed on the private dataset: a = q(D) ∈ [0, 1]m .
+Next, a privacy preserving vector of noisy answers â ∈ Rm
+is computed using simple Gaussian perturbation. Finally,
+the vector of noisy answers â is projected into the set of answer vectors that are consistent with some dataset to obtain
+a final vector of answers a0 — i.e., the projection guarantees
+that a0 = q(D0 ) for some D0 ∈ X n . This corresponds to
+solving the optimization problem of finding the synthetic
+
+

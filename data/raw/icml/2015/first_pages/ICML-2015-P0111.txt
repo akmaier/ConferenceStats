@@ -1,0 +1,100 @@
+Reified Context Models
+Jacob Steinhardt
+Percy Liang
+Stanford University, 353 Serra Street, Stanford, CA 94305 USA
+
+JSTEINHARDT @ CS . STANFORD . EDU
+PLIANG @ CS . STANFORD . EDU
+
+Abstract
+A classic tension exists between exact inference
+in a simple model and approximate inference in
+a complex model. The latter offers expressivity
+and thus accuracy, but the former provides coverage of the space, an important property for confidence estimation and learning with indirect supervision. In this work, we introduce a new approach, reified context models, to reconcile this
+tension. Specifically, we let the choice of factors
+in a graphical model (the contexts) be random
+variables inside the model itself. In this sense,
+the contexts are reified and can be chosen in a
+data-dependent way. Empirically, we show that
+our approach obtains expressivity and coverage
+on three sequence modeling tasks.
+
+1. Introduction
+Many structured prediction tasks across natural language
+processing, computer vision, and computational biology
+can be formulated as that of learning an exponential family
+distribution over outputs y1:L = (y1 , . . . , yL ) ∈ Y1:L given
+input x:
+!
+L
+X
+pθ (y1:L | x) ∝ exp
+θ> φi (y1:i−1 , yi , x) ,
+(1)
+i=1
+
+where φi are the features and θ are the parameters. The
+thirst for expressive models (e.g., where yi depends heavily on its context y1:i−1 ) often leads one down the route
+of approximate inference, for example, to Markov chain
+Monte Carlo (Brooks et al., 2011), sequential Monte Carlo
+(Cappé et al., 2007), or beam search (Koehn et al., 2003).
+While these methods can operate on models with arbitrary
+amounts of context (φi can be any function of y1:i−1 ), they
+use a set of concrete points to approximate the distribution
+pθ , and thus they can fundamentally cover only a small part
+Proceedings of the 32 nd International Conference on Machine
+Learning, Lille, France, 2015. JMLR: W&CP volume 37. Copyright 2015 by the author(s).
+
+r
+v
+y
+*
+
+ro
+ra
+*o
+**
+
+rol
+ral
+*ol
+***
+
+*olc
+***c
+***r
+****
+
+• • • • • • • • •
+
+Figure 1. In handwriting recognition, we want to output a letter at
+each position. Our model also chooses a context at each position
+that summarizes the outputs so far (e.g., ? olc remembers only
+the last three letters) and is used for predicting the next letter.
+By selecting contexts at multiple levels of resolution, our model
+can place probability mass over the entire output space while still
+capturing complex dependencies.
+
+of the output space Y1:L . This inadequate coverage leads
+to many issues; the two that we highlight in this paper are
+the following:
+• precision: In user-facing applications, it is important
+to only predict on inputs where the system is confident,
+leaving hard decisions to the user (Zhang et al., 2014).
+Lack of coverage means failing to consider all alternative outputs, which leads to overconfidence and poor estimates of uncertainty.
+• indirect supervision: When only part of the output y1:L
+is observed, lack of coverage is even more problematic
+than in the fully-supervised setting. An approximate inference algorithm might not even consider the true y
+(whereas one always has the true y in a fully-supervised
+setting), leading to invalid parameter updates (Yu et al.,
+2013).
+Of course, lower-order models admit exact inference and
+ensure coverage, but these models have unacceptably low
+expressive power. Ideally, we would like a model that
+varies the amount of context in a judicious way, allocating modeling power to parts of the input that demand it.
+Therein lies the principal challenge: How can we adaptively choose the amount of context for each variable i in a
+data-dependent way while maintaining tractability?
+In this paper, we introduce a new approach, which we call
+reified context models. The key idea is inspired by reification, a general idea in logic and programming languages,
+
+

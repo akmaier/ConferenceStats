@@ -1,0 +1,81 @@
+Differentially Private Approximate Quantiles
+
+Haim Kaplan 1 2 Shachar Schnapp 3 Uri Stemmer 1 2
+
+Abstract
+In this work we study the problem of differentially
+private (DP) quantiles, in which given dataset X
+and quantiles q1 , ..., qm ∈ [0, 1], we want to output m quantile estimations which are as close as
+possible to the true quantiles and preserve DP.
+We describe a simple recursive DP algorithm,
+which we call Approximate Quantiles (AQ), for
+this task. We give a worst case upper bound on its
+error, and show that its error is much lower than
+of previous implementations on several different
+datasets. Furthermore, it gets this low error while
+running time two orders of magnitude faster that
+the best previous implementation.
+
+1. Introduction
+Quantiles are the values that divide a sorted dataset in a
+certain proportion. They are one of the most basic and important data statistics, with various usages, ranging from
+computing the median to standardized test scores (GRE,
+2021). Given sensitive data, publishing the quantiles can
+expose information about the individuals that are part of the
+dataset. For example, suppose that a company wants to publish the median of its users’ ages. Doing so means to reveal
+the date of birth of a certain user, thus compromising the
+user’s privacy. Differential privacy (DP) offers a solution
+to this problem by requiring the output distribution of the
+computation to be insensitive to the data of any single individual. This leads us to the definition of the DP-quantiles
+problem:
+Definition 1.1 (The DP-Quantiles Problem). Let a, b ∈ R.
+Given a dataset X ⊆ (a, b) containing n points from (a, b),
+and a set of m quantiles 0 < q1 ≤ · · · ≤ qm < 1, privately
+identify quantile estimations v1 , ..., vm such that for every
+j ∈ [m] we have Prx∼UX [x ≤ vj ] ≈ qj ,1 where UX is the
+*
+Equal contribution 1 Tel Aviv University 2 Google Research
+Ben-Gurion University. Correspondence to: Shachar Schnapp
+<schnapp@post.bgu.ac.il>.
+3
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+1
+We will make this precise later.
+
+uniform distribution over the data X.2
+On the theory side, the DP-quantiles problem is relatively
+well-understood, with advanced constructions achieving
+very small asymptotic error (Beimel et al., 2016; Bun et al.,
+2015; Kaplan et al., 2020). However, as was recently observed by Gillenwater et al. (2021), due to the complexity
+of these advanced constructions and their large hidden constants, their practicality is questionable. This led Gillenwater et al. (2021) to design a simple algorithm for the
+DP-quantiles problem that performs well in practice. In this
+work we revisit the DP-quantiles problem. We build on the
+theoretical construction of Bun et al. (2015), and present
+a new (and simple) practical algorithm that obtains better
+utility and runtime than the state-of-the-art construction of
+Gillenwater et al. (2021) (and all other existing implementations). When the number of quantiles is large, the error of
+AQ algorithm reaches up to 7.14 time lower than the best
+existing baseline.
+1.1. Our Contributions
+We provide Approximate Quantiles, an algorithm and implementation for the DP-quantiles problem (Section 3). We
+prove a worst case bound on the error of the AQ algorithm for arbitrary m quantiles, and a tighter error bound for
+the case of uniform quantiles qi = i/(m + 1), i = 1, . . . , m
+(Section 3.2). We experimentally evaluated the AQ algorithm and conclude that it obtains higher accuracy and faster
+runtime than the existing state-of-the-art implementations
+(Section 4). In addition, we adapt our algorithm (and its
+competitors) to the definition of Concentrated Differential
+Privacy (zCDP) (Bun & Steinke, 2016). We show that its
+dominance over other methods is even more significant with
+this definition of privacy.
+1.2. A Technical Overview of Our Construction:
+Algorithm Approximate Quantiles
+Our algorithm operates using a DP algorithm for estimating a single quantile. Specifically, we assume that we have
+a DP algorithm A : R2 × Rn × (0, 1) → R that takes
+a domain I = (a, b) ∈ R2 (an interval on the line), a
+database X ∈ Rn (containing n points in I), and a sin2
+
+We assume that there are no duplicate points in X.
+
+

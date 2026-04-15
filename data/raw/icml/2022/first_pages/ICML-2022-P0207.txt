@@ -1,0 +1,222 @@
+Knowledge Base Question Answering by
+Case-based Reasoning over Subgraphs
+
+Rajarshi Das * 1 Ameya Godbole * 2 Ankita Naik 3 Elliot Tower 3 Robin Jia 2
+Manzil Zaheer 4 Hannaneh Hajishirzi 1 Andrew McCallum 3
+
+Abstract
+Question answering (QA) over knowledge bases
+(KBs) is challenging because of the diverse, essentially unbounded, types of reasoning patterns
+needed. However, we hypothesize in a large KB,
+reasoning patterns required to answer a query type
+reoccur for various entities in their respective subgraph neighborhoods. Leveraging this structural
+similarity between local neighborhoods of different subgraphs, we introduce a semiparametric
+model (C BR - SUBG) with (i) a nonparametric component that for each query, dynamically retrieves
+other similar k-nearest neighbor (KNN) training
+queries along with query-specific subgraphs and
+(ii) a parametric component that is trained to identify the (latent) reasoning patterns from the subgraphs of KNN queries and then apply them to
+the subgraph of the target query. We also propose
+an adaptive subgraph collection strategy to select
+a query-specific compact subgraph, allowing us
+to scale to full Freebase KB containing billions
+of facts. We show that C BR - SUBG can answer
+queries requiring subgraph reasoning patterns and
+performs competitively with the best models on
+several KBQA benchmarks. Our subgraph collection strategy also produces more compact subgraphs (e.g. 55% reduction in size for WebQSP
+while increasing answer recall by 4.85%)1 .
+
+1. Introduction
+Knowledge bases (KBs) store massive amounts of rich symbolic facts about real-world entities in the form of relation
+*
+Equal contribution 1 University of Washington 2 University of
+Southern California 3 UMass Amherst 4 Google DeepMind. Correspondence to: Rajarshi Das <rajarshi@cs.washington.edu>,
+Ameya Godbole <ameyagod@usc.edu>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+1
+Code, model, and subgraphs are available at https://
+github.com/rajarshd/CBR-SUBG
+
+This node has the most similar
+neighborhood wrt the starred
+answer nodes of KNN queries
+
+Input Query: Who plays MJ in Spiderman: No way
+Home?
+MJ
+
+plays
+Kirten
+Dunst
+Training Set
+(Q&A pairs)
+
+KNN Search
+
+plays
+
+Tobey
+McGuire
+
+Christian
+Bale
+
+character
+cast
+
+cast
+
+Dark
+Knight
+
+character
+
+plays
+
+Heath
+Ledger
+
+Michael
+Caine
+
+Dianne
+
+Friend
+Harry
+
+Green
+Goblin
+
+Emma
+
+director
+Chris
+Nolan
+
+Tom
+Hardy
+
+wife
+
+plays
+
+Cobb
+
+Eames
+
+friend
+plays
+
+cast
+
+Alfred
+
+wife
+
+character
+
+plays
+
+Joker
+
+Batman
+
+director
+
+Rue
+
+plays
+
+John
+Watts
+
+Who plays Cobb in
+Inception?
+A: Leonardo DiCaprio
+
+Who plays Joker in Dark
+Knight?
+A: Heath ledger
+
+plays
+
+Spiderman:
+No Way
+Home
+
+cast
+
+Spiderman
+
+Zendaya
+
+cast
+
+character
+cast
+
+Tom
+Holland
+
+plays
+
+character
+cast
+
+Inception
+
+character
+cast
+
+Arthur
+
+plays
+
+Leonardo
+DiCaprio
+
+cast
+
+Joseph
+GordonLevitt
+
+director
+
+Christopher
+Nolan
+
+wife
+Emma
+
+friend
+
+Heath
+Ledger
+
+Figure 1: Figure shows an input query and two queries in the
+training set that are similar to the input query. The relevant
+subgraph for each query (query subgraph) is also shown.
+Note that the “reasoning patterns” required to answer the
+queries (edges in red) repeats in the subgraphs of each query.
+Also note, the corresponding answer nodes (marked as )
+are analogously located within the reasoning patterns in each
+subgraph. Thus the answer node can be found by identifying
+the node in the query subgraph that is most similar to the
+answer nodes in the subgraph of KNN queries.
+triples—(e1 , r, e2 ), where e1 , e2 denote entities and r denotes a semantic relation. KBs can be naturally described
+as a graph where the entities are nodes and the relations are
+labelled edges. An effective and user-friendly way of accessing the information stored in a KB is by issuing queries
+to it. Such queries can be structured (e.g. queries for booking flights) or unstructured (e.g. natural language queries).
+The set of KB facts useful for answering a query induce a
+reasoning pattern—e.g. a chain of KB facts forming a path
+or more generally a subgraph in the knowledge graph (KG)
+(set of red edges in Figure 1). It is very laborious to annotate
+the reasoning patterns for each query at scale and hence it
+is important to develop weakly-supervised knowledge base
+question answering (KBQA) models that do not depend on
+the availability of the annotated reasoning patterns.
+We are interested in developing models that can answer
+queries requiring complex subgraph reasoning patterns.
+
+

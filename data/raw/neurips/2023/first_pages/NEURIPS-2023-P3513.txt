@@ -1,0 +1,97 @@
+PLANNER: Generating Diversified Paragraph via
+Latent Language Diffusion Model
+Yizhe Zhang, Jiatao Gu, Zhuofeng Wu, Shuangfei Zhai, Josh Susskind, Navdeep Jaitly
+Apple
+{yizzhang, jgu32, zhuofeng_wu, szhai, jsusskind, njaitly}@apple.com
+
+Abstract
+Autoregressive models for text sometimes generate repetitive and low-quality
+output because errors accumulate during the steps of generation. This issue is often
+attributed to exposure bias – the difference between how a model is trained, and
+how it is used during inference. Denoising diffusion models provide an alternative
+approach in which a model can revisit and revise its output. However, they can be
+computationally expensive and prior efforts on text have led to models that produce
+less fluent output compared to autoregressive models, especially for longer text
+and paragraphs. In this paper, we propose PLANNER, a model that combines
+latent semantic diffusion with autoregressive generation, to generate fluent text
+while exercising global control over paragraphs. The model achieves this by
+combining an autoregressive “decoding” module with a “planning” module that
+uses latent diffusion to generate semantic paragraph embeddings in a coarse-to-fine
+manner. The proposed method is evaluated on various conditional generation tasks,
+and results on semantic generation, text completion and summarization show its
+effectiveness in generating high-quality long-form text in an efficient manner.
+
+1
+
+Introduction
+
+Prefix: Horrible hotel. Horrible hotel. Serioulsy, horrible hotel.
+
+1-gram
+
+2-gram
+
+FT (Greedy decoding): The hotel was a nightmare. The rooms were filthy, the bathrooms were
+filthy, the food was disgusting, the food was disgusting. The food was disgusting. The food was
+disgusting. The food was disgusting. The food was disgusting. The food was disgusting.…
+
+The: 100.00%
+
+The hotel: 100.00%
+
+FT (Top-p sampling): Terrible, awful hotel. Horrible, awful hotel. I'm going to the awful hotel. I'll
+never get in. What the hell is this hotel? It's awful. I don't like it. Where? It's awful. I think
+they have a bathroom there. I'm going to the awful hotel. I'll never get in. I want out of here.
+This hotel is horrible. I'm going to the awful hotel. I'll never get in. I want out of here…
+
+I: 13.39%
+Horrible hotel: 12.50% Horrible hotel. Horrible: 3.48%
+Horrible: 12.20% Terrible hotel: 6.05%
+Horrible hotel. I: 2.61%
+The: 8.27%
+This is: 2.82%
+Terrible hotel. Terrible: 2.17%,
+Terrible: 5.91%
+I hate: 1.61%
+Terrible hotel. Horrible: 1.30%
+This: 4.33%
+I mean: 1.61%
+I could not: 0.87%
+
+Ours (Greedy decoding): Staff was unhelpful. So rude from the front desk. The hotel tried to
+lose the reservation of my family which I had with the hotel. This hotel is way overpriced.
+Hallways smelled bad. Carpet was disgusting. I'll never go back. I don't recommend the hotel. I
+can stay anywhere else!!
+
+I: 10.55%
+The: 5.08%
+We: 3.52%
+Hotel: 2.73%
+They: 2.73%
+
+I was: 1.56%
+Had to: 1.56%
+The room: 1.17%
+Dirty and: 1.17%
+I called: 1.17%
+
+3-gram
+The hotel was: 100.00%
+
+The room was: 1.18%
+The walls were: 0.78%
+I was told: 0.78%
+I called the: 0.78%
+I booked through: 0.78%
+
+Figure 1: Left: With a repetitive prompt, the finetuned GPT-2 large model (774M, FT) is still attracted
+to self-reinforced repetition (highlighted text) even under top-p sampling (K=50, p=0.92). Right: the
+most frequent first n-grams of the generations for each method, derived from 512 generation roll-outs.
+Our proposed method results in a more diversified generation robust to the ill-composed prompt.
+Autoregressive models trained with a teacher forcing strategy (Williams & Zipser, 1989) are considered the gold standard for text generation. However, a significant drawback of this approach is
+that it lacks the ability to correct any mistakes made during the generation process which can lead to
+errors that accumulate as the generation progresses. Previous work (Ott et al., 2018; Holtzman et al.,
+2019; Welleck et al., 2019; Xu et al., 2022) has observed that deterministic decoding methods have a
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

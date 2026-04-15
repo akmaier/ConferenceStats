@@ -1,0 +1,83 @@
+Celer: a Fast Solver for the Lasso with Dual Extrapolation
+
+Mathurin Massias 1 Alexandre Gramfort 1 Joseph Salmon 2
+
+Abstract
+Convex sparsity-inducing regularizations are ubiquitous in high-dimensional machine learning, but
+solving the resulting optimization problems can
+be slow. To accelerate solvers, state-of-the-art
+approaches consist in reducing the size of the optimization problem at hand. In the context of
+regression, this can be achieved either by discarding irrelevant features (screening techniques) or
+by prioritizing features likely to be included in the
+support of the solution (working set techniques).
+Duality comes into play at several steps in these
+techniques. Here, we propose an extrapolation
+technique starting from a sequence of iterates in
+the dual that leads to the construction of improved
+dual points. This enables a tighter control of optimality as used in stopping criterion, as well as
+better screening performance of Gap Safe rules.
+Finally, we propose a working set strategy based
+on an aggressive use of Gap Safe screening rules.
+Thanks to our new dual point construction, we
+show significant computational speedups on multiple real-world problems.
+
+1. Introduction
+Following the seminal work on the Lasso (Tibshirani, 1996)
+(also known as Basis Pursuit (Chen & Donoho, 1995) in
+signal processing), convex sparsity-inducing regularizations
+have had a major impact on machine learning (Bach et al.,
+2012). Now thoroughly analyzed in terms of statistical
+efficiency (Bickel et al., 2009), these regularizers yield a
+sparse solution, meaning both a more interpretable model,
+as well as reduced time for prediction. In machine learning
+applications, the default method to optimize such problems
+is coordinate descent (Fu, 1998; Friedman et al., 2010).
+Since by design only a few features are included in the
+1
+
+INRIA, Université Paris-Saclay 2 LTCI, Télécom ParisTech,
+Université Paris-Saclay. Correspondence to: Mathurin Massias
+<mathurin.massias@inria.fr>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+optimal solution (what we will refer to as the support),
+state-of-the-art techniques rely on limiting the size of the
+(sub-)problems to consider. To do so, various approaches
+can be distinguished: screening techniques (Wang et al.,
+2013; Ogawa et al., 2013; Fercoq et al., 2015), following the
+seminal work of El Ghaoui et al. (2012), strong rules (Tibshirani et al., 2012) implemented in the GLMNET package
+or correlation screening (Xiang & Ramadge, 2012). Similar
+techniques discarding gradients have also been considered
+in the stochastic gradient descent literature (Vainsencher
+et al., 2015; Shibagaki et al., 2016). When a screening rule
+guarantees that all discarded features cannot be in the solution, it is called safe. The current state-of-the-art safe
+screening rules are the so-called Gap Safe rules (Ndiaye
+et al., 2017) relying on duality gap evaluation, which itself
+requires to know a suitable dual point.
+Alternatively, working sets1 (WS) techniques (Fan et al.,
+2008; Boisbunon et al., 2014; Johnson & Guestrin, 2015)
+select a subset of important features according to a particular criterion, and approximately solve the subproblem
+restricted to these features. A new subset is then defined,
+and the procedure is repeated. While screening techniques
+start from full problems and prune the feature set, WS techniques rather start with small problems and include more
+and more features if needed. For these techniques, duality
+can also come into play, both in the stopping criterion of the
+subproblem solver, as well as in the WS definition.
+The organization of the paper is as follows: in Section 2, we
+remind the practical importance of duality for Lasso solvers
+and present a technique called dual extrapolation to obtain
+better dual points. We also shed some light on the success
+of our approach when combined with cyclic coordinate descent by interpreting the latter as Dykstra’s algorithm in the
+Lasso dual. In Section 3, we show how dual extrapolation
+is well-suited to improve Gap Safe screening. We present
+in Section 4 a WS strategy based on an aggressive relaxation of the Gap Safe rules. Experiments in Section 6 show
+significant computational speedups on multiple real-world
+problems.
+1
+
+also called active sets; we choose working because in the
+screening literature, active set refers to the non discarded features.
+
+

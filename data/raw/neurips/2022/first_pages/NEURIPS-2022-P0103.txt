@@ -1,0 +1,49 @@
+Towards Efficient Post-training Quantization of
+Pre-trained Language Models
+Haoli Bai1,2⇤, Lu Hou1 , Lifeng Shang1 , Xin Jiang1 , Irwin King2 , Michael R. Lyu2
+1
+Huawei Noah’s Ark Lab, 2 The Chinese University of Hong Kong
+{baihaoli,houlu3,Shang.Lifeng,Jiang.Xin}@huawei.com,
+{king,lyu}@cse.cuhk.edu.hk
+
+Abstract
+Network quantization has gained increasing attention with the rapid growth of
+large pre-trained language models (PLMs). However, most existing quantization
+methods for PLMs follow quantization-aware training (QAT) that requires end-toend training with full access to the entire dataset. Therefore, they suffer from slow
+training, large memory overhead, and data accessibility issues. In this paper, we
+study post-training quantization (PTQ) of PLMs, and propose module-wise quantization error minimization (MREM), an efficient solution to mitigate these issues.
+By partitioning the PLM into multiple modules, we minimize the reconstruction
+error incurred by quantization for each module. In addition, we design a new model
+parallel training strategy such that each module can be trained locally on separate
+computing devices without waiting for preceding modules, which brings nearly the
+theoretical training speed-up (e.g., 4⇥ on 4 GPUs). Experiments on GLUE and
+SQuAD benchmarks show that our proposed PTQ solution not only performs close
+to QAT, but also enjoys significant reductions in training time, memory overhead,
+and data consumption.
+
+1
+
+Introduction
+
+Large pre-trained language models (PLMs) have achieved remarkable success in various natural
+language processing tasks [44, 12, 5]. However, the increasing size and computation overhead also
+make it prohibitive to deploy these PLMs on resource-constrained devices. To obtain compact PLMs,
+various model compression methods have been proposed, such as pruning [32, 14, 50], knowledge
+distillation [40, 42, 24], weight-sharing [10, 25, 46, 22], dynamic computation with adaptive depth or
+width [18, 52, 59], and quantization [55, 41, 54, 56, 3, 38, 43].
+Among these methods, network quantization enjoys the reduction of both model size and computation overhead without modifying the network architecture, and is thus extensively studied in PLM
+quantization [55, 41, 54, 56, 3, 38, 43]. However, most previous methods for PLM quantization
+methods follow quantization-aware training (QAT), which suffers from several issues. Specifically,
+QAT usually conducts end-to-end back-propagation training over the whole training set, which can
+be slow in training time, memory demanding and data consuming. These issues can be somethimes
+prohibited for industrial PLMs. Post-training quantization (PTQ), on the other hand, serves as
+an appealing alternative that is efficient in training time, memory overhead and data consumption.
+Instead of the full training set, PTQ can leverage only a small portion of training data to minimize the layer-wise reconstruction error incurred by quantization [34, 35, 33, 23]. This can be
+done by either calibrating the batch normalization statistics [34] or step sizes [35] in quantization
+functions. The layer-wise objective also breaks down the end-to-end training, making the prob⇤
+
+This work is partially done during internship at Huawei Noah’s Ark Lab.
+
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+

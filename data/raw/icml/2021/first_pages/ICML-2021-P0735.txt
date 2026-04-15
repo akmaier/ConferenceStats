@@ -1,0 +1,84 @@
+Value-at-Risk Optimization with Gaussian Processes
+
+Quoc Phong Nguyen 1 Zhongxiang Dai 1 Bryan Kian Hsiang Low 1 Patrick Jaillet 2
+
+Abstract
+Value-at-risk (VA R) is an established measure
+to assess risks in critical real-world applications
+with random environmental factors. This paper
+presents a novel VA R upper confidence bound
+(V-UCB) algorithm for maximizing the VA R of
+a black-box objective function with the first noregret guarantee. To realize this, we first derive
+a confidence bound of VA R and then prove the
+existence of values of the environmental random
+variable (to be selected to achieve no regret) such
+that the confidence bound of VA R lies within that
+of the objective function evaluated at such values.
+Our V-UCB algorithm empirically demonstrates
+state-of-the-art performance in optimizing synthetic benchmark functions, a portfolio optimization problem, and a simulated robot task.
+
+1. Introduction
+Consider the problem of maximizing an expensive-tocompute black-box objective function f that depends on
+an optimization variable x and an environmental random
+variable Z. Due to the randomness in Z, the function evaluation f (x, Z) of f at x is a random variable. Though for such
+an objective function f , Bayesian optimization (BO) can be
+naturally applied to maximize its expectation EZ [f (x, Z)]
+over Z (Toscano-Palmerin & Frazier, 2018), this maximization objective overlooks the risks of potentially undesirable
+function evaluations. These risks can arise from either (a)
+the realization of an unknown distribution of Z or (b) the
+realization of the random Z given that the distribution of
+f (x, Z) can be estimated well or that of Z is known. The
+issue (a) has been tackled by distributionally robust BO
+(Kirschner et al., 2020; Nguyen et al., 2020) which maximizes EZ [f (x, Z)] under the worst-case realization of the
+distribution of Z. To resolve the issue (b), the risk from the
+1
+Department of Computer Science, National University of
+Singapore, Republic of Singapore 2 Department of Electrical
+Engineering and Computer Science, Massachusetts Institute of
+Technology, USA. Correspondence to: Quoc Phong Nguyen
+<qphong@comp.nus.edu.sg>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+uncertainty in Z can be controlled via the mean-variance
+optimization framework (Iwazaki et al., 2020), value-at-risk
+(VA R), or conditional value-at-risk (CVA R) (Cakmak et al.,
+2020; Torossian et al., 2020). The work of Bogunovic et al.
+(2018) has considered adversarially robust BO, where z is
+controlled by an adversary deterministically.1 In this case,
+the objective is to find x that maximizes the function under
+the worst-case realization of z, i.e., argmaxx minz f (x, z).
+In this paper, we focus on case (b) where the distribution of
+Z is known (or well-estimated). For example, in agriculture,
+although farmers cannot control the temperature of an outdoor farm, its distribution can be estimated from historical
+data and controlled in an indoor environment for optimizing
+the plant yield. Given the distribution of Z, the objective is
+to control the risk that the function evaluation f (x, z), for a
+z sampled from Z, is small. One popular framework is to
+control the trade-off between the mean (viewed as reward)
+and the variance (viewed as risk) of the function evaluation
+with respect to Z (Iwazaki et al., 2020). However, quantifying the risk using variance implies indifference between
+positive and negative deviations from the mean, while people often have asymmetric risk attitudes (Goh et al., 2012).
+In our problem of maximizing the objective function, it is
+reasonable to assume that people are risk-averse towards
+only the negative deviations from the mean, i.e., the risk of
+getting low function evaluations. Thus, it is more appropriate to adopt risk measures with this asymmetric property,
+such as value-at-risk (VA R) which is a widely adopted risk
+measure in real-world applications (e.g., in banking (Basel
+Committee on Banking Supervision, 2006)). Intuitively,
+the risk that the random f (x, Z) is less than VA R at level
+α ∈ (0, 1) does not exceed α. Hence, by specifying a small
+value of α as 0.1, this risk is controlled to be at most 10%.
+Therefore, to maximize f while controlling the risk of undesirable function evaluations, we aim to maximize VA R of
+the random function f (x, Z) over x.
+The recent work of Cakmak et al. (2020) has used BO to
+maximize VA R and has achieved state-of-the-art empirical
+performances. They have assumed that we are able to select
+both x and z to query during BO, which is motivated by
+1
+
+We use upper-case letter Z to denote the environmental random variable and lower-case letter z to denote its realization or a
+(non-random) variable.
+
+

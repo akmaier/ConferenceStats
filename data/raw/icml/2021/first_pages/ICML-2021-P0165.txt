@@ -1,0 +1,109 @@
+ActNN: Reducing Training Memory Footprint
+via 2-Bit Activation Compressed Training
+
+Abstract
+The increasing size of neural network models has
+been critical for improvements in their accuracy,
+but device memory is not growing at the same
+rate. This creates fundamental challenges for
+training neural networks within limited memory
+environments. In this work, we propose ActNN,
+a memory-efficient training framework that stores
+randomly quantized activations for back propagation. We prove the convergence of ActNN for general network architectures, and we characterize
+the impact of quantization on the convergence via
+an exact expression for the gradient variance. Using our theory, we propose novel mixed-precision
+quantization strategies that exploit the activation’s
+heterogeneity across feature dimensions, samples,
+and layers. These techniques can be readily applied to existing dynamic graph frameworks, such
+as PyTorch, simply by substituting the layers. We
+evaluate ActNN on mainstream computer vision
+models for classification, detection, and segmentation tasks. On all these tasks, ActNN compresses
+the activation to 2 bits on average, with negligible accuracy loss. ActNN reduces the memory
+footprint of the activation by 12×, and it enables
+training with a 6.6× to 14× larger batch size.
+We implement ActNN as a PyTorch library at
+https://github.com/ucbrise/actnn.
+
+1. Introduction
+Within the last three years, state-of-the-art machine learning
+models have become over 4,000 times larger (Devlin et al.,
+2018; Fedus et al., 2021). On the other hand, the memory
+capacity of GPUs has increased relatively slowly, remaining
+on the order of tens of gigabytes. This creates a fundamental
+*
+1
+Equal contribution
+UC Berkeley.
+Correspondence
+to: Jianfei Chen <jianfeic@berkeley.edu>, Lianmin Zheng
+<lmzheng@berkeley.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Training Throughput
+
+Jianfei Chen * 1 Lianmin Zheng * 1 Zhewei Yao 1 Dequan Wang 1
+Ion Stoica 1 Michael W. Mahoney 1 Joseph E. Gonzalez 1
+60
+
+L0 L1
+
+L2
+
+40
+
+L3
+
+L4
+
+L5
+
+20
+
+DTR
+BLPA
+swap
+ActNN
+
+14.0×
+0
+
+0
+
+200
+
+400
+600
+Batch Size
+
+800
+
+Figure 1. Batch size vs. training throughput on ResNet-152. Red
+cross mark means out-of-memory. The shaded yellow region
+denotes the possible batch sizes with full precision training. ActNN
+achieves significantly larger maximum batch size over other stateof-the-art systems and displays a nontrivial trade-off curve.
+
+barrier to the development and training of neural networks.
+Activation compressed training (ACT) is a promising approach to reduce the training memory footprint (Chakrabarti
+& Moseley, 2019; Fu et al., 2020). During training, all
+layers’ activations need to be kept in the memory for computing the gradients. ACT saves memory by compressing
+activations to lower numerical precision via quantization.
+It was proposed in BLPA (Chakrabarti & Moseley, 2019),
+and it was later extended by TinyScript (Fu et al., 2020)
+with non-uniform quantization strategies. These prior works
+succeeded in training ResNet-50 with 4-bit activations.
+However, applications of ACT are hindered by several drawbacks. First, the convergence behavior of ACT methods
+is not well understood (except for an analysis for multilayer perceptrons (Fu et al., 2020), under strong mean-field
+assumptions (Yang & Schoenholz, 2017)). Second, prior
+works mostly focus on dedicated architectures, e.g., a customized version of the pre-activation ResNet (He et al.,
+2016b), limiting their generality. Third, existing quantization strategies are not specifically designed for ACT, making
+their compression ratio suboptimal.
+In this work, we propose ActNN, a framework for ACT that
+overcomes all the challenges. ActNN stores randomly quantized activations to compute the gradients. Theoretically, we
+view the gradient computed by ActNN (“ActNN gradient”)
+as a stochastic approximation of the gradient computed with
+the full-precision activation (“FP gradient”). We show that
+the ActNN gradient is an unbiased estimator of the FP gradi-
+
+

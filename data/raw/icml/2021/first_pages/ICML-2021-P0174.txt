@@ -1,0 +1,83 @@
+Parallelizing Legendre Memory Unit Training
+
+Narsimha Chilkuri 1 Chris Eliasmith 1 2
+
+Abstract
+Recently, a new recurrent neural network (RNN)
+named the Legendre Memory Unit (LMU) was
+proposed and shown to achieve state-of-the-art
+performance on several benchmark datasets. Here
+we leverage the linear time-invariant (LTI) memory component of the LMU to construct a simplified variant that can be parallelized during training
+(and yet executed as an RNN during inference),
+resulting in up to 200 times faster training. We
+note that our efficient parallelizing scheme is general and is applicable to any deep network whose
+recurrent components are linear dynamical systems. We demonstrate the improved accuracy
+of our new architecture compared to the original
+LMU and a variety of published LSTM and transformer networks across seven benchmarks. For
+instance, our LMU sets a new state-of-the-art result on psMNIST, and uses half the parameters
+while outperforming DistilBERT and LSTM models on IMDB sentiment analysis.
+
+1. Introduction
+LSTMs (Hochreiter & Schmidhuber, 1997), the most popular class of recurrent neural networks (RNNs), process
+information in an inherently sequential manner. This prevents parallelization within training examples, and thus, they
+cannot fully leverage today’s commodity GPU hardware.
+This sequential nature of RNNs is one of the critical reasons
+for the shift towards purely self-attention based architectures
+such as the transformer and its derivatives (Vaswani et al.,
+2017; Devlin et al., 2018; Brown et al., 2020), especially in
+the domain of Natural Language Processing (NLP). Parallelization makes training such networks far more efficient
+on GPUs, and thus allows them to be applied to enormous
+datasets – for example, the Colossal Clean Crawled Corpus
+(C4) which comprises 750GB of English text (Raffel et al.,
+2019). Hence, such models, via unsupervised pre-training,
+1
+Center for Theoretical Neuroscience, University of Waterloo
+Applied Brain Research. Correspondence to: Narsimha Chilkuri
+<narasimha.chilkuri@gmail.com>.
+2
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+make it possible for us to exploit resources such as the internet,1 which produces 20TB of text data each month. A
+feat such as this, from the training perspective, would be
+unimaginable using LSTM or other RNN based models.
+In this paper, we exploit the idea that linear recurrence
+relations can be solved. More specifically, a linear timeinvariant (LTI) system’s state update equation can be written
+in a non-sequential fashion (Åström & Murray, 2010). This
+allows for the computation of the hidden state of an LTI system to be done in parallel, thus overcoming the fundamental
+constraint that traditional RNNs suffer from. Despite this
+desirable property, to our knowledge, such systems have
+remained underexplored. This perhaps has to do with the
+general belief that nonlinear dynamics are critical for solving complicated problems, especially AI level tasks. Here,
+we challenge that notion by focussing our attention on a
+specific LTI system, the memory component of the recently
+proposed Legendre Memory Unit (Voelker et al., 2019),
+and demonstrating superior performance of our model on
+a variety of tasks, including predicting a nonlinear, chaotic
+dynamical system.
+The Legendre Memory Unit (LMU) is an RNN cell that is
+constructed by coupling an LTI system to a nonlinear one.
+The LTI system, known as the Delay Network (Voelker &
+Eliasmith, 2018), is the core component of the LMU that
+projects a sliding window of length θ of the input signal
+onto the Legendre basis – hence the name Legendre Memory
+Unit. This construction, which employs the Delay Network
+(DN) to act as the memory and a nonlinear recurrent layer
+to compute arbitrary functions across time, has been shown
+to outperform LSTMs and other RNNs on various tasks. Of
+special interest to us is the ability of the LMU to handle
+temporal dependencies across 100,000 time-steps, which is
+orders of magnitude better than the LSTM.
+In the following pages, we start by simplifying the LMU
+such that recurrence exists only in the linear system. After
+showing that the training of this simplified variant can be
+parallelized, we turn to the question of its effectiveness. We
+do so by first considering the two synthetic tasks that the
+original LMU was validated on: psMNIST and MackeyGlass. We show that our variant exceeds the original LMU’s
+performance on both of these tasks, while also establishing
+1
+
+https://commoncrawl.org
+
+

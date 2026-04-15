@@ -1,0 +1,70 @@
+DeltaGrad: Rapid retraining of machine learning models
+
+Yinjun Wu 1 Edgar Dobriban 2 Susan B. Davidson 1
+
+Abstract
+Machine learning models are not static and may
+need to be retrained on slightly changed datasets,
+for instance, with the addition or deletion of a set
+of datapoints. This has many applications, including privacy, robustness, bias reduction, and uncertainty quantifcation. However, it is expensive
+to retrain models from scratch. To address this
+problem, we propose the DeltaGrad algorithm for
+rapid retraining machine learning models based
+on information cached during the training phase.
+We provide both theoretical and empirical support
+for the effectiveness of DeltaGrad, and show that
+it compares favorably to the state of the art.
+
+Figure 1. Running time of our DeltaGrad algorithm for retraining
+a logistic regression model on RCV1 as a function of the fraction
+of data deleted and added. Our algorithm is faster than training
+from scratch (Running time BaseL). Also shown is the distance
+of DeltaGrad and the model trained on full data from the correct
+values (Distance BaseL and Distance DeltaGrad, resp.), illustrating
+that our algorithm is accurate. See Section 18 for details.
+
+1. Introduction
+Machine learning models are used increasingly often, and
+are rarely static. Models may need to be retrained on slightly
+changed datasets, for instance when datapoints have been
+added or deleted. This has many applications, including
+privacy, robustness, bias reduction, and uncertainty quantifcation. For instance, it may be necessary to remove certain
+datapoints from the training data for privacy and robustness reasons. Constructing models with some datapoints
+removed can also be used for constructing bias-corrected
+models, such as in jackknife resampling (Quenouille, 1956)
+which requires retraining the model on all leave-one-out
+datasets. In addition, retraining models on subsets of data
+can be used for uncertainty quantifcation, such as constructing statistically valid prediction intervals via conformal prediction e.g., Shafer & Vovk (2008).
+Unfortunately, it is expensive to retrain models from scratch.
+The most common training mechanisms for large-scale models are based on (stochastic) gradient descent (SGD) and
+1
+Department of Computer and Information Science, University of Pennsylvania, PA, United States 2 Department of Statistics, University of Pennsylvania, PA, United States. Correspondence to: Yinjun Wu <wuyinjun@seas.upenn.edu>, Edgar Dobriban <dobriban@wharton.upenn.edu>, Susan B. Davidson <susan@cis.upenn.edu>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+its variants. Retraining the models on a slightly different
+dataset would involve re-computing the entire optimization
+path. When adding or removing a small number of data
+points, this can be of the same complexity as the original
+training process.
+However, we expect models on two similar datasets to be
+similar. If we retrain the models on many different new
+datasets, it may be more effcient to cache some information
+about the training process on the original data, and compute
+the “updates”. Such ideas have been used recently e.g.,
+Ginart et al. (2019); Guo et al. (2019); Wu et al. (2020).
+However, the existing approaches have various limitations:
+They only apply to specialized problems such as k-means
+(Ginart et al., 2019) or logistic regression (Wu et al., 2020),
+or they require additional randomization leading to nonstandard training algorithms (Guo et al., 2019).
+To address this problem, we propose the DeltaGrad algorithm for rapid retraining of machine learning models when
+slight changes happen in the training dataset, e.g. deletion
+or addition of samples, based on information cached during
+training. DeltaGrad addresses several limitations of prior
+work: it is applicable to general machine learning models defned by empirical risk minimization trained using SGD, and
+does not require additional randomization. It is based on the
+idea of “differentiating the optimization path” with respect
+to the data, and is inspired by ideas from Quasi-Newton
+
+

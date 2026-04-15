@@ -1,0 +1,82 @@
+Scalable Exact Inference in Multi-Output Gaussian Processes
+
+Wessel P. Bruinsma 1 2 Eric Perim 2 Will Tebbutt 1 J. Scott Hosking 3 4 Arno Solin 5 Richard E. Turner 1 6
+
+Abstract
+Multi-output Gaussian processes (MOGPs) leverage the flexibility and interpretability of GPs
+while capturing structure across outputs, which is
+desirable, for example, in spatio-temporal modelling. The key problem with MOGPs is their
+computational scaling O(n3 p3 ), which is cubic
+in the number of both inputs n (e.g., time points
+or locations) and outputs p. For this reason, a
+popular class of MOGPs assumes that the data
+live around a low-dimensional linear subspace,
+reducing the complexity to O(n3 m3 ). However,
+this cost is still cubic in the dimensionality of the
+subspace m, which is still prohibitively expensive for many applications. We propose the use
+of a sufficient statistic of the data to accelerate
+inference and learning in MOGPs with orthogonal bases. The method achieves linear scaling
+in m in practice, allowing these models to scale
+to large m without sacrificing significant expressivity or requiring approximation. This advance
+opens up a wide range of real-world tasks and can
+be combined with existing GP approximations in
+a plug-and-play way. We demonstrate the efficacy
+of the method on various synthetic and real-world
+data sets.
+
+1. Introduction
+Gaussian processes (GPs, Rasmussen & Williams, 2006)
+form an interpretable, modular, and tractable probabilistic
+framework for modelling nonlinear functions. They are successfully applied in a wide variety of single-output problems:
+they can automatically discover structure in signals (Duvenaud, 2014), achieve state-of-the-art performance in regression tasks (Bui et al., 2016), enable data-efficient models in
+reinforcement learning (Deisenroth & Rasmussen, 2011),
+and support many applications in probabilistic numerics
+1
+
+University of Cambridge 2 Invenia Labs 3 British Antarctic Survey Alan Turing Institute 5 Aalto University 6 Microsoft Research.
+Correspondence to: Wessel P. Bruinsma <wpb23@cam.ac.uk>.
+4
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+(Hennig et al., 2015), such as in optimisation (Brochu et al.,
+2010) and quadrature (Minka, 2000).
+Multi-output Gaussian processes (MOGPs) leverage the
+flexibility and interpretability of GPs while capturing structure across outputs. One of the first applications of GPs
+with multiple outputs was in geostatistics (Matheron, 1969).
+Today, MOGPs models can be found in various areas, including geostatistics (Wackernagel, 2003), factor analysis
+(Teh & Seeger, 2005; Yu et al., 2009), dependent or multitask learning (Boyle & Frean, 2005; Bonilla et al., 2007;
+2008; Osborne et al., 2008), latent force models (Álvarez
+et al., 2009; Álvarez & Lawrence, 2009; Álvarez et al.,
+2010; Álvarez & Lawrence, 2011), state space modelling
+(Särkkä et al., 2013), regression networks (Wilson et al.,
+2012; Nguyen & Bonilla, 2014; Dezfouli et al., 2017), and
+mixture models (Ulrich et al., 2015; Bruinsma, 2016; Parra
+& Tobar, 2017; Requeima et al., 2019).
+A key practical problem with existing MOGPs is their computational complexity. For n input points, each having p
+outputs, inference and learning in general MOGPs take
+O(n3 p3 ) time and O(n2 p2 ) memory, although these may
+be alleviated by a wide range of approximations (Candela
+& Rasmussen, 2005; Titsias, 2009; Lázaro-Gredilla et al.,
+2010; Hensman et al., 2013; Wilson & Nickisch, 2015; Bui
+et al., 2017; Cheng & Boots, 2017; Hensman et al., 2018).
+To mitigate these unfavourable scalings, a particular class
+of MOGPs, which we call the Instantaneous Linear Mixing
+Model (ILMM, Sec. 2.1), assumes that the data live around
+an m-dimensional linear subspace, where m < p. This class
+exploits the low-rank structure of its covariance to reduce the
+complexity of inference and learning to roughly O(n3 m3 )
+time and O(n2 m2 ) memory. Although m is typically much
+smaller than p, the runtime complexity is again cubic in
+m. Consequently, the ILMM is prohibitively expensive in
+applications where moderate m is required. Consider, for
+example, hourly real-time electricity prices at 2313 different
+locations across 15 U.S. states and the Canadian province of
+Manitoba during the year 2019 (MISO, 2019). Forecasting
+electricity prices is crucial in the planning of energy transmission, which happens 24 hours in advance. The ILMM is
+particularly well suited to this task: the prices derive from
+optimal power flow, which tends to exhibit low-rank structure. However, it still takes roughly m = 40 to explain 95%
+of the variance of this data. For n = 1 k time points, this
+
+

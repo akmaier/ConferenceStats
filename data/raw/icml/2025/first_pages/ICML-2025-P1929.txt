@@ -1,0 +1,82 @@
+Flexible and Efficient Grammar-Constrained Decoding
+
+Kanghee Park 1 Timothy Zhou 1 Loris D’Antoni 1
+
+Abstract
+
+ognized by a lexer in a preprocessing phase, while the grammatical structure of how terminals can be arranged—e.g.,
+that the body of a loop should be a sequence of statements—
+is enforced by an automaton operating over lexed terminals.
+A key challenge with implementing GCD algorithms is that
+the tokens used by subword tokenizers in LLMs do not align
+with the terminals used by parsers.
+
+Large Language Models (LLMs) are often asked
+to generate structured outputs that obey precise
+syntactic rules, such as code snippets or formatted
+data. Grammar-constrained decoding (GCD) can
+guarantee that LLM outputs matches such rules
+by masking out tokens that will provably lead to
+outputs that do not belong to a specified contextfree grammar (CFG). To guarantee soundness,
+GCD algorithms have to compute how a given
+LLM subword tokenizer can “align” with the tokens used by a given context-free grammar and
+compute token masks based on this information.
+Doing so efficiently is challenging and existing
+GCD algorithms require tens of minutes to preprocess common grammars. We present a new
+GCD algorithm together with an implementation
+that offers 17.71x faster offline preprocessing than
+existing approaches while preserving state-of-theart efficiency in online mask computation.
+
+Because of this misalignment, GCD approaches either incur
+high online token-masking overhead (>1 second per token),
+or high offline preprocessing costs (>30 minutes) to precompute a lookup table that relates LLM tokens to terminals
+(Beurer-Kellner et al., 2024; Ugare et al., 2024). Thus, existing GCD algorithms are impractical for domains where
+the constraining grammar frequently changes. Examples of
+such domains include program synthesis (Alur et al., 2019),
+where a grammar is provided for every program one may try
+to synthesize, and grammar prompting (Wang et al., 2024),
+where grammars are predicted from a given prompt to then
+guide the LLM towards a particular output structure.
+In this paper, we introduce a new approach for grammarconstrained decoding that is both flexible—i.e., handles diverse grammars without incurring prohibitive offline preprocessing costs—and efficient—i.e., maintains state-of-the-art
+efficiency in online token masking. The key innovation is
+a combined analysis of the LLM token vocabulary and set
+of CFG terminals. The analysis efficiently precomputes a
+lexer-state-dependent mapping between sequences of CFG
+tokens and individual LLM tokens. This precomputation allows the decoder to efficiently identify valid LLM tokens at
+decoding time while avoiding wasteful processing of token
+combinations that are not realizable within the given LLM
+vocabulary.
+
+1. Introduction
+Constrained decoding guides the output of Large Language
+Models (LLMs) by greedily enforcing user-given constraints
+in highly structured settings. Grammar-constrained decoding (GCD) (Geng et al., 2023) refers to the specific case
+where the constraint is given as a formal grammar that the
+LLM’s output must conform to. This is done by applying
+parsing algorithms to build an automaton that interfaces
+with the LLM’s decoding algorithm to mask away all tokens
+that will provably lead to outputs not in the grammar. For
+example, GCD can be used to ensure that an LLM generates
+programs that only use a specific set of function names.
+
+We implement our approach in a tool, G REAT G RAMMA,
+which compares favorably to existing GCD approaches.
+G REAT G RAMMA achieves an average 17.71x speedup in offline preprocessing compared to related approaches (Ugare
+et al., 2024) while maintaining state-of-the-art online masking efficiency (5-32ms per token). Furthermore, our evaluation reveals that GCD implementations from existing published papers contain soundness bugs (e.g., they mask tokens
+that should not be masked or do not terminate when preprocessing simple grammars), whereas our approach lends
+itself to an elegant implementation consisting of simple
+
+Parsing algorithms for Context-Free Grammars (CFG)
+achieve efficiency by processing input strings in two phases.
+Terminals—e.g., variable names or string literals—are rec1
+
+Department of Computer Science and Engineering,
+UCSD, San Diego, USA. Correspondence to: Kanghee park
+<kap022@ucsd.edu>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

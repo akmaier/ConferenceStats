@@ -1,0 +1,61 @@
+∆-STN: Efficient Bilevel Optimization for Neural
+Networks using Structured Response Jacobians
+
+Juhan Bae
+University of Toronto
+Vector Institute
+jbae@cs.toronto.edu
+
+Roger Grosse
+University of Toronto
+Vector Institute
+rgrosse@cs.toronto.edu
+
+Abstract
+Hyperparameter optimization of neural networks can be elegantly formulated as
+a bilevel optimization problem. While research on bilevel optimization of neural
+networks has been dominated by implicit differentiation and unrolling, hypernetworks such as Self-Tuning Networks (STNs) have recently gained traction due to
+their ability to amortize the optimization of the inner objective. In this paper, we
+diagnose several subtle pathologies in the training of STNs. Based on these observations, we propose the ∆-STN, an improved hypernetwork architecture which
+stabilizes training and optimizes hyperparameters much more efficiently than STNs.
+The key idea is to focus on accurately approximating the best-response Jacobian
+rather than the full best-response function; we achieve this by reparameterizing
+the hypernetwork and linearizing the network around the current parameters. We
+demonstrate empirically that our ∆-STN can tune regularization hyperparameters
+(e.g. weight decay, dropout, number of cutout holes) with higher accuracy, faster
+convergence, and improved stability compared to existing approaches.
+
+1
+
+Introduction
+
+Tuning regularization hyperparameters such as weight decay, dropout [55], and data augmentation
+is indispensable for state-of-the-art performance in a challenging dataset such as ImageNet [8, 52,
+7]. An automatic approach to adapting these hyperparameters would improve performance and
+simplify the engineering process. Although black box methods for tuning hyperparameters such as
+grid search, random search [2], and Bayesian optimization [53, 54] work well in low-dimensional
+hyperparameter spaces, they are computationally expensive, require many runs of training, and
+require that hyperparameter values be fixed throughout training.
+Hyperparameter optimization can be elegantly formulated as a bilevel optimization problem [5, 15].
+Let w ∈ Rm denote parameters (e.g. weights and biases) and λ ∈ Rh denote hyperparameters
+(e.g. weight decay). Let LV and LT denote validation and training objectives, respectively. We aim
+to find the optimal hyperparameters λ∗ that minimize the validation objective at the end of training.
+Mathematically, the bilevel objective can be formulated as follows1 :
+λ∗ = arg min LV (λ, w∗ ) subject to w∗ = arg min LT (λ, w)
+λ∈Rh
+
+(1.1)
+
+w∈Rm
+
+In machine learning, most work on bilevel optimization has focused on implicit differentiation [28,
+48] and unrolling [39, 14]. A more recent approach, which we build on in this work, explicitly
+approximates the best-response (rational reaction) function r(λ) = arg minw LT (λ, w) with a
+hypernetwork [49, 19] and jointly optimizes the hyperparameters and the hypernetwork [35]. The
+1
+
+The uniqueness of arg min is assumed throughout this paper.
+
+34th Conference on Neural Information Processing Systems (NeurIPS 2020), Vancouver, Canada.
+
+

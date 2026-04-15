@@ -1,0 +1,67 @@
+Mechanic: A Learning Rate Tuner
+
+Ashok Cutkosky
+Boston University
+Boston, MA
+ashok@cutkosky.com
+
+Aaron Defazio
+Meta, FAIR
+New York, NY
+adefazio@meta.com
+
+Harsh Mehta
+Google Research
+Mountain View, CA
+harshm@google.com
+
+Abstract
+We introduce a technique for tuning the learning rate scale factor of any base optimization algorithm and schedule automatically, which we call MECHANIC. Our
+method provides a practical realization of recent theoretical reductions for accomplishing a similar goal in online convex optimization. We rigorously evaluate
+MECHANIC on a range of large scale deep learning tasks with varying batch sizes,
+schedules, and base optimization algorithms. These experiments demonstrate that
+depending on the problem, MECHANIC either comes very close to, matches or
+even improves upon manual tuning of learning rates.
+
+1
+
+Introduction
+
+Modern deep learning is driven by first-order stochastic optimization algorithms. These are algorithms that are designed to solve the classical stochastic optimization problem:
+min F (x) = min E[f (x, z)]
+z
+
+d
+
+where z is a minibatch of examples, x ∈ R is the model parameters, and f is the loss incurred by
+using weights x on the minibatch z. A first-order algorithm follows the protocol:
+1. Output a tth iterate xt .
+2. Sample a random minibatch zt .
+3. Compute gt = ∇f (xt , zt ) (the gradient is taken with respect to xt only).
+4. Possibly update some internal algorithm state based upon gt in preparation for computing
+the next iterate xt+1 .
+The prototypical such optimization algorithm is stochastic gradient descent (SGD), which exemplifies the attractive features of this approach: it is computationally cheap (running in O(d) time per
+update), and with proper tuning obtains minimax optimal convergence guarantees [1, 2]. Modern
+practice makes use of a wide range of variants of SGD, such SGD with momentum, AdaGrad [3],
+Adam [4], AdamW [5] or Lion [6]. Interest in such improvements to SGD is driven by the increasing computational demands of training large neural networks: better optimization means cheaper
+training, which translates to significant savings in terms of time, cost, and environmental impact.
+Most modern algorithms for training neural networks are equipped with a scalar “scale factor” or
+“learning rate” hyperparameter s ∈ R. Roughly speaking, these algorithms produce iterates of the
+form xt+1 = xt + s · ut where ut is some update vector produced as a function of the observed
+gradients g1 , . . . , gt (we will use bold font for vectors in Rd like u and normal font for all other
+quantities like s). As an example, the classical SGD algorithm sets ut = −ηt gt for some sequence
+of scalars {ηt } typically called the schedule. The formula for the SGD update is:
+xt+1 = x1 − s ·
+
+t
+X
+
+ηi gi .
+
+i=1
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+(1)
+
+

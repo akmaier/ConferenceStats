@@ -1,0 +1,61 @@
+Predictive Sampling with Forecasting Autoregressive Models
+
+Auke Wiggers 1 Emiel Hoogeboom 2 3
+
+Abstract
+Autoregressive models (ARMs) currently hold
+state-of-the-art performance in likelihood-based
+modeling of image and audio data. Generally, neural network based ARMs are designed to allow
+fast inference, but sampling from these models
+is impractically slow. In this paper, we introduce
+the predictive sampling algorithm: a procedure
+that exploits the fast inference property of ARMs
+in order to speed up sampling, while keeping the
+model intact. We propose two variations of predictive sampling, namely sampling with ARM fixedpoint iteration and learned forecasting modules.
+Their effectiveness is demonstrated in two settings: i) explicit likelihood modeling on binary
+MNIST, SVHN and CIFAR10, and ii) discrete latent modeling in an autoencoder trained on SVHN,
+CIFAR10 and Imagenet32. Empirically, we show
+considerable improvements over baselines in number of ARM inference calls and sampling speed.
+
+1. Introduction
+Deep generative models aim to approximate the joint distribution P(x) of high-dimensional objects, such as images,
+video and audio. When a model of the distribution is available, it may be used for numerous applications such as
+anomaly detection, inpainting, super-resolution and denoising. However, modeling high-dimensional objects remains
+a notoriously challenging task.
+A powerful class of distribution models called deep autoregressive models (ARMs) (Bengio & Bengio, 2000;
+Larochelle & Murray, 2011) decomposes the highdimensional joint distribution into single-dimensional conditional distributions, using the chain rule from probability
+1
+Qualcomm AI Research, Qualcomm Technologies Netherlands B.V.. Qualcomm AI Research is an initiative of Qualcomm Technologies, Inc. 2 University of Amsterdam, Netherlands. 3 Research done while completing an internship at
+Qualcomm AI Research.. Correspondence to: Auke Wiggers
+<auke@qti.qualcomm.com>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Figure 1. Overview of predictive sampling. A sequence-sofar of ARM samples x0 , . . . , xi−1 is extended with forecasts
+x̃i , x̃i+1 , . . . and given as input to the ARM. As the ARM has
+strict triangular dependence, its first output x0i is valid: the conditioning consists only of ARM samples. If the forecast x̃i is equal
+to x0i , the next output x0i+1 is also valid.
+
+theory. Neural network based ARMs currently hold stateof-the-art likelihood in image and audio domains (van den
+Oord et al., 2016a;b; Salimans et al., 2017; Chen et al., 2018;
+Menick & Kalchbrenner, 2018; Child et al., 2019).
+A major limitation of ARMs is that the autoregressive computation can be parallelized only in a single direction: either
+evaluation or sampling. Generally, these models are trained
+using likelihood evaluation and empirical computational
+cost of training is substantially higher than that of sampling.
+As such, ARMs are designed to allow for fast evaluation,
+but sampling from these models is prohibitively slow. In the
+literature, there are methods that try to accelerate sampling
+by breaking autoregressive structure a priori, but consequently suffer from a decrease in likelihood performance
+(Reed et al., 2017). Another approach approximates an autoregressive density model via distillation (van den Oord
+et al., 2018), but this method provides no guarantees that
+samples from the distilled model originate from the original
+model distribution.
+This paper proposes a new algorithm termed predictive sampling, which 1) accelerates discrete ARM sampling, 2) keeps
+autoregressive structure intact, and 3) samples from the true
+model distribution. Predictive sampling forecasts which
+values are likely to be sampled, and uses the parallel inference property of the ARM to reduce the total number of
+required ARM forward passes. To forecast future values,
+
+

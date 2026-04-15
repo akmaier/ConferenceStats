@@ -1,0 +1,85 @@
+The Non-IID Data Quagmire of Decentralized Machine Learning
+
+Kevin Hsieh 1 2 Amar Phanishayee 1 Onur Mutlu 3 2 Phillip B. Gibbons 2
+
+Abstract
+Many large-scale machine learning (ML) applications
+need to perform decentralized learning over datasets
+generated at different devices and locations. Such
+datasets pose a significant challenge to decentralized
+learning because their different contexts result in significant data distribution skew across devices/locations.
+In this paper, we take a step toward better understanding this challenge by presenting a detailed experimental study of decentralized DNN training on a common
+type of data skew: skewed distribution of data labels
+across devices/locations. Our study shows that: (i)
+skewed data labels are a fundamental and pervasive
+problem for decentralized learning, causing significant accuracy loss across many ML applications, DNN
+models, training datasets, and decentralized learning
+algorithms; (ii) the problem is particularly challenging for DNN models with batch normalization; and
+(iii) the degree of data skew is a key determinant of
+the difficulty of the problem. Based on these findings,
+we present SkewScout, a system-level approach that
+adapts the communication frequency of decentralized
+learning algorithms to the (skew-induced) accuracy
+loss between data partitions. We also show that group
+normalization can recover much of the accuracy loss
+of batch normalization.
+
+1. Introduction
+The advancement of machine learning (ML) is heavily dependent on the processing of massive amounts of data. The
+most timely and relevant data are often generated at different devices all over the world, e.g., data collected by
+mobile phones and video cameras. Because of communication and privacy constraints, gathering all such data for
+centralized processing can be impractical/infeasible. For
+example, moving raw data across national borders is subject
+to data sovereignty law constraints (e.g., GDPR (European
+Parliament, 2016)). Similar constraints apply to centralizing
+private data from phones.
+1
+
+Microsoft Research 2 Carnegie Mellon University 3 ETH Zürich.
+Correspondence to: Kevin Hsieh <kevin.hsieh@microsoft.com>
+and Phillip B. Gibbons <gibbons@cs.cmu.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+These constraints motivate the need for ML training over
+widely distributed data (decentralized learning). For example, geo-distributed learning (Hsieh et al., 2017) trains a
+global ML model over data spread across geo-distributed
+data centers. Similarly, federated learning (McMahan et al.,
+2017) trains a centralized model over data from a large
+number of mobile devices. Federated learning has been an
+important topic both in academia (140+ papers in 2019) and
+industry (500+ million installations on Android devices).
+Key Challenges in Decentralized Learning. There are
+two key challenges in decentralized learning. First, training
+a model over decentralized data using traditional training
+approaches (i.e., those designed for centralized data, often
+using a bulk synchronous parallel (BSP) approach (Valiant,
+1990)) requires massive amounts of communication. Doing
+so drastically slows down the training process because the
+communication is bottlenecked by the limited wide-area or
+mobile network bandwidth (Hsieh et al., 2017; McMahan
+et al., 2017). Second, decentralized data is typically generated at different contexts, which can lead to significant
+differences in the distribution of data across data partitions.
+For example, facial images collected by cameras would
+reflect the demographics of each camera’s location, and
+images of kangaroos can be collected only from cameras
+in Australia or zoos. Unfortunately, existing decentralized
+learning algorithms (e.g., (Hsieh et al., 2017; McMahan
+et al., 2017; Smith et al., 2017; Lin et al., 2018; Tang et al.,
+2018)) mostly focus on reducing communication, as they
+either (i) assume the data partitions are independent and
+identically distributed (IID) or (ii) conduct only very limited studies on non-IID data partitions. This leaves a key
+question mostly unanswered: What happens to ML applications and decentralized learning algorithms when their
+data partitions are not IID?
+Our Goal and Key Findings. We aim to take a step to
+further the understanding of the above key question. In this
+work, we focus on a common type of non-IID data, widely
+used in prior work (e.g., (McMahan et al., 2017; Tang et al.,
+2018; Zhao et al., 2018)): skewed distribution of data labels
+across devices/locations. Such skewed label partitions arise
+frequently in the real world (see §2.2 for examples). Our
+study covers various DNN applications, DNNs, training
+datasets, decentralized learning algorithms, and degrees of
+label skew. Our study reveals three key findings:
+
+

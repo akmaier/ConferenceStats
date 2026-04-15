@@ -1,0 +1,55 @@
+Causal Confusion in Imitation Learning
+
+Pim de Haan∗1 , Dinesh Jayaraman†‡ , Sergey Levine†
+∗
+Qualcomm AI Research, University of Amsterdam,
+†
+Berkeley AI Research, ‡ Facebook AI Research
+
+Abstract
+Behavioral cloning reduces policy learning to supervised learning by training a discriminative model to predict expert actions given observations. Such discriminative
+models are non-causal: the training procedure is unaware of the causal structure of
+the interaction between the expert and the environment. We point out that ignoring
+causality is particularly damaging because of the distributional shift in imitation
+learning. In particular, it leads to a counter-intuitive “causal misidentification”
+phenomenon: access to more information can yield worse performance. We investigate how this problem arises, and propose a solution to combat it through targeted
+interventions—either environment interaction or expert queries—to determine the
+correct causal model. We show that causal misidentification occurs in several
+benchmark control domains as well as realistic driving settings, and validate our
+solution against DAgger and other baselines and ablations.
+
+1
+
+Introduction
+
+Imitation learning allows for control policies to be learned directly from example demonstrations
+provided by human experts. It is easy to implement, and reduces or removes the need for extensive
+interaction with the environment during training [58, 41, 4, 1, 20].
+However, imitation learning suffers from a fundamental problem: distributional shift [9, 42]. Training
+and testing state distributions are different, induced respectively by the expert and learned policies.
+Therefore, imitating expert actions on expert trajectories may not align with the true task objective.
+While this problem is widely acknowledged [41, 9, 42, 43], yet with careful engineering, naïve
+behavioral cloning approaches have yielded good results for several practical problems [58, 41, 44,
+36, 37, 4, 33, 3]. This raises the question: is distributional shift really still a problem?
+In this paper, we identify a somewhat surprising and very problematic effect of distributional shift:
+“causal misidentification.” Distinguishing correlates of expert actions in the demonstration set from
+true causes is usually very difficult, but may be ignored without adverse effects when training and
+testing distributions are identical (as assumed in supervised learning), since nuisance correlates
+continue to hold in the test set. However, this can cause catastrophic problems in imitation learning
+due to distributional shift. This is exacerbated by the causal structure of sequential action: the very
+fact that current actions cause future observations often introduces complex new nuisance correlates.
+To illustrate, consider behavioral cloning to train a neural network to drive a car. In scenario A, the
+model’s input is an image of the dashboard and windshield, and in scenario B, the input to the model
+(with identical architecture) is the same image but with the dashboard masked out (see Fig 1). Both
+cloned policies achieve low training loss, but when tested on the road, model B drives well, while
+model A does not. The reason: the dashboard has an indicator light that comes on immediately when
+the brake is applied, and model A wrongly learns to apply the brake only when the brake light is on.
+Even though the brake light is the effect of braking, model A could achieve low training error by
+misidentifying it as the cause instead.
+1
+
+Work mostly done while at Berkeley AI Research.
+
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

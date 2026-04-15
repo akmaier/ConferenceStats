@@ -1,0 +1,75 @@
+Optimizing Neural Networks with Kronecker-factored Approximate Curvature
+
+James Martens
+Roger Grosse
+Department of Computer Science, University of Toronto
+
+Abstract
+We propose an efficient method for approximating natural gradient descent in neural networks
+which we call Kronecker-factored Approximate
+Curvature (K-FAC). K-FAC is based on an efficiently invertible approximation of a neural network’s Fisher information matrix which is neither diagonal nor low-rank, and in some cases is
+completely non-sparse. It is derived by approximating various large blocks of the Fisher (corresponding to entire layers) as being the Kronecker
+product of two much smaller matrices. While
+only several times more expensive to compute
+than the plain stochastic gradient, the updates
+produced by K-FAC make much more progress
+optimizing the objective, which results in an algorithm that can be much faster than stochastic gradient descent with momentum in practice.
+And unlike some previously proposed approximate natural-gradient/Newton methods which
+use high-quality non-diagonal curvature matrices (such as Hessian-free optimization), K-FAC
+works very well in highly stochastic optimization regimes. This is because the cost of storing
+and inverting K-FAC’s approximation to the curvature matrix does not depend on the amount of
+data used to estimate it, which is a feature typically associated only with diagonal or low-rank
+approximations to the curvature matrix.
+
+1. Background and notation
+1.1. Neural Networks
+We begin by defining the basic notation for feed-forward
+neural networks which we will use throughout this paper.
+A neural network transforms its input a0 = x to an output
+f (x, θ) = a` through a series of ` layers, each of which
+consists of a bank of units/neurons. The units each receive as input a weighted sum of the outputs of units from
+Proceedings of the 32 nd International Conference on Machine
+Learning, Lille, France, 2015. JMLR: W&CP volume 37. Copyright 2015 by the author(s).
+
+JMARTENS @ CS . TORONTO . EDU
+RGROSSE @ CS . TORONTO . EDU
+
+the previous layer and compute their output via a nonlinear “activation” function. We denote by si the vector of
+these weighted sums for the i-th layer, and by ai the vector
+of unit outputs (aka “activities”). The precise computation
+performed at each layer i ∈ {1, . . . , `} is given as follows:
+si = Wi āi−1
+
+ai = φi (si )
+
+where φi is an element-wise nonlinear function, Wi is a
+weight matrix, and āi is defined as the vector formed by appending to ai an additional homogeneous coordinate with
+value 1. Note that we do not include explicit bias parameters here as these are captured implicitly through our use
+of homogeneous coordinates. In particular, the last column
+of each weight matrix Wi corresponds to what is usually
+thought of as the “bias vector”.
+We will define θ to be the vector consisting of all
+of the network’s parameters concatenated together, i.e.
+[vec(W1 )> vec(W2 )> . . . vec(W` )> ]> , where vec is the
+operator which vectorizes matrices by stacking their
+columns together.
+We let L(y, z) denote the loss function which measures the
+disagreement between a prediction z made by the network,
+and a target y. The training objective function h(θ) is the
+average (or expectation) of losses L(y, f (x, θ)) with respect to a training distribution Q̂x,y over input-target pairs
+(x, y). h(θ) is a proxy for the objective which we actually
+care about but don’t have access to, which is the expectation of the loss taken with respect to the true data distribution Qx,y .
+We will assume that the loss is given by the negative log
+probability associated with a simple predictive distribution
+Ry|z for y parameterized by z, i.e. that we have L(y, z) =
+− log r(y|z) where r is Ry|z ’s density function. This is the
+case for both the standard least-squares and cross-entropy
+objective functions, where the predictive distributions are
+multivariate normal and multinomial, respectively.
+We will let Py|x (θ) = Ry|f (x,θ) denote the conditional distribution defined by the neural network, as parameterized
+by θ, and p(y|x, θ) = r(y|f (x, θ)) its density function.
+Note that minimizing the objective function h(θ) can be
+seen as maximum likelihood learning of the model Py|x (θ).
+For convenience we will define the following additional no-
+
+

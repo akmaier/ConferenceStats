@@ -1,0 +1,83 @@
+Quantized Distributed Training of Large Models with Convergence Guarantees
+
+Ilia Markov 1 Adrian Vladu 2 3 Qi Guo 4 Dan Alistarh 1
+
+Abstract
+
+2022) easily count billions of trainable parameters, which induces tremendous computational and memory costs. Training such models can easily exceed the memory capacity of
+a single computational unit, such as a GPU.
+
+Communication-reduction techniques are a popular way to improve scalability in data-parallel
+training of deep neural networks (DNNs). The
+recent emergence of large language models such
+as GPT has created the need for new approaches
+to exploit data-parallelism. Among these, fullysharded data parallel (FSDP) training is highly
+popular, yet it still encounters scalability bottlenecks. One reason is that applying compression
+techniques to FSDP is challenging: as the vast majority of the communication involves the model’s
+weights, direct compression alters convergence
+and leads to accuracy loss. We present QSDP,
+a variant of FSDP which supports both gradient
+and weight quantization with theoretical guarantees, is simple to implement and has essentially no
+overheads. To derive QSDP we prove that a natural modification of SGD achieves convergence
+even when we only maintain quantized weights,
+and thus the domain over which we train consists
+of quantized points and is, therefore, highly nonconvex. We validate this approach by training
+GPT-family models with up to 1.3 billion parameters on a multi-node cluster. Experiments show
+that QSDP preserves model accuracy, while completely removing the communication bottlenecks
+of FSDP, providing end-to-end speedups of up to
+2.2x.
+
+As a consequence, standard distribution strategies such as
+data-parallel training (Bottou, 2010), which require each
+node to be able to keep all parameters in memory, are no
+longer directly applicable. Several novel distribution strategies have been proposed to mitigate this challenge, such as
+model-parallel training (Shoeybi et al., 2019; Raffel et al.,
+2020), pipeline-parallel training (Huang et al., 2019; Harlap
+et al., 2018) and model sharding (Ren et al., 2021; Rajbhandari et al., 2020; Rasley et al., 2020; FairScale, 2021).
+We consider the communication costs of distribution strategies for massive models, and focus on Fully-Sharded
+Data-Parallel (FSDP) distributed training, which is among
+the most popular and user-friendly approaches to mitigate per-node memory limitations. FSDP is supported
+natively by Pytorch (Paszke et al., 2019), Facebook
+fairscale (FairScale, 2021), and Microsoft DeepSpeed (Ren et al., 2021), where it is known as ZeRO-3.
+The main idea behind FSDP is that both the training data
+and the model parameters are partitioned among the P
+nodes. That is, only a 1/P partition of the parameters of
+each layer is stored at a node. Then, both for the forward
+and for the backward pass, nodes proceed synchronously
+layer-by-layer, gathering full weights for the current layer,
+via all-to-all communication, before executing its forward or
+backward operation. After this operation is complete, nodes
+can discard the current layer’s received weights partitions,
+and move to the next layer. (Please see Figure 1 for an
+illustration, and Section 4.1 for a detailed description.)
+
+1. Introduction
+The impressive recent progress of Deep Learning in tasks
+such as natural language processing and computer vision
+has been accompanied by massive increases in parameter
+counts. For instance, large language models (LLMs) from
+Transformer family, such as GPT (Radford et al., 2018),
+OPT (Zhang et al., 2022) and BLOOM (Laurençon et al.,
+
+The key advantage of this pattern is that it reduces memory usage linearly in P . Thus, it enables running models
+with billions of parameters on small or medium-sized clusters (FairScale, 2021; MosaicML, 2022). At the same time,
+FSDP faces challenges in terms of communication efficiency:
+since every forward and backward pass relies on all-to-all
+weight exchanges, FSDP can put massive pressure on the
+network bandwidth, which becomes a bottleneck.
+
+1
+
+Institute of Science and Technology Austria 2 CNRS 3 IRIF,
+Université Paris Cité 4 Max Planck Institute for Informatics. Correspondence to: Ilia Markov <ilia.markov@ist.ac.at>, Dan Alistarh
+<dan.alistarh@ist.ac.at>.
+
+As we will show, all-to-all communication leads to significant communication bottlenecks when training LLMs on
+
+Proceedings of the 40 th International Conference on Machine
+Learning, Honolulu, Hawaii, USA. PMLR 202, 2023. Copyright
+2023 by the author(s).
+
+1
+
+

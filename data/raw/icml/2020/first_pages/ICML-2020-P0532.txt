@@ -1,0 +1,74 @@
+Accelerated Message Passing for Entropy-Regularized MAP Inference
+Jonathan N. Lee 1 Aldo Pacchiano 2 Peter Bartlett 2 3 Michael I. Jordan 2 3
+
+Abstract
+Maximum a posteriori (MAP) inference in
+discrete-valued Markov random fields is a fundamental problem in machine learning that involves
+identifying the most likely configuration of random variables given a distribution. Due to the difficulty of this combinatorial problem, linear programming (LP) relaxations are commonly used
+to derive specialized message passing algorithms
+that are often interpreted as coordinate descent on
+the dual LP. To achieve more desirable computational properties, a number of methods regularize
+the LP with an entropy term, leading to a class
+of smooth message passing algorithms with convergence guarantees. In this paper, we present
+randomized methods for accelerating these algorithms by leveraging techniques that underlie classical accelerated gradient methods. The proposed
+algorithms incorporate the familiar steps of standard smooth message passing algorithms, which
+can be viewed as coordinate minimization steps.
+We show that these accelerated variants achieve
+faster rates for finding ✏-optimal points of the unregularized problem, and, when the LP is tight,
+we prove that the proposed algorithms recover
+the true MAP solution in fewer iterations than
+standard message passing algorithms.
+
+1. Introduction
+Undirected graphical models are extensively used in machine learning since they provide a versatile and powerful
+way of modeling dependencies between variables (Wainwright & Jordan, 2008). In this work we focus on the important class of discrete-valued pairwise models. Efficient
+1
+Department of Computer Science, Stanford University, USA
+Department of Electrical Engineering and Computer Sciences,
+University of California, Berkeley, USA 3 Department of Statistics, University of California, Berkeley, USA. Correspondence
+to: Jonathan Lee <jnl@stanford.edu>, Aldo Pacchiano <pacchiano@berkeley.edu>.
+2
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+inference in these models has multiple applications, ranging
+from computer vision (Jegelka & Bilmes, 2011), to statistical physics (Mezard & Montanari, 2009), information
+theory (MacKay, 2003) and even genome research (Torada
+et al., 2019).
+In this paper we study and propose efficient methods for
+maximum a posteriori (MAP) inference in these models.
+The MAP problem corresponds to finding a configuration
+of all variables achieving a maximal probability and is a key
+problem that arises when using these undirected graphical
+models. There exists a vast literature on MAP inference
+spanning multiple communities, where it is known as constraint satisfaction (Schiex et al., 1995) and energy minimization (Kappes et al., 2013). Even in the binary case, the
+MAP problem is known to be NP-hard to compute exactly or
+even to approximate (Kolmogorov & Zabin, 2004; Cooper,
+1990).
+As a result, there has been much emphasis on devising methods that may work on settings under which the problem
+becomes tractable. A popular way to achieve this goal is to
+express the problem as an integer program and then relax
+this to a linear program (LP). If the LP constraints are set to
+the convex hull of marginals corresponding to all global settings, also known as the marginal polytope (Wainwright &
+Jordan, 2008), then the LP would yield the optimal integral
+solution to the MAP problem. Unfortunately, writing down
+this polytope would require exponentially many constraints
+and therefore it is not tractable. We can consider larger
+polytopes defined over subsets of the constraints required
+to define the marginal polytope. This is a popular approach
+that underpins the family of LP relaxations known as the
+Sherali-Adams (SA) hierarchy (Sherali & Adams, 1990).
+Instead of enforcing global consistency, we enforce only
+pairwise consistency via the local polytope, thus yielding
+pseudo-marginals that are pairwise consistent but may not
+correspond to any true global distribution. Despite the local
+polytope requiring a number of constraints that is linear in
+the number of edges of the input graph, the runtime required
+for solving this linear program for large graphs may still be
+prohibitive in practice (Yanover et al., 2006). These limitations have motivated the design and theoretical analysis of
+message passing algorithms that exploit the structure of the
+problem. In this paper we study a class of smooth message
+passing algorithms, derived from a regularized version of the
+
+

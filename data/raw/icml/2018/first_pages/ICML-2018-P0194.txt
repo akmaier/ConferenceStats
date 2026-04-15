@@ -1,0 +1,80 @@
+Candidates vs. Noises Estimation for Large Multi-Class Classification Problem
+
+Lei Han 1 Yiheng Huang 1 Tong Zhang 1
+
+Abstract
+This paper proposes a method for multi-class classification problems, where the number of classes
+K is large. The method, referred to as Candidates
+vs. Noises Estimation (CANE), selects a small
+subset of candidate classes and samples the remaining classes. We show that CANE is always
+consistent and computationally efficient. Moreover, the resulting estimator has low statistical
+variance approaching that of the maximum likelihood estimator, when the observed label belongs
+to the selected candidates with high probability.
+In practice, we use a tree structure with leaves as
+classes to promote fast beam search for candidate
+selection. We further apply the CANE method
+to estimate word probabilities in learning large
+neural language models. Extensive experimental
+results show that CANE achieves better prediction
+accuracy over the Noise-Contrastive Estimation
+(NCE), its variants and a number of the state-ofthe-art tree classifiers, while it gains significant
+speedup compared to standard O(K) methods.
+
+1. Introduction
+In practice one often encounters multi-class classification
+problem with a large number of classes. For example, applications in image classification (Russakovsky et al., 2015)
+and language modeling (Mikolov et al., 2010) usually have
+tens to hundreds of thousands of classes. Under such cases,
+training the standard softmax logistic or one-against-all models becomes impractical.
+One promising way to handle the large class size is to use
+sampling. In language models, a commonly adopted technique is Noise-Contrastive Estimation (NCE) (Gutmann
+& Hyvärinen, 2012). This method is originally proposed
+1
+Tencent AI Lab, Shenzhen, China.
+Correspondence
+to: Lei Han <lxhan@tencent.com>, Yiheng Huang <arnoldhuang@tencent.com>, Tong Zhang <tongzhang@tongzhangml.org>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+for estimating probability densities and has been applied
+to various language modeling situations, such as learning
+word embeddings, context generation and neural machine
+translation (Mnih & Teh, 2012; Mnih & Kavukcuoglu, 2013;
+Vaswani et al., 2013; Sordoni et al., 2015). NCE reduces
+the problem of multi-class classification to binary classification problem, which discriminates between a target class
+distribution and a noise distribution and a few noise classes
+are sampled as a representation of the entire noise space. In
+general, the noise distribution is given a priori. For example,
+a power-raised unigram distribution has been shown to be
+effective in language models (Mikolov et al., 2013; Ji et al.,
+2015; Mnih & Teh, 2012). Recently, some variants of NCE
+have been proposed. The Negative Sampling (Mikolov et al.,
+2013) is a simplified version of NCE that ignores the numerical probabilities in the distributions and discriminates
+between only the target class and noise samples; the One
+vs. Each (Titsias, 2016) solves a very similar problem motivated by bounding the softmax logistic log-likelihood. Two
+other variants, BlackOut (Ji et al., 2015) and complementary
+sum sampling (Botev et al., 2017), employ parametric forms
+of the noise distribution and use sampled noises to approximate the normalization factor. In summary, NCE and its
+variants use (only) the observed class versus the noises; by
+sampling the noises, these methods avoid the costly computation of the normalization factor to achieve fast training
+speed. In this paper, we will generalize the idea by using
+a subset of classes (which can be automatically learned),
+called candidate classes, against the remaining noise classes.
+Compared to NCE, this approach can significantly improve
+the statistical efficiency when the true class belongs to the
+candidate classes with high probability.
+Another type of popular methods for large class space is the
+tree structured classifier (Beygelzimer et al., 2009; Bengio
+et al., 2010; Deng et al., 2011; Choromanska & Langford,
+2015; Daume III et al., 2017; Jernite et al., 2017). In these
+methods, a tree structure is defined over the classes which
+are treated as leaves. Each internal node of the tree is assigned with a local classifier, routing the examples to one
+of its descendants. Decisions are made from the root until
+reaching a leaf. Then, the multi-class classification problem
+is reduced to solving a number of small local models defined
+by a tree, which typically admits a logarithmic complexity
+on the total number of classes. Generally, tree classifiers
+
+

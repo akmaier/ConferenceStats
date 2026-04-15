@@ -1,0 +1,83 @@
+Kernel Stein Discrepancy Descent
+
+Anna Korba 1 Pierre-Cyril Aubin-Frankowski 2 Szymon Majewski 3 Pierre Ablin 4
+
+Abstract
+Among dissimilarities between probability distributions, the Kernel Stein Discrepancy (KSD) has
+received much interest recently. We investigate
+the properties of its Wasserstein gradient flow to
+approximate a target probability distribution π on
+Rd , known up to a normalization constant. This
+leads to a straightforwardly implementable, deterministic score-based method to sample from π,
+named KSD Descent, which uses a set of particles to approximate π. Remarkably, owing to a
+tractable loss function, KSD Descent can leverage robust parameter-free optimization schemes
+such as L-BFGS; this contrasts with other popular
+particle-based schemes such as the Stein Variational Gradient Descent algorithm. We study
+the convergence properties of KSD Descent and
+demonstrate its practical relevance. However, we
+also highlight failure cases by showing that the
+algorithm can get stuck in spurious local minima.
+
+1. Introduction
+An important problem in machine learning and computational statistics is to sample from an intractable target distribution π. In Bayesian inference for instance, π corresponds
+to the posterior probability of the parameters, which is required to compute the posterior predictive distribution. It
+is known only up to an intractable normalization constant.
+In Generative Adversarial Networks (GANs, Goodfellow
+et al., 2014), the goal is to generate data which distribution is similar to the training set defined by samples of π.
+In the first setting, one has access to the score of π (the
+gradient of its log density), while in the second, one has
+access to samples of π. Assessing how different the target π and a given approximation µ are can be performed
+through a dissimilarity function D(µ|π). As summarized
+1
+CREST, ENSAE, Institut Polytechnique de Paris 2 CAS,
+MINES ParisTech, Paris, France 3 CMAP, Ecole Polytechnique,
+Institut Polytechnique de Paris 4 CNRS and DMA, Ecole Normale Supérieure, Paris, France. Correspondence to: Anna Korba
+<anna.korba@ensae.fr>.
+
+Proceedings of the38 th International Conference on Machine
+Learning,PMLR 139, 2021. Copyright 2021 by the author(s).
+
+by Simon-Gabriel (2018), classical dissimilarities include
+f -divergences such as the KL (Kullback-Leibler) or the χ2
+(Chi-squared), the Wasserstein distances in Optimal Transport (OT), and Integral Probability Metrics (IPMs), such
+as the Maximum Mean Discrepancy (MMD, Gretton et al.,
+2012). Dissimilarity functions can hence be used to characterize π since, under mild assumptions, they only vanish at
+µ = π. Setting F(µ) = D(µ|π), assuming also in our case
+that π ∈ P2 (Rd ), the set
+R of probability measures µ with
+finite second moment ( kxk2 dµ(x) < ∞), the sampling
+task can then be recast as an optimization problem over
+P2 (Rd )
+min F(µ).
+(1)
+µ∈P2 (Rd )
+
+Starting from an initial distribution µ0 , one can then apply
+a descent scheme to (1) to converge to π. In particular,
+one can consider the Wasserstein gradient flow of F over
+P2 (Rd ). This operation can be interpreted as a vector field
+continuously displacing the particles constituting µ.
+Among dissimilarities, the Kernel Stein Discrepancy (KSD,
+introduced independently by Liu et al., 2016; Chwialkowski
+et al., 2016; Gorham & Mackey, 2017) writes as follows
+ZZ
+KSD(µ|π) =
+kπ (x, y)dµ(x)dµ(y),
+(2)
+where kπ is the Stein kernel, defined through the score of
+π, s(x) = ∇ log π(x), and through a positive semi-definite
+kernel k (see Section 2.1 for the meaning of ∇·1 or of ∇2 )
+kπ (x, y) = s(x)T s(y)k(x, y) + s(x)T ∇2 k(x, y)
++ ∇1 k(x, y)T s(y) + ∇ ·1 ∇2 k(x, y). (3)
+The great advantage of the KSD is that it can be readily
+computed when one has access to the score of π and uses a
+discrete measure µ̂, since (2) writes as a finite double sum of
+kπ in this case. Furthermore the definition of the KSD was
+inspired by Stein’s method (see Anastasiou et al., 2021, for a
+review) and no sampling over π is required in (2). This motivated the use of the KSD in a growing number of problems.
+The KSD has been widely used in nonparametric statistical
+tests for goodness-of-fit (e.g. Xu & Matsuda, 2020; Kanagawa et al., 2020). It was also used for sampling tasks: to
+select a suitable set of static points to approximate π, adding
+a new one at each iteration (Chen et al., 2018; 2019); to compress (Riabiz et al., 2020) or reweight (Hodgkinson et al.,
+
+

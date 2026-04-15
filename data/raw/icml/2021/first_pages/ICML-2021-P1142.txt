@@ -1,0 +1,78 @@
+Deep Coherent Exploration for Continuous Control
+
+Yijie Zhang 1 Herke van Hoof 2
+
+Abstract
+In policy search methods for reinforcement learning (RL), exploration is often performed by injecting noise either in action space at each step
+independently or in parameter space over each
+full trajectory. In prior work, it has been shown
+that with linear policies, a more balanced tradeoff between these two exploration strategies is
+beneficial. However, that method did not scale
+to policies using deep neural networks. In this
+paper, we introduce deep coherent exploration, a
+general and scalable exploration framework for
+deep RL algorithms for continuous control, that
+generalizes step-based and trajectory-based exploration. This framework models the last layer
+parameters of the policy network as latent variables and uses a recursive inference step within
+the policy update to handle these latent variables
+in a scalable manner. We find that deep coherent exploration improves the speed and stability
+of learning of A2C, PPO, and SAC on several
+continuous control tasks.
+
+1. Introduction
+The balance of exploration and exploitation (Kearns &
+Singh, 2002; Jaksch et al., 2010) is a longstanding challenge
+in reinforcement learning (RL). With insufficient exploration, states and actions with high rewards can be missed,
+resulting in policies prematurely converging to bad local
+optima. In contrast, with too much exploration, agents could
+waste their resources trying suboptimal states and actions,
+without leveraging their experiences efficiently. To learn
+successful strategies, this trade-off between exploration and
+exploitation must be balanced well, and this is known as the
+exploration vs. exploitation dilemma.
+At a high level, exploration can be divided into directed
+1
+
+University of Copenhagen, Copenhagen, Denmark (work done
+while YZ was a master student at the University of Amsterdam)
+2
+University of Amsterdam, Amsterdam, the Netherlands. Correspondence to: Yijie Zhang <yizh@di.ku.dk>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+strategies and undirected strategies (Thrun, 1992; Plappert
+et al., 2018). While directed strategies aim to extract useful information from existing experiences for better exploration, undirected strategies rely on injecting randomness
+into the agent’s decision-making. Over the years, many
+sophisticated directed exploration strategies have been proposed (Tang et al., 2017; Ostrovski et al., 2017; Houthooft
+et al., 2016; Pathak et al., 2017). However, since these
+strategies still require lower-level exploration to collect the
+experiences, or are either complicated or computationally
+intensive, they are usually only used for ‘hard exploration’
+problems where rewards are sparse, delayed, or deceptive.
+Except for those ‘hard exploration’ tasks, undirected exploration strategies are commonly used in practice and in RL
+literature, where some well-known examples are -greedy
+(Sutton, 1995) for discrete action space and additive Gaussian noise for continuous action space (Williams, 1992).
+Such strategies explore by randomly perturbing agents’ actions at different steps independently and hence are referred
+to as performing step-based exploration in action space
+(Deisenroth et al., 2013).
+As an alternative to those exploration strategies in action
+space, exploration by perturbing the weights of linear policies has been proposed (Rückstieß et al., 2010; Sehnke et al.,
+2010; Kober & Peters, 2008). Since these strategies in parameter space naturally explore conditioned on the states
+and are usually trajectory-based, they have the advantages
+of being more consistent, structured, and global (Deisenroth
+et al., 2013). Later, van Hoof et al. (2017) proposed a generalized exploration (GE) scheme, bridging the gap between
+step-based and trajectory-based exploration in parameter
+space. With the advance of deep RL, NoisyNet (Fortunato et al., 2018) and parameter space noise for exploration
+(PSNE) (Plappert et al., 2018) were introduced, extending
+parameter-space exploration strategies for policies using
+deep neural networks.
+Although GE (van Hoof et al., 2017), NoisyNet (Fortunato
+et al., 2018), and PSNE (Plappert et al., 2018) improved the
+vanilla exploration strategies in parameter space and were
+shown leading to more global and consistent exploration,
+they still suffer from several limitations. Our contribution
+consists of a new exploration scheme to overcome these
+limitations. To the best of our knowledge, ours is the first
+scheme that combines the following characteristics:
+
+

@@ -1,0 +1,73 @@
+S EVER: A Robust Meta-Algorithm for Stochastic Optimization1
+
+Ilias Diakonikolas * 1 Gautam Kamath * 2 Daniel M. Kane * 3 Jerry Li * 4 Jacob Steinhardt * 5 Alistair Stewart * 6
+
+Abstract
+In high dimensions, most machine learning methods are brittle to even a small fraction of structured outliers. To address this, we introduce a new
+meta-algorithm that can take in a base learner
+such as least squares or stochastic gradient descent, and harden the learner to be resistant to
+outliers. Our method, S EVER, possesses strong
+theoretical guarantees yet is also highly scalable—
+beyond running the base learner itself, it only
+requires computing the top singular vector of a
+certain n × d matrix. We apply S EVER on a drug
+design dataset and a spam classification dataset,
+and find that in both cases it has substantially
+greater robustness than several baselines.
+
+1. Introduction
+Learning in the presence of outliers is a ubiquitous challenge
+in machine learning; nevertheless, most machine learning
+methods are very sensitive to outliers in high dimensions.
+The focus of this work is on designing algorithms that are
+outlier robust while remaining competitive in terms of accuracy and running time.
+We highlight two motivating applications. The first is biological data (e.g., gene expression data), where mislabeling
+or measurement errors can create systematic outliers (Rosen*
+
+Equal contribution 1 Department of Computer Science,
+University of Southern California, Los Angeles, California, USA 2 Simons Institute for the Theory of Computing, Berkeley, California, USA 3 Departments of Mathematics and Computer Science and Engineering, University
+of California, San Diego, California, USA 4 Microsoft Research AI, Redmond, Washington, USA 5 Department of Statistics, University of California, Berkeley, California, USA
+6
+Web3 Foundation, Zug, Switzerland. Correspondence to:
+Ilias Diakonikolas <diakonik@usc.edu>, Gautam Kamath
+<g@csail.mit.edu>, Daniel M. Kane <dakane@cs.ucsd.edu>,
+Jerry Li <jerrl@microsoft.com>, Jacob Steinhardt <jsteinhardt@berkeley.edu>, Alistair Stewart <stewart.al@gmail.com>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+Code: https://github.com/hoonose/sever
+
+berg et al., 2002; Li et al., 2008) requiring painstaking manual effort to remove (Paschou et al., 2010). Detecting outliers in such settings is often important either because the
+outlier observations are of interest themselves or because
+they might contaminate the downstream statistical analysis.
+The second motivation is machine learning security, where
+outliers can be introduced through data poisoning attacks
+(Barreno et al., 2010) where an adversary inserts fake data
+into the training set (e.g., by creating a fake user account).
+Recent work shows that for high-dimensional datasets, even
+a small fraction of outliers can substantially degrade the
+learned model (Biggio et al., 2012; Newell et al., 2014; Koh
+& Liang, 2017; Steinhardt et al., 2017; Koh et al., 2018).
+Crucially, in both the biological and security settings above,
+the outliers are not “random” but are instead highly correlated, and could have a complex internal structure that is
+difficult to model. This leads us to the following conceptual question underlying the present work: Can we design
+training algorithms that are robust to the presence of an εfraction of arbitrary (and potentially adversarial) outliers?
+Estimation in the presence of outliers is a prototypical goal
+in robust statistics and has been systematically studied since
+the pioneering work of Tukey Tukey (1960). Popular methods include RANSAC (Fischler & Bolles, 1981), minimum
+covariance determinant (Rousseeuw & Driessen, 1999), removal based on k-nearest neighbors (Breunig et al., 2000),
+and Huberizing the loss (Owen, 2007) (see Hodge & Austin
+(2004) for a comprehensive survey). However, these classical methods either break down in high dimensions, or only
+handle “benign” outliers that are obviously different from
+the rest of the data (see Section 1.1 for futher discussion).
+Motivated by this, recent work in theoretical computer science has developed efficient robust estimators for classical problems such as linear classification (Klivans et al.,
+2009; Awasthi et al., 2014), mean and covariance estimation (Diakonikolas et al., 2016a; Lai et al., 2016), clustering
+(Charikar et al., 2017), and regression (Bhatia et al., 2015;
+2017; Balakrishnan et al., 2017). Nevertheless, the promise
+of practical high-dimensional robust estimation is yet to be
+realized; indeed, the aforementioned results generally suffer
+from one of two shortcomings–either they use sophisticated
+convex optimization algorithms that do not scale to large
+datasets, or they are tailored to specific problems of interest
+
+

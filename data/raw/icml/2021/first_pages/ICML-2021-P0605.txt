@@ -1,0 +1,80 @@
+Debiasing a First-order Heuristic for Approximate Bi-level Optimization
+
+Valerii Likhosherstov * 1 Xingyou Song * 2 Krzysztof Choromanski 2 3 Jared Davis 4 5 Adrian Weller 1 6
+
+Abstract
+Approximate bi-level optimization (ABLO) consists of (outer-level) optimization problems,
+involving numerical (inner-level) optimization
+loops. While ABLO has many applications across
+deep learning, it suffers from time and memory
+complexity proportional to the length r of its inner optimization loop. To address this complexity,
+an earlier first-order method (FOM) was proposed
+as a heuristic that omits second derivative terms,
+yielding significant speed gains and requiring
+only constant memory. Despite FOM’s popularity,
+there is a lack of theoretical understanding of its
+convergence properties. We contribute by theoretically characterizing FOM’s gradient bias under
+mild assumptions. We further demonstrate a rich
+family of examples where FOM-based SGD does
+not converge to a stationary point of the ABLO objective. We address this concern by proposing an
+unbiased FOM (UFOM) enjoying constant memory complexity as a function of r. We characterize the introduced time-variance tradeoff, demonstrate convergence bounds, and find an optimal
+UFOM for a given ABLO problem. Finally, we
+propose an efficient adaptive UFOM scheme.
+
+1
+
+Introduction
+
+Bi-level optimization (BLO) is a popular technique, which
+defines an outer-level objective function using the result
+of another (inner-level) optimization. Approximate BLO
+(ABLO), where the inner-level optimization is approximated
+by an iterative solver, has multiple applications in various
+subtopics of deep learning: hyperparameter optimization
+(Franceschi et al., 2018; Lorraine et al., 2019; Shaban et al.,
+2018; Maclaurin et al., 2015), neural architecture search
+(Liu et al., 2019), adversarial robustness (Chen et al., 2018;
+*
+
+Equal contribution 1 University of Cambridge 2 Google Research, Brain Team 3 Columbia University 4 Deepmind 5 Stanford
+University 6 The Alan Turing Institute. Correspondence to: Valerii
+Likhosherstov <vl304@cam.ac.uk>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Zügner & Günnemann, 2019) and model-agnostic metalearning (Finn et al., 2017; Shaban et al., 2018).
+In deep learning applications of ABLO, the outer-level
+optimization is conducted via stochastic gradient descent
+(SGD), where gradients are obtained by auto-differentiation
+(Griewank & Walther, 2008) through the r steps of the inner
+gradient descent (GD). This leads to storing r intermediate
+inner steps, which requires a prohibitive amount of memory.
+To address this, several methods for ABLO have been proposed. Among them is truncated back-propagation (Shaban
+et al., 2018) which stores a fixed amount of intermediate
+steps. Another is implicit differentiation (Pedregosa, 2016;
+Gould et al., 2016; Rajeswaran et al., 2019; Lorraine et al.,
+2019), which takes advantage of the Implicit Function Theorem, but requires multiple restrictions on the problem (Rajeswaran et al., 2019). Designing the optimizer’s iteration as
+reversible dynamics (Maclaurin et al., 2015) allows a constant reduction in memory complexity, as only the bits lost
+in fixed-precision arithmetic operations are saved in memory. Forward differentiation (Franceschi et al., 2017) can be
+employed when outer-level gradients require a small number
+of parameters. Checkpointing (Griewank, 1992; Hascoet
+& Araya-Polo, 2006) is
+√a generic solution for memory reduction by a factor of r. Unbiased stochastic truncation
+(Beatson & Adams, 2019) can save time during stochastic
+optimization, but its maximum memory usage can still grow
+to O(r). Evolution Strategies, or ES (Maheswaranathan
+et al., 2019), provides unbiased gradient estimates in O(1)
+memory, but its variance depends linearly on the number
+of parameters, which can be prohibitively large in deeplearning applications.
+One practical and simple heuristic is the first-order method
+(FOM), which omits second-order computations, and does
+not store inner-loop rollout states in memory. FOM is
+widely used in the context of neural architecture search
+(Liu et al., 2019), adversarial robustness (Chen et al., 2018;
+Zügner & Günnemann, 2019), and meta-learning (Finn
+et al., 2017). FOM is a limiting case of truncated backpropagation, where no states are cached in memory. We
+argue however, that there is a high cost to FOM’s computational simplicity: FOM suffers from biased ABLO gradients
+and can fail to converge to a stationary point of the ABLO
+objective. Consequently, it would be highly desirable to
+
+

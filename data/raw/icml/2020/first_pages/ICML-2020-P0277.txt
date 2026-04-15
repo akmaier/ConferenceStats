@@ -1,0 +1,77 @@
+Faster Graph Embeddings via Coarsening
+
+Matthew Fahrbach * 1 Gramoz Goranci * 2 Richard Peng * 3 Sushant Sachdeva * 2 Chi Wang * 4
+
+Abstract
+Graph embeddings are a ubiquitous tool for machine learning tasks, such as node classification
+and link prediction, on graph-structured data.
+However, computing the embeddings for largescale graphs is prohibitively inefficient even if we
+are interested only in a small subset of relevant
+vertices. To address this, we present an efficient
+graph coarsening approach, based on Schur complements, for computing the embedding of the
+relevant vertices. We prove that these embeddings
+are preserved exactly by the Schur complement
+graph that is obtained via Gaussian elimination
+on the non-relevant vertices. As computing Schur
+complements is expensive, we give a nearly-linear
+time algorithm that generates a coarsened graph
+on the relevant vertices that provably matches
+the Schur complement in expectation in each iteration. Our experiments involving prediction
+tasks on graphs demonstrate that computing embeddings on the coarsened graph, rather than the
+entire graph, leads to significant time savings without sacrificing accuracy.
+
+1. Introduction
+Over the past several years, network embeddings have been
+demonstrated to be a remarkably powerful tool for learning
+unsupervised representations for nodes in a network (Perozzi et al., 2014; Tang et al., 2015; Grover & Leskovec,
+2016). Broadly speaking, the objective is to learn a lowdimensional vector for each node that captures the structure
+of its neighborhood. These embeddings have proved to be
+very effective for downstream machine learning tasks in networks such as node classification and link prediction (Tang
+et al., 2015; Hamilton et al., 2017).
+*
+
+Equal contribution 1 Google Research, New York, NY, USA
+2
+Department of Computer Science, University of Toronto, Toronto,
+Canada 3 Department of Computer Science, Georgia Institute of
+Technology, GA, USA 4 Microsoft Research, Redmond, WA, USA.
+Correspondence to: Matthew Fahrbach <fahrbach@google.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+While some of these graph embedding approaches are explicitly based on matrix-factorization (Tang & Liu, 2011;
+Bruna et al., 2014; Cao et al., 2015), some of the other
+popular methods, such as DeepWalk (Perozzi et al., 2014)
+and LINE (Tang et al., 2015), can be viewed as approximately factoring random walk matrices constructed from
+the graph (Qiu et al., 2018). A new approach proposed
+by (Qiu et al., 2018) called NetMF explicitly computes a
+low-rank approximation of random-walk matrices using a
+Singular Value Decomposition (SVD), and significantly outperforms the DeepWalk and LINE embeddings for benchmark network-mining tasks.
+Despite the performance gains, explicit matrix factorization results in poor scaling performance. The matrix
+factorization-based approaches typically require computing
+the singular value decomposition (SVD) of an n × n matrix,
+where n is the number of vertices in the graph. In cases
+where this matrix is constructed by taking several steps of
+random walks, e.g., NetMF (Qiu et al., 2018), the matrix is
+often dense even though the original graph is sparse. This
+makes matrix factorization-based embeddings extremely expensive to compute, both in terms of the time and memory
+required, even for graphs with 100,000 vertices.
+There are two main approaches for reducing the size of a
+graph to improve the efficiency and scalability of graphbased learning. The first method reduces the number of
+edges in the graphs while preserving properties essential to
+the relevant applications. This approach is often known as
+graph sparsification (see (Batson et al., 2013) for a survey).
+Recently, (Qiu et al., 2019) introduced NetSMF, a novel
+approach for computing embeddings that leverages spectral
+sparsification for random walk matrices (Cheng et al., 2015)
+to dramatically improve the sparsity of the matrix that is
+factorized by NetMF, resulting in improved space and time
+efficiency, with comparable prediction accuracy.
+The second approach is vertex sparsification, i.e., eliminating vertices, also known as graph coarsening. However,
+there has been significantly less rigorous treatment of vertex
+sparsification for network embeddings, which is useful for
+many downstream tasks that only require embedding a relevant subset of the vertices, e.g., (1) core-peripheral networks
+where data collection and the analysis focus on a subset of
+vertices (Borgatti & Everett, 2000), (2) clustering or training
+
+

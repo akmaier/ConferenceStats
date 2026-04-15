@@ -1,0 +1,106 @@
+From Language Models over Tokens to Language Models over Characters
+
+Tim Vieira 1 Benjamin LeBrun 2 Mario Giulianelli 1 Juan Luis Gastaldi 1 Brian DuSell 1 John Terilla 3
+Timothy J. O’Donnell 4 2 5 Ryan Cotterell 1
+
+Abstract
+
+the prompt boundary problem as well as other oddities that
+make interfacing with token-level language models with
+character-level prompts hard for users.
+
+Modern language models are internally—and
+mathematically—distributions over token strings
+rather than character strings, posing numerous
+challenges for programmers building user applications on top of them. For example, if a prompt
+is specified as a character string, it must be
+tokenized before passing it to the token-level language model. Thus, the tokenizer and consequent
+processing are very sensitive to the specification
+of the prompt (e.g., whether the prompt ends with
+a space or not). This paper presents algorithms
+for converting token-level language models to
+character-level ones. We present both exact and
+approximate algorithms. In the empirical portion
+of the paper, we benchmark the practical runtime
+and approximation quality. Across four publicly
+available language models, we find that—even
+with a small computation budget—our method is
+able to accurately approximate the character-level
+distribution at reasonably fast speeds, and that a
+significant improvement in the language model’s
+compression rate (bits/byte) is achieved.
+
+Tokenized language models: A brief overview.1 Let Σ
+be an alphabet of characters, and let Σ∗ denote the set of
+all strings that can be built from it. Suppose there is a true
+distribution p∗Σ over Σ∗ that we seek to model. We observe a
+i.i.d.
+
+training corpus of character strings: σ (1) , ... , σ (M ) ∼ p∗Σ .
+However, rather than estimating a language model that approximates p∗Σ directly, we employ a (possibly stochastic) tokenizer τ that transforms the training corpus into a corpus of
+token strings. δ (1) ∼ τ (· | σ (1) ), ... , δ (M ) ∼ τ (· | σ (M ) ).
+Next, we estimate a token-level language model to fit the
+strings δ (1) , ... , δ (M ) . Lastly, we use p∆ to generate character strings through the following generative process: (i)
+sample δ ∼ p∆ and (ii) return σ = κ(δ) where κ is a decoding function. Let pΣ denote the resulting distribution
+of this process. Practically, we hope that the choice of τ
+and κ should aid in our ability to estimate p∗Σ in the sense
+that p∗Σ ≈ pΣ . Commonly used tokenizers in the realm of
+LLMs use tokenizers τ that break long strings into chunks.
+Intuitively, generating chunks instead of individual characters helps because it effectively shortens strings without
+obfuscating them using a complicated encoding.
+
+https://github.com/genlm/genlm-bytes
+
+1. Introduction
+
+The prompt boundary problem. Consider the case of
+GPT2 (Radford et al., 2019), which was trained over token
+strings created from byte-pair encoding (BPE; Sennrich et al.
+(2016); Gage (1994)). Suppose we wish to generate continuations of the prompt: "In␣the␣kingdom␣of␣the␣blind,␣the.
+Unfortunately, the interface to p∆ is not ideal: it does not
+accept a character string; thus, it is common to encode it as
+a token string with an encoding function τ BPE :2,3
+
+Modern language models are engineered as probability
+distributions over strings of tokens rather than strings of
+characters. However, this leads to a fundamental tension
+between the users of language models and the engineers
+who build them. Specifically, token-level models are
+rife with unintuitive behaviors that—without a technical
+fix—baffle users. As an illustrative example of a common
+user complaint, we exhibit the prompt boundary problem
+(see below). This paper provides a principled solution to
+1
+
+2
+
+3
+
+τ BPE ("In␣the␣kingdom␣of␣the␣blind,␣the)
+" In ␣the ␣kingdom ␣of ␣the ␣blind , ␣the
+
+= [1, 818, 262 , 13239 , 286, 262 , 7770 , 11, 262 ]
+
+4
+
+ETH Zürich Mila City University of New York McGill University 5 Canada CIFAR AI Chair . Correspondence to: Tim Vieira
+<tim.f.vieira@gmail.com>.
+
+1
+
+We adopt the notation of Gastaldi et al. (2025), who gave a general
+characterization for when training with tokenization allows for
+consistent estimation of the true distribution over characters.
+2
+In practice, τ BPE outputs an integer sequence; we provide the
+substring gloss for readability.
+3
+We write δ = τ (σ) when τ is deterministic (i.e., a function).
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

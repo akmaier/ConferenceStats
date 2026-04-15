@@ -1,0 +1,76 @@
+Self-Damaging Contrastive Learning
+
+Ziyu Jiang 1 Tianlong Chen 2 Bobak Mortazavi 1 Zhangyang Wang 2
+
+Abstract
+The recent breakthrough achieved by contrastive
+learning accelerates the pace for deploying unsupervised training on real-world data applications.
+However, unlabeled data in reality is commonly
+imbalanced and shows a long-tail distribution, and
+it is unclear how robustly the latest contrastive
+learning methods could perform in the practical
+scenario. This paper proposes to explicitly tackle
+this challenge, via a principled framework called
+Self-Damaging Contrastive Learning (SDCLR),
+to automatically balance the representation learning without knowing the classes. Our main inspiration is drawn from the recent finding that deep
+models have difficult-to-memorize samples, and
+those may be exposed through network pruning
+(Hooker et al., 2020). It is further natural to hypothesize that long-tail samples are also tougher
+for the model to learn well due to insufficient examples. Hence, the key innovation in SDCLR
+is to create a dynamic self-competitor model to
+contrast with the target model, which is a pruned
+version of the latter. During training, contrasting
+the two models will lead to adaptive online mining
+of the most easily forgotten samples for the current target model, and implicitly emphasize them
+more in the contrastive loss. Extensive experiments across multiple datasets and imbalance settings show that SDCLR significantly improves not
+only overall accuracies but also balancedness, in
+terms of linear evaluation on the full-shot and fewshot settings. Our code is available at https:
+//github.com/VITA-Group/SDCLR.
+
+1. Introduction
+1.1. Background and Research Gaps
+Contrastive learning (Chen et al., 2020a; He et al., 2020;
+Grill et al., 2020; Jiang et al., 2020; You et al., 2020) recently prevails for deep neural networks (DNNs) to learn
+1
+
+Texas A&M University 2 University of Texas at Austin. Correspondence to: Zhangyang Wang <atlaswang@utexas.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+powerful visual representations from unlabeled data. The
+state-of-the-art contrastive learning frameworks consistently
+benefit from using bigger models and training on more taskagnostic unlabeled data (Chen et al., 2020b). The predominant promise implied by those successes is to leverage contrastive learning techniques to pre-train strong and transferable representations from internet-scale sources of unlabeled
+data. However, going from the controlled benchmark data
+to uncontrolled real-world data will run into several gaps.
+For example, most natural image and language data exhibit
+a Zipf long-tail distribution where various feature attributes
+have very different occurrence frequencies (Zhu et al., 2014;
+Feldman, 2020). Broadly speaking, such imbalance is not
+only limited to the standard single-label classification with
+majority versus minority class (Liu et al., 2019), but also
+can extend to multi-label problems along many attribute
+dimensions (Sarafianos et al., 2018). That naturally questions whether contrastive learning can still generalize well
+in those long-tail scenarios.
+We are not the first to ask this important question. Earlier
+works (Yang & Xu, 2020; Kang et al., 2021) pointed out that
+when the data is imbalanced by class, contrastive learning
+can learn more balanced feature space than its supervised
+counterpart. Despite those preliminary successes, we find
+that the state-of-the-art contrastive learning methods remain
+certain vulnerability to the long-tailed data (even indeed improving over vanilla supervised learning), after digging into
+more experiments and imbalance settings (see Sec 4). Such
+vulnerability is reflected on the linear separability of pretrained features (the instance-rich classes has much more
+separable features than instance-scarce classes), and affects
+downstream tuning or transfer performance. To conquer this
+challenge further, the main hurdle lies in the absence of class
+information; therefore, existing approaches for supervised
+learning, such as re-sampling the data distribution (Shen
+et al., 2016; Mahajan et al., 2018) or re-balancing the loss
+for each class (Khan et al., 2017; Cui et al., 2019; Cao et al.,
+2019), cannot be straightforwardly made to work here.
+1.2. Rationale and Contributions
+Our overall goal is to find a bold push to extend the loss
+re-balancing and cost-sensitive learning ideas (Khan et al.,
+2017; Cui et al., 2019; Cao et al., 2019) into an unsupervised setting. The initial hypothesis arises from the recent
+
+

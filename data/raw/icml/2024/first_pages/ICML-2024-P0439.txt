@@ -1,0 +1,86 @@
+Fewer Truncations Improve Language Modeling
+
+Hantian Ding 1 Zijian Wang 1 Giovanni Paolini 1 Varun Kumar 1 Anoop Deoras 1 Dan Roth 1 Stefano Soatto 1
+
+Abstract
+
+boundaries within each training sequence. This concatenatethen-split (hereafter “concatenation”) approach has been
+widely adopted in training language models in both natural language (Brown et al., 2020; Chowdhery et al., 2022;
+Rae et al., 2021; Zhang et al., 2022; Touvron et al., 2023b;
+Scao et al., 2022) and programming language (Nijkamp
+et al., 2023), thanks to its optimal training efficiency as no
+padding is needed. However, such training efficiency comes
+at the expense of data integrity—documents that could have
+been processed in their entirety by the model are instead
+fragmented into independent segments, which naturally results in loss of information. Further, truncation reduces the
+amount of context within each segment, causing next-token
+prediction to be potentially ungrounded to its context, and
+thus making models more prone to hallucination.
+
+In large language model training, input documents
+are typically concatenated together and then split
+into sequences of equal length to avoid padding tokens. Despite its efficiency, the concatenation approach compromises data integrity—it inevitably
+breaks many documents into incomplete pieces,
+leading to excessive truncations that hinder the
+model from learning to compose logically coherent and factually consistent content that is
+grounded on the complete context. To address
+the issue, we propose Best-fit Packing, a scalable
+and efficient method that packs documents into
+training sequences through length-aware combinatorial optimization. Our method completely
+eliminates unnecessary truncations while retaining the same training efficiency as concatenation.
+Empirical results from both text and code pretraining show that our method achieves superior
+performance (e.g., relatively +4.7% on reading
+comprehension; +16.8% in context following; and
++9.2% on program synthesis), and reduces closeddomain hallucination effectively by up to 58.3%.
+
+We argue that data integrity is the key towards better language modeling. To realize this, we first show that it is
+feasible to group billions of documents at pre-training scale
+into sequences in a way that is as token-efficient as concatenation without incurring any unnecessary truncation: only
+documents beyond model’s context length need to be segmented. Data grouping strategies that preserve the entirety
+of individual samples have been widely adopted for encoderonly and encoder-decoder models (Liu et al., 2019; Raffel
+et al., 2020b; Krell et al., 2021). Nonetheless, these existing
+strategies either exhibit limited scalability or compromise
+training efficiency, making them less favorable compared to
+the concatenation method in LLM training at scale.
+
+1. Introduction
+Large language models (LLMs) have achieved unprecedented success on a number of natural language processing and coding benchmarks (Brown et al., 2020; Chen
+et al., 2021) and in complex real-world tasks (Ouyang et al.,
+2022). This remarkable progress is driven by large-scale
+pre-training over a massive amount of unlabeled documents.
+When formatting the training inputs, naı̈vely padding every
+document to a fixed length is inefficient as short documents
+lead to an excessive amount of padding. Instead, the common practice is to concatenate all documents together and
+then split them into sequences of exactly the model’s context
+length. A sentinel token (e.g., <|endoftext|>) is often
+added at the end of each document to indicate document
+
+In response, we propose Best-fit Packing to eliminate unnecessary document truncations without sacrificing training
+efficiency. As illustrated in Figure 1, we first segment long
+documents into multiple chunks by model’s context length.
+Documents shorter than that are kept as singleton chunks.
+Next, we pack all the chunks into training sequences without breaking them any further. This step is essentially an
+instance of the bin packing problem1 , which is NP-hard. We
+employ Best-Fit-Decreasing (Eilon & Christofides, 1971),
+an approximation algorithm, and further optimize it to handle billions of documents efficiently. Empirical results show
+that the packed training sequences only contain a negligible
+
+1
+AWS AI Labs. Correspondence to: Hantian Ding <dhantian@amazon.com>, Zijian Wang <zijwan@amazon.com>.
+
+1
+
+Bin packing is an optimization problem in which items of
+different sizes must be packed into a finite number of bins or
+containers, each of a fixed given capacity, in a way that minimizes
+the number of bins used (Bernhard & Vygen, 2008).
+
+st
+
+Proceedings of the 41 International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

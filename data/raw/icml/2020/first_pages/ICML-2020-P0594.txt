@@ -1,0 +1,81 @@
+Working Memory Graphs
+
+Ricky Loynd 1 Roland Fernandez 1 Asli Celikyilmaz 1 Adith Swaminathan 1 Matthew Hausknecht 1
+
+Abstract
+Transformers have increasingly outperformed
+gated RNNs in obtaining new state-of-the-art results on supervised tasks involving text sequences.
+Inspired by this trend, we study the question
+of how Transformer-based models can improve
+the performance of sequential decision-making
+agents. We present the Working Memory Graph
+(WMG), an agent that employs multi-head selfattention to reason over a dynamic set of vectors
+representing observed and recurrent state. We
+evaluate WMG in three environments featuring
+factored observation spaces: a Pathfinding environment that requires complex reasoning over
+past observations, BabyAI gridworld levels that
+involve variable goals, and Sokoban which emphasizes future planning. We find that the combination of WMG’s Transformer-based architecture with factored observation spaces leads to
+significant gains in learning efficiency compared
+to baseline architectures across all tasks. WMG
+demonstrates how Transformer-based models can
+dramatically boost sample efficiency in RL environments for which observations can be factored.
+
+1. Introduction
+Because of their ability to process sequences of data, gated
+Recurrent Neural Networks (RNNs) have been widely applied to natural language processing (NLP) tasks such as machine translation. In the RNN-based approach of Sutskever
+et al. (2014), an encoder RNN maps an input sentence in the
+source language to a series of internal hidden state vectors.
+The encoder’s final hidden state is copied into a decoder
+RNN, which then generates another sequence of hidden
+states that determine the selection of output tokens in the
+target language. This model can be trained to translate sentences, but translation quality deteriorates on long sentences
+1
+Microsoft Research AI, Redmond, Washington, USA. Correspondence to: Ricky Loynd <riloynd@microsoft.com>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+where long-term dependencies become critical. A plausible
+conjecture attributes this drop in performance to the limited
+representational capacity of RNN hidden state vectors. In
+Bahdanau et al. (2015), translation quality is boosted by
+applying an attention mechanism to create paths serving as
+shortcuts from the input to the output sequences, routing
+information outside the linear chain of the RNN’s hidden
+states. Similar attention mechanisms have since gained wide
+usage, culminating in the Transformer model (Vaswani et al.,
+2017) which replaces the RNN with many short paths of
+self-attention. Since then, Transformers have outperformed
+RNNs on many NLP tasks (Devlin et al., 2019; Dong et al.,
+2019; Liu et al., 2019), and have been successfully applied
+to set-structured data (Lee et al., 2019; Yang et al., 2019).
+We seek to leverage these intuitions to improve the ability
+of Reinforcement Learning (RL) agents to reason over long
+time horizons in Partially Observable Markov Decision Processes (POMDPs) (Kaelbling et al., 1998). In a POMDP,
+a single observation Obst is not sufficient to identify the
+latent environment state st . Thus the agent must reason over
+the history of past observations in order to select the best
+action for the current timestep. A simple strategy employed
+by DQN (Mnih et al., 2015) is to condition the policy on the
+N most recent observations π(at |Obst−N +1 . . . Obst ). But
+in complex environments, the sufficient number N may be
+large, highly variable, and unknown. To address this issue,
+gated RNNs such as LSTMs (Hochreiter & Schmidhuber,
+1997) and GRUs (Cho et al., 2014; Chung et al., 2015) use
+internal, recurrent state vectors which can in theory maintain
+information from past observations (Hausknecht & Stone,
+2015; Oh et al., 2016). In practice however, these methods
+are limited by the single path of information flow defined
+by the linear chain of RNN hidden states. As in NLP, we
+hypothesize that providing alternative paths for information
+to follow will be advantageous to RL agents. Building on
+this intuition, we introduce the Working Memory Graph
+(WMG), a Transformer-based agent that uses self-attention
+to provide a multitude of shortcut paths for information to
+flow from past observations to the current action through a
+dynamic set of hidden state vectors called Memos, illustrated
+in Figure 1 (right).
+Motivated by prior work on factored representations (Russell & Norvig, 2009) and factored MDPs (Boutilier et al.,
+2000; 2001), we argue that factored observations are ide-
+
+

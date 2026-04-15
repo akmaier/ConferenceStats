@@ -1,0 +1,65 @@
+The Lingering of Gradients:
+How to Reuse Gradients over Time
+Zeyuan Allen-Zhu∗
+Microsoft Research AI
+Redmond, WA 98052
+zeyuan@csail.mit.edu
+
+David Simchi-Levi∗
+MIT
+Cambridge, MA 02139
+dslevi@mit.edu
+
+Xinshang Wang∗
+MIT
+Cambridge, MA 02139
+xinshang@mit.edu
+
+Abstract
+Classically, the time complexity of a first-order method is estimated by its number
+of gradient computations. In this paper, we study a more refined complexity by
+taking into account the “lingering” of gradients: once a gradient is computed at
+xk , the additional time to compute gradients at xk+1 , xk+2 , . . . may be reduced.
+We show how this improves the running time of gradient descent and SVRG. For
+instance, if the “additional time” scales linearly with respect to the traveled distance, then the “convergence rate” of gradient descent can be improved from 1/T
+to exp(−T 1/3 ). On the empirical side, we solve a hypothetical revenue management problem on the Yahoo! Front Page Today Module application with 4.6m
+users to 10−6 error (or 10−12 dual error) using 6 passes of the dataset.
+
+1
+
+Introduction
+
+First-order methods play a fundamental role in large-scale machine learning and optimization tasks.
+In most scenarios, the performance of a first-order method is represented by its convergence rate:
+the relationship between ε (the optimization error) versus T (the number of gradient computations).
+This is meaningful because in most applications, the time complexities for evaluating gradients at
+different points are of the same magnitude. In other words, the worse-case time complexities of
+first-order methods are usually proportional to a fixed parameter times T .
+In large-scale settings, however, if we have already spent time computing the (full) gradient at x,
+perhaps we can use such information to reduce the time complexity to compute full gradients at
+other points near x. We call this the “lingering” of gradients, because the gradient at x may be
+partially reused for future consideration, but will eventually fade away once we are far from x.
+Formally, consider the (finite-sum) stochastic convex minimization problem:
+n
+o
+Pn
+def
+minx∈Rd f (x) = n1 i=1 fi (x) .
+
+(1.1)
+
+Then, could it be possible that whenever x is sufficiently close to y, for at least a large fraction of
+indices i ∈ [n], we have ∇fi (x) ≈ ∇fi (y)? In other words, if ∇f1 (x), . . . , ∇fn (x) are already
+calculated at some point x, can we reuse a large fraction of them to approximate ∇f (y)?
+Example 1. In classification problems, fi (x) represents the loss value for “how well training
+sample i is classified under predictor x”. For any sample i that has a large margin under predictor x,
+its gradient ∇fi (x) may stay close to ∇fi (y) whenever x is close to y.
+Formally, let fi (x) = max{0, 1 − hx, ai i} be the hinge loss (or its smoothed variant if needed) with
+respect to the i-th sample ai ∈ Rd . If the margin |1 − hx, ai i| is sufficiently large, then moving
+∗
+Authors sorted in alphabetical order. Full version of this paper (containing additional theoretical results,
+additional experiments, and missing proofs) available at https://arxiv.org/abs/1901.02871.
+
+32nd Conference on Neural Information Processing Systems (NeurIPS 2018), Montréal, Canada.
+
+

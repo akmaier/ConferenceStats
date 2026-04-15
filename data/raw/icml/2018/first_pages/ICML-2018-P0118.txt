@@ -1,0 +1,71 @@
+Asynchronous Byzantine Machine Learning (the case of SGD)
+
+Georgios Damaskinos 1 El Mahdi El Mhamdi 1 Rachid Guerraoui 1 Rhicheek Patra 1 Mahsa Taziki 1
+
+Abstract
+Asynchronous distributed machine learning solutions have proven very effective so far, but always assuming perfectly functioning workers. In
+practice, some of the workers can however exhibit Byzantine behavior, caused by hardware failures, software bugs, corrupt data, or even malicious attacks. We introduce Kardam, the first
+distributed asynchronous stochastic gradient descent (SGD) algorithm that copes with Byzantine
+workers. Kardam consists of two complementary components: a filtering and a dampening
+component. The first is scalar-based and ensures
+resilience against 13 Byzantine workers. Essentially, this filter leverages the Lipschitzness of
+cost functions and acts as a self-stabilizer against
+Byzantine workers that would attempt to corrupt
+the progress of SGD. The dampening component
+bounds the convergence rate by adjusting to stale
+information through a generic gradient weighting
+scheme. We prove that Kardam guarantees almost
+sure convergence in the presence of asynchrony
+and Byzantine behavior, and we derive its convergence rate. We evaluate Kardam on the CIFAR100 and EMNIST datasets and measure its overhead with respect to non Byzantine-resilient solutions. We empirically show that Kardam does
+not introduce additional noise to the learning procedure but does induce a slowdown (the cost of
+Byzantine resilience) that we both theoretically
+and empirically show to be less than f /n, where
+f is the number of Byzantine failures tolerated
+and n the total number of workers. Interestingly,
+we also empirically observe that the dampening
+component is interesting in its own right for it
+enables to build an SGD algorithm that outperforms alternative staleness-aware asynchronous
+competitors in environments with honest workers.
+1
+EPFL, Lausanne, Switzerland. Correspondence to: (without
+spaces) <firstname.lastname@epfl.ch>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+1. Introduction
+To keep up with the amount of data available today and the
+corresponding increasing demand for resources, machine
+learning (ML) practitioners rely on large scale distributed
+systems (Dean et al., 2012; Abadi et al., 2016; Li et al.,
+2013; 2014b;a; Ho et al., 2013; Cui et al., 2016). Most of
+these systems make use of the same work-horse optimization algorithm: stochastic gradient descent (SGD), typically
+following the parameter server scheme (Li et al., 2014a;b).
+The computation is divided into epochs, i.e., model (parameter vector) updates. The server gathers gradients from the
+workers and employs them to perform a single model update, then broadcasts the new model to every worker for
+computing new gradients (based on random data samples).
+To be practical, a distributed ML solution should not assume that all workers perform perfectly well. Some arbitrary behavior of at least a fraction of the workers should
+be tolerated. The Byzantine failure model (Lamport et al.,
+1982) offers an elegant abstraction to reason about problems
+of adversarial machine learning. In particular, a Byzantine
+behavior can be due to a crash, a software bug, a stale local view of a model, a corrupt piece of data, or worse, to
+attackers that benefit from a security flaw in a device and
+compromise its behavior. The Byzantine model encompasses the problem of poisoning attacks (Biggio & Laskov,
+2012; Muñoz-González et al., 2017; Kurakin et al., 2016).
+For instance, a group of adversarial (Byzantine) workers
+could bias the gradient estimator and prevent convergence
+by sending corrupt gradients. Byzantine-resilient (or simply
+Byzantine) ML solutions are very appealing for they do not
+make any assumption on the behavior of Byzantine workers.
+A few Byzantine distributed ML solutions have been recently proposed (Blanchard et al., 2017; Su, 2017; El
+Mhamdi et al., 2018). All however assume a restrictive
+synchronous model. In each epoch, (1) all (honest) workers
+are supposed to use the exact same model to compute the
+gradient, and (2) the parameter server waits for a quorum of
+workers before aggregating their gradients. When networks
+are asynchronous, exhibiting heterogeneous (sometimes arbitrary) communication delays, synchronous solutions inevitably lead to slow convergence.
+Asynchronous SGD algorithms, on the other hand, enable
+huge performance benefits despite heterogeneous communi-
+
+

@@ -1,0 +1,106 @@
+LoRA+: Efficient Low Rank Adaptation of Large Models
+
+Soufiane Hayou * 1 Nikhil Ghosh * 2 Bin Yu 2
+
+Abstract
+
+is computationally infeasible as it requires modifying the
+weights of the pretrained models using gradient methods
+which is a costly process. Besides, a model that has already
+learned generally useful representations during pretraining
+would not require in-principle significant adaptation of all
+parameters. With this intuition, researchers have proposed
+a variety of resource-efficient finetuning methods which
+typically freeze the pretrained weights and tune only a
+small set of newly inserted parameters. Such methods
+include prompt tuning (Lester et al., 2021) where a “soft
+prompt" is learned and appended to the input, the adapters
+method (Houlsby et al., 2019) where lightweight “adapter"
+layers are inserted and trained, and (IA)3 (Liu et al.,
+2022) where activation vectors are modified with learned
+scalings. Another resource-efficient method is known as
+Low Rank Adaptation (Hu et al., 2021), or simply LoRA.
+In LoRA finetuning, only a low rank matrix, called an
+adapter, that is added to the pretrained weights is trainable.
+The training can be done with any optimizer and in practice
+a common choice is Adam (Kingma and Ba, 2014). Since
+the trained adapter is low-rank, this effectively reduces the
+number of trainable parameters in the fine-tuning process,
+significantly decreasing the training cost. On many tasks
+such as instruction finetuning, LoRA has been shown
+to achieve comparable or better performance compared
+with full-finetuning (Wang et al., 2023; Liu et al., 2023),
+although on complicated, long form generation tasks, it is
+not always as performant. The impressive performance and
+the computational savings of LoRA have contributed to it
+becoming an industry standard finetuning method.
+
+In this paper, we show that Low Rank Adaptation
+(LoRA) as originally introduced in (Hu et al.,
+2021) leads to suboptimal finetuning of models
+with large width (embedding dimension). This
+is due to the fact that adapter matrices A and
+B in LoRA are updated with the same learning
+rate. Using scaling arguments for large width
+networks, we demonstrate that using the same
+learning rate for A and B does not allow
+efficient feature learning. We then show that this
+suboptimality of LoRA can be corrected simply
+by setting different learning rates for the LoRA
+adapter matrices A and B with a well-chosen
+fixed ratio. We call this proposed algorithm
+LoRA+. In our extensive experiments, LoRA+
+improves performance (1% − 2% improvements)
+and finetuning speed (up to ∼ 2X SpeedUp), at
+the same computational cost as LoRA.
+
+1. Introduction
+State-of-the-art (SOTA) deep learning models all share
+a common characteristic: they all have an extremely
+large number of parameters (10’s if not 100’s of billions
+parameters). Currently, only a few industry labs can
+pretrain large language models due to their high training
+cost. However, many pretrained models are accessible
+either through an API (GPT4, (OpenAI, 2023)) or through
+open-source platforms (Llama, (Touvron et al., 2023)).
+Most practitioners are interested in using such models
+for specific tasks and want to adapt these models to a
+new, generally smaller task. This procedure is known as
+finetuning, where one adjusts the weights of the pretrained
+model to improve performance on the new task. However,
+due to the size of SOTA models, adapting to down-stream
+tasks with full finetuning (finetuning all model parameters)
+*
+
+Efficient use of LoRA requires a careful choice of
+hyperparameters: the rank and the learning rate. While
+some theoretical guidelines on the choice of the rank in
+LoRA exist in the literature (see e.g. Zeng and Lee (2023)),
+there are no principled guidelines on how to set the learning
+rate, apart from common choices of order 1e-4.
+Related Work. Dettmers et al. (2023) introduced a
+quantized version of LoRA (or QLoRA), which further
+reduces computation costs by quantizing pretrained
+weights down to as few as four bits. Using QLoRA enables
+fine-tuning Llama-65b (Touvron et al., 2023), on a single
+consumer GPU while achieving competitive performance
+with full-finetuning. To further improve LoRA training
+with quantization, Li et al. (2023) introduced a new
+
+1
+
+Equal contribution
+Simons Institute, UC Berkeley
+Department of Statistics, UC Berkeley.
+Correspondence
+to: Soufiane Hayou <hayou@berkeley.edu>, Nikhil Ghosh
+<nikhil_ghosh@berkeley.edu>.
+2
+
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024
+by the author(s).
+
+1
+
+

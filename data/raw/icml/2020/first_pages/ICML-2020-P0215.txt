@@ -1,0 +1,80 @@
+Scalable Deep Generative Modeling for Sparse Graphs
+
+Hanjun Dai 1 Azade Nazi 1 Yujia Li 2 Bo Dai 1 Dale Schuurmans 1
+
+Abstract
+Learning graph generative models is a challenging task for deep learning and has wide applicability to a range of domains like chemistry, biology and social science. However current deep
+neural methods suffer from limited scalability:
+for a graph with n nodes and m edges, existing deep neural methods require Ω(n2 ) complexity by building up the adjacency matrix. On the
+other hand, many real world graphs are actually
+sparse in the sense that m  n2 . Based on this,
+we develop a novel autoregressive model, named
+BiGG, that utilizes this sparsity to avoid generating the full adjacency matrix, and importantly
+reduces the graph generation time complexity to
+O((n + m) log n). Furthermore, during training
+this autoregressive model can be parallelized with
+O(log n) synchronization stages, which makes
+it much more efficient than other autoregressive
+models that require Ω(n). Experiments on several
+benchmarks show that the proposed approach not
+only scales to orders of magnitude larger graphs
+than previously possible with deep autoregressive
+graph generative models, but also yields better
+graph generation quality.
+
+1. Introduction
+Representing a distribution over graphs provides a principled foundation for tackling many important problems in
+knowledge graph completion (Xiao et al., 2016), de novo
+drug design (Li et al., 2018; Simonovsky & Komodakis,
+2018), architecture search (Xie et al., 2019) and program
+synthesis (Brockschmidt et al., 2018). The effectiveness of
+graph generative modeling usually depends on learning the
+distribution given a collection of relevant training graphs.
+However, training a generative model over graphs is usually
+quite difficult due to their discrete and combinatorial nature.
+1
+Google Research, Brain Team 2 DeepMind. Correspondence
+to: Hanjun Dai <hadai@google.com>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Classical generative models of graphs, based on random
+graph theory (Erdős & Rényi, 1960; Barabási & Albert,
+1999; Watts & Strogatz, 1998), have been long studied but
+typically only capture a small set of specific graph properties, such as degree distribution. Despite their computational
+efficiency, these distribution models are usually too inexpressive to yield competitive results in challenging applications.
+Recently, deep graph generative models that exploit the
+increased capacity of neural networks to learn more expressive graph distributions have been successfully applied to
+real-world tasks. Prominent examples include VAE-based
+methods (Kipf & Welling, 2016; Simonovsky & Komodakis,
+2018), GAN-based methods (Bojchevski et al., 2018), flow
+models (Liu et al., 2019; Shi et al., 2020) and autoregressive
+models (Li et al., 2018; You et al., 2018; Liao et al., 2019).
+Despite the success of these approaches in modeling small
+graphs, e.g. molecules with hundreds of nodes, they are not
+able to scale to graphs with over 10,000 nodes.
+A key shortcoming of current deep graph generative models
+is that they attempt to generate a full graph adjacency matrix,
+implying a computational cost of Ω(n2 ) for a graph with n
+nodes and m edges. For large graphs, it is impractical to
+sustain such a quadratic time and space complexity, which
+creates an inherent trade-off between expressiveness and
+efficiency. To balance this trade-off, most recent work has
+introduced various conditional independence assumptions
+(Liao et al., 2019), ranging from the fully auto-regressive
+but slow GraphRNN (You et al., 2018), to the fast but fully
+factorial GraphVAE (Simonovsky & Komodakis, 2018).
+In this paper, we propose an alternative approach that does
+not commit to explicit conditional independence assumptions, but instead exploits the fact that most interesting realworld graphs are sparse, in the sense that m  n2 . By
+leveraging sparsity, we develop a new graph generative
+model, BiGG (BIg Graph Generation), that streamlines the
+generative process and avoids explicit consideration of every entry in an adjacency matrix. The approach is based on
+three key elements: (1) an O(log n) process for generating
+each edge using a binary tree data structure, inspired by
+R-MAT (Chakrabarti et al., 2004); (2) a tree-structured autoregressive model for generating the set of edges associated
+with each node; and (3) an autoregressive model defined
+over the sequence of nodes. By combining these elements,
+BiGG can generate a sparse graph in O((n+m) log n) time,
+
+

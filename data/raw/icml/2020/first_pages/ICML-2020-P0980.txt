@@ -1,0 +1,77 @@
+Learning Autoencoders with Relational Regularization
+
+Hongteng Xu * 1 2 Dixin Luo * 2 Ricardo Henao 2 Svati Shah 2 Lawrence Carin 2
+
+Abstract
+A new algorithmic framework is proposed for
+learning autoencoders of data distributions. We
+minimize the discrepancy between the model and
+target distributions, with a relational regularization on the learnable latent prior. This regularization penalizes the fused Gromov-Wasserstein
+(FGW) distance between the latent prior and its
+corresponding posterior, allowing one to flexibly learn a structured prior distribution associated with the generative model. Moreover, it
+helps co-training of multiple autoencoders even
+if they have heterogeneous architectures and incomparable latent spaces. We implement the
+framework with two scalable algorithms, making it applicable for both probabilistic and deterministic autoencoders. Our relational regularized autoencoder (RAE) outperforms existing methods, e.g., the variational autoencoder,
+Wasserstein autoencoder, and their variants, on
+generating images. Additionally, our relational
+co-training strategy for autoencoders achieves
+encouraging results in both synthesis and realworld multi-view learning tasks. The code is
+at https://github.com/HongtengXu/
+Relational-AutoEncoders.
+
+1. Introduction
+Autoencoders have been used widely in many challenging
+machine learning tasks for generative modeling, e.g., image (Kingma & Welling, 2013; Tolstikhin et al., 2018) and
+sentence (Bowman et al., 2016; Wang et al., 2019) generation. Typically, an autoencoder assumes that the data in
+the sample space X may be mapped to a low-dimensional
+manifold, which can be represented in a latent space Z.
+The autoencoder fits the unknown data distribution px via
+*
+1
+Equal contribution
+Infinia ML Inc., Durham, NC,
+USA 2 Duke University, Durham, NC, USA. Correspondence
+to: Hongteng Xu <hongtengxu313@gmail.com>, Dixin Luo
+<dixin.luo@duke.edu>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+a latent-variable model denoted pG , specified by a prior
+distribution pz on latent code z ∈ Z and a generative model
+G : Z 7→ X mapping the latent code to the data x ∈ X .
+Learning seeks to minimize the discrepancy between px
+and pG . According to the choice of the discrepancy, we
+can derive different autoencoders. For example, the variational autoencoder (Kingma & Welling, 2013) applies the
+KL-divergence as the discrepancy and learns a probabilistic autoencoder via maximizing the evidence lower bound
+(ELBO). The Wasserstein autoencoder (WAE) (Tolstikhin
+et al., 2018) minimizes a relaxed form of the Wasserstein
+distance between px and pG , and learns a deterministic autoencoder. In general, the objective function approximating
+the discrepancy consists of a reconstruction loss of observed
+data and a regularizer penalizing the difference between
+the prior distribution pz and the posterior derived by encoded data, i.e., qz|x . Although existing autoencoders have
+achieved success in many generative tasks, they often suffer
+from the following two problems.
+Regularizer misspecification Typical autoencoders, like
+the VAE and WAE, fix the pz as a normal distribution, which
+often leads to the problem of over-regularization. Moreover,
+applying such an unstructured prior increases the difficulties
+in conditional generation tasks. To avoid oversimplified priors, the Gaussian mixture VAE (GMVAE) (Dilokthanakul
+et al., 2016) and the VAE with VampPrior (Tomczak &
+Welling, 2018) characterize their priors as learnable mixture
+models. However, without side information (Wang et al.,
+2019), jointly learning the autoencoder and the prior suffers
+from a high risk of under-regularization, which is sensitive to the setting of hyperparameters (e.g., the number of
+mixture components and the initialization of the prior).
+Co-training of heterogeneous autoencoders Solving a
+single task often relies on the data in different domains
+(i.e., multi-view data). For example, predicting the mortality of a patient may require both her clinical record and
+genetic information. In such a situation, we may need to
+learn multiple autoencoders to extract latent variables as
+features from different views. Traditional multi-view learning strategies either assume that the co-trained autoencoders
+share the same latent distributions (Wang et al., 2015; Ye
+et al., 2016), or assume that there exists an explicit transform
+between different latent spaces (Wang et al., 2016). These
+assumptions are questionable in practice, as the correspond-
+
+

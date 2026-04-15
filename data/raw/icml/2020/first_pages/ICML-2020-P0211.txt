@@ -1,0 +1,93 @@
+Momentum Improves Normalized SGD
+
+Ashok Cutkosky 1 2 Harsh Mehta 1
+
+Abstract
+We provide an improved analysis of normalized
+SGD showing that adding momentum provably
+removes the need for large batch sizes on nonconvex objectives. Then, we consider the case
+of objectives with bounded second derivative and
+show that in this case a small tweak to the momentum formula allows normalized SGD with
+momentum to find an -critical point in O(1/3.5 )
+iterations, matching the best-known rates without accruing any logarithmic factors or dependence on dimension. We also provide an adaptive method that automatically improves convergence rates when the variance in the gradients is
+small. Finally, we show that our method is effective when employed on popular large scale tasks
+such as ResNet-50 and BERT pretraining, matching the performance of the disparate methods used
+to get state-of-the-art results on both tasks.
+
+1. Non-Convex Stochastic Optimization
+The rise of deep learning has focused research attention on
+the problem of solving optimization problems that are highdimensional, large-scale, and non-convex. Modern neural
+networks can have billions of parameters (high-dimensional)
+(Raffel et al., 2019; Shazeer et al., 2017), are trained using
+datasets containing millions of examples (large scale) (Deng
+et al., 2009) on objective functions that are non-convex. Because of these considerations, stochastic gradient descent
+(SGD) has emerged as the de-facto method-of-choice for
+training deep models. SGD has several properties that make
+it attractive for this setting. First, it can operate in a streaming manner by running over the large dataset while only
+keeping a few examples in memory at any one time. Second, SGD has a dimension-free convergence guarantee for
+finding critical points on non-convex objectives. This means
+1
+
+Google Research, California, USA 2 Boston University,
+Massachusetts, USA. Correspondence to: Ashok Cutkosky
+<ashok@cutkosky.com>, Harsh Mehta <harshm@google.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+that SGD’s convergence rate is independent of the dimension of the problem, allowing it to scale more easily to
+massive neural networks. In this paper we will investigate
+a variant of SGD that incorporates gradient normalization
+and momentum, which are both commonly used empirical
+modifications to SGD that are poorly understood in the
+non-convex setting.
+A common way to analyze algorithms for training neural
+nets is through the lens of stochastic optimization. In this
+setting, we are interested in minimizing a function:
+F(~
+w) = E [f ( ~
+w, ξ)]
+ξ∼D
+
+Where here w
+~ ∈ Rd and D is a distribution over an arbitrary
+space Ξ. This general formulation allows for cleaner analysis, but for a more concrete intuition, w
+~ may represent the
+weights of a neural network, ξ may represent an individual
+training example, and D is the distribution over training
+examples. We do not know the entire function F , but we are
+allowed to access F through a stochastic gradient oracle.
+That is, given any ~
+w, we may compute ∇f ( ~
+w, ξ) for some
+ξ drawn i.i.d. from D. Under this formulation, the SGD
+algorithm employs the simple iterative update:
+w
+~ t+1 = w
+~ t − ηt ∇f (w
+~ t , ξt )
+where ξ1 , . . . , ξT are i.i.d. examples from the distribution
+D, and ηt ∈ R is a a scalar called the learning rate. Since
+our objective F is non-convex, it may be computationally
+intractable to find a true minimizer. Instead, we will look for
+an -critical point. That is, we would like our optimization
+algorithm to output a point w
+~ such that
+w)k] ≤ 
+E[k∇F ( ~
+where k · k indicates the standard 2-norm. The expectation is
+taken over the randomness of the stochastic gradient oracle
+and any randomness inherent in the algorithm itself. In order
+to make the problem tractable, we make three structural
+assumptions. First, we assume that F is L-smooth, which
+means that for all w
+~ and ~x,
+k∇F ( ~
+w) − ∇F (~x)k ≤ Lkw
+~ − ~xk
+
+(A1)
+
+Second, we assume that the objective F is bounded from
+below, and without loss of generality (since our algorithms
+
+

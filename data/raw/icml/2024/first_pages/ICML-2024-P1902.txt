@@ -1,0 +1,102 @@
+DéjàVu: KV-cache Streaming for Fast, Fault-tolerant Generative LLM Serving
+
+Foteini Strati 1 2 Sara McAllister 1 3 Amar Phanishayee 4 Jakub Tarnawski 4 Ana Klimovic 2
+
+1400
+1200
+1000
+800
+600
+400
+200
+0
+
+OPT-13B
+OPT-66B
+BLOOM-176B
+
+Total GPU memory
+used (GB)
+
+Abstract
+Distributed LLM serving is costly and often underutilizes hardware accelerators due to three key
+challenges: bubbles in pipeline-parallel deployments caused by the bimodal latency of prompt
+and token processing, GPU memory overprovisioning, and long recovery times in case of failures. DéjàVu addresses all these challenges using a versatile and efficient KV cache streaming
+library (DéjàVuLib). Using DéjàVuLib, we propose and implement efficient prompt-token disaggregation to reduce pipeline bubbles, microbatch
+swapping for efficient GPU memory management,
+and state replication for fault-tolerance. We highlight the efficacy of these solutions on a range of
+large models across cloud deployments.
+
+1
+
+2
+
+4
+
+8
+16
+Batch size
+
+32
+
+64
+
+128
+
+Figure 1. Memory footprint of serving various LLMs with 2K sequence length (input + generated tokens) and half precision (fp16).
+
+Given these trends, we identify three key challenges in stateful, distributed LLM serving. First, we observe a substantial
+latency discrepancy (up to 2 orders of magnitude) between
+two phases of LLM serving, which leads to expensive GPU
+underutilization. Prompt processing, also called the prefill
+phase (Zhong et al., 2024), depends on the input size and is
+compute bound. Meanwhile, token generation, also called
+the decode phase, is memory bandwidth-bound and the time
+to generate a token is nearly constant when using the KV
+cache. Processing both prompts and tokens in the same
+pipeline introduces pipeline bubbles, where GPUs idle.
+
+1. Introduction
+Large Language Models (LLMs) like GPT-3 (Brown et al.,
+2020) are widely used in chatbots, code generation, and
+text summarization. Two key trends in generative LLM
+inference have changed the landscape of ML model serving. First, large model sizes, input sequence lengths, and
+consequently large intermediate inference state lead to high
+memory footprint for LLM inference. Figure 1 shows the
+GPU memory required to serve various generative LLMs
+with a 2K sequence length; their memory footprint greatly
+exceeds the capacity of a single GPU, mandating parallelization across many high-end GPUs (including tensor-model
+and pipeline parallel execution). Second, for low latency
+serving, these LLMs use a Key-Value Cache to store prior
+computations as individual tokens are generated for each request (Yan et al., 2021; Pope et al., 2022; Kwon et al., 2023;
+Sheng et al., 2023; Zhang et al., 2023). While ML inference
+has been traditionally stateless, the use of KV cache makes
+generative LLM inference stateful.
+
+Second, state-of-the-art LLM serving systems like FasterTransformer vastly overprovision the KV cache in pipeline
+parallel configurations by allocating GPU memory for all
+microbatches upfront (NVIDIA, 2023b). Since the KV
+cache is only used by one microbatch at a time, there is an
+opportunity to allocate GPU memory more efficiently.
+Third, existing LLM serving systems do not efficiently handle failures or preemptions, which often occur in large-scale
+GPU deployments (Eisenman et al., 2022). Upon a failure, the LLM serving system crashes and stalls all in-flight
+requests. When KV cache state is lost, current systems process requests from scratch. These redundant computations
+severely increase end-to-end request latency.
+
+1
+
+MSR Project Fiddle Intern 2 ETH Zurich 3 Carnegie Mellon
+University 4 Microsoft Research. Correspondence to: Foteini Strati
+<foteini.strati@inf.ethz.ch>.
+
+To address the above challenges for pipeline-parallel distributed inference, we propose DéjàVu, an efficient and faulttolerant LLM serving system based on KV cache streaming.
+First, DéjàVu disaggregates prompt processing from token
+generation and optimizes the number of machines for each
+
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

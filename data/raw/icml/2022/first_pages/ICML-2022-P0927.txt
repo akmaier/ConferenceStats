@@ -1,0 +1,69 @@
+Efficient Distributionally Robust Bayesian Optimization with
+Worst-case Sensitivity
+
+Sebastian Shenghong Tay 1 2 Chuan Sheng Foo 2 Daisuke Urano 3 Richalynn Chiu Xian Leong 3
+Bryan Kian Hsiang Low 1
+
+Abstract
+In distributionally robust Bayesian optimization
+(DRBO), an exact computation of the worst-case
+expected value requires solving an expensive convex optimization problem. We develop a fast
+approximation of the worst-case expected value
+based on the notion of worst-case sensitivity that
+caters to arbitrary convex distribution distances.
+We provide a regret bound for our novel DRBO
+algorithm with the fast approximation, and empirically show it is competitive with that using
+the exact worst-case expected value while incurring significantly less computation time. In order
+to guide the choice of distribution distance to be
+used with DRBO, we show that our approximation implicitly optimizes an objective close to an
+interpretable risk-sensitive value.
+
+1. Introduction
+Bayesian optimization (BO) is a powerful paradigm for efficiently optimizing an unknown/black-box objective function
+f (x) (Garnett, 2022) w.r.t. action/decision variable x with
+a limited budget of costly function evaluations. As a result,
+there is a fast growing interest in the application of BO to
+many complex real-world optimization problems like hyperparameter optimization of machine learning models (Chen
+et al., 2018), molecule search in automated chemical design (Griffiths & Hernández-Lobato, 2020), to name a few.
+In practice, the black-box objective function often depends
+on a random context/environment variable c beyond our
+control s.t. the goal now is to maximize the expected
+value Ep [f (x, c)] w.r.t. some distribution p of c (ToscanoPalmerin & Frazier, 2018). For example, consider the prob1
+Department of Computer Science, National University of Singapore, Singapore 2 Institute for Infocomm Research, A*STAR,
+Singapore 3 Temasek Life Sciences Laboratory, Singapore. Correspondence to: Sebastian Shenghong Tay <seb.tsh@gmail.com>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+lem of optimizing the expected size of a crop where x represents the soil nutrient concentrations and can be controlled,
+while c represents the average temperature in a month and
+is uncontrolled. The introduction of the random context c
+gives rise to new BO problem settings that aim to be riskaverse and avoid worst-case scenarios by optimizing risk
+measures of f (x, c) instead (Cakmak et al., 2020; Nguyen
+et al., 2021a;b). Such works assume that the distribution of
+c is stationary and is either known or can be estimated well.
+Distributionally robust BO (DRBO) was concurrently introduced by Kirschner et al. (2020) and Nguyen et al. (2020)
+and adapts the framework of distributionally robust optimization (DRO) in operations research (Rahimian & Mehrotra, 2019) to BO. DRBO considers the setting where c is
+subject to distribution shift, i.e., its distribution may be
+different from our prior knowledge. To be distributionally
+robust is thus to select the action x that maximizes the worstcase expected value, i.e., Eq [f (x, c)] under the worst-case
+distribution q of c selected by an adversary from some set of
+possible distributions. Such an approach provides another
+form of robustness, specifically, to an incorrect knowledge
+of the distribution of c rather than to the undesirable outcomes of c. In the earlier crop example, this corresponds to
+being robust to an incorrect knowledge of the distribution of
+the average temperature in a month which may be constantly
+shifting due to climate change.
+A complex real-world optimization problem usually has
+several sources of randomness, so context c is multidimensional. For instance, the average temperature in a
+month, fertilizer composition, and crop genotypes may all
+be subject to distribution shift. If the outcomes of the multidimensional c are discretized into a finite set C and a reasonable discretization density is used for each dimension, then
+|C| can grow large quickly. This work allows DRBO to be
+scaled to a large |C|. In contrast, existing DRBO algorithms
+scale poorly in |C|: The algorithm of Kirschner et al. (2020)
+has to solve a convex optimization problem with |C| variables to obtain the worst-case expected value, which incurs
+up to O(|C|3 ) time. Nguyen et al. (2020) have devised an
+efficient method to do so based on Lagrange multipliers, but
+it is tied to a specific choice of distribution distance used to
+
+

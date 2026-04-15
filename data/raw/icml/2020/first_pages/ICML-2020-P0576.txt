@@ -1,0 +1,72 @@
+Boosting Deep Neural Network Efficiency with Dual-Module Inference
+
+Liu Liu 1 2 Lei Deng 2 Zhaodong Chen 2 Yuke Wang 1 Shuangchen Li 3 Jingwei Zhang 3 Yihua Yang 3
+Zhenyu Gu 3 Yufei Ding 1 Yuan Xie 2
+
+Abstract
+Using deep neural networks (DNNs) in machine
+learning tasks is promising in delivering highquality results but challenging to meet stringent
+latency requirements and energy constraints because of the memory-bound and the computebound execution pattern of DNNs. We propose
+a big-little dual-module inference to dynamically
+skip unnecessary memory accesses and computations to accelerate DNN inference. Leveraging
+the noise-resilient feature of nonlinear activation
+functions, we propose to use a lightweight little module that approximates the original DNN
+layer, termed as the big module, to compute activations of the insensitive region that are more
+noise-resilient. Hence, the expensive memory accesses and computations of the big module can
+be reduced as the results are only calculated in
+the sensitive region. For memory-bound models
+such as recurrent neural networks (RNNs), our
+method can reduce the overall memory accesses
+by 40% on average and achieve 1.54x to 1.75x
+speedup on a commodity CPU-based server platform with a negligible impact on model quality. In
+addition, our method can reduce the operations of
+the compute-bound models such as convolutional
+neural networks (CNNs) by 3.02x, with only a
+0.5% accuracy drop.
+
+1. Introduction
+Deep neural networks (DNNs) play a critical role in many
+areas like image classification (He et al., 2015; Giacinto &
+Roli, 2001; Zheng et al., 2019), natural language processing
+(NLP) (Bahdanau et al., 2014; Wu et al., 2016; Graves et al.,
+1
+
+Department of Computer Science, University of California,
+Santa Barbara 2 Department of Electrical and Computer Engineering, University of California, Santa Barbara 3 Alibaba Group. Correspondence to: Liu Liu <liu liu@ucsb.edu>, Lei Deng <leideng@ucsb.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+2013; He et al., 2019; Wang et al., 2017), and graph processing (Kipf & Welling, 2016; Duvenaud et al., 2015; Klicpera
+et al., 2018; Yan et al., 2020). While the DNN models
+are usually trained in data-centers, the pre-trained models
+can be deployed in both data-centers for cloud-based service and edge devices. During inference, there are primary
+concerns including latency and energy consumption: low
+latency is critical for real-time interaction, and low energy
+can help companies reduce cost in data-centers and increase
+the endurance of edge devices.
+In recent years, extensive studies have shown that quantization and pruning are two effective ways to reduce latency
+and energy consumption of DNNs (Han et al., 2015b;a;
+Narang et al., 2017; Zhu & Gupta, 2017; Dai et al., 2018;
+McKinstry et al., 2018). However, most existing studies
+apply pruned and quantized models to compute all the output activations; the overall pruning or quantization ratio is
+limited by the accuracy loss.
+In this paper, we observe that most popular activation functions like ReLU in convolutional neural networks (CNNs)
+and sigmoid, tanh in recurrent neural networks (RNNs)
+demonstrate noise resilience in particular regions, i.e., the
+negative region of ReLU and the saturation regions of
+sigmoid, tanh. We theoretically and experimentally provide evidence that the noise caused by pruning and quantization in these regions is less influential. This observation
+motivates us that more aggressive pruning and quantization
+can be applied to these insensitive regions.
+Leveraging the noise resilience of DNNs, we propose a biglittle dual-module inference (DMI) algorithm that regards
+the original pre-trained module as a big module, and use a
+little module that has fewer parameters and lower bit-width
+to approximate the results of the big module in the insensitive regions. Executing one DNN layer at inference time
+takes the following steps: (1) quantize the input activations
+and forward them through the little module; (2) predict
+which output neurons belong to the sensitive region based
+on results from the little module; (3) compute the output
+activations of the big module in the predicted sensitive region; (4) combine the outputs of the little module in the
+insensitive region and the outputs of the big module with in
+the sensitive region.
+
+

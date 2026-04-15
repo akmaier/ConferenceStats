@@ -1,0 +1,71 @@
+Fast Relative Entropy Coding with A* coding
+
+Gergely Flamich∗ 1 Stratis Markou∗ 1 José Miguel Hernández-Lobato 1 2 3
+
+Abstract
+Relative entropy coding (REC) algorithms encode
+a sample from a target distribution Q using a
+proposal distribution P , such that the expected
+codelength is O(DKL [Q∥P ]). REC can be seamlessly integrated with existing learned compression models since, unlike entropy coding, it does
+not assume discrete Q or P , and does not require
+quantisation. However, general REC algorithms
+require an intractable Ω(eDKL [Q∥P ] ) runtime. We
+introduce AS* and AD* coding, two REC algorithms based on A* sampling. We prove that,
+for continuous distributions over R, if the density ratio is unimodal, AS* has O(D∞ [Q∥P ]) expected runtime, where D∞ [Q∥P ] is the Rényi ∞divergence. We provide experimental evidence
+that AD* also has O(D∞ [Q∥P ]) expected runtime. We prove that AS* and AD* achieve an
+expected codelength of O(DKL [Q∥P ]). Further,
+we introduce DAD*, an approximate algorithm
+based on AD* which retains its favourable runtime and has bias similar to that of alternative
+methods. Focusing on VAEs, we propose the
+IsoKL VAE (IKVAE), which can be used with
+DAD* to further improve compression efficiency.
+We evaluate A* coding with (IK)VAEs on MNIST,
+showing that it can losslessly compress images
+near the theoretically optimal limit.
+
+1. Introduction
+In recent years, there has been significant progress in compression using machine learning, an approach known as
+learned compression. Most of the prominent learned compression methods, including the state-of-the-art in both lossless (Townsend et al., 2019; Hoogeboom et al., 2019; Zhang
+∗
+
+Equal contribution. 1 Department of Engineering, University of Cambridge, Cambridge, UK 2 Microsoft Research, Cambridge, UK 3 Alan Turing Institute, London, UK. Correspondence to: Gergely Flamich <gf332@cam.ac.uk>, Stratis Markou
+<em626@cam.ac.uk>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright
+2022 by the author(s).
+
+et al., 2021) and lossy compression (Ballé et al., 2017),
+perform non-linear transform coding (Ballé et al., 2020).
+In transform coding, a datum is first mapped to a latent representation and encoded with entropy coding. Entropy coding
+assumes that the latent representation and the coding distribution are discrete, which requires a non-differentiable quantization step. Since gradient-based optimization requires
+derivatives, most state-of-the-art methods use a continuous
+approximation to quantization during training and switch to
+hard quantization only during compression time (Ballé et al.,
+2017). This mismatch has been argued to be harmful towards the compression efficiency of these methods (Havasi
+et al., 2018; Flamich et al., 2020; Theis & Agustsson, 2021).
+Relative entropy coding (REC; Flamich et al., 2020) is a
+recently proposed alternative, which does not require quantization and avoids this mismatch. A REC algorithm uses
+samples from a proposal distribution P to produce a random
+code representing a sample from a target distribution Q,
+with expected length of approximately DKL [Q∥P ]2 , where
+the subscript specifies that the KL is measured in bits rather
+than nats. General-purpose REC algorithms place no restrictions on Q and P beyond that DKL [Q∥P ]2 be finite, so they
+can be applied even when Q and P are continuous. Thus
+REC can be naturally applied to perform compression with
+generative models trained via gradient descent, for applications including but not limited to: (1) data compression with
+variational autoencoders (VAE; Kingma & Welling, 2014),
+where Q corresponds to a variational posterior over latent
+variables and P to a prior over these latent variables; (2)
+model compression (Havasi et al., 2018), where Q corresponds to an approximate posterior over parameters (Blundell et al., 2015), and P to a prior over those parameters.
+However, REC algorithms that makeno further assumptions
+on Q or P require Ω 2DKL [Q∥P ]2 steps to terminate in
+expectation (Agustsson & Theis, 2020), which is a severe
+limitation in practice. Thus, in order to make progress, it
+is necessary to impose additional assumptions on Q and
+P . Universal quantisation (Ziv, 1985) can be regarded as a
+REC algorithm that achieves O(DKL [Q∥P ]2 ) runtime and
+has been demonstrated to work well with the state-of-theart VAE-based learned compression methods (Agustsson &
+Theis, 2020). However, it places heavy limitations on Q and
+P , which might be overly restrictive in many cases.
+
+

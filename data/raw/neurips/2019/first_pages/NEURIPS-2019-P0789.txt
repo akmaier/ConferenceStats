@@ -1,0 +1,72 @@
+SySCD: A System-Aware Parallel
+Coordinate Descent Algorithm
+
+Nikolas Ioannou∗
+IBM Research
+Zurich, Switzerland
+nio@zurich.ibm.com
+
+Celestine Mendler-Dünner∗†
+UC Berkeley
+Berkeley, California
+mendler@berkeley.edu
+
+Thomas Parnell
+IBM Research
+Zurich, Switzerland
+tpa@zurich.ibm.com
+
+Abstract
+In this paper we propose a novel parallel stochastic coordinate descent (SCD)
+algorithm with convergence guarantees that exhibits strong scalability. We start by
+studying a state-of-the-art parallel implementation of SCD and identify scalability
+as well as system-level performance bottlenecks of the respective implementation.
+We then take a principled approach to develop a new SCD variant which is designed
+to avoid the identified system bottlenecks, such as limited scaling due to coherence
+traffic of model sharing across threads, and inefficient CPU cache accesses. Our
+proposed system-aware parallel coordinate descent algorithm (SySCD) scales to
+many cores and across numa nodes, and offers a consistent bottom line speedup
+in training time of up to ×12 compared to an optimized asynchronous parallel
+SCD algorithm and up to ×42, compared to state-of-the-art GLM solvers (scikitlearn, Vowpal Wabbit, and H2O) on a range of datasets and multi-core CPU
+architectures.
+
+1
+
+Introduction
+
+Today’s individual machines offer dozens of cores and hundreds of gigabytes of RAM that can, if used
+efficiently, significantly improve the training performance of machine learning models. In this respect
+parallel versions of popular machine learning algorithms such as stochastic gradient descent (Recht
+et al., 2011) and stochastic coordinate descent (Liu et al., 2015; Hsieh et al., 2015a; Richtarik &
+Takac, 2016b) have been developed. These methods either introduce asynchronicity to the sequential
+algorithms, or they use a mini-batch approach, in order to enable parallelization and better utilization
+of compute resources. However, all of these methods treat machines as a simple, uniform, collection
+of cores. This is far from reality. While modern machines offer ample computation and memory
+resources, they are also elaborate systems with complex topologies, memory hierarchies, and CPU
+pipelines. As a result, maximizing the performance of parallel training requires algorithms and
+implementations that are aware of these system-level characteristics and respect their bottlenecks.
+Setup. In this work we focus on the training of generalized linear models (GLMs). Our goal is to
+efficiently solve the following partially separable convex optimization problem using the full compute
+power available in modern CPUs:
+X
+minn F (α) where F (α) := f (Aα) +
+gi (αi ).
+(1)
+α∈R
+
+i
+
+n
+
+The model vector α ∈ R is learned from the training data A ∈ Rd×n , the function f is convex
+and smooth, and gi are general convex functions. The objective (1) covers primal as well as dual
+formulations of many popular machine learning models which are widely deployed in industry
+∗
+†
+
+Equal contribution.
+Work conducted while at IBM Research, Zurich.
+
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

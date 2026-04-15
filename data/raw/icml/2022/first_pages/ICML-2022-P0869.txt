@@ -1,0 +1,60 @@
+Staged Training for Transformer Language Models
+
+Sheng Shen 1 Pete Walsh 2 Kurt Keutzer 1 Jesse Dodge 2 Matthew Peters 2 Iz Beltagy 2
+
+Abstract
+The current standard approach to scaling transformer language models trains each model size
+from a different random initialization. As an
+alternative, we consider a staged training setup
+that begins with a small model and incrementally increases the amount of compute used for
+training by applying a “growth operator” to increase the model depth and width. By initializing each stage with the output of the previous
+one, the training process effectively re-uses the
+compute from prior stages and becomes more efficient. Our growth operators each take as input the entire training state (including model parameters, optimizer state, learning rate schedule,
+etc.) and output a new training state from which
+training continues. We identify two important
+properties of these growth operators, namely that
+they preserve both the loss and the “training dynamics” after applying the operator. While the
+loss-preserving property has been discussed previously, to the best of our knowledge this work is
+the first to identify the importance of preserving
+the training dynamics (the rate of decrease of the
+loss during training). To find the optimal schedule for stages, we use the scaling laws from (Kaplan et al., 2020) to find a precise schedule that
+gives the most compute saving by starting a new
+stage when training efficiency starts decreasing.
+We empirically validate our growth operators and
+staged training for autoregressive language models, showing up to 22% compute savings compared to a strong baseline trained from scratch.
+Our code is available at https://github.
+com/allenai/staged-training.
+
+1
+University of California, Berkeley 2 Allen Institute for AI.
+Correspondence to: Iz Beltagy <beltagy@allenai.org>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+Figure 1: We train a GPT2LARGE (768M parameters) transformer language model by first training a model 1/4 the
+size (orange line), then increasing the model size by 4x by
+applying a growth operator to the entire training state, and
+restarting training (green line). The result is a large size
+model with comparable loss to one trained from scratch
+(blue line) but with reduced compute cost illustrated initially by the dashed red arrow.
+
+1. Introduction
+Language models form the backbone of many modern NLP
+systems, and these language models have become progressively larger in recent years. Parameter counts for these
+models have grown significantly from ELMo (94 M) (Peters et al., 2018) to GPT-3 (175 B) (Brown et al., 2020).
+While larger models with more learnable parameters perform better on a wide range of tasks, the computational cost
+to train or even just to evaluate these models has become
+prohibitively expensive (Schwartz et al., 2020). In this paper, we demonstrate a method to reduce the compute cost
+of training transformer language models (Vaswani et al.,
+2017) through a staged training setup that iteratively builds
+a large model from a smaller one.
+Most prior work on scaling language models initializes
+each model size from a random initialization and trains to
+convergence (Kaplan et al., 2020). This work illustrated an
+intriguing property of model training shown in Figure 1,
+namely that smaller models are initially more compute efficient then larger models, but eventually the larger model
+will reach a lower loss. Our central idea is to take advantage
+of this property by first training a smaller model in the compute efficient region, applying a growth operator to the en-
+
+

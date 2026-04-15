@@ -1,0 +1,74 @@
+LoQT: Low-Rank Adapters for Quantized Pretraining
+Sebastian Loeschcke∗
+University of Copenhagen
+sbl@di.ku.dk
+Michael J. Kastoryano
+University of Copenhagen
+mika@di.ku.dk
+
+Mads Toftrup∗
+Aarhus University
+toftrup@cs.au.dk
+
+Serge Belongie
+University of Copenhagen
+s.belongie@di.ku.dk
+
+Vésteinn Snæbjarnarson
+University of Copenhagen
+vesn@di.ku.dk
+
+Abstract
+Despite advances using low-rank adapters and quantization, pretraining of large
+models on consumer hardware has not been possible without model sharding, offloading during training, or per-layer gradient updates. To address these limitations,
+we propose Low-Rank Adapters for Quantized Training (LoQT), a method for efficiently training quantized models. LoQT uses gradient-based tensor factorization
+to initialize low-rank trainable weight matrices that are periodically merged into
+quantized full-rank weight matrices. Our approach is suitable for both pretraining
+and fine-tuning models. We demonstrate this for language modeling and downstream task adaptation, finding that LoQT enables efficient training of models up
+to 7B parameters on a 24GB GPU. We also demonstrate the feasibility of training
+a 13B model using per-layer gradient updates on the same hardware.
+https://github.com/sebulo/LoQT
+
+1
+
+Introduction
+Llama 13B
+
+RTX 4090 Memory Type
+Training large neural networks requires substanLoQT A8bit LW
+OOM
+tial hardware and energy resources. Reducing
+LoQT A8bit
+Optimizer
+these requirements is important for both cost efModel
+LoQT
+Forward
+ficiency and environmental reasons, while also
+GaLore A8bit LW
+Gradients
+lowering the entry barrier for researchers and
+Unknown
+GaLore A8bit
+practitioners in general. In this work, we target
+GaLore
+the memory component—a key part of the hardAdam
+ware requirements. Memory use during training
+comes primarily from storing the weights of the
+0 10 20 30 40 50 60 70 80
+Memory Usage (GB)
+model, the optimizer states, and activations. To
+target the memory footprint of the weights, vari- Figure 1: Memory usage of Llama 13B, rank 1024.
+ous applications of quantization [1, 2, 3, 4] have LW: per-layer gradient updates. A8bit: Adam 8bit.
+been used. For targeting the optimizer states,
+variations on low-rank adaptation (LoRA) [5, 6, 3, 7] have been suggested to decrease the number of
+trainable parameters for fine-tuning, in combination with the use of low precision representations.
+Low-rank approaches for projecting gradients to a lower rank have also been suggested [8]. In this
+work, we combine these approaches to address the model size and optimizer states, resulting in a
+highly memory-efficient configuration that is also suitable for pretraining.
+∗
+
+Equal contribution.
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

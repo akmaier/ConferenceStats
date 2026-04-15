@@ -1,0 +1,80 @@
+Correcting Exposure Bias for Link Recommendation
+
+Shantanu Gupta 1 2 Hao Wang 3 Zachary Lipton 2 Yuyang Wang 4
+
+Abstract
+Link prediction methods are frequently applied in
+recommender systems, e.g., to suggest citations
+for academic papers or friends in social networks.
+However, exposure bias can arise when users are
+systematically underexposed to certain relevant
+items. For example, in citation networks, authors
+might be more likely to encounter papers from
+their own field and thus cite them preferentially.
+This bias can propagate through naively trained
+link predictors, leading to both biased evaluation
+and high generalization error (as assessed by true
+relevance). Moreover, this bias can be exacerbated by feedback loops. We propose estimators
+that leverage known exposure probabilities to mitigate this bias and consequent feedback loops.
+Next, we provide a loss function for learning the
+exposure probabilities from data. Finally, experiments on semi-synthetic data based on real-world
+citation networks, show that our methods reliably identify (truly) relevant citations. Additionally, our methods lead to greater diversity in the
+recommended papers’ fields of study. The code
+is available at github.com/shantanu95/
+exposure-bias-link-rec.
+
+1. Introduction
+Diverse application domains, including both citation networks and social networks, are characterized by graphstructured data. Here, nodes represent entities (like papers or
+users) and edges represent associations between two nodes
+(like citations, friendships, or follows). Link recommender
+systems (RSs) leverage node attributes and existing links to
+suggest new nodes that a given node should link to (Li et al.,
+2017; Bai et al., 2019; Ma et al., 2020). Typically, RSs are
+trained and evaluated directly on the observed graph, raising
+1
+Work done while interning at Amazon 2 Machine Learning Department, Carnegie Mellon University 3 Department of Computer
+Science, Rutgers University 4 Amazon Web Services (AWS) AI
+Labs, Palo Alto, CA, USA. Correspondence to: Shantanu Gupta
+<shantang@cs.cmu.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+concerns about exposure bias—many missing links are false
+negatives, and did not form due to lack of exposure rather
+than a lack of affinity.
+Consider the example of an RS that recommends relevant
+citations to authors given attributes of their paper (like title,
+abstract, etc.). In this case, equally relevant papers from different fields of study (FOS) might be less cited historically
+because authors have been preferentially exposed to papers
+in their own FOS. In the observed citation graph, a number
+of relevant papers are observed as not cited because the user
+was not exposed to those papers. Thus evaluating a link RS
+directly on the observed graph may yield a biased estimate
+of the true risk.
+Exposure bias can exacerbate popularity bias, causing relevant but unpopular items to not be shown (Chen et al., 2020).
+In social networks, diverse recommendations can help users
+form links with communities they would otherwise not discover (Li et al., 2017; Brandão et al., 2013). In citation
+networks, exposure bias can also lead to lines of research being duplicated across fields. Examples include model-based
+science and linear canonical transforms, which were developed in isolation (Vincenot, 2018; Liberman & Wolf, 2015).
+Thus it would be valuable to have an RS that recommends
+relevant low-exposure nodes.
+In this paper, we call the probability that a node is exposed
+to another node the propensity score; and we call the probability that, given exposure, a node links to another node the
+link probability. An RS trained directly on the observed data
+will underestimate the link probability for low propensity
+nodes relative to high propensity nodes. We demonstrate
+this with a simple example in the context of academic citation recommendation.
+Example 1 (Exposure Bias). Let’s say that there are two
+FOS: Machine Learning (ML) and Physics (PH), with n
+papers in each. An ML researcher is looking for papers to
+cite. The probability of them being exposed to papers in
+ML and PH is 0.9 and 0.6, respectively. Given exposure,
+the probabilities that they cite papers from ML and PH are
+0.8 and 0.8, respectively. In the observed data, we will see
+≈ 0.72n(= 0.9 × 0.8n) ML papers cited and ≈ 0.48n(=
+0.6 × 0.8n) PH papers cited. Thus, if we directly learn
+link probabilities from the observed data, the probability
+of citing a PH paper will be underestimated (0.48 instead
+
+

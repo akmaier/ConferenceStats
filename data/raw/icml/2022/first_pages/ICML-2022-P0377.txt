@@ -1,0 +1,75 @@
+General-purpose, long-context autoregressive modeling with Perceiver AR
+
+Curtis Hawthorne * 1 Andrew Jaegle * 2 Cătălina Cangea 2 Sebastian Borgeaud 2 Charlie Nash 2
+Mateusz Malinowski 2 Sander Dieleman 2 Oriol Vinyals 2 Matthew Botvinick 2 Ian Simon 1 Hannah Sheahan 2
+Neil Zeghidour 1 Jean-Baptiste Alayrac † 2 João Carreira † 2 Jesse Engel † 1
+
+Abstract
+Real-world data is high-dimensional: a book,
+image, or musical performance can easily contain hundreds of thousands of elements even after compression. However, the most commonly
+used autoregressive models, Transformers, are
+prohibitively expensive to scale to the number
+of inputs and layers needed to capture this longrange structure. We develop Perceiver AR, an
+autoregressive, modality-agnostic architecture
+which uses cross-attention to map long-range inputs to a small number of latents while also maintaining end-to-end causal masking. Perceiver AR
+can directly attend to over a hundred thousand tokens, enabling practical long-context density estimation without the need for hand-crafted sparsity
+patterns or memory mechanisms. When trained
+on images or music, Perceiver AR generates outputs with clear long-term coherence and structure.
+Our architecture also obtains state-of-the-art likelihood on long-sequence benchmarks, including
+64 × 64 ImageNet images and PG-19 books.
+
+1. Introduction
+A central goal of artificial intelligence research is the development of systems that can identify structure in the world
+and use it to effectively perform tasks of interest. In the
+past few years, autoregressive (AR) modeling with attention
+architectures (sometimes referred to metonymically as “language modeling”) has emerged as a viable path to achieving
+this goal. In AR modeling, a set of outputs are generated
+by (i) using a model to map a set of inputs to an output, (ii)
+appending that output to the set of inputs, and proceeding
+again from step (i) until the full set of outputs has been
+*
+Equal contribution † Equal contribution 1 Google Research, Brain Team 2 DeepMind.
+Correspondence to:
+Curtis Hawthorne <fjord@google.com>, Andrew Jaegle
+<drewjaegle@deepmind.com>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+produced. This simple recipe can in principle be followed
+to express any input-output relationship, and breakthrough
+results have been achieved using Transformers (Vaswani
+et al., 2017) or related models to learn the input → output
+mapping (Vinyals et al., 2019; Brown et al., 2020; Jumper
+et al., 2021; Wu et al., 2021). For this to work, the model
+must be able to capture patterns in the input that are useful
+for predicting the next output.
+Patterns in real-world data often depend on the details of
+many inputs (or “tokens,” each of which represents a row of
+an input array), some of which are far away in space, time,
+or setting from the current output. Many pieces of music,
+for example, begin by stating a theme with clear melodic
+and rhythmic elements. Over the piece, these elements are
+gradually varied with increasingly elaborate restatements
+designed to draw listeners in. How does the precise timing
+of a phrase relate to its antecedents? How does a tonal
+motif persist and develop as it is restated? How does a
+new harmonization recontextualize a familiar melody? The
+structure of the piece emerges when each component is
+considered alongside many others.
+There is a tension between this kind of long-form, contextual
+structure and the computational properties of Transformers.
+Transformers repeatedly apply a self-attention operation to
+their inputs: this leads to computational requirements that
+simultaneously grow quadratically with input length and
+linearly with model depth. As the input data grows longer,
+more input tokens are needed to observe it, and as the patterns in the input data grow more subtle and complicated,
+more depth is needed to model the patterns that result. Computational constraints force users of Transformers to either
+truncate the inputs to the model (preventing it from observing many kinds of long-range patterns) or restrict the depth
+of the model (denuding it of the expressive power needed to
+model complex patterns).
+The goal of this work is to design an architecture that retains the well-known benefits of Transformers for autoregressive modeling while enabling long-range pattern recognition without adding extraneous complexity. To do this,
+we build on the Perceiver family of attention architectures
+(Jaegle et al., 2021; 2022), which have demonstrated excel-
+
+

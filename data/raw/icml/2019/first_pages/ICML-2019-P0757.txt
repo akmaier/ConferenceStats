@@ -1,0 +1,77 @@
+Improving Neural Network Quantization without Retraining using
+Outlier Channel Splitting
+
+Ritchie Zhao 1 Yuwei Hu 1 Jordan Dotzel 1 Christopher De Sa 1 Zhiru Zhang 1
+
+Abstract
+Quantization can improve the execution latency
+and energy efficiency of neural networks on both
+commodity GPUs and specialized accelerators.
+The majority of existing literature focuses on training quantized DNNs, while this work examines
+the less-studied topic of quantizing a floatingpoint model without (re)training. DNN weights
+and activations follow a bell-shaped distribution
+post-training, while practical hardware uses a linear quantization grid. This leads to challenges
+in dealing with outliers in the distribution. Prior
+work has addressed this by clipping the outliers
+or using specialized hardware. In this work, we
+propose outlier channel splitting (OCS), which duplicates channels containing outliers, then halves
+the channel values. The network remains functionally identical, but affected outliers are moved
+toward the center of the distribution. OCS requires no additional training and works on commodity hardware. Experimental evaluation on
+ImageNet classification and language modeling
+shows that OCS can outperform state-of-the-art
+clipping techniques with only minor overhead.
+
+1. Introduction
+Over the past few years, deep neural networks (DNNs) have
+become the state-of-the-art approach for many large-scale
+computer vision and sequence modeling problems. Deep
+convolutional networks dominate the leaderboards for popular image classification and object detection datasets such
+as ImageNet (Deng et al., 2009) and Microsoft COCO (Lin
+et al., 2014). However, the significant compute and memory
+requirements of running DNNs impedes the adoption of
+neural nets in application domains such as edge computing
+or latency-critical services (Xu et al., 2018). One approach
+1
+Cornell University, Ithaca, New York 14850, USA. Correspondence to: Ritchie Zhao <rz252@cornell.edu>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+to reducing the costs of DNN execution is to quantize the
+floating-point weights and activations into low-precision
+fixed-point numbers. This reduces the model size as well as
+the complexity of multiply-accumulate (MAC) operations
+in hardware, enabling better throughput and energy efficiency. DNN quantization is an active area of research (Wu
+et al., 2018; Jacob et al., 2018; Choi et al., 2018b; Banner
+et al., 2018) and sees deployment in commercial systems
+such as Google’s TPU (Jouppi et al., 2017), NVIDIA’s TensorRT (Migacz, 2017), and Microsoft’s Brainwave (Chung
+et al., 2018).
+The majority of literature on DNN quantization involves
+training — either from scratch (Courbariaux et al., 2015;
+Wu et al., 2018; Jacob et al., 2018) or retraining/fine-tuning
+from a floating-point model (Han et al., 2016; Zhou et al.,
+2017). Although such techniques are valuable, there are
+important real-world scenarios in which (re)training is not
+applicable. Consider an ML service provider (e.g. Amazon, Microsoft, Google) which wants to run a black-box
+floating-point client model in low-precision. The service
+provider does not have the training data, and the client may
+not be able to train for quantization because: (1) it lacks
+the expertise or manpower; (2) it is using an off-the-shelf
+or legacy model for which training data is not available.
+The importance of post-training quantization can be seen
+from NVIDIA’s TensorRT, a product specifically designed
+to perform 8-bit integer quantization without (re)training.
+This paper focuses on post-training DNN quantization.
+DNN weights and activations follow a bell-shaped distribution after training. However, commodity hardware uses a
+linear number representation with evenly-spaced grid points.
+The naı̈ve approach is to linearly map the entire range of
+the distribution to the range of the quantization grid (Figure 1(a)). Here the grid points extend to the maximum value
+in the distribution (Hubara et al., 2017). Clearly, this method
+over-provisions grid points for the rarely-occurring outliers.
+A better approach is to make the grid narrower than the
+distribution — this is known as clipping, as it is equivalent
+to thresholding the outliers before applying linear quantization (Figure 1(b)). Empirically, clipping can improve
+the accuracy of quantized DNNs, and many techniques exist to choose the optimal clip threshold (Sung et al., 2015;
+
+

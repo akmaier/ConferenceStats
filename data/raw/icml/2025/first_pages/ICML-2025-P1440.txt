@@ -1,0 +1,188 @@
+KVTuner: Sensitivity-Aware Layer-Wise Mixed-Precision KV Cache
+Quantization for Efficient and Nearly Lossless LLM Inference
+Xing Li * 1 Zeyu Xing * 2 Yiming Li 1 Linping Qu 1 Hui-Ling Zhen 1 Yiwu Yao 3 Wulong Liu 1
+Sinno Jialin Pan 2 Mingxuan Yuan 1
+
+Abstract
+
+Constraints & objectives:
+memory footprint,
+model accuracy, etc
+
+LLMs with layer-wise KV cache
+precision pairs e.g. KV8, K8V4, K4V2
+
+Search space:
+layer-wise KV cache
+quant. precision pairs
+
+Low-sensitivity layers Prefix/Recent KV16
+
+KV cache quantization can improve Large Language Models (LLMs) inference throughput and
+latency in long contexts and large batch-size
+scenarios while preserving LLMs effectiveness.
+However, current methods have three unsolved
+issues: overlooking layer-wise sensitivity to KV
+cache quantization, high overhead of online finegrained decision-making, and low flexibility to
+different LLMs and constraints. Therefore, we
+theoretically analyze the inherent correlation of
+layer-wise transformer attention patterns to KV
+cache quantization errors and study why key
+cache is generally more important than value
+cache for quantization error reduction. We further propose a simple yet effective framework
+KVTuner to adaptively search for the optimal
+hardware-friendly layer-wise KV quantization
+precision pairs for coarse-grained KV cache with
+multi-objective optimization and directly utilize
+the offline searched configurations during online inference. To reduce the computational cost
+of offline calibration, we utilize the intra-layer
+KV precision pair pruning and inter-layer clustering to reduce the search space. Experimental results show that we can achieve nearly lossless 3.25-bit mixed precision KV cache quantization for LLMs like Llama-3.1-8B-Instruct and
+4.0-bit for sensitive models like Qwen2.5-7BInstruct on mathematical reasoning tasks. The
+maximum inference throughput can be improved
+by 21.25% compared with KIVI-KV8 quantization over various context lengths. Our code and
+searched configurations are available at https:
+//github.com/cmd2001/KVTuner.
+
+K4
+V2
+
+Layer-wise
+
+Intra-layer Pareto efficient
+KV cache qunatization
+precision pair pruning
+
+Layer-wise
+Medium-sensitivity layers
+Pruned KV precision pairs
+
+Inter-layer clustering
+based on
+attention output errors
+
+K8
+Attention error vector
+
+V4
+
+Whole model
+
+High-sensitivity layers
+
+Optimal KV precision search
+multi-objective optimization
+
+Final memory&accuracy
+
+K8
+
+KVTuner
+
+V8
+
+Offline efficient search based on
+layer-wise sensitivities to KV quant.
+
+Figure 1: The layer-wise KV cache quantization tuning
+framework KVTuner with two-stage search space pruning
+for efficient MOO search using the final memory and model
+accuracy.
+
+0.14
+
+BF16
+KV8
+KV4
+KV2
+
+0.20
+Attention score
+
+0.12
+Attention score
+
+0.25
+
+BF16
+KV8
+KV4
+KV2
+
+0.16
+
+0.10
+0.08
+0.06
+0.04
+
+0.15
+0.10
+0.05
+
+0.02
+0.00
+
+0.00
+
+0
+
+10
+
+20
+
+30 40 50
+Key position
+
+60
+
+70
+
+(a) Layer-0 query head-2
+
+0
+
+10
+
+20
+
+30 40 50
+Key position
+
+60
+
+70
+
+(b) Layer-21 query head-4
+
+Figure 2: Token-level attention score of the 79-th query
+token to previous key tokens with the per-token-asym key
+cache quantization (Qwen2.5-7B-Instruct, GSM8K). Lowprecision KV quantization (4-bit and 2-bit) causes significant distribution shifts, resulting in errors of missing or
+incorrect critical key identification.
+
+1. Introduction
+Large language models (LLMs) and multi-modality large
+models can comprehend and generate text, audio, image,
+and video like humans, showing the strong capability of
+assisting and interacting with humans. LLM inference efficiency such as throughput and latency is critical to enhance
+user experience and reduce cost. To improve the inference
+efficiency of LLMs, previously processed KV tokens are
+cached to avoid redundant recomputation. However, the
+memory usage of the KV cache linearly grows with the
+
+*
+
+Equal contribution 1 Huawei Noah’s Ark Lab 2 The Chinese University of Hong Kong 3 Huawei Computing Product
+Line. Correspondence to: Xing Li <li.xing2@huawei.com>,
+Zeyu
+Xing
+<zeyuxing@link.cuhk.edu.hk>,
+Sinno
+Jialin Pan <sinnopan@cuhk.edu.hk>, Mingxuan Yuan
+<yuan.mingxuan@huawei.com>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

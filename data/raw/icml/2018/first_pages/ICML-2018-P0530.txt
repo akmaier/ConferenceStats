@@ -1,0 +1,74 @@
+Coded Sparse Matrix Multiplication
+
+Sinong Wang 1 Jiashang Liu 1 Ness Shroff 2
+
+Abstract
+In a large-scale and distributed matrix multiplication problem C = A| B, where C ∈ Rr×t , the
+coded computation plays an important role to effectively deal with “stragglers” (distributed computations that may get delayed due to few slow
+or faulty processors). However, existing coded
+schemes could destroy the significant sparsity that
+exists in large-scale machine learning problems,
+and could result in much higher computation overhead, i.e., O(rt) decoding time. In this paper, we
+develop a new coded computation strategy, we
+call sparse code, which achieves near optimal recovery threshold, low computation overhead, and
+linear decoding time O(nnz(C)). We implement
+our scheme and demonstrate the advantage of the
+approach over both uncoded and current fastest
+coded strategies.
+
+1. Introduction
+In this paper, we consider a distributed matrix multiplication problem, where we aim to compute C = A| B from
+input matrices A ∈ Rs×r and B ∈ Rs×t for some integers
+r, s, t. This problem is the key building block in machine
+learning and signal processing problems, and has been used
+in a large variety of application areas including classification, regression, clustering and feature selection problems.
+Many such applications have large-scale datasets and massive computation tasks, which forces practitioners to adopt
+distributed computing frameworks such as Hadoop (Dean
+& Ghemawat, 2008) and Spark (Zaharia et al., 2010) to
+increase the learning speed.
+Classical approaches of distributed matrix multiplication
+rely on dividing the input matrices equally among all available worker nodes. Each worker computes a partial result,
+1
+Department of ECE, The Ohio State University, Columbus, USA 2 Departments of ECE and CSE, The Ohio State University, Columbus, USA. Correspondence to: Sinong Wang
+<wang.7691@osu.edu>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+and the master node has to collect the results from all workers to output matrix C. As a result, a major performance
+bottleneck is the latency in waiting for a few slow or faulty
+processors – called “stragglers” to finish their tasks (Dean
+& Barroso, 2013). To alleviate this problem, current frameworks such as Hadoop deploy various straggler detection
+techniques and usually replicate the straggling task on another available node.
+Recently, forward error correction or coding techniques provide a more effective way to deal with the “straggler” in
+the distributed tasks (Dutta et al., 2016; Lee et al., 2017a;
+Tandon et al., 2017; Yu et al., 2017; Li et al., 2018; Wang
+et al., 2018). It creates and exploits coding redundancy in
+local computation to enable the matrix C recoverable from
+the results of partial finished workers, and can therefore alleviate some straggling workers. For example, consider a distributed system with 3 worker nodes, the coding scheme first
+splits the matrix A into two submatrices, i.e., A = [A1 , A2 ].
+Then each worker computes A|1 B, A|2 B and (A1 + A2 )| B.
+The master node can compute A| B as soon as any 2 out of
+the 3 workers finish, and can overcome one straggler.
+In a general setting with N workers, each input matrix A, B
+is divided into m, n submatrices, respectively. The recovery
+threshold is defined as the minimum number of workers that
+the master needs to wait for in order to compute C. The
+above MDS coded scheme is shown to achieve a recovery
+threshold Θ(N ). An improved scheme proposed in (Lee
+et al., 2017c) referred to as the product code, can offer a
+recovery threshold of Θ(mn) with high probability. More
+recently, the work (Yu et al., 2017) designs a type of polynomial code. It achieves the recovery threshold of mn, which
+exactly matches the information theoretical lower bound.
+However, many problems in machine learning exhibit both
+extremely large-scale targeting data and a sparse structure,
+i.e., nnz(A)  rs, nnz(B)  st and nnz(C)  rt. The
+key question that arises in this scenario is: is coding really
+an efficient way to mitigate the straggler in the distributed
+sparse matrix multiplication problem?
+1.1. Motivation: Coding Straggler
+To answer the aforementioned question, we first briefly introduce the current coded matrix multiplication schemes. In
+these schemes, each local worker calculates a coded version
+
+

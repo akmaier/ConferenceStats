@@ -1,0 +1,248 @@
+SparseLoRA: Accelerating LLM Fine-Tuning with Contextual Sparsity
+
+Samir Khaki * 1 Xiuyu Li * † 2 Junxian Guo * 3 Ligeng Zhu 3 Konstantinos N. Plataniotis 1
+Amir Yazdanbakhsh 4 Kurt Keutzer 2 Song Han 3 Zhijian Liu 3
+https://z-lab.ai/projects/sparselora
+SparseLoRA achieves a 1.6x speedup on Arithmetic Reasoning
+
+Abstract
+
+LoRA
+
+Fine-tuning LLMs is both computationally and
+memory-intensive. While parameter-efficient finetuning methods, such as QLoRA and DoRA,
+reduce the number of trainable parameters and
+lower memory usage, they do not decrease computational cost. In some cases, they may even
+slow down fine-tuning. In this paper, we introduce
+SparseLoRA, a method that accelerates LLM finetuning through contextual sparsity. We propose
+a lightweight, training-free SVD sparsity estimator that dynamically selects a sparse subset of
+weights for loss and gradient computation. Also,
+we systematically analyze and address sensitivity
+across layers, tokens, and training steps. Our experimental results show that SparseLoRA reduces
+computational cost by up to 2.2× and a measured
+speedup of up to 1.6× while maintaining accuracy across various downstream tasks, including
+commonsense and arithmetic reasoning, code generation, and instruction following.
+
+QLoRA
+
+DoRA
+
+SparseLoRA
+
+LoRA
+
+623 ms
+
+679 ms
+
+QLoRA
+
+669 ms
+
+716 ms
+
+809 ms
+
+DoRA
+Ours
+
+834 ms
+
+384 ms
+290
+
+1.6x Faster
+
+436 ms
+
+710
+
+340
+
+430
+570
+Forward (ms)
+
+850
+
+1.6x Faster
+480
+620
+Backward (ms)
+
+760
+
+900
+
+SparseLoRA maintains lossless performance on Reasoning & Code Generation
+
+Accuracy (%)
+
+88.0
+
+86.8
+
+82.0
+
+1.3x Faster
+
+87.4
+87.1
+
+87.1
+
+87.1
+
+86.9
+
+80.8
+
+86.2
+
+80.2
+
+85.6
+
+79.6
+
+85.0
+
+81.0
+
+81.0
+
+1.3x Faster
+
+44.0
+81.1
+
+80.6
+
+43.9
+
+43.1
+
+41.0
+38.0
+
+36.2
+
+35.0
+
+79.0
+
+CSR170K
+
+47.0
+
+1.6x Faster
+
+81.4
+
+32.0
+
+Math10K
+
+37.0
+
+HumanEval HumanEval+
+
+SparseLoRA accelerates fine-tuning by 1.5x on Instruction Following tasks
+MT-Bench
+
+9.0
+7.2
+5.4
+3.6
+
+8.0
+5.1
+
+5.3
+
+5.5
+
+8.1
+
+1.8
+0.0
+
+7.4
+
+5.5
+
+5.3
+2.3
+
+Coding
+
+Extraction Humanities
+
+7.4
+
+7.8
+
+7.7
+
+7.0
+
+7.1
+
+5.4
+
+2.2
+
+Math
+
+Reasoning
+
+Roleplay
+
+STEM
+
+Writing
+
+Figure 1: Many recent parameter-efficient fine-tuning methods, such as QLoRA and DoRA, do not reduce compute.
+Our SparseLoRA accelerates LLM fine-tuning with minimal
+accuracy loss across a range of downstream tasks, including
+commonsense reasoning, math reasoning, code generation,
+and instruction following. See Section 4 for more details.
+
+1. Introduction
+Large language models (LLMs) are trained on vast, generaldomain datasets. They are often fine-tuned to improve their
+performance in specific domains (Saab et al., 2024) or to
+align their predictions with user preferences (Zhang et al.,
+2024a). However, fine-tuning very large models can be prohibitively expensive, both in terms of memory requirements
+and computational costs.
+
+follow-up methods (Dettmers et al., 2023; Liu et al., 2024c)
+have been proposed to further reduce the number of trainable
+parameters. While they are effective in reducing memory
+usage, they do not reduce computation. In fact, they can
+sometimes slow down fine-tuning due to the overhead they
+introduce: DoRA is 20% slower than LoRA (see Figure 1).
+
+Extensive efforts have been made in parameter-efficient finetuning (PEFT) to reduce memory consumption of LLM finetuning. LoRA (Hu et al., 2022) represents weight updates
+using low-rank approximations. Building upon this, many
+
+In this paper, we present SparseLoRA to accelerate LLM
+fine-tuning with contextual sparsity, making it both memoryand computation-efficient. Contextual sparsity has already
+been used in accelerating LLM inference (Liu et al., 2023b).
+SparseLoRA shows for the first time that it can also play
+a role in LLM fine-tuning, where (1) only a sparse subset
+of weights is required for loss and gradient computation,
+and (2) this sparse subset needs to be determined based on
+the input sequence or tokens. To realize this, we propose
+
+Equal contribution † Project lead 1 University of Toronto 2 UC
+Berkeley 3 MIT 4 Google DeepMind. Correspondence to: Samir
+Khaki <samir.khaki@mail.utoronto.ca>.
+*
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

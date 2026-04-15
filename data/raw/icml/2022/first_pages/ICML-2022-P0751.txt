@@ -1,0 +1,81 @@
+Robustness and Accuracy Could Be Reconcilable by (Proper) Definition
+
+Tianyu Pang 1 2 Min Lin 2 Xiao Yang 1 Jun Zhu 1 Shuicheng Yan 2
+
+Abstract
+The trade-off between robustness and accuracy
+has been widely studied in the adversarial literature. Although still controversial, the prevailing
+view is that this trade-off is inherent, either empirically or theoretically. Thus, we dig for the
+origin of this trade-off in adversarial training and
+find that it may stem from the improperly defined
+robust error, which imposes an inductive bias
+of local invariance — an overcorrection towards
+smoothness. Given this, we advocate employing
+local equivariance to describe the ideal behavior
+of a robust model, leading to a self-consistent robust error named SCORE. By definition, SCORE
+facilitates the reconciliation between robustness
+and accuracy, while still handling the worst-case
+uncertainty via robust optimization. By simply
+substituting KL divergence with variants of distance metrics, SCORE can be efficiently minimized. Empirically, our models achieve top-rank
+performance on RobustBench under AutoAttack.
+Besides, SCORE provides instructive insights for
+explaining the overfitting phenomenon and semantic input gradients observed on robust models.
+
+1. Introduction
+The trade-off between adversarial robustness and clean
+accuracy has been widely observed (Schmidt et al., 2018;
+Su et al., 2018; Zhang et al., 2019; Wang et al., 2020a;b). On
+some simple cases, this trade-off is even shown to provably
+exist (Tsipras et al., 2019; Nakkiran, 2019; Raghunathan
+et al., 2020; Javanmard et al., 2020; Yu et al., 2021). With
+that, many strategies have been proposed to alleviate this
+trade-off via, e.g., early-stopping (Rice et al., 2020; Zhang
+et al., 2020), instance reweighting (Balaji et al., 2019; Zhang
+et al., 2021a), and exploiting extra data (Alayrac et al., 2019;
+Carmon et al., 2019; Hendrycks et al., 2019), to name a few.
+1
+Dept. of Comp. Sci. and Tech., Institute for AI, BNRist
+Center, THBI Lab, Tsinghua-Bosch Joint Center for ML, Tsinghua
+University. 2 Sea AI Lab, Singapore. Correspondence to: Jun Zhu
+<dcszj@tsinghua.edu.cn>, Shuicheng Yan <yansc@sea.com>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+Nevertheless, other findings show the opposite. Stutz et al.
+(2019) and Yang et al. (2020) argue that robustness and
+accuracy can both be achievable through manifold analyses or locally Lipschitz functions. Rozsa et al. (2016) and
+Gilmer et al. (2018) also reveal that better generalization
+helps robustness on both toy and large-scale datasets.
+Given arguments on both sides, it is much debated whether
+the robustness-accuracy trade-off is intrinsically there. But
+before considering its existence, let us first reach a consensus on how a robust model is supposed to behave — the
+definition of robustness. A most popular one is made by
+Madry et al. (2018), who define robustness in terms of robust error formulated as a locally maximized loss function.
+This definition is widely adopted in adversarial training
+(AT) (Shafahi et al., 2019; Wong et al., 2020). Besides,
+there are also some other definitions. For example, Szegedy
+et al. (2014) define robustness as the minimal perturbation
+required to flip the predicted labels, which is applied in
+several adversarial attack studies (Moosavi-Dezfooli et al.,
+2016; Carlini and Wagner, 2017).
+We then try to describe how the robustness-accuracy tradeoff stems from the previously defined robust error. Recall
+that in supervised learning, we have a joint data distribution
+pd (x, y), and a discriminative model pθ (y|x) for the label y,
+which is conditional on the input x. In standard settings, we
+obtain an accurate model via minimizing the expected KL
+divergence between pd (y|x) and pθ (y|x), i.e., the standard
+error RStandard (θ) (see Eq. (1)) w.r.t. the parameters θ. The
+optimal solution θ∗ satisfies pθ∗ (y|x) = pd (y|x).
+In adversarial settings, Madry et al. (2018) propose to minimize the robust error RMadry (θ) (see Eq. (3)) for training
+reliable models. Compared to the standard error, the robust
+error contains an inner maximization problem, finding the
+point x0 ∈ B(x) that maximizes the KL divergence between
+pd (y|x) and pθ (y|x0 ), where B(x) is a set of allowed points
+around x. Minimizing the robust error w.r.t. θ imposes an
+inductive bias towards local invariance: for ∀x0 ∈ B(x),
+pθ (y|x0 ) is encouraged to be equal to pd (y|x). This locallyinvariant bias makes the learned model tend to be oversmoothed, as observed in previous works (Stutz et al., 2020;
+Chen et al., 2021b). Hence, generally pθ∗ (y|x) 6= pd (y|x)
+for the optimal θ∗ of minθ RMadry (θ). In Fig. 1, we observe that pθ∗ (y|x) does not converge to pd (y|x) even on
+
+

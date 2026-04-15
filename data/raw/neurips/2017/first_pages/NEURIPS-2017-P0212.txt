@@ -1,0 +1,46 @@
+SVD-Softmax: Fast Softmax Approximation on Large
+Vocabulary Neural Networks
+
+Kyuhong Shim, Minjae Lee, Iksoo Choi, Yoonho Boo, Wonyong Sung
+Department of Electrical and Computer Engineering
+Seoul National University, Seoul, Korea
+skhu20@snu.ac.kr, {mjlee, ischoi, yhboo}@dsp.snu.ac.kr, wysung@snu.ac.kr
+
+Abstract
+We propose a fast approximation method of a softmax function with a very large
+vocabulary using singular value decomposition (SVD). SVD-softmax targets fast
+and accurate probability estimation of the topmost probable words during inference of neural network language models. The proposed method transforms the
+weight matrix used in the calculation of the output vector by using SVD. The approximate probability of each word can be estimated with only a small part of
+the weight matrix by using a few large singular values and the corresponding elements for most of the words. We applied the technique to language modeling and
+neural machine translation and present a guideline for good approximation. The
+algorithm requires only approximately 20% of arithmetic operations for an 800K
+vocabulary case and shows more than a three-fold speedup on a GPU.
+
+1
+
+Introduction
+
+Neural networks have shown impressive results for language modeling [1–3]. Neural network-based
+language models (LMs) estimate the likelihood of a word sequence by predicting the next word wt+1
+by previous words w1:t . Word probabilities for every step are acquired by matrix multiplication
+and a softmax function. Likelihood evaluation by an LM is necessary for various tasks, such as
+speech recognition [4, 5], machine translation, or natural language parsing and tagging. However,
+executing an LM with a large vocabulary size is computationally challenging because of the softmax
+normalization. Softmax computationP
+needs to access every word to compute the normalization factor
+Z, where sof tmax(zk ) = exp(zk )/ V exp(zi ) = exp(zk )/Z. V indicates the vocabulary size of
+the dataset. We refer the conventional softmax algorithm as the "full-softmax."
+The computational requirement of the softmax function frequently dominates the complexity of
+neural network LMs. For example, a Long Short-Term Memory (LSTM) [6] RNN with four layers
+of 2K hidden units requires roughly 128M multiply-add operations for one inference. If the LM
+supports an 800K vocabulary, the evaluation of the output probability computation with softmax
+normalization alone demands approximately 1,600M multiply-add operations, far exceeding that of
+the RNN core itself.
+Although we should compute the output vector of all words to evaluate the denominator of the softmax function, few applications require the probability of every word. For example, if an LM is used
+for rescoring purposes as in [7], only the probabilities of one or a few given words are needed. Further, for applications employing beam search, the most probable top-5 or top-10 values are usually
+required. In speech recognition, since many states need to be pruned for efficient implementations,
+it is not demanded to consider the probabilities of all the words. Thus, we formulate our goal: to obtain accurate top-K word probabilities with considerably less computation for LM evaluation, where
+the K considered is from 1 to 500.
+31st Conference on Neural Information Processing Systems (NIPS 2017), Long Beach, CA, USA.
+
+

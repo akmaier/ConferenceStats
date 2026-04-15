@@ -1,0 +1,70 @@
+Convolutional Poisson Gamma Belief Network
+Chaojie Wang 1 Bo Chen 1 Sucheng Xiao 1 Mingyuan Zhou 2
+
+Abstract
+For text analysis, one often resorts to a lossy representation that either completely ignores word
+order or embeds each word as a low-dimensional
+dense feature vector. In this paper, we propose
+convolutional Poisson factor analysis (CPFA)
+that directly operates on a lossless representation that processes the words in each document
+as a sequence of high-dimensional one-hot vectors. To boost its performance, we further propose the convolutional Poisson gamma belief
+network (CPGBN) that couples CPFA with the
+gamma belief network via a novel probabilistic
+pooling layer. CPFA forms words into phrases
+and captures very specific phrase-level topics, and
+CPGBN further builds a hierarchy of increasingly
+more general phrase-level topics. For efficient
+inference, we develop both a Gibbs sampler and
+a Weibull distribution based convolutional variational auto-encoder. Experimental results demonstrate that CPGBN can extract high-quality text
+latent representations that capture the word order information, and hence can be leveraged as a
+building block to enrich a wide variety of existing
+latent variable models that ignore word order.
+
+1. Introduction
+A central task in text analysis and language modeling is to
+effectively represent the documents to capture their underlying semantic structures. A basic idea is to represent the
+words appearing in a document with a sequence of one-hot
+vectors, where the vector dimension is the size of the vocabulary. This preserves all textual information but results
+in a collection of extremely large and sparse matrices for a
+text corpus. Given the memory and computation constraints,
+1
+
+National Laboratory of Radar Signal Processing, Collaborative
+Innovation Center of Information Sensing and Understanding, Xidian University, Xi’an, Shaanxi, China. 2 McCombs School of Business, The University of Texas at Austin, Austin, Texas 78712, USA.
+Correspondence to: Bo Chen <bchen@mail.xidian.edu.cn>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+it is very challenging to directly model this lossless representation. Thus existing methods often resort to simplified
+lossy representations that either completely ignore word
+order (Blei et al., 2003), or embed the words into a lower
+dimensional feature space (Mikolov et al., 2013).
+Ignoring word order, each document is simplified as a bagof-words count vector, the vth element of which represents
+how many times the vth vocabulary term appears in that document. With a text corpus simplified as a term-document
+frequency count matrix, a wide array of latent variable models (LVMs) have been proposed for text analysis (Deerwester et al., 1990; Papadimitriou et al., 2000; Lee & Seung,
+2001; Blei et al., 2003; Hinton & Salakhutdinov, 2009; Zhou
+et al., 2012). Extending “shallow” probabilistic topic models such as latent Dirichlet allocation (LDA) (Blei et al.,
+2003) and Poisson factor analysis (PFA) (Zhou et al., 2012),
+steady progress has been made in inferring multi-stochasticlayer deep latent representations for text analysis (Gan et al.,
+2015; Zhou et al., 2016; Ranganath et al., 2015; Zhang et al.,
+2018). Despite the progress, completely ignoring word order could still be particularly problematic on some common
+text-analysis tasks, such as spam detection and sentiment
+analysis (Pang et al., 2002; Tang et al., 2014).
+To preserve word order, a common practice is to first convert each word in the vocabulary from a high-dimensional
+sparse one-hot vector into a low-dimensional dense wordembedding vector. The word-embedding vectors can be
+either trained as part of the learning (Kim, 2014; Kalchbrenner et al., 2014), or pre-trained by some other methods on an
+additional large corpus (Mikolov et al., 2013). Sequentially
+ordered word embedding vectors have been successfully
+combined with deep neural networks to address various
+problems in text analysis and language modeling. A typical
+combination method is to use the word-embedding layer
+as part of a recurrent neural network (RNN), especially
+long short-term memory (LSTM) and its variants (Hochreiter & Schmidhuber, 1997; Chung et al., 2014), achieving
+great success in numerous tasks that heavily rely on having
+high-quality sentence representation. Another popular combination method is to apply a convolutional neural network
+(CNN) (Lecun et al., 1998) directly to the embedding representation, treating the word embedding layer as an image
+input; it has been widely used in systems for entity search,
+sentence modeling, product feature mining, and so on (Xu
+
+

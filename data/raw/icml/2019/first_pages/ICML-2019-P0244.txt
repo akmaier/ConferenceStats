@@ -1,0 +1,75 @@
+Learning to Optimize Multigrid PDE Solvers
+
+Daniel Greenfeld 1 Meirav Galun 1 Ron Kimmel 2 Irad Yavneh 2 Ronen Basri 1
+
+Abstract
+Constructing fast numerical solvers for partial differential equations (PDEs) is crucial for many
+scientific disciplines. A leading technique for
+solving large-scale PDEs is using multigrid methods. At the core of a multigrid solver is the prolongation matrix, which relates between different
+scales of the problem. This matrix is strongly
+problem-dependent, and its optimal construction
+is critical to the efficiency of the solver. In practice, however, devising multigrid algorithms for
+new problems often poses formidable challenges.
+In this paper we propose a framework for learning
+multigrid solvers. Our method learns a (single)
+mapping from a family of parameterized PDEs
+to prolongation operators. We train a neural network once for the entire class of PDEs, using an
+efficient and unsupervised loss function. Experiments on a broad class of 2D diffusion problems
+demonstrate improved convergence rates compared to the widely used Black-Box multigrid
+scheme, suggesting that our method successfully
+learned rules for constructing prolongation matrices.
+
+1. Introduction
+Partial Differential Equations (PDEs) are a key tool for modeling diverse problems in science and engineering. In all but
+very specific cases, the solution of PDEs requires carefully
+designed numerical discretization methods, by which the
+PDEs are approximated by algebraic systems of equations.
+Practical settings often give rise to very large ill-conditioned
+problems, e.g., in predicting weather systems, oceanic flow,
+image and video processing, aircraft and auto design, electromagnetics, to name just a few. Developing efficient solution methods for such large systems has therefore been an
+active research area since many decades ago.
+1
+
+Weizmann Institute of Science, Rehovot, Israel. 2 Technion,
+Israel Institute of Technology, Haifa, Israel. Correspondence to:
+Daniel Greenfeld <daniel.greenfeld@weizmann.ac.il>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+Multigrid methods are leading techniques for solving largescale discretized PDEs, as well as other large-scale problems (for textbooks see, e.g., (Briggs et al., 2000; Trottenberg et al., 2001)). Introduced about half a century ago
+as a method for fast numerical solution of scalar elliptic
+boundary-value problems, multigrid methods have since
+been developed and adapted to problems of increasing generality and applicability. Despite their success, however,
+applying off-the-shelf multigrid algorithms to new problems
+is often non-optimal. In particular, new problems often require expertly devised prolongation operators, which are
+critical to constructing efficient solvers. This paper demonstrates that machine learning techniques can be utilized to
+derive suitable operators for wide classes of problems.
+We introduce a framework for learning multigrid solvers,
+which we illustrate by applying the framework to 2D diffusion equations. At the heart of our method is a neural
+network that is trained to map discretized diffusion PDEs to
+prolongation operators, which in turn define the multigrid
+solver. The proposed approach has three main attractive
+properties:
+Scope. We train a single deep network once to handle any
+diffusion equation whose (spatially varying) coefficients
+are drawn from a given distribution. Once our network is
+trained it can be used to produce solvers for any such equation. Our goal in this paper, unlike existing paradigms, is
+not to learn to solve a given problem, but instead to learn
+compact rules for constructing solvers for many different
+problems.
+Unsupervised training. The network is trained with no
+supervision. It will not be exposed to ground truth operators,
+nor will it see numerical solutions to PDEs. Instead, our
+training is guided by algebraic properties of the produced
+operators that allude to the quality of the resulting solver.
+Generalization. While our method is designed to work with
+problems of arbitrary size, it will suffice to train our system
+on quite small problems. This will be possible due to the
+local nature of the rules for determining the prolongation operators. Specifically, we train our system on block periodic
+problem instances using a specialized block Fourier mode
+analysis to achieve efficient training. At test time we generalize for size (train on 32×32 grid and test on a 1024×1024
+grid), boundary conditions (train with periodic BCs and test
+with Dirichlet), and instance types (train on block periodic
+
+

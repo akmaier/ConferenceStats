@@ -1,0 +1,109 @@
+U NI LMv2: Pseudo-Masked Language Models for
+Unified Language Model Pre-Training
+
+Hangbo Bao* 1 Li Dong 2 Furu Wei 2 Wenhui Wang 2 Nan Yang 2 Xiaodong Liu 2 Yu Wang 2 Songhao Piao 1
+Jianfeng Gao 2 Ming Zhou 2 Hsiao-Wuen Hon 2
+
+Abstract
+
+𝑥1 𝑥2 𝑥3 𝑥4 𝑥5 𝑥6
+
+We propose to pre-train a unified language model
+for both autoencoding and partially autoregressive
+language modeling tasks using a novel training
+procedure, referred to as a pseudo-masked language model (PMLM). Given an input text with
+masked tokens, we rely on conventional masks
+to learn inter-relations between corrupted tokens
+and context via autoencoding, and pseudo masks
+to learn intra-relations between masked spans
+via partially autoregressive modeling. With welldesigned position embeddings and self-attention
+masks, the context encodings are reused to avoid
+redundant computation. Moreover, conventional
+masks used for autoencoding provide global masking information, so that all the position embeddings are accessible in partially autoregressive
+language modeling. In addition, the two tasks
+pre-train a unified language model as a bidirectional encoder and a sequence-to-sequence
+decoder, respectively. Our experiments show
+that the unified language models pre-trained
+using PMLM achieve new state-of-the-art results on a wide range of language understanding and generation tasks across several widely
+used benchmarks. The code and pre-trained models are available at https://github.com/
+microsoft/unilm.
+
+Pseudo-Masked LM
+
+1. Introduction
+Language model (LM) pre-training on large-scale text corpora has substantially advanced the state of the art across a
+variety of natural language processing tasks (Peters et al.,
+2018; Radford et al., 2018; Devlin et al., 2018; Dong et al.,
+*
+
+Contribution during internship at Microsoft. 1 Harbin Institute
+of Technology 2 Microsoft Research. Correspondence to: Li Dong
+<lidong1@microsoft.com>, Furu Wei <fuwei@microsoft.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+𝑥1 M 2 𝑥3 M 4 M 5 𝑥6 P 4 P 5 𝑥4 𝑥5 P 2 𝑥2
+Partially
+Autoregressive
+
+Autoencoding
+
+𝑥2
+
+𝑥4
+
+𝑥5
+
+𝑥1 [M] 𝑥3 [M] [M] 𝑥6
+
+ℒ AE
+
+t=1
+
+𝑥1 [M] 𝑥3
+
+𝑥4
+
+𝑥5
+
+[P]
+
+[P] 𝑥6
+
+𝑥4
+
+𝑥5
+
+ℒPAR
+
+𝑥2
+t=2
+
+𝑥1 [P] 𝑥3
+
+[M] Conventional Masks
+
+𝑥6
+
+[P] Pseudo Masks
+
+Figure 1. Given input x1 · · · x6 , the tokens x2 , x4 , x5 are masked
+by the special tokens [M] and [P]. For each example, we jointly
+train two types of LMs, namely, autoencoding (AE), and partially
+autoregressive (PAR) masked LMs.
+
+2019; Liu et al., 2019; Yang et al., 2019; Lewis et al., 2019;
+Lan et al., 2019; Raffel et al., 2019; Chi et al., 2020). After
+LM pre-training, the obtained model can be fine-tuned to
+various downstream tasks.
+Two types of language model pre-training objectives are
+commonly employed to learn contextualized text representations by predicting words conditioned on their context.
+The first strand of work relies on autoencoding LMs (Devlin
+et al., 2018; Liu et al., 2019). For example, the masked
+language modeling task used by BERT (Devlin et al., 2018)
+randomly masks some tokens in a text sequence, and then
+independently recovers the masked tokens by conditioning on the encoding vectors obtained by a bidirectional
+Transformer (Vaswani et al., 2017). The second type of pretraining uses autoregressive modeling (Radford et al., 2018;
+Lewis et al., 2019; Yang et al., 2019; Raffel et al., 2019).
+
+

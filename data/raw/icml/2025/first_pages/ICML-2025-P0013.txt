@@ -1,0 +1,90 @@
+Star Attention: Efficient LLM Inference over Long Sequences
+
+Shantanu Acharya 1 Fei Jia 1 Boris Ginsburg 1
+
+Abstract
+
+these methods improve training efficiency, autoregressive
+decoding during inference still requires the model to attend
+to every previous token, resulting in high computational
+costs for long-context sequences. Other approaches attempt
+to optimize inference by segmenting long inputs into chunks,
+encoding them separately, and attending to these encoded
+chunks using the user query (Beltagy et al., 2020; Russak
+et al., 2024; Liao et al., 2024). However, these methods often require fine-tuning the model or introducing additional
+components that necessitate further training, limiting their
+out-of-the-box applicability.
+
+Inference with Transformer-based Large Language Models (LLMs) on long sequences is both
+costly and slow due to the quadratic complexity
+of the self-attention mechanism. We introduce
+Star Attention, a two-phase block-sparse approximation that improves computational efficiency
+by sharding attention across multiple hosts while
+minimizing communication overhead. In the first
+phase, the context is processed using blockwiselocal attention across hosts, in parallel. In the second phase, query and response tokens attend to
+all prior cached tokens through sequence-global
+attention. Star Attention integrates seamlessly
+with most Transformer-based LLMs trained with
+global attention, reducing memory requirements
+and inference time by up to 11x while preserving
+97-100% of accuracy.
+
+We introduce Star Attention1 , a novel algorithm for efficient
+LLM long-context inference. This method is based on the
+observation that LLM inference usually has two stages: (1)
+prompt encoding, where the model processes input and
+stores KV vectors in the cache and (2) token generation,
+where model attends to the KV cache and autoregressively
+generates new tokens while updating the cache with the new
+KV vectors. In many long-context tasks, the input consists
+of a long context followed by a short query and a short
+answer. The information needed for answering the query is
+often localized within small parts of the context, meaning
+context tokens need only attend to nearby tokens, while
+query tokens need to attend to all prior tokens. Based on this
+observation, Star Attention utilizes a two-phase approach
+shown in Figure 1:
+
+1. Introduction
+Recent Large Language Models (LLMs) can support contexts up to millions of tokens in length (Gemini-Team, 2024;
+Anthropic, 2024; Meta-AI, 2024; Qwen, 2025), unlocking
+applications such as repository-level code analysis, multidocument summarization, and large corpus retrieval. However, processing such long sequences with LLMs requires
+substantial computational and memory resources due to the
+quadratic complexity of the self-attention mechanism.
+
+1. Context Encoding: The context is divided into contiguous blocks and distributed across “context” hosts,
+with each host also receiving a copy of the first block
+(an “anchor block”). Hosts compute self-attention
+only for their assigned blocks, without communicating
+with each other, reducing attention complexity from
+quadratic to linear with respect to context length. This
+distributed processing is similar to Ring Attention (Liu
+et al., 2024a) but without the “ring” communication
+during context encoding (Figure 1a).
+
+The importance of long-context capabilities has driven substantial research into addressing the computational challenges of self-attention. Some approaches focus on reducing
+the need to fully materialize the attention matrix (Milakov
+& Gimelshein, 2018), leading to blockwise processing techniques (Dao et al., 2022; Dao, 2024; Liu & Abbeel, 2023)
+and further optimization through distributed computation
+across multiple compute units (Liu et al., 2024a). While
+
+2. Query Encoding and Token Generation: The query
+is replicated across all hosts where it initially attends
+to the KV cache on each host. Global attention is then
+computed by aggregating the results at a designated
+“query” host by efficiently communicating a single vec-
+
+1
+
+NVIDIA. Correspondence to: Shantanu Acharya <shantanua@nvidia.com>, Fei Jia <fjia@nvidia.com>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+1
+
+Code: https://github.com/NVIDIA/Star-Attention
+
+

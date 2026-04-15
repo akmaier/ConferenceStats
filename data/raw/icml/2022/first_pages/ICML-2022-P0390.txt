@@ -1,0 +1,90 @@
+Deep Hierarchy in Bandits
+
+Joey Hong 1 Branislav Kveton 2 Sumeet Katariya 2 Manzil Zaheer 3 Mohammad Ghavamzadeh 4
+
+Abstract
+Mean rewards of actions are often correlated. The
+form of these correlations may be complex and
+unknown a priori, such as the preferences of users
+for recommended products and their categories.
+To maximize statistical efficiency, it is important
+to leverage these correlations when learning. We
+formulate a bandit variant of this problem where
+the correlations of mean action rewards are represented by a hierarchical Bayesian model with
+latent variables. Since the hierarchy can have multiple layers, we call it deep. We propose a hierarchical Thompson sampling algorithm (HierTS)
+for this problem and show how to implement it
+efficiently for Gaussian hierarchies. The efficient
+implementation is possible due to a novel exact
+hierarchical representation of the posterior, which
+itself is of independent interest. We use this exact
+posterior to analyze the Bayes regret of HierTS.
+Our regret bounds reflect the structure of the problem, that the regret decreases with more informative priors, and can be recast to highlight reduced
+dependence on the number of actions. We confirm these theoretical findings empirically, in both
+synthetic and real-world experiments.
+
+1. Introduction
+A contextual bandit (Li et al., 2010; Chu et al., 2011) is a
+sequential decision-making problem where a learning agent
+sequentially interacts with an environment over n rounds.
+In each round, the agent observes a context, chooses one of
+K possible actions, and then receives a reward for the taken
+action. The agent aims to maximize its expected cumulative
+reward over n rounds. It does not know the mean rewards
+of the actions a priori and learns them by taking the actions.
+This forces the agent to choose between exploring actions to
+learn about them and exploiting the action with the highest
+1
+
+University of California, Berkeley 2 Amazon 3 DeepMind
+Google Research.
+Correspondence to:
+Joey Hong
+<joey hong@berkeley.edu>.
+
+4
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+estimated reward. As an example, in online shopping, the
+context can be a user’s query, the actions are recommended
+products, and the reward is the indicator of a purchase (Yue
+& Guestrin, 2011; Kveton et al., 2015; Combes et al., 2015;
+Zong et al., 2016; Li et al., 2016).
+In many practical problems, the action space is large and
+cannot be explored naively. However, the mean rewards
+of actions are correlated due to some underlying structure.
+As a result, exploration of one action can teach the agent
+about other actions, depending on how correlated they are,
+and this increases statistical efficiency of exploration. As
+an example, in online shopping, many products are semantically similar, and their relationships can be captured by
+a graphical model: both a keyboard and monitor are computer accessories; and both computer accessories and home
+theatre systems are electronic devices. Another example is
+classification with a bandit feedback, where the labels are
+clustered. For instance, the car and truck are vehicles, while
+the monkey and tiger are animals. We experiment with this
+kind of problems in Section 6.2.
+Unfortunately, the aforementioned structure is not easy to
+represent in traditional bandit algorithms (Auer et al., 2002;
+Chapelle & Li, 2012; Kawale et al., 2015; Sen et al., 2017).
+As an example, Thompson sampling (TS) (Thompson, 1933;
+Chapelle & Li, 2012; Agrawal & Goyal, 2012; Russo & Van
+Roy, 2014) is a natural and elegant strategy for exploration
+in bandit problems. However, in structured action spaces,
+TS would need to model correlations between all actions
+using their joint posterior. This could be computationally
+costly in practice, as observing the reward of a single action
+may require recomputing the joint posterior of all actions.
+Therefore, it is not immediately obvious how to design an
+efficient TS algorithm when the mean rewards of actions
+are correlated.
+In this work, we study a structured bandit problem where
+the action space has a hierarchical structure. This structure
+is represented using a hierarchical Bayesian model (Lindley
+& Smith, 1972; Zhang & Yang, 2017), where each action is
+a leaf node in a tree. Each node is associated with a node
+parameter, which is drawn i.i.d. from a distribution parameterized by its parent’s parameter. This hierarchical structure
+not only models many practical bandit tasks, such as online
+shopping, but admits an efficient exploration because the
+
+

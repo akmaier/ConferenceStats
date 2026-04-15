@@ -1,0 +1,128 @@
+Learning Domain Adaptive Object Detection with Probabilistic Teacher
+
+Meilin Chen 1 Weijie Chen 1 2 Shicai Yang 2 Jie Song 1 Xinchao Wang 3 Lei Zhang 4
+Yunfeng Yan 1 Donglian Qi 5 1 Yueting Zhuang 1 Di Xie 2 Shiliang Pu 2
+Code available at https://github.com/hikvision-research/ProbabilisticTeacher
+
+Abstract
+Self-training for unsupervised domain adaptive
+object detection is a challenging task, of which
+the performance depends heavily on the quality of pseudo boxes. Despite the promising results, prior works have largely overlooked the
+uncertainty of pseudo boxes during self-training.
+In this paper, we present a simple yet effective
+framework, termed as Probabilistic Teacher (PT),
+which aims to capture the uncertainty of unlabeled
+target data from a gradually evolving teacher and
+guides the learning of a student in a mutually
+beneficial manner. Specifically, we propose to
+leverage the uncertainty-guided consistency training to promote classification adaptation and localization adaptation, rather than filtering pseudo
+boxes via an elaborate confidence threshold. In
+addition, we conduct anchor adaptation in parallel with localization adaptation, since anchor can
+be regarded as a learnable parameter. Together
+with this framework, we also present a novel
+Entropy Focal Loss (EFL) to further facilitate the
+uncertainty-guided self-training. Equipped with
+EFL, PT outperforms all previous baselines by a
+large margin and achieve new state-of-the-arts.
+
+1. Introduction
+Convolutional neural networks have shown remarkable performance for object detection when trained on large-scale
+and high-quality annotated data. However, when deployed
+to unseen data, the detector dramatically degrades due to
+domain shifts such as weather changes, light conditions
+variations, or image corruptions (Michaelis et al., 2019).
+1
+
+Zhejiang University 2 Hikvision Research Institute 3 National
+University of Singapore 4 Chongqing University 5 Hainan Institute of Zhejiang University. Correspondence to: Yueting Zhuang <yzhuang@zju.edu.cn>, Shiliang Pu <pushiliang.hri@hikvision.com>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+47
+
+47.1
+
+mAP
+
+Domain alignment
+
+44
+
+Domain translation
+
+41
+38
+35
+32
+
+Self-training
+
+34.3
+2018
+SW
+
+34.6
+
+DM
+
+35.3
+
+iFAN
+
+38.7 39.8
+
+36.9
+
+37.4
+
+41.7
+
+41.8 Ours
+
+UMT MeGa
+
+ATF HTCN
+PDA
+
+ICR
+
+29 27.6
+26
+
+DA
+
+2019
+
+2020
+
+2021
+
+2022
+
+Figure 1. Performance comparison of adapting different models
+from normal to foggy weather. Our framework achieves the stateof-the-art result by simply adopting a self-training mechanism.
+
+To remedy this issue, unsupervised domain adaptive object
+detection (UDA-OD) methods have been proposed (Chen
+et al., 2018; Saito et al., 2019; He & Zhang, 2019; Bousmalis et al., 2017; Hsu et al., 2020; Kim et al., 2019; Deng
+et al., 2021; R. et al., 2021; Li et al., 2020a), whose goal is to
+transfer pre-trained models from a labeled source domain to
+an unlabeled target domain with different data distribution.
+Recently, UDA-OD methods have witnessed a strong demands in real-world scenarios such as automatic driving and
+edge AI, where domain shifts are common and collecting
+high-quality annotated target data is expensive.
+As shown in Fig.1, various methods have been proposed for
+this task, and they can be categorized as domain alignment,
+domain translation and self-training methods. Domain alignment aims to learn domain-invariant representation using
+domain classifiers and gradient reversal layers (Chen et al.,
+2018; Saito et al., 2019; He & Zhang, 2019). Domain translation, on the other hand, attempts to translate the labeled
+source data into target-like styles to drive adaptation training (Bousmalis et al., 2017; Hsu et al., 2020; Kim et al.,
+2019). Very recently, self-training is proposed to leverage
+teacher-student mutual learning to progressively improve
+the performance of unlabeled target data (Deng et al., 2021;
+R. et al., 2021). Specifically, self-training removes the necessity of extra training paradigms like adversarial training
+and style transfer, and has recently demonstrated promising
+results. Our proposed method, as will be detailed in the later
+sections, falls into the self-training category.
+
+

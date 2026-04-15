@@ -1,0 +1,90 @@
+Dynamic Evaluation of Neural Sequence Models
+
+Ben Krause 1 Emmanuel Kahembwe 1 Iain Murray 1 Steve Renals 1
+
+Abstract
+We explore dynamic evaluation, where sequence
+models are adapted to the recent sequence history
+using gradient descent, assigning higher probabilities to re-occurring sequential patterns. We
+develop a dynamic evaluation approach that outperforms existing adaptation approaches in our
+comparisons. We apply dynamic evaluation to
+outperform all previous word-level perplexities
+on the Penn Treebank and WikiText-2 datasets
+(achieving 51.1 and 44.3 respectively) and all previous character-level cross-entropies on the text8
+and Hutter Prize datasets (achieving 1.19 bits/char
+and 1.08 bits/char respectively).
+
+1. Introduction
+Sequence generation and prediction tasks span many modes
+of data, ranging from audio and language modelling, to
+more general timeseries prediction tasks. Applications of
+such models include speech recognition, machine translation, dialogue generation, speech synthesis, forecasting, and
+music generation. Neural networks can be applied to these
+tasks by predicting sequence elements one-by-one, conditioning on the history, thus forming an autoregressive model.
+Convolutional neural networks (CNNs) and recurrent neural networks (RNNs), including long-short term memory
+(LSTM) networks (Hochreiter & Schmidhuber, 1997) in
+particular, have achieved many successes at these tasks.
+However, in their basic form, these models have a limited
+ability to adapt to recently observed parts of a sequence.
+Many sequences contain repetition; a pattern that occurs
+once is more likely to occur again. For instance, a word
+that occurs once in a document is much more likely to occur
+again. A sequence of handwriting will generally stay in
+the same handwriting style. A sequence of speech will
+generally stay in the same voice. Although RNNs have
+a hidden state that can summarize the recent past, they
+1
+
+School of Informatics, University of Edinburgh. Correspondence to: Ben Krause <ben.krause@ed.ac.uk>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+have been shown to have problems learning to reproduce
+sequence elements (Marcus, 2001; Prickett, 2017). In the
+case of RNN language modelling, augmenting a model with
+a simple unigram cache improves perplexity (Grave et al.,
+2017), demonstrating that RNNs have difficulty using the
+recent frequency of words in a sequence. Models such
+as pointer networks (Vinyals et al., 2015), copy nets (Gu
+et al., 2016), pointer-sentinel RNNs (Merity et al., 2017)
+and the neural cache method (Grave et al., 2017) allow
+inputs to be used directly as outputs, thus enabling them
+to more naturally handle “direct repetitions” in a sequence,
+where a symbol repeats itself. However, such approaches do
+not model “indirect repetitions”, when a synonym or word
+related to a recently-occurring word appears. More broadly,
+it is desirable for an adaptive model to be able to capture
+deeper regularities such as topic or style.
+This paper examines dynamic evaluation (Mikolov et al.,
+2010; Mikolov, 2012; Graves, 2013), which adapts models to recent sequences using gradient descent, as a way
+to model re-occurring sequential patterns. Previous work
+using dynamic evaluation did not explore or describe its
+methodology in depth, and had mixed results. In contrast,
+our work develops a method and tuning procedure to consistently obtain strong results (Section 5), and uses this
+approach to outperform previously reported results in word
+and character-level language modelling (Section 7). Furthermore, we design a method to dramatically reduce the
+number of adaptation parameters in dynamic evaluation,
+making it practical in a wider range of settings (Section 6).
+We analyse the performance of dynamic evaluation over
+varying time-scales and distribution shifts, and demonstrate
+that dynamically evaluated models can generate conditional
+samples that repeat many patterns from the conditioning
+data (Section 7.4). Finally, we show that dynamic evaluation can generalize to related words, giving it the potential
+to model indirect repetitions in sequences (Section 7.5).
+
+2. Motivation
+Generative models can assign a probability to a sequence
+x1:T = {x1 , . . . , xT } by factorizing it as
+
+P (x1:T ) = P (x1 )
+
+T
+Y
+t=2
+
+P (xt |x1:t−1 ).
+
+(1)
+
+

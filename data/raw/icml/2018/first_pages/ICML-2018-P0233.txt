@@ -1,0 +1,78 @@
+Exploring Hidden Dimensions in Parallelizing Convolutional Neural Networks
+
+Zhihao Jia 1 Sina Lin 2 Charles R. Qi 1 Alex Aiken 1
+
+Abstract
+The past few years have witnessed growth in the
+computational requirements for training deep convolutional neural networks. Current approaches
+parallelize training onto multiple devices by applying a single parallelization strategy (e.g., data
+or model parallelism) to all layers in a network.
+Although easy to reason about, these approaches
+result in suboptimal runtime performance in largescale distributed training, since different layers
+in a network may prefer different parallelization
+strategies. In this paper, we propose layer-wise
+parallelism that allows each layer in a network
+to use an individual parallelization strategy. We
+jointly optimize how each layer is parallelized by
+solving a graph search problem. Our evaluation
+shows that layer-wise parallelism outperforms
+state-of-the-art approaches by increasing training throughput, reducing communication costs,
+achieving better scalability to multiple GPUs,
+while maintaining original network accuracy.
+
+1. Introduction
+Convolutional neural networks (CNNs) have proven to be
+general and effective across many tasks including image
+classification (Krizhevsky et al., 2012; Szegedy et al., 2016),
+face recognition (Lawrence et al., 1997), text classification (Wang et al., 2012), and game playing (Silver et al.,
+2016). Their success has resulted in growth in the computational requirements to train today’s CNNs, which takes
+days or even weeks on modern processors (Zeiler & Fergus,
+2014; Simonyan & Zisserman, 2014; Szegedy et al., 2016).
+Previous work has investigated parallelization techniques
+to accelerate training. The most common approach is data
+parallelism (Krizhevsky et al., 2012; Simonyan & Zisserman, 2014) that keeps a replica of an entire network on
+each device and assigns a subset of the training data to
+1
+Stanford University 2 Microsoft. Correspondence to: Zhihao
+Jia <zhihao@cs.stanford.edu>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+each device. Another common approach is model parallelism (Mirhoseini et al., 2017; Kim et al., 2017) that divides
+the network parameters into disjoint subsets and trains each
+subset on a dedicated device. Both approaches apply a single parallelization strategy (i.e., data or model parallelism)
+to all layers in a CNN. However, within a CNN, different layers may prefer different parallelization strategies for
+achieving optimal runtime performance. For example, a
+densely-connected layer with millions of parameters prefers
+model parallelism to reduce communication cost for synchronizing parameters, while a convolutional layer typically
+prefers data parallelism to eliminate data transfers from the
+previous layer. In addition, some layers may prefer more
+sophisticated parallelization strategies such as parallelizing
+in a mixture of multiple data dimensions (see Section 3).
+Because of the differing characteristics of different layers in
+a network, applying a single parallelization strategy to all
+layers usually results in suboptimal runtime performance.
+In this paper, we propose layer-wise parallelism, which enables each layer in a network to use an individual parallelization strategy. Layer-wise parallelism performs the same
+computation for each layer as it is defined in the original
+network and therefore maintains the same network accuracy
+by design. Compared to existing parallelization approaches,
+our approach defines a more comprehensive search space
+of parallelization strategies, which includes data and model
+parallelism as two special cases. Our goal is to find the parallelization strategies for individual layers to jointly achieve
+the best possible runtime performance while maintaining
+the original network accuracy. To formalize the problem,
+we introduce parallelization configurations that define the
+search space for parallelizing a layer across multiple devices.
+We propose a cost model that quantitively evaluates the runtime performance of different parallelization strategies. The
+cost model considers both the computation power of each
+device and the communication bandwidth between devices.
+With the cost model, we convert the original problem of
+choosing parallelization configurations for individual layers
+to a graph search problem and develop an efficient algorithm
+to find a globally optimal strategy under the cost model.
+We evaluate the runtime performance of layer-wise parallelism with AlexNet (Krizhevsky et al., 2012), VGG-16 (Simonyan & Zisserman, 2014), and Inception-v3 (Szegedy
+et al., 2016) on the ILSVRC 2012 image classification
+
+

@@ -1,0 +1,80 @@
+PixelTransformer: Sample Conditioned Signal Generation
+
+Shubham Tulsiani 1 Abhinav Gupta 1 2
+https://shubhtuls.github.io/PixelTransformer/
+
+Abstract
+We propose a generative model that can infer a
+distribution for the underlying spatial signal conditioned on sparse samples e.g. plausible images
+given a few observed pixels. In contrast to sequential autoregressive generative models, our model
+allows conditioning on arbitrary samples and can
+answer distributional queries for any location. We
+empirically validate our approach across three image datasets and show that we learn to generate
+diverse and meaningful samples, with the distribution variance reducing given more observed
+pixels. We also show that our approach is applicable beyond images and can allow generating
+other types of spatial outputs e.g. polynomials,
+3D shapes, and videos.
+
+1. Introduction
+Imagine an artist with an empty canvas. She starts with a
+dab of sky blue paint at the top, and a splash of fresh green
+at the bottom. What is the painting going to depict? Perhaps
+an idyllic meadow, or trees in garden under a clear sky? But
+probably not a living room. It is quite remarkable that given
+only such sparse information about arbitrary locations, we
+can make guesses about the image in the artist’s mind.
+The field of generative modeling of images, with the goal
+of learning the distribution of possible images, focuses on
+developing similar capabilities in machines. Most recent
+approaches can be classified as belonging to one of the two
+modeling frameworks. First, and more commonly used, is
+the latent variable modeling framework (Kingma & Welling,
+2013; Goodfellow et al., 2014). Here, the goal is to represent
+the possible images using a distribution over a bottleneck
+latent variable, samples from which can be decoded to obtain images. However, computing the exact probabilities
+for images is often intractable and it is not straightforward
+1
+
+Facebook AI Research 2 Carnegie Mellon University. Correspondence to: Shubham Tulsiani <shubhtuls@fb.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+to condition inference on sparse observations e.g. pixel
+values. As an alternative, a second class of autoregressive approaches directly model the joint distribution over
+pixels. This can be easily cast as product of conditional
+distribution (van den Oord et al., 2016b;c) which makes
+it tractable to compute. Conditional distributions are estimated by learning to predict new pixels from previously
+sampled/generated pixels. However, these approaches use
+fixed sequencing (mostly predicting pixels from top-left to
+bottom-right) and therefore the learned model can only take
+a fixed ordering between query and sampled pixels. This
+implies that these models cannot predict whole images from
+a few random splashes – similar to what we humans can do
+given a description of the artist’s painting above.
+In this work, our goal is to build computational generative models that can achieve this – given information about
+some random pixels and their associated color values, we
+aim to predict a distribution over images consistent with
+the evidence. To this end, we show that it suffices to learn
+a function that estimates the distribution of possible values at any query location conditioned on an arbitrary set
+of observed samples. We present an approach to learn this
+function in a self-supervised manner, and show that it can
+allow answering queries that previous sequential autoregressive models cannot e.g. mean image given observed pixels,
+or computing image distribution given random observations.
+We also show that our proposed framework is generally
+applicable beyond images and can be learned to generate
+generic dense spatial signals given corresponding samples.
+
+2. Formulation
+Given the values of some (arbitrary) pixels, we aim to infer what images are likely conditioned on this observation.
+More formally, for any pixel denoted by random variable x,
+let vx denote the value for that pixel and let S0 ≡ {vxk }K
+k=1
+correspond to a set of such sampled values. We are then interested in modeling p(I|S0 ) i.e. the conditional distribution
+over images I given a set of sample pixel values S0 .
+From Image to Pixel Value Distribution. We first note
+that an image is simply a collection of values of pixels
+in a discrete grid. Assuming an image has N pixels with
+locations denoted as {gn }N
+n=1 , our goal is therefore to model
+
+

@@ -1,0 +1,75 @@
+Non-convex Learning via Replica Exchange Stochastic Gradient MCMC
+
+Wei Deng 1 Qi Feng * 2 Liyao Gao * 1 Faming Liang 1 Guang Lin 1
+
+Abstract
+Replica exchange Monte Carlo (reMC), also
+known as parallel tempering, is an important technique for accelerating the convergence of the conventional Markov Chain Monte Carlo (MCMC)
+algorithms. However, such a method requires the
+evaluation of the energy function based on the
+full dataset and is not scalable to big data. The
+naı̈ve implementation of reMC in mini-batch settings introduces large biases, which cannot be directly extended to the stochastic gradient MCMC
+(SGMCMC), the standard sampling method for
+simulating from deep neural networks (DNNs).
+In this paper, we propose an adaptive replica exchange SGMCMC (reSGMCMC) to automatically correct the bias and study the corresponding
+properties. The analysis implies an accelerationaccuracy trade-off in the numerical discretization
+of a Markov jump process in a stochastic environment. Empirically, we test the algorithm through
+extensive experiments on various setups and obtain the state-of-the-art results on CIFAR10, CIFAR100, and SVHN in both supervised learning
+and semi-supervised learning tasks.
+
+1. Introduction
+The increasing concern for AI safety problems draws our
+attention to MCMC, which is known for its asymptotic uncertainty quantification (Chen et al., 2015; Teh et al., 2016),
+and guarantees in non-convex optimizations (Zhang et al.,
+2017; Raginsky et al., 2017). Traditional MCMC methods
+have achieved tremendous success. However, the efficient
+sampling algorithm in DNNs was not well studied until the
+invention of stochastic gradient Langevin dynamics (SGLD)
+(Welling and Teh, 2011), which scales up the computation
+*
+
+Equal contribution 1 Purdue University, West Lafayette, IN,
+USA. 2 University of Southern California, Los Angeles, CA, USA..
+Correspondence to: Wei Deng <weideng056@gmail.com>,
+Guang Lin <guanglin@purdue.edu>, Faming Liang <fmliang@purdue.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+in DNNs by injecting noises to stochastic gradients. Since
+then, various high-order SGMCMC algorithms have been
+proposed, which incorporate strategies such as Hamiltonian
+dynamics (Chen et al., 2014; Ma et al., 2015; Ding et al.,
+2014), Hessian approximation (Li et al., 2016; Şimşekli
+et al., 2016), and high-order numerical schemes (Chen et al.,
+2015; Li et al., 2019) to improve the convergence.
+In addition to the high-order algorithms, we can also follow traditional MCMC algorithms combined with simulated
+annealing (Kirkpatrick et al., 1983), simulated tempering
+(Marinari and Parisi, 1992), dynamical weighting (Wong
+and Liang, 1997) or replica exchange Monte Carlo (Swendsen and Wang, 1986; Earl and Deem, 2005). Among these
+advancements, simulated annealing SGMCMC (Mangoubi
+and Vishnoi, 2018) and simulated tempering SGMCMC
+(Lee et al., 2018) show how dynamical temperatures speed
+up the convergence. However, simulated annealing is very
+sensitive to the fast-decaying temperatures, and simulated
+tempering requires a lot on the approximation of the normalizing constant. For the latter, the replica exchange Monte
+Carlo is easier to analyze and implement and is suitable
+for parallelism. Specifically, the replica exchange Langevin
+diffusion utilizes multiple diffusion processes with different temperatures and proposes to swap the processes while
+training. Intuitively, the high-temperature process acts as
+a bridge to connect the various modes. As such, the acceleration effect can be theoretically quantified (Dupuis et al.,
+2012; Chen et al., 2019). However, despite these advantages, a proper replica exchange SGMCMC (reSGMCMC)
+has long been missing in the deep learning community.
+A bottleneck that hinders the development of reSGMCMC
+is the naı̈ve extension of the acceptance-rejection criterion
+that fails in mini-batch settings. Various attempts (Bardenet
+et al., 2017; Korattikara et al., 2014) were proposed to solve
+this issue. However, they introduce biases even with the
+ideal normality assumption on the noise. Some unbiased
+estimators (Bhanot and Kennedy, 1985; Beskos et al., 2006)
+have ever been presented, but the large variance leads to
+inefficient inference. To remove the bias while maintaining
+efficiency, Ceperley and Dewing (1999) proposed a corrected criterion under normality assumptions, and Seita et al.
+(2017); Quiroz et al. (2019) further analyzed the model errors with the asymptotic normality assumptions. However,
+the above algorithms fail when the required corrections are
+
+

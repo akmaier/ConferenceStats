@@ -1,0 +1,61 @@
+Stable and low-precision training for large-scale
+vision-language models
+
+Mitchell Wortsman∗1
+
+Tim Dettmers∗1
+
+Luke Zettlemoyer12
+
+Ali Farhadi†1
+
+Ari Morcos†2
+
+Ludwig Schmidt†134
+
+Abstract
+We introduce new methods for 1) accelerating and 2) stabilizing training for large
+language-vision models. 1) For acceleration, we introduce SwitchBack, a linear
+layer for int8 quantized training which provides a speed-up of 13-25% while
+matching the performance of bfloat16 training within 0.1 percentage points for
+the 1B parameter CLIP ViT-Huge—the largest int8 training to date. Our main
+focus is int8 as GPU support for float8 is rare, though we also analyze float8
+training through simulation. While SwitchBack proves effective for float8, we
+show that standard techniques are also successful if the network is trained and
+initialized so that large feature magnitudes are discouraged, which we accomplish
+via layer-scale initialized with zeros. 2) For stability, we analyze loss spikes and
+find they consistently occur 1-8 iterations after the squared gradients become underestimated by their AdamW second moment estimator. As a result, we recommend
+an AdamW-Adafactor hybrid which avoids loss spikes when training a CLIP
+ViT-Huge model and outperforms gradient clipping at the scales we test.
+
+1
+
+Introduction
+
+Large models trained on large datasets have recently led to multiple breakthroughs in machine
+learning such as GPT-3 [5] and PaLM [11]. While many components are necessary for successful
+large-scale training, two critical elements are training speed and stability. To enable further progress,
+we must ensure that 1) training is fast—the model should be able to see a lot of data even if it is large,
+and 2) training is stable—large models should not suffer from loss spikes which degrade performance.
+We study these two directions in the context of contrastive language-image pre-training (CLIP) [46].
+We examine CLIP-style models because of their importance in computer vision: CLIP-style models
+reach state-of-the-art performance on a wide range of image classification tasks [46, 64, 44, 7]
+and underlie image generation methods such as DALLE·2 [49] and Stable Diffusion [51]. Our
+contributions towards fast training and stable training are as follows.
+Towards fast training, we introduce SwitchBack, a linear layer for quantized training with int8
+precision which matches the performance of the bfloat16 [63] baseline within 0.1 percentage points
+for CLIP ViT-Huge—a larger model than considered in the original CLIP paper. Linear layers account
+for the majority of the compute in standard transformer models, usually more than 90%, comprising
+the key, query, value, and out projection of the attention blocks as well as the multilayer perceptron.
+We perform all linear layers in low-precision (int8) while retaining other layers, such as layer norms,
+in higher precision. With this setup, we observe end-to-end speedups between 13 and 25% for CLIP
+ViT-Huge training: 25% compared to a standard linear layer implemented using the PyTorch [43]
+autograd python module and 13% compared to the standard PyTorch layer which include background
+CUDA/C++ optimizations which are difficult to replicate for custom layers.
+University of Washington. 2 Meta AI Research, FAIR Team. 3 Allen Institute for AI. 4 LAION. ∗ Equal
+contribution. † Equal senior contribution.
+1
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

@@ -1,0 +1,78 @@
+Simple Black-box Adversarial Attacks
+
+Chuan Guo 1 Jacob R. Gardner 2 Yurong You 1 Andrew Gordon Wilson 1 Kilian Q. Weinberger 1
+
+Abstract
+We propose an intriguingly simple method for
+the construction of adversarial images in the
+black-box setting. In constrast to the white-box
+scenario, constructing black-box adversarial images has the additional constraint on query budget, and efficient attacks remain an open problem to date. With only the mild assumption of
+continuous-valued confidence scores, our highly
+query-efficient algorithm utilizes the following
+simple iterative principle: we randomly sample a
+vector from a predefined orthonormal basis and
+either add or subtract it to the target image. Despite its simplicity, the proposed method can be
+used for both untargeted and targeted attacks –
+resulting in previously unprecedented query efficiency in both settings. We demonstrate the efficacy and efficiency of our algorithm on several
+real world settings including the Google Cloud
+Vision API. We argue that our proposed algorithm
+should serve as a strong baseline for future blackbox attacks, in particular because it is extremely
+fast and its implementation requires less than 20
+lines of PyTorch code.
+
+1. Introduction
+As machine learning systems become prevalent in numerous
+application domains, the security of these systems in the
+presence of malicious adversaries becomes an important
+area of research. Many recent studies have shown that decisions output by machine learning models can be altered
+arbitrarily with imperceptible changes to the input (Carlini
+& Wagner, 2017b; Szegedy et al., 2014). These attacks
+on machine learning models can be categorized by the capabilities of the adversary. White-box attacks require the
+adversary to have complete knowledge of the target model,
+1
+
+Department of Computer Science, Cornell University, Ithaca,
+New York, USA 2 Uber AI Labs, San Francisco, California, USA.
+Correspondence to: Chuan Guo <cg563@cornell.edu>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+whereas black-box attacks require only queries to the target
+model that may return complete or partial information.
+Seemingly all models for classification of natural images
+are susceptible to white-box attacks (Athalye et al., 2018),
+which indicates that natural images tend to be close to decision boundaries learned by machine learning classifiers.
+Although often misunderstood as a property of neural networks (Szegedy et al., 2014), the vulnerability towards adversarial examples is likely an inevitability of classifiers in
+high-dimensional spaces with most data distributions (Fawzi
+et al., 2018; Shafahi et al., 2018).
+If adversarial examples (almost) always exist, attacking a
+classifier turns into a search problem within a small volume
+around a target image. In the white-box scenario, this search
+can be guided effectively with gradient descent (Szegedy
+et al., 2014; Carlini & Wagner, 2017b; Madry et al., 2017).
+However, the black-box threat model is more applicable in
+many scenarios. Here, queries to the model may incur a
+significant cost of both time and money, and the number
+of black-box queries made to the model therefore serves as
+an important metric of efficiency for the attack algorithm.
+Attacks that are too costly, or are easily defeated by query
+limiting, pose less of a security risk than efficient attacks.
+To date, the average number of queries performed by the
+best known black-box attacks remains high despite a large
+amount of recent work in this area (Chen et al., 2017; Brendel et al., 2017; Cheng et al., 2018; Guo et al., 2018; Tu
+et al., 2018; Ilyas et al., 2018a). The most efficient and
+complex attacks still typically require upwards of tens or
+hundreds of thousands of queries. A method for query efficient black-box attacks has remained an open problem.
+Machine learning services such as Clarifai or Google Cloud
+Vision only allow API calls to access the model’s predictions and fall therefore in the black-box category. These
+services do not release any internal details such as training data and model parameters; however, their predictions
+return continuous-valued confidence scores. In this paper
+we propose a simple, yet highly efficient black-box attack
+that exploits these confidence scores using a very simple
+intuition: if the distance to a decision boundary is small, we
+don’t have to be too careful about the exact direction along
+which we traverse towards it. Concretely, we repeatedly
+pick a random direction among a pre-specified set of orthog-
+
+

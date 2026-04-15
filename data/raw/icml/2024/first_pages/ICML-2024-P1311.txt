@@ -1,0 +1,82 @@
+KIVI: A Tuning-Free Asymmetric 2bit Quantization for KV Cache
+
+Zirui Liu * 1 Jiayi Yuan * 1 Hongye Jin 2 Shaochen (Henry) Zhong 1
+Zhaozhuo Xu 3 Vladimir Braverman 1 Beidi Chen 4 Xia Hu 1
+
+Abstract
+
+model weight). This reduction in memory usage enables up to 4× larger batch size, bringing
+2.35× ∼ 3.47× throughput on real LLM inference workload. The source code is available at
+https://github.com/jy-yuan/KIVI.
+
+Efficiently serving large language models (LLMs)
+requires batching many requests together to reduce the cost per request. Yet, the key-value (KV)
+cache, which stores attention keys and values
+to avoid re-computations, significantly increases
+memory demands and becomes the new bottleneck in speed and memory usage. This memory demand increases with larger batch sizes and
+longer context lengths. Additionally, the inference speed is limited by the size of KV cache,
+as the GPU’s SRAM must load the entire KV
+cache from the main GPU memory for each token generated, causing the computational core
+to be idle during this process. A straightforward
+and effective solution to reduce KV cache size
+is quantization, which decreases the total bytes
+taken by KV cache. However, there is a lack of
+in-depth studies that explore the element distribution of KV cache to understand the hardness
+and limitation of KV cache quantization. To fill
+the gap, we conducted a comprehensive study on
+the element distribution in KV cache of popular
+LLMs. Our findings indicate that the key cache
+should be quantized per-channel, i.e., group elements along the channel dimension and quantize them together. In contrast, the value cache
+should be quantized per-token. From this analysis, we developed a tuning-free 2bit KV cache
+quantization algorithm, named KIVI. With the
+hardware-friendly implementation, KIVI can enable Llama (Llama-2), Falcon, and Mistral models to maintain almost the same quality while using 2.6× less peak memory usage (including the
+
+1. Introduction
+Large Language Models (LLMs) have demonstrated strong
+performance across a wide range of tasks (Brown et al.,
+2020; Taylor et al., 2022; Yuan et al., 2023). However, their
+deployment is very costly, requiring a large number of hardware accelerators such as GPUs. Given these substantial
+costs, one natural way to reduce the cost per request is to
+combine a sufficient number of requests together for batch
+processing. However, in this batch inference scenario, the
+key-value cache (KV cache), which holds the attention keys
+and values during generation to prevent re-computations, is
+becoming the new memory and speed bottleneck. This bottleneck becomes more pronounced with larger batch sizes
+and longer context lengths. For instance, in 540B PaLM,
+with a batch size of 512 and a context length of 2048, KV
+cache alone can take 3TB. This is 3 times the size of the
+model’s parameters (Pope et al., 2023). Also, the GPU
+SRAM has to load the whole KV cache from the GPU device memory for every token generated, during which the
+computational cores are idle. Thus, reducing KV cache size
+in LLMs while maintaining accuracy is important.
+
+Equal contribution. The order of authors is determined by
+flipping a coin. 1 Department of Computer Science, Rice University 2 Department of Computer Science, Texas A&M University 3 Department of Computer Science, Stevens Institute of
+Technology 4 Department of Electrical and Computer Engineering, Carnegie Mellon University. Correspondence to: Zirui Liu
+<zl105@rice.edu>, Jiayi Yuan <jy101@rice.edu>.
+
+Existing works towards this problem can be roughly divided
+into three categories. First, some work suggests reducing
+the number of heads in KV cache, such as multi-query
+attention (Shazeer, 2019) and multi-group attention (Ainslie
+et al., 2023). However, these methods require either training
+the model from scratch or fine-tuning the existing model.
+Second, another research line reduces KV cache size by
+evicting unimportant tokens (Zhang et al., 2023). Third,
+some other works try to solve this problem from the system
+perspective, e.g., offloading KV cache (Sheng et al., 2023)
+or extending virtual memory and paging techniques into the
+attention mechanism (Kwon et al., 2023).
+
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+To reduce the size of KV cache, the most simple and effective way is to reduce the total bytes taken by KV cache,
+namely, quantization. Unlike the well-studied weight quan-
+
+*
+
+1
+
+

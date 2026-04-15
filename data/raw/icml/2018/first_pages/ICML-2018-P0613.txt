@@ -1,0 +1,74 @@
+Distributed Asynchronous Optimization with Unbounded Delays:
+How Slow Can You Go?
+Zhengyuan Zhou1 Panayotis Mertikopoulos2 Nicholas Bambos1 Peter Glynn1 Yinyu Ye1 Li-Jia Li3 Li Fei-Fei1 3
+
+Abstract
+One of the most widely used training methods for large-scale machine learning problems
+is distributed asynchronous stochastic gradient
+descent (DASGD). However, a key issue in its
+implementation is that of delays: when a “worker”
+node asynchronously contributes a gradient update to the “master”, the global model parameter may have changed, rendering this information
+stale. In massively parallel computing grids, these
+delays can quickly add up if a node is saturated,
+so the convergence of DASGD is uncertain under
+these conditions. Nevertheless, by using a judiciously chosen quasilinear step-size sequence, we
+show that it is possible to amortize these delays
+and achieve global convergence with probability
+1, even under polynomially growing delays, reaffirming in this way the successful application of
+DASGD to large-scale optimization problems.
+
+1. Introduction
+With the advent of high-performance computing infrastructures that are capable of handling massive amounts of data,
+distributed asychronous optimization has become the predominant paradigm in a broad range of large-scale machine
+learning and data science applications – ranging from statistical inference (Meshi & Schwing, 2017; Smyth et al.,
+2009; Grover & Ermon, 2016; Anand et al., 2016) and matrix completion (Recht et al., 2011; Yun et al., 2014; Petroni
+& Querzoni, 2014), to training deep neural networks (Dean
+et al., 2012a; Zhang et al., 2013; Paine et al., 2013; Zhang
+et al., 2015; Grover et al., 2015; Jiang et al., 2017) and
+representation learning (Grover & Leskovec, 2016; Grover
+et al., 2018a;b). As a result, recent years have witnessed a
+1
+Stanford University, Stanford, USA 2 Univ. Grenoble Alpes,
+3
+CNRS, Inria, LIG, 38000 Grenoble, France.
+Google,
+Mountain View, USA. Correspondence to: Zhengyuan Zhou
+<zyzhou@stanford.edu>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+commensurate surge of interest in the asynchronous parallelization of first-order methods such as (stochastic) gradient
+descent (Agarwal & Duchi, 2011; Recht et al., 2011; Paine
+et al., 2013; Chaturapruek et al., 2015; Lian et al., 2015;
+Feyzmahdavian et al., 2016; Mania et al., 2017), coordinate
+descent (Liu et al., 2014; Avron et al., 2015; Liu & Wright,
+2015; Tappenden et al., 2017; Fercoq & Richtárik, 2015),
+dual coordinate descent (Tran et al., 2015), block coordinate
+descent (Wang et al., 2016; Marecek et al., 2015; Wright,
+2015), ADMM (Zhang & Kwok, 2014; Hong, 2017), etc.
+This popularity is a direct consequence of Moore’s law of
+silicon integration and the commensurately increased distribution of computing power. For instance, in a typical
+supercomputer cluster, up to several thousands of “workers”
+perform independent computations with little to no synchronization between them (as the cost of such coordination
+quickly becomes prohibitive in terms of overhead and energy spillage). Similarly, massively parallel computing grids
+and data centers may house up to several million computing
+nodes and/or servers, all working asynchronously to execute a variety of different tasks. Finally, taking the concept
+of distributed computing to its logical extreme, volunteer
+computing grids (such as Berkeley’s BOINC infrastructure
+or Stanford’s folding@home project) essentially span the
+entire globe and harness the computing power of a vast, heterogeneous network of non-clustered nodes that receive and
+process computational requests in a non-concurrent fashion,
+rendering syncrhonization impossible. In this way, by eliminating the required coordination overhead, asynchronous
+operations become simultaneously more appealing (in physically clustered systems) and more scalable (in massively
+parallel and volunteer computing grids).
+In this broad landscape, distributed asynchronous stochastic
+gradient descent (DASGD) is one of the most widely deployed methods for training large-scale machine learning
+models, particularly when a stochastic gradient of the underlying learning objective is easily computable (Dean et al.,
+2012a;b; Krizhevsky et al., 2012; Zhang et al., 2013; Paine
+et al., 2013; Zhang et al., 2015). More concretely, there are
+two types of distributed computing architectures that are
+common in practice: The first is a shared-memory multicore/multi-GPU cluster where different processors independently compute stochastic gradients and update a global
+
+

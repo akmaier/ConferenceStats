@@ -1,0 +1,63 @@
+Qsparse-local-SGD: Distributed SGD with
+Quantization, Sparsification, and Local Computations
+Debraj Basu ⇤
+Adobe Inc.
+dbasu@adobe.com
+
+Deepesh Data
+UCLA
+deepeshdata@ucla.edu
+
+Can Karakus ⇤
+Amazon Inc.
+cakarak@amazon.com
+
+Suhas Diggavi
+UCLA
+suhasdiggavi@ucla.edu
+
+Abstract
+Communication bottleneck has been identified as a significant issue in distributed
+optimization of large-scale learning models. Recently, several approaches to
+mitigate this problem have been proposed, including different forms of gradient
+compression or computing local models and mixing them iteratively. In this paper
+we propose Qsparse-local-SGD algorithm, which combines aggressive sparsification with quantization and local computation along with error compensation,
+by keeping track of the difference between the true and compressed gradients.
+We propose both synchronous and asynchronous implementations of Qsparselocal-SGD. We analyze convergence for Qsparse-local-SGD in the distributed
+case, for smooth non-convex and convex objective functions. We demonstrate that
+Qsparse-local-SGD converges at the same rate as vanilla distributed SGD for many
+important classes of sparsifiers and quantizers. We use Qsparse-local-SGD to train
+ResNet-50 on ImageNet, and show that it results in significant savings over the
+state-of-the-art, in the number of bits transmitted to reach target accuracy.
+
+1
+
+Introduction
+
+Stochastic Gradient Descent (SGD) [14] and its many variants have become the workhorse for modern
+large-scale optimization as applied to machine learning [5, 8]. We consider the setup where SGD is
+applied to the distributed setting, where R different nodes compute local SGD on their own datasets
+Dr . Co-ordination between them is done by aggregating these local computations to update the
+PR
+overall parameter xt as, xt+1 = xt ⌘Rt r=1 gtr , where {gtr }R
+r=1 are the local stochastic gradients
+(r)
+at the R machines for a local loss function f (x) of the parameters, where f (r) : Rd ! R.
+
+It is well understood by now that sending full-precision gradients, causes communication to be
+the bottleneck for many large scale models [4, 7, 33, 39]. The communication bottleneck could be
+significant in emerging edge computation architectures suggested by federated learning [1, 17, 22].
+To address this, many methods have been proposed recently, and these methods are broadly based
+on three major approaches: (i) Quantization of gradients, where nodes locally quantize the gradient
+(perhaps with randomization) to a small number of bits [3,7,33,39,40]. (ii) Sparsification of gradients,
+e.g., where nodes locally select Topk values of the gradient in absolute value and transmit these at
+full precision [2, 4, 20, 30, 32, 40], while maintaining errors in local nodes for later compensation.
+(iii) Skipping communication rounds whereby nodes average their models after locally updating their
+models for several steps [9, 10, 31, 34, 37, 43, 45].
+⇤
+
+Work done while Debraj Basu and Can Karakus were at UCLA.
+
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

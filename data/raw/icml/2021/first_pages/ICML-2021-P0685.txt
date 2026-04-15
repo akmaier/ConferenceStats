@@ -1,0 +1,116 @@
+Proximal Causal Learning with Kernels:
+Two-Stage Estimation and Moment Restriction
+
+Afsaneh Mastouri * 1 Yuchen Zhu * 1 Limor Gultchin 2 3 Anna Korba 4 Ricardo Silva 1 Matt J. Kusner 1
+Arthur Gretton † 1 Krikamol Muandet † 5
+
+Abstract
+We address the problem of causal effect estimation in the presence of unobserved confounding,
+but where proxies for the latent confounder(s) are
+observed. We propose two kernel-based methods for nonlinear causal effect estimation in this
+setting: (a) a two-stage regression approach, and
+(b) a maximum moment restriction approach. We
+focus on the proximal causal learning setting, but
+our methods can be used to solve a wider class
+of inverse problems characterised by a Fredholm
+integral equation. In particular, we provide a unifying view of two-stage and moment restriction
+approaches for solving this problem in a nonlinear setting. We provide consistency guarantees
+for each algorithm, and demonstrate that these approaches achieve competitive results on synthetic
+data and data simulating a real-world task. In particular, our approach outperforms earlier methods
+that are not suited to leveraging proxy variables.
+
+1
+
+Introduction
+
+Estimating average treatment effects (ATEs) is critical to
+answering many scientific questions. From estimating the
+effects of medical treatments on patient outcomes (Connors
+et al., 1996; Choi et al., 2002), to grade retention on cognitive development (Fruehwirth et al., 2016), ATEs are the
+key estimands of interest. From observational data alone,
+however, estimating such effects is impossible without further assumptions. This impossibility arises from potential
+unobserved confounding: one variable may seem to cause
+another, but this could be due entirely to an unobserved vari*
+Equal contribution † Equal contribution 1 University College
+London, London, United Kingdom 2 University of Oxford, Oxford, United Kingdom 3 The Alan Turing Institute, London, United
+Kingdom 4 ENSAE/CREST, Paris, France 5 Max Planck Institute
+for Intelligent Systems, Tübingen, Germany. Correspondence
+to: Afsaneh Mastouri <afs.mastouri@gmail.com>, Yuchen Zhu
+<yuchen.zhu.18@ucl.ac.uk>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Goal
+
+Estimate Average Treatment Eﬀect (ATE)
+E[Y | do(A)]
+<latexit sha1_base64="oqFkW4HsYVMYRs2crOJRz7oRVDE=">AAACAXicbVDLSsNAFJ3UV62vqBvBzWAR6qYkIuqyIoLuKtiHJKFMJpN26EwSZiZCCXXjr7hxoYhb/8Kdf+OkzUJbD1w4nHMv997jJ4xKZVnfRmlhcWl5pbxaWVvf2Nwyt3faMk4FJi0cs1h0fSQJoxFpKaoY6SaCIO4z0vGHl7nfeSBC0ji6U6OEeBz1IxpSjJSWeuaey5Ea+H52NXbuoctpAIO4dnHk9cyqVbcmgPPELkgVFGj2zC83iHHKSaQwQ1I6tpUoL0NCUczIuOKmkiQID1GfOJpGiBPpZZMPxvBQKwEMY6ErUnCi/p7IEJdyxH3dmd8rZ71c/M9zUhWeexmNklSRCE8XhSmDKoZ5HDCggmDFRpogLKi+FeIBEggrHVpFh2DPvjxP2sd1+7Ru3Z5UGzdFHGWwDw5ADdjgDDTANWiCFsDgETyDV/BmPBkvxrvxMW0tGcXMLvgD4/MHBayV+g==</latexit>
+
+unobserved
+
+U
+<latexit sha1_base64="RtgLBF42S5SqS/4wZBtLUdQoCsQ=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0lEqseCF48tmLbQhrLZTtq1m03Y3Qgl9Bd48aCIV3+SN/+N24+Dtj4YeLw3w8y8MBVcG9f9dgobm1vbO8Xd0t7+weFR+fikpZNMMfRZIhLVCalGwSX6hhuBnVQhjUOB7XB8N/PbT6g0T+SDmaQYxHQoecQZNVZq+v1yxa26c5B14i1JBZZo9MtfvUHCshilYYJq3fXc1AQ5VYYzgdNSL9OYUjamQ+xaKmmMOsjnh07JhVUGJEqULWnIXP09kdNY60kc2s6YmpFe9Wbif143M9FtkHOZZgYlWyyKMkFMQmZfkwFXyIyYWEKZ4vZWwkZUUWZsNiUbgrf68jppXVW9WtVtXlfqjfoijiKcwTlcggc3UId7aIAPDBCe4RXenEfnxXl3PhatBWcZ4Sn8gfP5A8oJjSw=</latexit>
+
+Z
+
+<latexit sha1_base64="cvTLHC5M5xmqFT0p3wATqABAx3I=">AAAB6HicbVDLSgNBEOz1GeMr6tHLYBA8hV0R9Rjw4jEB84BkCbOT3mTM7MwyMyuEJV/gxYMiXv0kb/6Nk8dBEwsaiqpuuruiVHBjff/bW1vf2NzaLuwUd/f2Dw5LR8dNozLNsMGUULodUYOCS2xYbgW2U400iQS2otHd1G89oTZcyQc7TjFM6EDymDNqnVRv9Uplv+LPQFZJsCBlWKDWK311+4plCUrLBDWmE/ipDXOqLWcCJ8VuZjClbEQH2HFU0gRNmM8OnZBzp/RJrLQraclM/T2R08SYcRK5zoTaoVn2puJ/Xiez8W2Yc5lmFiWbL4ozQawi069Jn2tkVowdoUxzdythQ6opsy6bogshWH55lTQvK8F1xa9flau16jyOApzCGVxAADdQhXuoQQMYIDzDK7x5j96L9+59zFvXvEWEJ/AH3ucPzRGNLg==</latexit>
+
+<latexit sha1_base64="3QLWNM9fLr6PoUJVXCgaBElbfko=">AAAB6HicbVDLSgNBEOz1GeMr6tHLYBA8hV0R9Rjw4jEB84BkCbOT3mTM7MwyMyuEJV/gxYMiXv0kb/6Nk8dBEwsaiqpuuruiVHBjff/bW1vf2NzaLuwUd/f2Dw5LR8dNozLNsMGUULodUYOCS2xYbgW2U400iQS2otHd1G89oTZcyQc7TjFM6EDymDNqnVRv90plv+LPQFZJsCBlWKDWK311+4plCUrLBDWmE/ipDXOqLWcCJ8VuZjClbEQH2HFU0gRNmM8OnZBzp/RJrLQraclM/T2R08SYcRK5zoTaoVn2puJ/Xiez8W2Yc5lmFiWbL4ozQawi069Jn2tkVowdoUxzdythQ6opsy6bogshWH55lTQvK8F1xa9flau16jyOApzCGVxAADdQhXuoQQMYIDzDK7x5j96L9+59zFvXvEWEJ/AH3ucPzpWNLw==</latexit>
+
+A
+<latexit sha1_base64="oXY26qNR1TFJUeu4eTyzoaQw+5w=">AAAB6HicbVDLSgNBEOyNrxhfqx69DAbBU9gVUY8RLx4TMA9IljA76U3GzM4uM7NCWPIFXjwo4tVP8ubfOHkcNLGgoajqprsrTAXXxvO+ncLa+sbmVnG7tLO7t3/gHh41dZIphg2WiES1Q6pRcIkNw43AdqqQxqHAVji6m/qtJ1SaJ/LBjFMMYjqQPOKMGivVb3tu2at4M5BV4i9IGRao9dyvbj9hWYzSMEG17vheaoKcKsOZwEmpm2lMKRvRAXYslTRGHeSzQyfkzCp9EiXKljRkpv6eyGms9TgObWdMzVAve1PxP6+TmegmyLlMM4OSzRdFmSAmIdOvSZ8rZEaMLaFMcXsrYUOqKDM2m5INwV9+eZU0Lyr+VcWrX5arteo8jiKcwCmcgw/XUIV7qEEDGCA8wyu8OY/Oi/PufMxbC84iwmP4A+fzB6u5jRg=</latexit>
+
+Method
+
+W
+
+X
+
+<latexit sha1_base64="D8uiAt/o+aIIZDyltrLer0tL9kk=">AAAB6HicbVDLSgNBEOyNrxhfqx69DAbBU9gVUY8BLx4TMA9MljA76U3GzM4uM7NCWPIFXjwo4tVP8ubfOHkcNLGgoajqprsrTAXXxvO+ncLa+sbmVnG7tLO7t3/gHh41dZIphg2WiES1Q6pRcIkNw43AdqqQxqHAVji6nfqtJ1SaJ/LejFMMYjqQPOKMGivVH3pu2at4M5BV4i9IGRao9dyvbj9hWYzSMEG17vheaoKcKsOZwEmpm2lMKRvRAXYslTRGHeSzQyfkzCp9EiXKljRkpv6eyGms9TgObWdMzVAve1PxP6+TmegmyLlMM4OSzRdFmSAmIdOvSZ8rZEaMLaFMcXsrYUOqKDM2m5INwV9+eZU0Lyr+VcWrX5arteo8jiKcwCmcgw/XUIU7qEEDGCA8wyu8OY/Oi/PufMxbC84iwmP4A+fzB9GdjTE=</latexit>
+
+Y
+<latexit sha1_base64="Of3Nj/R98BYiauqN9mrRwi9g1UA=">AAAB6HicbVDLSgNBEOyNrxhfqx69DAbBU9gVUY8BLx4TMA9JljA76U3GzM4uM7NCWPIFXjwo4tVP8ubfOHkcNLGgoajqprsrTAXXxvO+ncLa+sbmVnG7tLO7t3/gHh41dZIphg2WiES1Q6pRcIkNw43AdqqQxqHAVji6nfqtJ1SaJ/LejFMMYjqQPOKMGivVH3pu2at4M5BV4i9IGRao9dyvbj9hWYzSMEG17vheaoKcKsOZwEmpm2lMKRvRAXYslTRGHeSzQyfkzCp9EiXKljRkpv6eyGms9TgObWdMzVAve1PxP6+TmegmyLlMM4OSzRdFmSAmIdOvSZ8rZEaMLaFMcXsrYUOqKDM2m5INwV9+eZU0Lyr+VcWrX5arteo8jiKcwCmcgw/XUIU7qEEDGCA8wyu8OY/Oi/PufMxbC84iwmP4A+fzB9AZjTA=</latexit>
+
+1
+
+Kernel Proxy Variable (KPV)
+{a, z, x, w} ⇠ P (A, Z, X, W )
+{a, z, x, y} ⇠ P (A, Z, X, Y )
+<latexit sha1_base64="P8Vv90kB+ebB9Ch+WmJ9TvtKYKk=">AAACCnicbVDLSsNAFJ3UV62vqEs3o0WoEEoioi4rbnRXwT6wCWUynbRDZ5IwM1Fr6NqNv+LGhSJu/QJ3/o3TNgttPXDhcM693HuPHzMqlW1/G7m5+YXFpfxyYWV1bX3D3NyqyygRmNRwxCLR9JEkjIakpqhipBkLgrjPSMPvn4/8xi0RkkbhtRrExOOoG9KAYqS01DZ33RRZ8MGC9xa8c4fQlZTDaunMgjcWbFqwcdA2i3bZHgPOEicjRZCh2ja/3E6EE05ChRmSsuXYsfJSJBTFjAwLbiJJjHAfdUlL0xBxIr10/MoQ7mulA4NI6AoVHKu/J1LEpRxwX3dypHpy2huJ/3mtRAWnXkrDOFEkxJNFQcKgiuAoF9ihgmDFBpogLKi+FeIeEggrnV5Bh+BMvzxL6odl57hsXx0VK5dZHHmwA/ZACTjgBFTABaiCGsDgETyDV/BmPBkvxrvxMWnNGdnMNvgD4/MHrBWXEw==</latexit>
+
+input
+data
+
+<latexit sha1_base64="PL5el8fy2R2tzJ9W/UYnQDwS5EA=">AAACFnicbVDLSsNAFJ3UV62vqEs3o0WoEEsiooKbihvdVbAPbUKZTKft0MmDmYkYQ7/Cjb/ixoUibsWdf+OkzUJbD1zu4Zx7mbnHDRkV0jS/tdzM7Nz8Qn6xsLS8srqmr2/URRBxTGo4YAFvukgQRn1Sk1Qy0gw5QZ7LSMMdnKd+445wQQP/WsYhcTzU82mXYiSV1Nb37QQZ8MGA9wa0T+3t2B6mDdqCerBaOjPgrQGbY+9mr60XzbI5ApwmVkaKIEO1rX/ZnQBHHvElZkiIlmWG0kkQlxQzMizYkSAhwgPUIy1FfeQR4SSjs4ZwVykd2A24Kl/Ckfp7I0GeELHnqkkPyb6Y9FLxP68Vye6Jk1A/jCTx8fihbsSgDGCaEexQTrBksSIIc6r+CnEfcYSlSrKgQrAmT54m9YOydVQ2rw6LlcssjjzYAjugBCxwDCrgAlRBDWDwCJ7BK3jTnrQX7V37GI/mtGxnE/yB9vkD2liayw==</latexit>
+
+Method
+
+2
+
+Proxy Maximum Moment Restriction (PMMR)
+input
+{a, z, x, w, y} ⇠ P (A, Z, X, W, Y )
+data
+<latexit sha1_base64="eOm2zyeHVahIaLTavAWFYIY+eh8=">AAACEHicbVDJSgNBEO2JW4xb1KOXwiBGGMKMiHqMeNFbBLNoZgg9nZ6kSc9Cd48ah3yCF3/FiwdFvHr05t/YWQ4afVDweK+KqnpezJlUlvVlZGZm5+YXsou5peWV1bX8+kZNRokgtEoiHomGhyXlLKRVxRSnjVhQHHic1r3e6dCv31AhWRReqn5M3QB3QuYzgpWWWvldJ8Um3JtwZ8KtCX1nAI5kAVSKJyZcm9AwoW7C1V4rX7BK1gjwl9gTUkATVFr5T6cdkSSgoSIcS9m0rVi5KRaKEU4HOSeRNMakhzu0qWmIAyrddPTQAHa00gY/ErpCBSP150SKAyn7gac7A6y6ctobiv95zUT5x27KwjhRNCTjRX7CQUUwTAfaTFCieF8TTATTtwLpYoGJ0hnmdAj29Mt/SW2/ZB+WrIuDQvl8EkcWbaFtVEQ2OkJldIYqqIoIekBP6AW9Go/Gs/FmvI9bM8ZkZhP9gvHxDenxmLk=</latexit>
+
+Figure 1: The causal proxy estimation problem, and two methods
+we introduce to solve it.
+
+able causing both of them, e.g., as was used by the tobacco
+industry to argue against the causal link between smoking
+and lung cancer (Cornfield et al., 1959).
+One of the most common assumptions to bypass this difficulty is to assume that no unobserved confounders exist (Imbens, 2004). This extremely restrictive assumption makes
+estimation easy: if there are also no observed confounders
+then the ATE can be estimated using simple regression, otherwise one can use backdoor adjustment (Pearl, 2000). Less
+restrictive is to assume observation of an instrumental variable (IV) that is independent of any unobserved confounders
+(Reiersøl, 1945). This independence assumption is often
+broken, however. For example, if medication requires payment, many potential instruments such as educational attainment will be confounded with the outcome through complex socioeconomic factors, which can be difficult to fully
+observe (e.g., different opportunities afforded by living in
+different neighborhoods). The same argument regarding unobserved confounding can be made for the grade retention
+and household expenditure settings.
+This fundamental difficulty has inspired work to investigate
+the relaxation of this independence assumption. An increasingly popular class of models, called proxy models, does
+just this; and various recent studies incorporate proxies into
+
+

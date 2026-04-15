@@ -1,0 +1,85 @@
+Deep Adaptive Design: Amortizing Sequential Bayesian Experimental Design
+
+Adam Foster * 1 Desi R. Ivanova * 1 Ilyas Malik 2 Tom Rainforth 1
+
+Abstract
+We introduce Deep Adaptive Design (DAD),
+a method for amortizing the cost of adaptive
+Bayesian experimental design that allows experiments to be run in real-time. Traditional sequential Bayesian optimal experimental design approaches require substantial computation at each
+stage of the experiment. This makes them unsuitable for most real-world applications, where
+decisions must typically be made quickly. DAD
+addresses this restriction by learning an amortized design network upfront and then using this
+to rapidly run (multiple) adaptive experiments
+at deployment time. This network represents a
+design policy which takes as input the data from
+previous steps, and outputs the next design using a
+single forward pass; these design decisions can be
+made in milliseconds during the live experiment.
+To train the network, we introduce contrastive information bounds that are suitable objectives for
+the sequential setting, and propose a customized
+network architecture that exploits key symmetries.
+We demonstrate that DAD successfully amortizes
+the process of experimental design, outperforming
+alternative strategies on a number of problems.
+
+1. Introduction
+A key challenge across disciplines as diverse as psychology
+(Myung et al., 2013), bioinformatics (Vanlier et al., 2012),
+pharmacology (Lyu et al., 2019) and physics (Dushenko
+et al., 2020) is to design experiments so that the outcomes
+will be as informative as possible about the underlying process. Bayesian optimal experimental design (BOED) is a
+powerful mathematical framework for tackling this problem (Lindley, 1956; Chaloner & Verdinelli, 1995).
+In the BOED framework, outcomes y are modeled in a
+Bayesian manner (Gelman et al., 2013; Kruschke, 2014)
+*
+
+Equal contribution 1 Department of Statistics, University of
+Oxford, UK 2 Work undertaken whilst at the University of Oxford.
+Correspondence to: Adam Foster <adam.foster@stats.ox.ac.uk>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+using a likelihood p(y|θ, ξ) and a prior p(θ), where ξ is
+our controllable design and θ is the set of parameters we
+wish to learn about. We then optimize ξ to maximize the expected information gained about θ (equivalently the mutual
+information between y and θ):
+I(ξ) := Ep(θ)p(y|θ,ξ) [log p(y|θ, ξ) − log p(y|ξ)] .
+
+(1)
+
+The true power of BOED is realized when it is used to design
+a sequence of experiments ξ1 , ..., ξT , wherein it allows us
+to construct adaptive strategies which utilize information
+gathered from past data to tailor each successive design ξt
+during the progress of the experiment. The conventional,
+iterative, approach for selecting each ξt is to fit the posterior
+p(θ|ξ1:t−1 , y1:t−1 ) representing the updated beliefs about θ
+after t−1 iterations have been conducted, and then substitute
+this for the prior in (1) (Ryan et al., 2016; Rainforth, 2017;
+Kleinegesse et al., 2020). The design ξt is then chosen as
+the one which maximizes the resulting objective.
+Unfortunately, this approach necessitates significant computational time to be expended between each step of the
+experiment in order to update the posterior and compute the
+next optimal design. In particular, I(ξ) is doubly intractable
+(Rainforth et al., 2018; Zheng et al., 2018) and its optimization constitutes a significant computational bottleneck. This
+can be prohibitive to the practical application of sequential
+BOED as design decisions usually need to be made quickly
+for the approach to be useful (Evans & Mathur, 2005).
+To give a concrete example, consider running an adaptive
+survey to understand political opinions (Pasek & Krosnick,
+2010). A question ξt is put to a participant who gives their
+answer yt and this data is used to update an underlying
+model with latent variables θ. Here sequential BOED is of
+immense value because previous answers can be used to
+guide future questions, ensuring that they are pertinent to
+the particular participant. However, it is not acceptable to
+have lengthy delays between questions to compute the next
+design, precluding existing approaches from being used.
+To alleviate this problem, we propose amortizing the cost of
+sequential experimental design, performing upfront training
+before the start of the experiment to allow very fast design
+decisions at deployment, when time is at a premium. This
+amortization is particularly useful in the common scenario
+where the same adaptive experimental framework will be
+
+

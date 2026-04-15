@@ -1,0 +1,81 @@
+Path-Level Network Transformation for Efficient Architecture Search
+Han Cai 1 Jiacheng Yang 1 Weinan Zhang 1 Song Han 2 Yong Yu 1
+
+Abstract
+We introduce a new function-preserving transformation for efficient neural architecture search.
+This network transformation allows reusing previously trained networks and existing successful architectures that improves sample efficiency.
+We aim to address the limitation of current network transformation operations that can only perform layer-level architecture modifications, such
+as adding (pruning) filters or inserting (removing) a layer, which fails to change the topology of
+connection paths. Our proposed path-level transformation operations enable the meta-controller
+to modify the path topology of the given network
+while keeping the merits of reusing weights, and
+thus allow efficiently designing effective structures with complex path topologies like Inception
+models. We further propose a bidirectional treestructured reinforcement learning meta-controller
+to explore a simple yet highly expressive treestructured architecture space that can be viewed as
+a generalization of multi-branch architectures. We
+experimented on the image classification datasets
+with limited computational resources (about 200
+GPU-hours), where we observed improved parameter efficiency and better test results (97.70% test
+accuracy on CIFAR-10 with 14.3M parameters
+and 74.6% top-1 accuracy on ImageNet in the
+mobile setting), demonstrating the effectiveness
+and transferability of our designed architectures.
+
+1. Introduction
+Designing effective neural network architectures is crucial
+for the performance of deep learning. While many impressive results have been achieved through significant manual
+architecture engineering (Simonyan & Zisserman, 2014;
+Szegedy et al., 2015; He et al., 2016; Huang et al., 2017b),
+1
+
+Shanghai Jiao Tong University, Shanghai, China
+Massachusetts Institute of Technology, Cambridge, USA.
+Correspondence to: Han Cai <hcai@apex.sjtu.edu.cn>.
+2
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+this process typically requires years of extensive investigation by human experts, which is not only expensive but also
+likely to be suboptimal. Therefore, automatic architecture
+design has recently drawn much attention (Zoph & Le, 2017;
+Zoph et al., 2017; Liu et al., 2017; Cai et al., 2018; Real
+et al., 2018; Pham et al., 2018; Elsken et al., 2017).
+Most of the current techniques focus on finding the optimal architecture in a designated search space starting from
+scratch while training each designed architecture on the
+real data (from random initialization) to get a validation
+performance to guide exploration. Though such methods
+have shown the ability to discover network structures that
+outperform human-designed architectures when vast computational resources are used, such as Zoph et al. (2017) that
+employed 500 P100 GPUs across 4 days, they are also likely
+to fail to beat best human-designed architectures (Zoph &
+Le, 2017; Real et al., 2017; Liu et al., 2018), especially when
+the computational resources are restricted. Furthermore,
+insufficient training epochs during the architecture search
+process (much fewer epochs than normal to save time) may
+cause models to underperform (Baker et al., 2017), which
+would harm the efficiency of the architecture search process.
+Alternatively, some efforts have been made to explore the
+architecture space by network transformation, starting from
+an existing network trained on the target task and reusing
+its weights. For example, Cai et al. (2018) utilized Net2Net
+(Chen et al., 2016) operations, a class of function-preserving
+transformation operations, to further find high-performance
+architectures based on a given network, while Ashok et al.
+(2018) used network compression operations to compress
+well-trained networks. These methods allow transferring
+knowledge from previously trained networks and taking
+advantage of existing successful architectures in the target
+task, thus have shown improved efficiency and require significantly fewer computational resources (e.g., 5 GPUs in
+Cai et al. (2018)) to achieve competitive results.
+However, the network transformation operations in Cai
+et al. (2018) and Ashok et al. (2018) are still limited to
+only performing layer-level architecture modifications such
+as adding (pruning) filters or inserting (removing) a layer,
+which does not change the topology of connection paths in
+a neural network. Hence, they restrict the search space to
+having the same path topology as the start network, i.e. they
+would always lead to chain-structured networks when given
+
+

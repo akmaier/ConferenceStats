@@ -1,0 +1,94 @@
+Consensus Control for Decentralized Deep Learning
+
+Lingjing Kong 1 * Tao Lin 1 * Anastasia Koloskova 1 Martin Jaggi 1 Sebastian U. Stich 1
+
+Abstract
+Decentralized training of deep learning models
+enables on-device learning over networks, as well
+as efficient scaling to large compute clusters. Experiments in earlier works reveal that, even in
+a data-center setup, decentralized training often
+suffers from the degradation in the quality of the
+model: the training and test performance of models trained in a decentralized fashion is in general
+worse than that of models trained in a centralized
+fashion, and this performance drop is impacted by
+parameters such as network size, communication
+topology and data partitioning.
+We identify the changing consensus distance between devices as a key parameter to explain the
+gap between centralized and decentralized training. We show in theory that when the training consensus distance is lower than a critical quantity,
+decentralized training converges as fast as the centralized counterpart. We empirically validate that
+the relation between generalization performance
+and consensus distance is consistent with this theoretical observation. Our empirical insights allow the principled design of better decentralized
+training schemes that mitigate the performance
+drop. To this end, we provide practical training
+guidelines and exemplify its effectiveness on the
+data-center setup as the important first step.
+
+1. Introduction
+The impressive successes of machine learning, witnessed in
+the last decade, have been accompanied by a steady increase
+in the size, complexity, and computational requirements of
+training systems. In response to these challenges, distributed
+training algorithms (i.e. data-parallel large mini-batch SGD)
+have been developed for the use in data-centers (Goyal et al.,
+2017; You et al., 2018; Shallue et al., 2018). These stateof-the-art (SOTA) training systems rely on the All-Reduce
+communication primitive to perform exact averaging on the
+*
+
+Equal contribution 1 EPFL, Lausanne, Switzerland. Correspondence to: Tao Lin <tao.lin@epfl.ch>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+local mini-batch gradients computed on different subsets
+of the data, for the later synchronized model update. However, exact averaging with All-Reduce is sensitive to the
+communication hardware of the training system, causing
+the bottleneck in efficient deep learning training. To address
+this issue, decentralized training has become an indispensable training paradigm for efficient large scale training in
+data-centers (Assran et al., 2019), alongside its orthogonal
+benefits on preserving users’ privacy for edge AI (Bellet
+et al., 2018; Kairouz et al., 2019).
+Decentralized SGD (D-SGD) implementations trade off
+the exactness of the averaging provided by All-Reduce,
+with more efficient, but inexact, communication over sparse
+typologies. However, this often results in a severe drop in
+the training and/or test performance (i.e. generalization gap),
+even after hyper-parameter fine-tuning (see our Table 1 as
+well as Tables 1–3 in Assran et al., 2019). This phenomenon
+is poorly understood even in relatively straightforward i.i.d.
+data distribution scenarios (i.e. the data-center case), to
+which very few works are dedicated (in fact none of them
+provide insights into the generalization performance).
+Table 1: Significant generalization gap for decentralized training on a sparse ring topology (ResNet-20 on CIFAR-10 with
+n ∈ {16, 32, 64} workers). Decentralized SGD (D-SGD) communicates model parameters through the gossip averaging. Test top-1
+accuracies averaged over three seeds with fine-tuned learning rates.
+
+n=16
+n=32
+n=64
+
+AllReduce (complete)
+
+D-SGD (ring)
+
+92.91 ± 0.12
+92.82 ± 0.27
+92.71 ± 0.11
+
+92.40 ± 0.10
+91.81 ± 0.09
+89.58 ± 0.20
+
+In this work, we investigate the trade-off between the
+train/test performance and the exactness of the averaging,
+measured in terms of consensus distance, i.e. the average
+discrepancy between each node and the mean of model
+parameters over all machines. We identify this consensus
+distance as the key parameter that captures the joint effect
+of decentralization.
+While one might suspect that a smaller consensus distance
+would improve performance in any case, we identify several
+interesting phenomena. (i) We identify a diminishing return
+phenomenon: if the consensus distance stays below a critical
+value (critical consensus distance), decreasing the consensus
+distance further does not yield any additional performance
+
+

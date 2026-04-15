@@ -1,0 +1,79 @@
+Calibrate Before Use:
+Improving Few-Shot Performance of Language Models
+
+Tony Z. Zhao * 1 Eric Wallace * 1 Shi Feng 2 Dan Klein 1 Sameer Singh 3
+
+Abstract
+GPT-3 can perform numerous tasks when provided a natural language prompt that contains a
+few training examples. We show that this type of
+few-shot learning can be unstable: the choice of
+prompt format, training examples, and even the
+order of the training examples can cause accuracy
+to vary from near chance to near state-of-the-art.
+We demonstrate that this instability arises from
+the bias of language models towards predicting
+certain answers, e.g., those that are placed near
+the end of the prompt or are common in the pretraining data. To mitigate this, we first estimate
+the model’s bias towards each answer by asking
+for its prediction when given the training prompt
+and a content-free test input such as “N/A”. We
+then fit calibration parameters that cause the prediction for this input to be uniform across answers.
+On a diverse set of tasks, this contextual calibration procedure substantially improves GPT-3 and
+GPT-2’s average accuracy (up to 30.0% absolute)
+and reduces variance across different choices of
+the prompt.
+
+1. Introduction
+Few-shot learning—the ability to learn tasks with limited
+examples—is an important aspect of intelligence (Lake et al.,
+2015; Yogatama et al., 2019). Recent work shows that large
+neural language models can perform few-shot learning without finetuning (Radford et al., 2019; Brown et al., 2020).
+Specifically, GPT-3 (Brown et al., 2020) can perform numerous tasks when provided a few examples in a natural
+language prompt. For example, to perform sentiment analysis one can condition GPT-3 on a prompt such as:
+*
+Equal contribution 1 UC Berkeley 2 University of Maryland 3 UC Irvine. Correspondence to: Eric Wallace <ericwallace@berkeley.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Input: Subpar acting. Sentiment: Negative
+Input: Beautiful film. Sentiment: Positive
+Input: Amazing.
+Sentiment:
+where the first two lines correspond to two training examples
+and the last line is a test example. To make predictions, the
+model predicts whether the subsequent token is more likely
+to be the word “Positive” or “Negative”.
+This style of few-shot “in-context” learning is interesting
+because it shows that the model can learn without parameter
+updates. And, more importantly, it has numerous practical advantages over the now-standard approach of finetuning (Radford et al., 2018; Devlin et al., 2019). First, it allows
+practitioners to “rapidly prototype” NLP models: changing
+the prompt immediately leads to a new model. Second, it
+provides a fully natural language interface to a machine
+learning model, which allows users—even those without
+technical expertise—to create NLP systems. Finally, since
+in-context learning reuses the same model for each task, it
+reduces memory requirements and system complexity when
+serving many different tasks.
+However, despite these promises, we show that GPT-3’s
+accuracy can be highly unstable across different prompts
+(Section 3). A prompt contains three components: a format,
+a set of training examples, and a permutation (ordering) for
+those examples. We show that different choices for these
+factors can lead to highly different accuracies, e.g., changing
+the permutation of the training examples in a sentiment
+analysis prompt can change accuracy from near chance
+(54%) to near state-of-the-art (93%). This instability implies
+that GPT-3 users, who typically design prompts manually,
+cannot expect to consistently obtain good accuracy.
+We next analyze what causes this instability. We identify
+three pitfalls of language models that lead them to be biased toward certain answers during few-shot learning. In
+particular, they suffer from majority label bias, recency bias,
+and common token bias (Section 4). The majority label and
+recency biases lead the model to predict training answers
+that appear frequently or near the end of the prompt. For
+example, a prompt that ends with a Negative training example may cause a bias towards the Negative class. On
+the other hand, the common token bias leads the model to
+prefer answers that are frequent in its pre-training data, e.g.,
+
+

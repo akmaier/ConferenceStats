@@ -1,0 +1,76 @@
+Grey-box Extraction of Natural Language Models
+
+Santiago Zanella-Béguelin 1 Shruti Tople 1 Andrew Paverd 1 2 Boris Köpf 1
+
+Abstract
+Model extraction attacks attempt to replicate a
+target machine learning model by querying its inference API. State-of-the-art attacks are learningbased and construct replicas by supervised training on the target model’s predictions, but an
+emerging class of attacks exploit algebraic properties to obtain high-fidelity replicas using orders
+of magnitude fewer queries. So far, these algebraic attacks have been limited to neural networks
+with few hidden layers and ReLU activations.
+In this paper we present algebraic and hybrid
+algebraic/learning-based attacks on large-scale
+natural language models. We consider a greybox setting, targeting models with a pre-trained
+(public) encoder followed by a single (private)
+classification layer. Our key findings are that (i)
+with a frozen encoder, high-fidelity extraction is
+possible with a small number of in-distribution
+queries, making extraction attacks indistinguishable from legitimate use; (ii) when the encoder
+is fine-tuned, a hybrid learning-based/algebraic
+attack improves over the learning-based state-ofthe-art without requiring additional queries.
+
+1. Introduction
+Machine learning models are often deployed behind APIs
+that enable querying the model but that prevent direct access
+to the model parameters. This restriction aims to protect
+intellectual property, as models are expensive to train and
+hence valuable (Strubell et al., 2019); security, as access
+to model parameters facilitates the creation of adversarial
+examples (Laskov et al., 2014; Ebrahimi et al., 2018); and
+privacy, as model parameters carry potentially sensitive
+information about the training data (Leino & Fredrikson,
+2020). Model extraction attacks (Tramèr et al., 2016) attempt to replicate machine learning models from sets of
+1
+Microsoft Research 2 Microsoft Security Response Center. Correspondence to: Santiago Zanella-Béguelin <santiago@microsoft.com>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+query-response pairs obtained via the model’s inference
+API, thus effectively circumventing the protection offered
+by the API.
+Several extraction attacks on deep neural networks
+(see Jagielski et al. (2020) for a recent overview) follow
+a learning-based approach (Tramèr et al., 2016; Orekondy
+et al., 2019; Pal et al., 2020; Krishna et al., 2020), where the
+target model is queried to label data used for training the
+replica. The replicas obtained in this way achieve accuracy
+on the desired task, or agreement with the target model on
+predictions, but recovery of the model weights is out of
+scope of this approach.
+More recently, a novel class of attacks has emerged that
+uses algebraic techniques to recover the weights of deep
+neural networks up to model-specific invariances. Examples include the attacks of Milli et al. (2019), which leverage observations of gradients to recover model parameters,
+and Rolnick & Kording (2020); Jagielski et al. (2020); Carlini et al. (2020), which estimate gradients from finite differences of logits, and then use this information to recover
+model parameters. Algebraic attacks improve on learningbased attacks in that they (i) achieve higher-fidelity replicas
+and (ii) are orders of magnitude more query-efficient. So far,
+however, algebraic attacks have only been applied to small,
+fully connected neural networks with ReLU activations. In
+particular, for modern large-scale natural language models
+(LLMs) such as BERT or GPT-2 that rely on non-linear
+activations, the state-of-the-art model extraction attack is
+still learning-based (Krishna et al., 2020).
+In this paper, we propose novel algebraic and hybrid
+(algebraic/learning-based) model extraction attacks on
+LLMs. We assume a grey-box setting where an encoder
+is pre-trained and known to the adversary, and where the
+target model is obtained from the encoder by (1) adding a
+task-specific linear classification head and by (2) fine-tuning
+using data unknown to the attacker. Our attack relies on an
+algebraic approach to extract the linear classification head,
+and a learning-based approach to extract the rest of the layers, i.e., the encoder and any additional layers between the
+encoder and the final classification layer.
+For the algebraic approach, consider for a moment an idealized setting where the encoder is frozen during fine-tuning.
+There are two key observations that enable us to extract the
+
+

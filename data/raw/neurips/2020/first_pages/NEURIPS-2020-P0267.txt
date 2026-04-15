@@ -1,0 +1,90 @@
+Adaptive Gradient Quantization
+for Data-Parallel SGD
+Fartash Faghri1,2⇤
+
+Iman Tabrizian1,2⇤
+
+Daniel M. Roy1,2
+1
+
+University of Toronto
+
+faghri@cs.toronto.edu
+
+Ilia Markov3
+
+Dan Alistarh3,4
+
+Ali Ramezani-Kebrya2
+2
+
+Vector Institute
+
+3
+
+IST Austria
+
+iman.tabrizian@mail.utoronto.ca
+
+4
+
+NeuralMagic
+
+alir@vectorinstitute.ai
+
+Abstract
+Many communication-efficient variants of SGD use gradient quantization schemes.
+These schemes are often heuristic and fixed over the course of training. We
+empirically observe that the statistics of gradients of deep models change during
+the training. Motivated by this observation, we introduce two adaptive quantization
+schemes, ALQ and AMQ. In both schemes, processors update their compression
+schemes in parallel by efficiently computing sufficient statistics of a parametric
+distribution. We improve the validation accuracy by almost 2% on CIFAR-10 and
+1% on ImageNet in challenging low-cost communication setups. Our adaptive
+methods are also significantly more robust to the choice of hyperparameters.
+
+1
+
+Introduction
+1e−3
+
+Average 9ariance
+
+Stochastic gradient descent (SGD) and its variants are cur1.1
+rently the method of choice for training deep models. Yet,
+large datasets cannot always be trained on a single com1.0
+putational node due to memory and scalability limitations.
+0.9
+Data-parallel SGD is a remarkably scalable variant, in particular on multi-GPU systems [1–10]. However, despite its
+0.8
+many advantages, distribution introduces new challenges
+for optimization algorithms. In particular, data-parallel
+0
+2
+4
+6
+8
+SGD has large communication cost due to the need to
+1e4
+IterationV
+transmit potentially huge gradient vectors. Ideally, we
+want distributed optimization methods that match the per- Figure 1: Changes in the average variance of
+formance of SGD on a single hypothetical super machine, normalized gradient coordinates in a ResNetwhile paying a negligible communication cost.
+32 model trained on CIFAR-10. Colors dis-
+
+tinguish different runs with different seeds.
+
+A common approach to reducing the communication cost Learning rate is decayed by a factor of 10
+in data-parallel SGD is gradient compression and quan- twice at 40K and 60K iterations. The varitization [4, 11–16]. In full-precision data-parallel SGD, ance changes rapidly during the first epoch.
+each processor broadcasts its locally computed stochastic The next noticeable change happens after the
+gradient vector at every iteration, whereas in quantized first learning rate drop and another one apdata-parallel SGD, each processor compresses its stochas- pears after the second drop.
+tic gradient before broadcasting. Current quantization
+methods are either designed heuristically or fixed prior to training. Convergence rates in a stochastic
+optimization problem are controlled by the trace of the gradient covariance matrix, which is referred
+⇤
+
+Equal contributions.
+
+34th Conference on Neural Information Processing Systems (NeurIPS 2020), Vancouver, Canada.
+
+

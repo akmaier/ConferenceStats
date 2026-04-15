@@ -1,0 +1,76 @@
+Neuro-Symbolic Language Modeling with Automaton-augmented Retrieval
+
+Uri Alon 1 Frank F. Xu 1 Junxian He 1 Sudipta Sengupta 2 Dan Roth 3 Graham Neubig 1
+Language Technologies Institute, Carnegie Mellon University 2 Amazon AWS 3 AWS AI Labs
+{ualon,fangzhex,junxianh,gneubig}@cs.cmu.edu {sudipta,drot}@amazon.com
+1
+
+Abstract
+Retrieval-based language models (R-LM) model
+the probability of natural language text by combining a standard language model (LM) with examples retrieved from an external datastore at
+test time. While effective, a major bottleneck
+of using these models in practice is the computationally costly datastore search, which can be
+performed as frequently as every time step. In
+this paper, we present R ETO M ATON – retrieval
+automaton – which approximates the datastore
+search, based on (1) saving pointers between consecutive datastore entries, and (2) clustering of
+entries into “states”. This effectively results in
+a weighted finite automaton built on top of the
+datastore, instead of representing the datastore as
+a flat list. The creation of the automaton is unsupervised, and a R ETO M ATON can be constructed
+from any text collection: either the original training corpus or from another domain. Traversing
+this automaton at inference time, in parallel to
+the LM inference, reduces its perplexity by up to
+1.85, or alternatively saves up to 83% of the nearest neighbor searches over kNN-LM (Khandelwal et al., 2020) without hurting perplexity. Our
+code and trained models are available at https:
+//github.com/neulab/retomaton .
+
+1. Introduction
+Retrieval-based language models (R-LMs) have recently
+been shown to improve over standard neural models in a
+variety of tasks such as unconditional language modeling
+(Guu et al., 2018; He et al., 2020), machine translation
+(Zhang et al., 2018; Gu et al., 2018; Khandelwal et al., 2021),
+1
+
+Language Technologies Institute, Carnegie Mellon University 2 Amazon AWS 3 Amazon. Correspondence to: Uri Alon
+<ualon@cs.cmu.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+question answering (Karpukhin et al., 2020; Ram et al.,
+2021), and code generation (Hayati et al., 2018; Hashimoto
+et al., 2018). The key ingredient of R-LMs is their ability to
+utilize training examples at test time without having to rely
+on the information encoded in the model’s weights only.
+In these models, the retrieval component first searches for
+nearest neighbor examples in an external datastore; then, the
+base model references these examples during the prediction.
+This fusion of language models (LMs) and retrieval improves the base language model from several perspectives,
+including higher accuracy (Xu et al., 2021), domain adaptability (Jiang et al., 2021), and reduced size (Borgeaud et al.,
+2021). Further, the retrieved examples provide information
+regarding the provenance of the model’s predictions, and
+retrieval allows for modifying the dataset without retraining the model. Nevertheless, the most critical bottleneck
+of these models is their frequent search over the datastore,
+which hinders the use of R-LMs in practical settings.
+k-Nearest Neighbors Language Model One prominent example of such a retrieval-based model is kNN-LM (Grave
+et al., 2017; Khandelwal et al., 2020), which predicts a token
+by linearly interpolating the base LM’s output with a nonparametric nearest neighbor distribution. This distribution is
+constructed by searching for the k-nearest neighbors (kNN)
+in the datastore and weighting them according to their distance to the current test context. Notably, this k-nearest
+neighbor search is performed for every generated test token,
+introducing severe inference overhead, since this search is
+significantly slower than the LM’s standard “forward pass”.
+Our Approach: R ETO M ATON Our main insight is that
+retrieved neighbors at the current time step also hint at the
+neighbors that will be retrieved at future time steps, and can
+thus save repetitive searches later. Specifically, we construct
+a weighted finite automaton (WFA) on top of an existing
+datastore, by keeping pointers between datastore entries and
+clustering similar entries, in a completely unsupervised way.
+This automaton allows sporadic, infrequent, kNN searches,
+and a much cheaper traversal of the automaton at other
+time steps. We call our model R ETO M ATON – retrieval
+automaton. R ETO M ATON is illustrated in Figure 1.
+
+

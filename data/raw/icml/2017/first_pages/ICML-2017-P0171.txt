@@ -1,0 +1,81 @@
+Bayesian Optimization with Tree-structured Dependencies
+
+Rodolphe Jenatton 1 Cedric Archambeau 1 Javier Gonzalez 2 Matthias Seeger 1
+
+Abstract
+Bayesian optimization has been successfully used
+to optimize complex black-box functions whose
+evaluations are expensive. In many applications,
+like in deep learning and predictive analytics, the
+optimization domain is itself complex and structured. In this work, we focus on use cases where
+this domain exhibits a known dependency structure. The benefit of leveraging this structure is
+twofold: we explore the search space more efficiently and posterior inference scales more favorably with the number of observations than Gaussian Process-based approaches published in the
+literature. We introduce a novel surrogate model
+for Bayesian optimization which combines independent Gaussian Processes with a linear model
+that encodes a tree-based dependency structure
+and can transfer information between overlapping
+decision sequences. We also design a specialized
+two-step acquisition function that explores the
+search space more effectively. Our experiments
+on synthetic tree-structured objectives and on the
+tuning of feedforward neural networks show that
+our method compares favorably with competing
+approaches.
+
+1. Introduction
+In recent years, Bayesian optimization has gained a growing
+attention from machine learning experts in, both, academia
+and industry (Shahriari et al., 2016). It takes the widespread
+application of machine learning to the next level of sophistication as it enables to automatically fine-tune hyperparameters (Snoek et al., 2012), whether they are parametrizing
+data pre-processors, models or the learning algorithms. Finetuning is essential to obtain state-of-the-art performance
+1
+
+Amazon, Berlin, Germany. 2 Amazon, Cambridge, United
+Kingdom. Correspondence to: Rodolphe Jenatton <jenatton@amazon.de>, Cedric Archambeau <cedrica@amazon.de>,
+Javier Gonzalez <gojav@amazon.co.uk>, Matthias Seeger
+<matthias@amazon.de>.
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017 by
+the author(s).
+
+with complex machine learning models, such as deep neural
+networks. Historically, this vital step has been done, either
+manually, or via regular or random grid search, which can
+consume vast amounts of human expert time and are wasteful of computing resources. Hence, one of the main benefits
+of Bayesian optimization is that it removes this burden from
+the shoulders of the practitioners, who can then focus their
+attention on more rewarding value-adding tasks.
+To set the stage, our goal is to solve a global optimization
+problem:
+min f (x),
+x∈X
+
+where X is the optimization domain and f is a black-box
+function, typically continuous and multimodal. We further
+assume that querying f is costly. For example, f may be the
+outcome of a physical experiment or require a large amount
+of computation. The latter arises when f corresponds to a
+model selection score for a machine learning model trained
+on a possibly large dataset.
+The protocol for sequential Bayesian optimization proceeds
+as follows (Mockus et al., 1978; Shahriari et al., 2016).
+Given n noisy evaluations yi ≈ f (xi ), i ∈ {1, . . . , n},
+a surrogate probabilistic model of f is maintained. Our
+goal is to find a global optimum of f by querying it as few
+times as possible. The location xn+1 is chosen by maximizing an acquisition function which performs an explorationexploitation trade-off. A common choice for the surrogate
+model is a Gaussian process (GP) (Rasmussen & Williams,
+2006). For a GP surrogate model, common acquisition functions can be tractably computed and optimized via gradientbased optimization algorithms. While existing Bayesian
+optimization approaches mitigate the high evaluation cost of
+f , they suffer from the curse of dimensionality when facing
+a high-dimensional space X .
+In this paper, we introduce a novel methodology able to
+exploit a given tree-shaped dependency structure on X by
+transferring information between overlapping paths. By
+constructing a surrogate model tailored to the structure, we
+can reduce the number of evaluations of commonly used
+acquisition functions. The same structure also allows us to
+take acquisition decisions more efficiently, thus speeding up
+the search of candidates.
+Tree-based dependencies occur often in practice. For exam-
+
+

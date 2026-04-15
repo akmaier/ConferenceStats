@@ -1,0 +1,80 @@
+Wide Bayesian neural networks have a simple weight posterior:
+theory and accelerated sampling
+
+Jiri Hron 1 2 Roman Novak 1 Jeffrey Pennington 1 Jascha Sohl-Dickstein 1
+
+Abstract
+We introduce repriorisation, a data-dependent
+reparameterisation which transforms a Bayesian
+neural network (BNN) posterior to a distribution
+whose KL divergence to the BNN prior vanishes
+as layer widths grow. The repriorisation map acts
+directly on parameters, and its analytic simplicity
+complements the known neural network Gaussian
+process (NNGP) behaviour of wide BNNs in
+function space. Exploiting the repriorisation, we
+develop a Markov chain Monte Carlo (MCMC)
+posterior sampling algorithm which mixes faster
+the wider the BNN. This contrasts with the
+typically poor performance of MCMC in high
+dimensions. We observe up to 50x higher effective sample size relative to no reparametrisation
+for both fully-connected and residual networks.
+Improvements are achieved at all widths, with
+the margin between reparametrised and standard
+BNNs growing with layer width.
+
+1. Introduction
+Bayesian neural networks (BNNs) have achieved significantly less success than their deterministic NN counterparts.
+Despite recent progress (e.g., Khan et al., 2018; Maddox
+et al., 2019; Osawa et al., 2019; Dusenberry et al., 2020;
+Daxberger et al., 2021; Izmailov et al., 2021), (a) our theoretical understanding of BNNs remains limited, and (b) practical applicability is hindered by high computational demands. We make progress on both these fronts.
+Our work revolves around a reparametrisation θ = T (φ) of
+the (flattened) NN weights θ ∈ Rd . Its form comes from
+a theorem in which we establish that the Kullback–Leibler
+(KL) divergence between the standard normal distribution N (0, Id ) and the reparametrised posterior p(φ | D) =
+1
+Google Research, USA 2 University of Cambridge, UK. Correspondence to: Jiri Hron <jh2084@cam.ac.uk>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+p(T (φ) | D) det ∂φ T (φ) converges to zero as the BNN
+layers grow wide.1 This closes a gap in the theory of overparametrised NNs by providing a rigorous characterisation
+of the BNN parameter space behaviour (Figure 1 and Section 2), and enables faster posterior sampling (Section 3).
+In function space, wide BNN priors converge (weakly) to
+a so-called neural network Gaussian process (NNGP) limit
+(Matthews et al., 2018; Lee et al., 2018; Garriga-Alonso
+et al., 2019; Novak et al., 2019; Yang, 2019; Hron et al.,
+2020b), and the posteriors converge (weakly) to that of the
+corresponding NNGP (assuming the likelihood is a bounded
+continuous function of the NN outputs; Hron et al., 2020a).
+Parameter space behaviour is less understood (Hron et al.,
+2020a). The main exception is the work of Matthews et al.
+(2017) who showed that randomly initialising a NN, and
+then optimising only the last layer with respect to a mean
+squared error loss, is equivalent to drawing a sample from
+the conditional last layer posterior. This result holds for a
+Gaussian likelihood and zero observation noise. Our reparametrisation T can be seen as a non-zero noise generalisation
+of the underlying map from the initial to the optimised
+weights, and provides samples from the joint posterior over
+all layers in the infinite width limit (Theorem 2.1).
+Since sampling from the ‘KL-limit’ N (0, I) is trivial relative to the notoriously complex BNN posterior, our theory
+motivates applying Markov chain Monte Carlo (MCMC) to
+the reparametrised density. To apply MCMC, two concerns
+must be addressed: (i) understanding if the KL-closeness
+to N (0, Id ) actually simplifies sampling, and (ii) computational efficiency. In Section 3.1, we partially answer (i)
+by proving that the gradient ∇φ log p(φ | D) concentrates
+around the log density gradient of N (0, I) in wide BNNs.
+For (ii), we propose a simple-to-implement and efficient way
+of computing both T (φ) and the corresponding density at
+the same time using Cholesky decomposition (Section 3.2).
+Applying Langevin Monte Carlo (LMC), we empirically
+demonstrate up to 50x improved mixing speed, as measured
+by effective sample size (ESS). The phenomenon occurs
+both for residual and fully-connected networks (FCNs), and
+1
+
+Case distinguishes distributions (P ) and their densities (p).
+Densities are used in place of distributions where convenient.
+
+

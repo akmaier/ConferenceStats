@@ -1,0 +1,76 @@
+Moniqua: Modulo Quantized Communication in Decentralized SGD
+
+Yucheng Lu 1 Christopher De Sa 1
+
+Abstract
+Running Stochastic Gradient Descent (SGD) in
+a decentralized fashion has shown promising results. In this paper we propose Moniqua, a technique that allows decentralized SGD to use quantized communication. We prove in theory that
+Moniqua communicates a provably bounded number of bits per iteration, while converging at the
+same asymptotic rate as the original algorithm
+does with full-precision communication. Moniqua improves upon prior works in that it (1) requires zero additional memory, (2) works with
+1-bit quantization, and (3) is applicable to a variety of decentralized algorithms. We demonstrate empirically that Moniqua converges faster
+with respect to wall clock time than other quantized decentralized algorithms. We also show that
+Moniqua is robust to very low bit-budgets, allowing 1-bit-per-parameter communication without
+compromising validation accuracy when training
+ResNet20 and ResNet110 on CIFAR10.
+
+1. Introduction
+Stochastic gradient descent (SGD), as a widely adopted optimization algorithm for machine learning, has shown promising performance when running in parallel (Zhang, 2004;
+Bottou, 2010; Dean et al., 2012; Goyal et al., 2017). However, the communication bottleneck among workers1 can
+substantially slow down the training (Alistarh, 2018). Stateof-the-art frameworks such as TensorFlow (Abadi et al.,
+2016), CNTK (Seide & Agarwal, 2016) and MXNet (Chen
+et al., 2015) are built in a centralized fashion, where workers
+exchange gradients either via a centralized parameter server
+1
+
+Department of Computer Science, Cornell University, Ithaca, New York, United States.
+Correspondence
+to: Yucheng Lu <yl2967@cornell.edu>, Christopher De Sa
+<cdesa@cs.cornell.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+1
+A worker could refer to any computing unit that is capable of
+computing, communicating and has local memory such as CPU,
+GPU, or even a single thread, etc.
+
+(Li et al., 2014a;b) or the MPI AllReduce operation (Gropp
+et al., 1999). Such a design, however, puts heavy pressure
+on the central server and strict requirements on the underlying network. In other words, when the underlying network
+is poorly constructed, i.e. high latency or low bandwidth, it
+can easily cause degradation of training performance due to
+communication congestion in the central server or stragglers
+(slow workers) in the system.
+There are two general approaches to deal with these problems: (1) decentralized training (Lian et al., 2017a;b; Tang
+et al., 2018b; Hendrikx et al., 2018) and (2) quantized communication2 (Zhang et al., 2017; Alistarh et al., 2017; Wen
+et al., 2017). In decentralized training, all the workers
+are connected to form a graph and each worker communicates only with neighbors by averaging model parameters
+between two adjacent optimization steps. This balances
+load and is robust to scenarios where workers can only be
+partially connected or the communication latency is high.
+On the other hand, quantized communication reduces the
+amount of data exchanged among workers, leading to faster
+convergence with respect to wall clock time (Alistarh et al.,
+2017; Seide et al., 2014; Doan et al., 2018; Zhang et al.,
+2017; Wang et al., 2018). This is especially useful when the
+communication bandwidth is restricted.
+At this point, a natural question is: Can we apply quantized
+communication to decentralized training, and thus benefit from both of them? Unfortunately, directly combining
+them together negatively affects the convergence rate (Tang
+et al., 2018a). This happens because existing quantization
+techniques are mostly designed for centralized SGD, where
+workers communicate via exchanging gradients (Alistarh
+et al., 2017; Seide et al., 2014; Wangni et al., 2018). Gradients are robust to quantization since they get smaller in
+magnitude near local optima and in some sense carry less
+information, causing quantization error to approach zero
+(De Sa et al., 2018). In contrast, decentralized workers
+are communicating the model parameters, which do not
+necessarily get smaller around local optima and thus the
+quantization error does not approach zero without explicitly
+increasing precision (Tang et al., 2018c). Previous work
+2
+
+For brevity, in this paper we generally refer to lossy compression methods including quantization, sparsification, etc, as
+“quantization.”
+
+

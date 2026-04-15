@@ -1,0 +1,81 @@
+Imputing Missing Events in Continuous-Time Event Streams
+
+Hongyuan Mei 1 Guanghui Qin 2 Jason Eisner 1
+
+Abstract
+Events in the world may be caused by other,
+unobserved events. We consider sequences of
+events in continuous time. Given a probability
+model of complete sequences, we propose particle smoothing—a form of sequential importance
+sampling—to impute the missing events in an
+incomplete sequence. We develop a trainable
+family of proposal distributions based on a type
+of bidirectional continuous-time LSTM. Bidirectionality lets the proposals condition on future
+observations, not just on the past as in particle
+filtering. Our method can sample an ensemble
+of possible complete sequences (particles), from
+which we form a single consensus prediction that
+has low Bayes risk under our chosen loss metric.
+We experiment in multiple synthetic and real domains, using different missingness mechanisms,
+and modeling the complete sequences in each domain with a neural Hawkes process (Mei & Eisner, 2017). On held-out incomplete sequences,
+our method is effective at inferring the groundtruth unobserved events, with particle smoothing
+consistently improving upon particle filtering.
+
+1. Introduction
+Event streams of discrete events in continuous time are
+often partially observed. We would like to impute the
+missing events z. Suppose we know the prior distribution pmodel of complete event streams, as well as the “missingness mechanism” pmiss (z | complete stream), which
+stochastically determines which of the events will not be
+observed. One can then use use Bayes’ Theorem, as spelled
+out in equation (1) below, to define the posterior distribution p(z | x) given just the observed events x.1
+Why is this important? The ability to impute z is useful
+in many applied domains, for example:
+1
+Department of Computer Science, Johns Hopkins University,
+USA 2 Department of Physics, Peking University, China. Correspondence to: Hongyuan Mei <hmei@cs.jhu.edu>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+
+• Medical records. Some patients record detailed symptoms, self-administered medications, diet, and sleep.
+Imputing these events for other patients would produce an augmented medical record that could improve
+diagnosis, prognosis, treatment, and counseling.
+Similar remarks apply to users of life-tracking apps
+(e.g., MyFitnessPal) who forget to log some of their
+daily activities (e.g., meals, sleep and exercise).
+• Competitive games. In poker or StarCraft, a player
+lacks full information about what her opponents have
+acquired (cards) or done (build mines and train soldiers). Accurately imputing hidden actions from
+“what I did” and “what I observed others doing” can
+help the player make good decisions. Similar remarks
+apply to practical scenarios (e.g., military) where multiple actors compete and/or cooperate.
+• User interface interactions. Cognitive events are usually unobserved. For example, users of an online
+news provider (e.g., Bloomberg Terminal) may have
+read and remembered a displayed headline whether or
+not they clicked on it. Such events are expensive to
+observe (e.g., via gaze tracking or asking the user).
+Imputing them given the observed events (e.g., other
+clicks) would facilitate personalization.
+• Other partially observed event streams arise in online
+shopping, social media, etc.
+Why is it challenging?
+It is computationally difficult
+to reason about the posterior distribution p(z | x). Even
+for a simple pmodel like a Hawkes process (Hawkes, 1971),
+Markov chain Monte Carlo (MCMC) methods are needed,
+and these methods obtain an efficient transition kernel only
+by exploiting special properties of the process (Shelton
+et al., 2018). Unfortunately, such properties no longer hold
+for the more flexible neural models that we will use in this
+paper (Du et al., 2016; Mei & Eisner, 2017).
+What is our contribution?
+We are, to the best of our
+knowledge, the first to develop general sequential Monte
+Carlo (SMC) methods to approximate the posterior distribution over incompletely observed draws from a neural
+point process. We begin by sketching the approach.
+2019 by the author(s).
+1
+Bayes’ Theorem can be applied even if pmiss is a missingnot-at-random (MNAR) mechanism, as is common in this setting.
+MNAR is only tricky if we know neither pmodel nor pmiss .
+
+

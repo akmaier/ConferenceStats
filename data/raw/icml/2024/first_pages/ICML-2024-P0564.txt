@@ -1,0 +1,79 @@
+Data Engineering for Scaling Language Models to 128K Context
+
+Yao Fu 1 Rameswar Panda 2 Xinyao Niu 3 Xiang Yue 4 Hannaneh Hajishirzi 5 Yoon Kim 6 Hao Peng 7
+
+Abstract
+
+ing (Caciularu et al., 2023), repository-level code understanding (Bairi et al., 2023), long-history dialog modeling (Mazumder & Liu, 2024), and language model-powered
+autonomous agents (Weng, 2023). A popular testbed for
+whether models can actually utilize long context length
+is the recent Needle-in-a-Haystack test (Kamradt, 2023),
+which asks the model to precisely recite the information
+in a given sentence where the sentence (the “needle”) is
+placed in an arbitrary location of a 128K long document (the
+“haystack”). In the open-source space, although works like
+LongLoRA (Chen et al., 2023b) and YaRN-Mistral (Peng
+et al., 2023) theoretically support 100K context, they are
+not able to pass this test at such context lengths, as shown
+in Fig. 1. Currently, only closed-source frontier models like
+GPT-4 128K have demonstrated strong performance on the
+Needle-in-a-Haystack test.
+
+We study the continual pretraining recipe for scaling language models’ context lengths to 128K,
+with a focus on data engineering. We hypothesize that long context modeling, in particular
+the ability to utilize information at arbitrary input locations, is a capability that is mostly already acquired through large-scale pretraining,
+and that this capability can be readily extended
+to contexts substantially longer than seen during
+training (e.g., 4K to 128K) through lightweight
+continual pretraining on appropriate data mixture. We investigate the quantity and quality of
+the data for continual pretraining: (1) for quantity, we show that 500 million to 5 billion tokens are enough to enable the model to retrieve
+information anywhere within the 128K context;
+(2) for quality, our results equally emphasize domain balance and length upsampling. Concretely,
+we find that naı̈vely upsampling longer data on
+certain domains like books, a common practice
+of existing work, gives suboptimal performance,
+and that a balanced domain mixture is important. We demonstrate that continual pretraining
+of the full model on 1B-5B tokens of such data
+is an effective and affordable strategy for scaling
+the context length of language models to 128K.
+Our recipe outperforms strong open-source longcontext models and closes the gap to frontier models like GPT-4 128K.
+
+This work investigates data engineering methods for scaling
+language models’ context lengths. Our objective is to continue pretraining the language model on appropriate data
+mixtures such that it can pass the Needle-in-a-Haystack test
+at 128K length. Given that most existing models are trained
+on less than 4K context length (Touvron et al., 2023a) and
+that attention has quadratic complexity, continual pretraining with full attention on much longer context lengths (we
+train on 64K-80K context lengths) may seem prohibitively
+costly at a first glance. However, we show that this is feasible under academic-level resources (see Table 2). We use
+LLaMA-2 7B and 13B as our base models. We do not make
+any significant change to model architecture other than adjusting the base of RoPE, as in Xiong et al. (2023). Our
+major focus is the data recipe: what and how much data is
+able to well-adapt a model to pass the Needle-in-a-Haystack
+test at 128K context length.
+
+1. Introduction
+
+We hypothesize that the capability to utilize information at
+arbitrary locations within long context length is (mostly)
+already acquired during pretraining, even for models pretrained on substantially shorter 4K contexts. This hypothesis is in contrast to existing works like Xiong et al. (2023);
+XVerse (2024), which perform continual pretraining on a
+large amount of data (400B tokens) to inject long-contextmodeling capabilities; in this strategy, the cost can be as
+high as pre-training from scratch. In this work we show
+that continual pretraining on a small amount of long-context
+data, in our case, 1-5B tokens, can “unlock” a 7B model’s
+
+A context window of 128K tokens enables large language
+models to perform tasks that significantly beyond existing paradigm, such as multi-document question answer1
+
+University Edinburgh 2 MIT-IBM Watson AI Lab 3 University
+of Melbourne 4 CMU 5 University of Washington 6 Massachusetts Institute of Technology 7 University of Illinois at Urbana-Champaign.
+Correspondence to: Yao Fu <yao.fu@ed.ac.uk>, Yoon Kim
+<yoonkim@mit.edu>, Hao Peng <haopeng@illinois.edu>.
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

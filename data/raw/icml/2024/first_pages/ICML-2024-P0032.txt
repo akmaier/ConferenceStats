@@ -1,0 +1,98 @@
+Iterated Denoising Energy Matching for Sampling from Boltzmann Densities
+
+Tara Akhound-Sadegh * 1 2 3 Jarrid Rector-Brooks * 1 3 4 Avishek Joey Bose * 1 3 5 Sarthak Mittal 1 4
+Pablo Lemos 1 3 4 6 7 Cheng-Hao Liu 1 2 3 Marcin Sendera 1 4 8 Siamak Ravanbakhsh 1 2 9 Gauthier Gidel 1 4 9
+Yoshua Bengio 1 4 9 Nikolay Malkin 1 4 Alexander Tong 1 3 4
+Replay buffer B
+
+Abstract
+Efficiently generating statistically independent
+samples from an unnormalized probability distribution, such as equilibrium samples of many-body
+systems, is a foundational problem in science. In
+this paper, we propose I TERATED D ENOISING
+E NERGY M ATCHING (iDEM), an iterative algorithm that uses a novel stochastic score matching
+objective leveraging solely the energy function
+and its gradient—and no data samples—to train
+a diffusion-based sampler. Specifically, iDEM
+alternates between (I) sampling regions of high
+model density from a diffusion-based sampler
+and (II) using these samples in our stochastic
+matching objective to further improve the sampler.
+iDEM is scalable to high dimensions as the
+inner matching objective, is simulation-free,
+and requires no MCMC samples. Moreover, by
+leveraging the fast mode mixing behavior of diffusion, iDEM smooths out the energy landscape
+enabling efficient exploration and learning of an
+amortized sampler. We evaluate iDEM on a suite
+of tasks ranging from standard synthetic energy
+functions to invariant n-body particle systems.
+We show that the proposed approach achieves
+state-of-the-art performance on all metrics and
+trains 2 − 5× faster, which allows it to be the first
+method to train using energy on the challenging
+55-particle Lennard-Jones system.
+
+simulation-based
+outer loop
+integrate reverse
+SDE of 𝑠𝜃
+
+sample
+
+simulation-free
+inner loop
+
+Diffusion sampler
+𝑠𝜃 (𝑥 𝑡 , 𝑡)
+≈ ∇ log 𝑝 𝑡
+
+optimize 𝑠𝜃 at 𝑥 𝑡
+using DEM
+(Fig. 2)
+
+add noise
+Sample 𝑥 0
+
+Noisy samples 𝑥 𝑡
+
+Figure 1. iDEM fits a diffusion sampler to a target distribution
+given by an unnormalized density. In the outer loop, iDEM populates a buffer with samples from the current model sθ . In the inner
+loop, iDEM uses the DEM objective (§3.1) to regress sθ to an
+estimate of the score at noised samples from the buffer. The inner
+loop is simulation-free, i.e., requires no SDE integration.
+
+putational approaches have been employed to tackle this
+significant problem, yielding a multitude of applications
+across various scientific domains, such as spin-lattice
+states (Li & Wang, 2018; Nicoli et al., 2020), nuclear
+physics (Albergo et al., 2019), and proteins (Jumper et al.,
+2021; Bose et al., 2024). In this work, we focus on sampling
+from the (target) equilibrium distribution µtarget of manybody systems, e.g., molecules, with density proportional
+to a Boltzmann-type distribution µtarget (x) ∝ exp(−E(x))
+with the specific goal of efficiently drawing samples that
+cover all modes of the complex and dimensionless energy E.
+Moreover, the density µtarget associated with the system is
+symmetric as the energy E function is invariant to rotations,
+reflections, and permutations of particles in 3D space.
+
+1. Introduction
+A fundamental task in probabilistic inference is drawing
+samples from an unnormalized probability density. Com*
+
+Equal contribution 1 Mila – Québec AI Institute 2 McGill University 3 Dreamfold 4 Université de Montréal 5 University of Oxford 6 Ciela Institute 7 Center for Computational Astrophysics, Flatiron Institute 8 Jagiellonian University 9 CIFAR. Correspondence
+to: <{jarrid.rector-brooks,tara.akhoundsadegh}@mila.quebec>.
+
+Unlike the typical machine learning settings where the
+starting point is a dataset, learning to sample in many of
+these scientific settings is especially challenging as we
+often have little to no initial samples from µtarget , or the
+
+st
+
+Proceedings of the 41 International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

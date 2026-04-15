@@ -1,0 +1,72 @@
+InstaHide: Instance-hiding Schemes for Private Distributed Learning
+Yangsibo Huang 1 Zhao Song 2 Kai Li 1 Sanjeev Arora 2
+
+Abstract
+How can multiple distributed entities collaboratively train a shared deep net on their private data
+while preserving privacy? This paper introduces
+InstaHide, a simple encryption of training images, which can be plugged into an existing distributed deep learning pipeline. The encryption
+is efficient and has minor effect on test accuracy.
+InstaHide encrypts each training image with a
+“one-time secret key” which consists of mixing
+a number of randomly chosen images and applying a random pixel-wise mask. Other contributions of this paper include: (a) Using a large public dataset (e.g. ImageNet) for mixing during its
+encryption, which improves security. (b) Experimental results to show effectiveness in preserving privacy against known attacks with only minor effects on accuracy. (c) Theoretical analysis
+showing that successfully attacking privacy requires attackers to solve a difficult computational
+problem. (d) Demonstrating that Mixup alone is
+insecure (as contrary to recent proposals), by presenting some efficient attacks. (e) Release of a
+challenge dataset1 to encourage new attacks.
+
+1. Introduction
+In many applications, multiple parties or clients with sensitive data want to collaboratively train a neural network.
+For instance, hospitals may wish to train a model on their
+patient data. However, aggregating data to a central server
+may violate regulations such as Health Insurance Portability and Accountability Act (HIPAA) (Act, 1996) and General Data Protection Regulation (GDPR) (Voigt & Von dem
+Bussche, 2018).
+Federated learning (McMahan et al., 2016; Konečnỳ et al.,
+2016) proposes letting participants train on their own data
+1
+Princeton University 2 Princeton University and Institute
+for Advanced Study. Correspondence to: Yangsibo Huang
+<yangsibo@princeton.edu>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+1
+https://github.com/Hazelsuko07/InstaHide Challenge.
+
+in a distributed fashion and share only model updates —
+i.e., gradients—with the central server. The server aggregates these updates (typically by averaging) to improve a
+global model and then sends updates to participants. This
+process runs iteratively until the global model converges.
+Merging information from individual data points into aggregated gradients intuitively preserves privacy to some degree. On top of that, it is possible to add noise to gradients in accordance with Differential Privacy (DP) (Dwork
+et al., 2006; Dwork & Roth, 2014), though careful calculations are needed to compute the amount of noise to be
+added (Abadi et al., 2016; Papernot et al., 2019). However, the privacy guarantee of DP only applies to the trained
+model (i.e., approved use of data) and does not apply to
+side-channel computations performed by curious/malicious
+parties who are privy to the communicated gradients. Recent work (Zhu et al., 2019) suggests that eavesdropping
+attackers can recover private inputs from shared model updates, even when DP was used. A more serious issue
+with DP is that meaningful guarantees involve adding so
+much noise that test accuracy reduces by over 20% even on
+CIFAR-10 (Papernot et al., 2019).
+Cryptographic methods such as secure multiparty computation of (Yao, 1982) and fully-homomorphic encryption (Gentry, 2009) can ensure privacy against arbitrary
+side-computations by adversary during training. Unfortunately it is a challenge to use them in modern deep learning settings, owing to their high computational overheads
+and their needs for special setups (e.g finite field arithmetic,
+public-key infrastructure).
+Here we introduce a new method InstaHide, inspired
+by a weaker cryptographic idea of instance hiding
+schemes (Abadi et al., 1987). We only apply it to image
+data in this paper and leave other data types (e.g., text) for
+future work. InstaHide gives a way to transform input x
+to a hidden/encrypted input x
+e in each epoch such that: (a)
+Training deep nets using the x
+e’s instead of x’s gives nets
+almost as good in terms of final accuracy; (b) Known methods for recovering information about x out of x
+e are computationally very expensive. In other words, x
+e effectively
+hides information contained in x except for its label.
+
+InstaHide encryption has two key components. The first is
+inspired by Mixup data augmentation method (Zhang et al.,
+
+

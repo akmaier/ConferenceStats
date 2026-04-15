@@ -1,0 +1,85 @@
+Learning to Explore via Meta-Policy Gradient
+
+Tianbing Xu 1 Qiang Liu 2 Liang Zhao 1 Jian Peng 3
+
+Abstract
+The performance of off-policy learning, including deep Q-learning and deep deterministic policy
+gradient (DDPG), critically depends on the choice
+of the exploration strategy. Existing exploration
+methods are mostly based on adding noises to the
+on-going actor policy and therefore only explore
+locally close to what the actor policy dictates. In
+this work, we develop a simple meta-policy gradient algorithm that allows us to adaptively learn
+the exploration policy in DDPG. Our algorithm
+allows us to train flexible exploration behaviors
+that are independent of the actor policy, yielding a more global exploration that significantly
+accelerates Q-learning. With an extensive study,
+we show that our method significantly improves
+the sample-efficiency of DDPG on a variety of
+reinforcement learning continuous control tasks.
+
+1. Introduction
+Recent advances in deep reinforcement learning (RL) have
+demonstrated significant applicability and strong performance in games (Mnih et al., 2015; Silver et al., 2017), continuous control (Lillicrap et al., 2016), and robotics (Levine
+et al., 2016). Among them, deep neural networks, such as
+convolutional neural networks, are widely used as powerful
+functional approximators for extracting useful features and
+enabling complex decision making. For instance, in continuous control tasks, a policy that selects actions under certain
+state observation can be parameterized with a deep neural
+network that takes the current state observation as input and
+gives an action or a distribution of action as output. In order
+to optimize such policies, various policy gradient methods
+(Heess et al., 2017; Mnih et al., 2016; Schulman et al., 2015;
+2017), including both off-policy and on-policy approaches,
+have been proposed. In particular, deterministic policy gradient method (DPG), which extends the discrete Q-learning
+1
+
+Baidu Research, Sunnyvale, CA 2 University of Texas at Austin,
+TX University of Illinois at Urbana Champaign, IL. Correspondence to: Tianbing Xu <xutianbing@baidu.com>.
+3
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+algorithm to the continuous action spaces, exploits previous
+experience or off-policy data from a replay buffer and often
+achieves more desirable sample efficiency compared to most
+existing on-policy policy gradient algorithms. In the recent
+NIPS 2017 learning to run challenge, the deep deterministic
+policy gradient algorithm (DDPG) (Lillicrap et al., 2016), a
+variant of DPG, has been applied by almost all top-ranked
+teams and achieved a very compelling success in a highdimensional continuous control problem, while on-policy
+algorithms, including TRPO (Schulman et al., 2015) and
+PPO (Schulman et al., 2017), performed much worse with
+the same amount of data collected.
+In contrast to deep Q-learning (DQN) (Mnih et al., 2015)
+which only learns a value function on a set of discrete actions, DDPG also parameterizes a deterministic policy to
+select a continuous action, thus avoiding the optimization in
+or the discretization of the continuous action space. As an
+off-policy actor-critic method, DDPG utilizes the Bellman
+equation updates for optimizing the value function and the
+policy gradient method to optimize the actor policy. Unlike
+DQN which often applies epsilon-greedy exploration on a
+set of discrete actions, more sophisticated continuous exploration in the high-dimensional continuous action space
+is required for DDPG. A common practice of exploration
+in DDPG is to add a uncorrelated Gaussian or a correlated
+Ornstein-Uhlenbeck (OU) process (Uhlenbeck & Ornstein,
+1993) to the action selected by the deterministic policy. The
+data collected by this exploration method is then added to a
+replay buffer used for DDPG training. However, in practice,
+Gaussian noises may be sub-optimal or misspecified, and
+hyper-parameters in the noise process are hard to tune.
+In this work, we introduce a meta-learning algorithm to directly learn an exploration policy to collect better experience
+data for DDPG training. Instead of using additive noises on
+actions, we parameterize a stochastic policy to generate data
+to construct the replay buffer for training the deterministic
+policy in the DDPG algorithm. This stochastic policy can
+be seen as an exploration policy or a teacher policy that
+gathers high-quality trajectories that enable better training
+of the current deterministic policy and the value function.
+To learn the exploration policy, we develop an on-policy policy gradient algorithm based on the training improvement
+of the deterministic policy. First, we obtain a collection of
+exploration data from the stochastic policy and then apply
+
+

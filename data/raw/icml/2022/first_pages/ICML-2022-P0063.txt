@@ -1,0 +1,77 @@
+Learning Stable Classifiers by Transferring Unstable Features
+
+Yujia Bao 1 Shiyu Chang 2 Regina Barzilay 1
+
+Abstract
+While unbiased machine learning models are essential for many applications, bias is a humandefined concept that can vary across tasks. Given
+only input-label pairs, algorithms may lack sufficient information to distinguish stable (causal)
+features from unstable (spurious) features. However, related tasks often share similar biases – an
+observation we may leverage to develop stable
+classifiers in the transfer setting. In this work,
+we explicitly inform the target classifier about unstable features in the source tasks. Specifically,
+we derive a representation that encodes the unstable features by contrasting different data environments in the source task. We achieve robustness
+by clustering data of the target task according
+to this representation and minimizing the worstcase risk across these clusters. We evaluate our
+method on both text and image classifications.
+Empirical results demonstrate that our algorithm
+is able to maintain robustness on the target task
+for both synthetically generated environments and
+real-world environments. Our code is available at
+https://github.com/YujiaBao/Tofu.
+
+1. Introduction
+Automatic de-biasing (Sohoni et al., 2020; Creager et al.,
+2021; Sanh et al., 2021) has emerged as a promising direction for learning stable classifiers. The key premise here
+is that no additional annotations for the bias attribute are
+required. However, bias is a human-defined concept and
+can vary from task to task. Provided with only input-label
+pairs, algorithms may not have sufficient information to
+distinguish stable (causal) features from unstable (spurious)
+features.
+To address this challenge, we note that related tasks are often
+fraught with similar spurious correlations. For instance,
+1
+MIT CSAIL 2 Computer Science, UC Santa Barbara. Correspondence to: Yujia Bao <yujia@csail.mit.edu>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+when classifying animals such as camels vs. cows, their
+backgrounds (desert vs. grass) may constitute a spurious
+correlation (Beery et al., 2018). The same bias between
+the label and the background also persists in other related
+classification tasks (such as sheep vs. antelope). In the
+resource-scarce target task, we only have access to the inputlabel pairs. However, in the source tasks, where training
+data is sufficient, identifying biases may be easier. For
+instance, we may have examples collected from multiple
+environments, in which correlations between bias features
+and the label are different (Arjovsky et al., 2019). These
+source environments help us define the exact bias features
+that we want to regulate.
+One obvious approach to utilize the source task is direct
+transfer. Specifically, given multiple source environments,
+we can train an unbiased source classifier and then apply its
+representation to the target task. However, we empirically
+demonstrate that while the source classifier is not biased
+when making its final predictions, its internal continuous
+representation can still encode information about the unstable features. Figure 1 shows that in Colored MNIST,
+where the digit label is spuriously correlated with the image
+color, direct transfer by either re-using or fine-tuning the
+representation learned on the source task fails in the target
+task, performing no better than the majority baseline.
+In this paper, we propose to explicitly inform the target classifier about unstable features from the source data. Specifically, we derive a representation that encodes these unstable
+features using the source environments. Then we identify
+distinct subpopulations by clustering examples based on
+this representation and apply group DRO (Sagawa et al.,
+2019) to minimize the worst-case risk over these subpopulations. As a result, we enforce the target classifier to
+be robust against different values of the unstable features.
+In the example above, animals would be clustered according to backgrounds, and the classifier should perform well
+regardless of the clusters (backgrounds).
+The remaining question is how to compute the unstable
+feature representation using the source data environments.
+Following Bao et al. (2021), we hypothesize that unstable
+features are reflected in mistakes observed during classifier
+transfer across environments. For instance, if the classifier
+uses the background to distinguish camels from cows, the
+
+

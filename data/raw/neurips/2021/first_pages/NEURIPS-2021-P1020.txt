@@ -1,0 +1,58 @@
+Channel Permutations for N:M Sparsity
+
+Jeff Pool
+NVIDIA
+jpool@nvidia.com
+
+1
+
+Chong Yu1,2
+Academy for Engineering and Technology, Fudan University
+2
+NVIDIA
+chongy@nvidia.com
+
+Abstract
+We introduce channel permutations as a method to maximize the accuracy of N:M
+sparse networks. N:M sparsity requires N out of M consecutive elements to be zero
+and has been shown to maintain accuracy for many models and tasks with a simple
+prune and fine-tune workflow. By permuting weight matrices along their channel
+dimension and adjusting the surrounding layers appropriately, we demonstrate
+accuracy recovery for even small, parameter-efficient networks, without affecting
+inference run-time. We also present both a quality metric to simplify judging
+permutations as well as efficient methods to search for high-quality permutations,
+including two optimizations to escape local minima. Finally, we share an ablation
+study to show the importance of each part of our search algorithm, experimental
+results showing correlation between our quality metric and final network accuracy,
+improved sparse network accuracy using our techniques with insignificant overhead to training time, and the transformation of unstructured to structured sparse
+workloads. Code to use these techniques when generating a 2:4 sparse network is
+available at https://github.com/NVIDIA/apex/tree/master/apex/contrib/sparsity.
+
+1
+
+Introduction
+
+Deep Neural Networks (DNNs) excel at complex tasks such as image classification, object detection,
+and language modeling. Their success often comes at the cost of immense computational complexity,
+and growing model size generally results in even higher-quality results. To combat this everincreasing computational workload at inference, various approaches have been used to save effort;
+for example, network pruning removes weights from the network, and quantization can replace
+floating-point operations with simpler integer operations. We focus on one type of network pruning
+that is accelerated in hardware: 2:4 structured sparsity [22] (a particular form of the more general
+N:M sparsity), since it has been shown to maintain accuracy across a wide range of networks and
+tasks while being easy to save computation. While many networks do recover accuracy with a
+fine-tuning step, some small, parameter-efficient image-classification networks that were designed
+with economy of memory and computation in mind cannot recover the accuracy lost due to pruning
+with this suggested workflow. Further, this workflow repeats the dense training all over again, which,
+while straightforward, can be costly if the lifetime of the deployment model is not long enough to
+amortize this extra training.
+We seek to address these shortcomings with the observation that the 2:4 pruning step, which forces
+two out of every four consecutive elements to be zero (the "2:4 constraint"), sometimes must prune a
+relatively large, and intuitively important, value. If different options were available to each group
+of four values, then more advantageous choices can be made, as illustrated in Figure 1. When the
+example weight matrix (top-left) is pruned with 2:4 sparsity in its original order, it results in a sparse
+matrix (top-right) with total weight magnitude of 44.5. By first changing the order of the columns
+in the matrix, though (bottom-left), the resulting sparse matrix (bottom-right) has a total weight
+magnitude of 58.6. It is simple to find this fruitful column permutation in such a small example, but
+35th Conference on Neural Information Processing Systems (NeurIPS 2021).
+
+

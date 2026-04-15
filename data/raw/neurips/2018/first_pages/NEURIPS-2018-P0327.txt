@@ -1,0 +1,58 @@
+Unsupervised Learning of Shape and Pose
+with Differentiable Point Clouds
+Eldar Insafutdinov∗
+Max Planck Institute for Informatics
+eldar@mpi-inf.mpg.de
+
+Alexey Dosovitskiy
+Intel Labs
+adosovitskiy@gmail.com
+
+Abstract
+We address the problem of learning accurate 3D shape and camera pose from a
+collection of unlabeled category-specific images. We train a convolutional network
+to predict both the shape and the pose from a single image by minimizing the
+reprojection error: given several views of an object, the projections of the predicted
+shapes to the predicted camera poses should match the provided views. To deal
+with pose ambiguity, we introduce an ensemble of pose predictors which we then
+distill to a single “student” model. To allow for efficient learning of high-fidelity
+shapes, we represent the shapes by point clouds and devise a formulation allowing
+for differentiable projection of these. Our experiments show that the distilled
+ensemble of pose predictors learns to estimate the pose accurately, while the point
+cloud representation allows to predict detailed shape models.
+
+1
+
+Introduction
+
+We live in a three-dimensional world, and a proper understanding of its volumetric structure is
+crucial for acting and planning. However, we perceive the world mainly via its two-dimensional
+projections. Based on these projections, we are able to infer the three-dimensional shapes and poses
+of the surrounding objects. How does this volumetric shape perception emerge from observing only
+from two-dimensional projections? Is it possible to design learning systems with similar capabilities?
+Deep learning methods have recently shown promise in addressing these questions [25, 20]. Given
+a set of views of an object and the corresponding camera poses, these methods learn 3D shape via
+the reprojection error: given an estimated shape, one can project it to the known camera views and
+compare to the provided images. The discrepancy between these generated projections and the
+training samples provides training signal for improving the shape estimate. Existing methods of this
+type have two general restrictions. First, these approaches assume that the camera poses are known
+precisely for all provided images. This is a practically and biologically unrealistic assumption: a
+typical intelligent agent only has access to its observations, not its precise location relative to objects
+in the world. Second, the shape is predicted as a low-resolution (usually 323 voxels) voxelated
+volume. This representation can only describe very rough shape of an object. It should be possible to
+learn finer shape details from 2D supervision.
+In this paper, we learn high-fidelity shape models solely from their projections, without ground
+truth camera poses. This setup is challenging for two reasons. First, estimating both shape and
+pose is a chicken-and-egg problem: without a good shape estimate it is impossible to learn accurate
+pose because the projections would be uninformative, and vice versa, an accurate pose estimate is
+necessary to learn the shape. Second, pose estimation is prone to local minima caused by ambiguity:
+an object may look similar from two viewpoints, and if the network converges to predicting only one
+of these in all cases, it will not be able to learn predicting the other one. We find that the first problem
+can be solved surprisingly well by joint optimization of shape and pose predictors: in practice, good
+∗
+
+Work done while interning at Intel.
+
+32nd Conference on Neural Information Processing Systems (NeurIPS 2018), Montréal, Canada.
+
+

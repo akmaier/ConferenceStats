@@ -1,0 +1,78 @@
+GraphNorm: A Principled Approach to Accelerating
+Graph Neural Network Training
+
+Tianle Cai * 1 2 Shengjie Luo * 3 4 5 Keyulu Xu 6 Di He 7 Tie-Yan Liu 7 Liwei Wang 3 4
+
+Abstract
+Normalization is known to help the optimization
+of deep neural networks. Curiously, different
+architectures require specialized normalization
+methods. In this paper, we study what normalization is effective for Graph Neural Networks
+(GNNs). First, we adapt and evaluate the existing
+methods from other domains to GNNs. Faster
+convergence is achieved with InstanceNorm compared to BatchNorm and LayerNorm. We provide
+an explanation by showing that InstanceNorm
+serves as a preconditioner for GNNs, but such
+preconditioning effect is weaker with BatchNorm
+due to the heavy batch noise in graph datasets.
+Second, we show that the shift operation in InstanceNorm results in an expressiveness degradation of GNNs for highly regular graphs. We
+address this issue by proposing GraphNorm with
+a learnable shift. Empirically, GNNs with GraphNorm converge faster compared to GNNs using
+other normalization. GraphNorm also improves
+the generalization of GNNs, achieving better performance on graph classification benchmarks.
+
+1. Introduction
+Recently, there has been a surge of interest in Graph Neural Networks (GNNs) for learning with graphs (Gori et al.,
+2005; Scarselli et al., 2008; Hamilton et al., 2017; Kipf
+& Welling, 2017; Velickovic et al., 2018; Xu et al., 2018;
+Ying et al., 2021). GNNs learn node and graph representations by recursively aggregating and updating the node
+representations from neighbor representations (Gilmer et al.,
+*
+
+Equal contribution 1 Department of Electrical and Computer
+Engineering, Princeton University 2 Zhongguancun Haihua Institute for Frontier Information Technology 3 Key Laboratory of
+Machine Perception, MOE, School of EECS, Peking University
+4
+Center for Data Science, Peking University 5 Pazhou Lab 6 CSAIL,
+Massachusetts Institute of Technology (MIT) 7 Microsoft Research.
+Correspondence to: Liwei Wang <wanglw@pku.edu.cn>, Di He
+<dihe@microsoft.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+2017). Empirically, GNNs have succeeded in a variety of
+tasks such as computational chemistry (Stokes et al., 2020),
+recommendation systems (Ying et al., 2018), and visual
+question answering (Santoro et al., 2017). Theoretically,
+existing works have studied GNNs through the lens of expressive power (Keriven & Peyré, 2019; Xu et al., 2019;
+Sato et al., 2019; Loukas, 2020; Ying et al., 2021), generalization (Scarselli et al., 2018; Du et al., 2019b; Xu et al.,
+2020), and extrapolation (Xu et al., 2021). However, the optimization of GNNs is less well understood, and in practice,
+the training of GNNs is often unstable and the convergence
+is slow (Xu et al., 2019).
+In this paper, we study how to improve the training of GNNs
+via normalization. Normalization methods shift and scale
+the hidden representations and are shown to help the optimization for deep neural networks (Ioffe & Szegedy, 2015;
+Ulyanov et al., 2016; Ba et al., 2016; Salimans & Kingma,
+2016; Xiong et al., 2020; Salimans et al., 2016; Miyato et al.,
+2018; Wu & He, 2018; Santurkar et al., 2018). Curiously, no
+single normalization helps in every domain, and different architectures require specialized methods. For example, Batch
+normalization (BatchNorm) is a standard component in computer vision (Ioffe & Szegedy, 2015); Layer normalization
+(LayerNorm) is popular in natural language processing (Ba
+et al., 2016; Xiong et al., 2020); Instance normalization
+(InstanceNorm) has been found effective for style transfer
+tasks (Ulyanov et al., 2016) . This motivates the question:
+What normalization methods are effective for GNNs?
+We take an initial step towards answering the question above.
+First, we adapt the existing methods from other domains,
+including BatchNorm, LayerNorm, and InstanceNorm, to
+GNNs and evaluate their performance with extensive experiments on graph classification tasks. We observe that
+our adaptation of InstanceNorm to GNNs, which for each
+individual graph normalizes its node hidden representations,
+obtains much faster convergence compared to BatchNorm
+and LayerNorm. We provide an explanation for the success of InstanceNorm by showing that the shift operation
+in InstanceNorm serves as a preconditioner of the graph
+aggregation operation. Empirically, such preconditioning
+makes the optimization curvature smoother and makes the
+training more efficient. We also explain why the widely used
+
+

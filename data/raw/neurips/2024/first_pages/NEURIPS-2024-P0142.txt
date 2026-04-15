@@ -1,0 +1,84 @@
+Revisiting Score Propagation in Graph
+Out-of-Distribution Detection
+
+1
+
+Longfei Ma1∗, Yiyou Sun2∗, Kaize Ding3 , Zemin Liu1†, Fei Wu1†
+Zhejiang University, 2 University of Wisconsin-Madison, 3 Northwestern University
+{longfeima, liu.zemin, wufei}@zju.edu.cn,
+sunyiyou@cs.wisc.edu, kaize.ding@northwestern.edu
+
+Abstract
+The field of graph learning has been substantially advanced by the development of
+deep learning models, in particular graph neural networks. However, one salient
+yet largely under-explored challenge is detecting Out-of-Distribution (OOD) nodes
+on graphs. Prevailing OOD detection techniques developed in other domains like
+computer vision, do not cater to the interconnected nature of graphs. This work
+aims to fill this gap by exploring the potential of a simple yet effective method –
+OOD score propagation, which propagates OOD scores among neighboring nodes
+along the graph structure. This post hoc solution can be easily integrated with existing OOD scoring functions, showcasing its excellent flexibility and effectiveness
+in most scenarios. However, the conditions under which score propagation proves
+beneficial remain not fully elucidated. Our study meticulously derives these conditions and, inspired by this discovery, introduces an innovative edge augmentation
+strategy with theoretical guarantee. Empirical evaluations affirm the superiority of
+our proposed method, outperforming strong OOD detection baselines in various
+scenarios and settings. To ensure reproducibility, we have made our code and
+relevant data publicly available at https://github.com/longfei-ma/GRASP.
+
+1
+
+Introduction
+
+Graph-like data structures are ubiquitous in many domains, such as social networks [87, 40], molecular
+chemistry [19, 82], and recommendation systems [84, 45]. As graph neural networks increasingly
+serve as powerful tools for navigating this complex data landscape, a compelling yet under-explored
+issue emerges: Out-of-Distribution (OOD) node detection. Imagine a recommender system suggesting
+irrelevant or even harmful products to users, or a bioinformatics algorithm misusing an unknown
+protein. This gives rise to the importance of OOD detection in graph data, which determines whether
+an input is in-distribution (ID) or OOD and enables the model to take precautions.
+While existing OOD detection methods have shown promising reID
+OOD
+sults in computer vision [66, 27, 18, 15, 95], natural language procession [11, 57] and tabular data analytics [68], their effectiveness
+Raw
+g2
+g3
+g4
+diminishes when applied to graph data [77]. These conventional OOD Score g1
+techniques operate under the assumption that data points are indepenPropagation
+dently sampled, which misaligns with the interconnected nature of
+Postg1 + g2 g1 + g2 + g3 + g4
+graphs. To better leverage the structural knowledge from the graph, propagation
+…
+OOD Score
+2
+4
+OOD score propagation [77] has been employed to enhance graph
+OOD detection performance by directly propagating the computed Figure 1: Illustration of OOD
+OOD scores along the graph structure (as shown in Figure 1). Al- scores propagation.
+though this strategy has shown promising results on some datasets,
+<latexit sha1_base64="m4ab1ePUmi1NS1YX/D5QfiZhGek=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkqMeiF48V7Qe0oWy2k3TpZhN2N0Ip/QlePCji1V/kzX/jts1BWx8MPN6bYWZekAqujet+O4W19Y3NreJ2aWd3b/+gfHjU0kmmGDZZIhLVCahGwSU2DTcCO6lCGgcC28Hodua3n1BpnshHM07Rj2kkecgZNVZ6iPpev1xxq+4cZJV4OalAjka//NUbJCyLURomqNZdz02NP6HKcCZwWuplGlPKRjTCrqWSxqj9yfzUKTmzyoCEibIlDZmrvycmNNZ6HAe2M6ZmqJe9mfif181MeO1PuEwzg5ItFoWZICYhs7/JgCtkRowtoUxxeythQ6ooMzadkg3BW355lbQuqt5ltXZfq9Rv8jiKcAKncA4eXEEd7qABTWAQwTO8wpsjnBfn3flYtBacfOYY/sD5/AH0qY2Y</latexit>
+
+<latexit sha1_base64="OLNDnwmSp/ap72QnodxZsyhCdQ0=">AAAB+nicbVDLSsNAFL2pr1pfqS7dDBZBEEpSirosunFZwT6gDWEynaRDJw9mJkqJ+RQ3LhRx65e482+ctllo64ELh3Pu5d57vIQzqSzr2yitrW9sbpW3Kzu7e/sHZvWwK+NUENohMY9F38OSchbRjmKK034iKA49Tnve5Gbm9x6okCyO7tU0oU6Ig4j5jGClJdesDn2BSRa49nngNvKskbtmzapbc6BVYhekBgXarvk1HMUkDWmkCMdSDmwrUU6GhWKE07wyTCVNMJnggA40jXBIpZPNT8/RqVZGyI+Frkihufp7IsOhlNPQ050hVmO57M3E/7xBqvwrJ2NRkioakcUiP+VIxWiWAxoxQYniU00wEUzfisgY6yyUTquiQ7CXX14l3Ubdvqg375q11nURRxmO4QTOwIZLaMEttKEDBB7hGV7hzXgyXox342PRWjKKmSP4A+PzB5R8k5I=</latexit>
+
+∗
+†
+
+Equal Contribution
+Corresponding author
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+<latexit sha1_base64="d5Sy3wVsuYh328MJYoJ3kaTIft0=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0lKUY9FLx4r2lpoQ9lsJ+3SzSbsboQS+hO8eFDEq7/Im//GbZuDtj4YeLw3w8y8IBFcG9f9dgpr6xubW8Xt0s7u3v5B+fCoreNUMWyxWMSqE1CNgktsGW4EdhKFNAoEPgbjm5n/+IRK81g+mEmCfkSHkoecUWOl+2G/1i9X3Ko7B1klXk4qkKPZL3/1BjFLI5SGCap113MT42dUGc4ETku9VGNC2ZgOsWuppBFqP5ufOiVnVhmQMFa2pCFz9fdERiOtJ1FgOyNqRnrZm4n/ed3UhFd+xmWSGpRssShMBTExmf1NBlwhM2JiCWWK21sJG1FFmbHplGwI3vLLq6Rdq3oX1fpdvdK4zuMowgmcwjl4cAkNuIUmtIDBEJ7hFd4c4bw4787HorXg5DPH8AfO5w/2LY2Z</latexit>
+
+<latexit sha1_base64="q1JOqHGOMKdlF/mYYhL5RI2RMeI=">AAACAnicbVDLSsNAFL3xWesr6krcBIsgCCWpQV0W3bisYB/QhjCZTtKhk0mYmQglFDf+ihsXirj1K9z5N07bLLT1wIHDOfcyc0+QMiqVbX8bS8srq2vrpY3y5tb2zq65t9+SSSYwaeKEJaITIEkY5aSpqGKkkwqC4oCRdjC8meTtByIkTfi9GqXEi1HEaUgxUtryzcNeKBDOI985i/ya5rmmO87dsW9W7Ko9hbUonEJUoEDDN796/QRnMeEKMyRl17FT5eVIKIoZGZd7mSQpwkMUka6WHMVEevn0hLF1op2+FSZCkytr6v7eyFEs5SgO9GSM1EDOZxPzv6ybqfDKyylPM0U4nj0UZsxSiTXpw+pTQbBiIy0QFlT/1cIDpDtRurWyLsGZP3lRtGpV56Lq3rmV+nVRRwmO4BhOwYFLqMMtNKAJGB7hGV7hzXgyXox342M2umQUOwfwB8bnD209li0=</latexit>
+
+<latexit sha1_base64="BHA6HqfS1HBACh78/oBdKFYnAOE=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0m0qMeiF48V7Qe0oWy2m3TpZhN2J0Ip/QlePCji1V/kzX/jts1Bqw8GHu/NMDMvSKUw6LpfTmFldW19o7hZ2tre2d0r7x+0TJJpxpsskYnuBNRwKRRvokDJO6nmNA4kbwejm5nffuTaiEQ94DjlfkwjJULBKFrpPuqf98sVt+rOQf4SLycVyNHolz97g4RlMVfIJDWm67kp+hOqUTDJp6VeZnhK2YhGvGupojE3/mR+6pScWGVAwkTbUkjm6s+JCY2NGceB7YwpDs2yNxP/87oZhlf+RKg0Q67YYlGYSYIJmf1NBkJzhnJsCWVa2FsJG1JNGdp0SjYEb/nlv6R1VvUuqrW7WqV+ncdRhCM4hlPw4BLqcAsNaAKDCJ7gBV4d6Tw7b877orXg5DOH8AvOxzf3sY2a</latexit>
+
+<latexit sha1_base64="RDbFwIheGp3ROfIp7Cp6HKy802U=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkqMeiF48V7Qe0oWy2k3TpZhN2N0Ip/QlePCji1V/kzX/jts1BWx8MPN6bYWZekAqujet+O4W19Y3NreJ2aWd3b/+gfHjU0kmmGDZZIhLVCahGwSU2DTcCO6lCGgcC28Hodua3n1BpnshHM07Rj2kkecgZNVZ6iPq1frniVt05yCrxclKBHI1++as3SFgWozRMUK27npsaf0KV4UzgtNTLNKaUjWiEXUsljVH7k/mpU3JmlQEJE2VLGjJXf09MaKz1OA5sZ0zNUC97M/E/r5uZ8NqfcJlmBiVbLAozQUxCZn+TAVfIjBhbQpni9lbChlRRZmw6JRuCt/zyKmldVL3Lau2+Vqnf5HEU4QRO4Rw8uII63EEDmsAggmd4hTdHOC/Ou/OxaC04+cwx/IHz+QP5NY2b</latexit>
+
+1. Shall we
+propagate?
+
+2. How to
+improve it?
+
+

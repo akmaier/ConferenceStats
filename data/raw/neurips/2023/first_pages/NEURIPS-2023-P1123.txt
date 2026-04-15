@@ -1,0 +1,59 @@
+Layer-Neighbor Sampling — Defusing Neighborhood
+Explosion in GNNs
+
+Muhammed Fatih Balın∗†
+balin@gatech.edu
+
+Ümit V. Çatalyürek‡ †
+umit@gatech.edu
+
+Abstract
+Graph Neural Networks (GNNs) have received significant attention recently, but
+training them at a large scale remains a challenge. Mini-batch training coupled
+with sampling is used to alleviate this challenge. However, existing approaches
+either suffer from the neighborhood explosion phenomenon or have suboptimal
+performance. To address these issues, we propose a new sampling algorithm called
+LAyer-neighBOR sampling (LABOR). It is designed to be a direct replacement for
+Neighbor Sampling (NS) with the same fanout hyperparameter while sampling up
+to 7 times fewer vertices, without sacrificing quality. By design, the variance of
+the estimator of each vertex matches NS from the point of view of a single vertex.
+Moreover, under the same vertex sampling budget constraints, LABOR converges
+faster than existing layer sampling approaches and can use up to 112 times larger
+batch sizes compared to NS.
+
+1
+
+Introduction
+
+Graph Neural Networks (GNN) [Hamilton et al., 2017, Kipf and Welling, 2017] have become de
+facto models for representation learning on graph-structured data. Hence they have started being
+deployed in production systems [Ying et al., 2018, Niu et al., 2020]. These models iteratively
+update the node embeddings by passing messages along the direction of the edges in the given graph
+with nonlinearities between different layers. With l layers, the computed node embeddings contain
+information from the l-hop neighborhood of the seed vertex.
+In the production setting, the GNN models need to be trained on billion-scale graphs [Ching et al.,
+2015, Ying et al., 2018]. The training of these models takes hours to days even on distributed
+systems [Zheng et al., 2022b,a]. As in general Deep Neural Networks (DNN), it is more efficient to
+use mini-batch training [Bertsekas, 1994] on GNNs, even though it is a bit trickier in this case. The
+node embeddings in GNNs depend recursively on their set of neighbors’ embeddings, so when there
+are l layers, this dependency spans the l-hop neighborhood of the node. Real-world graphs usually
+have a very small diameter and if l is large, the l-hop neighborhood may very well span the entire
+graph, also known as the Neighborhood Explosion Phenomenon (NEP) [Zeng et al., 2020].
+To solve these issues, researchers proposed sampling a subgraph of the l-hop neighborhood of the
+nodes in the batch. There are mainly three different approaches: Node-based, Layer-based and
+Subgraph-based methods. Node-based sampling methods [Hamilton et al., 2017, Chen et al., 2018a,
+Liu et al., 2020, Zhang et al., 2021] sample independently and recursively for each node. It was
+noticed that node-based methods sample subgraphs that are too shallow, i.e., with a low ratio of
+number of edges to nodes. Thus layer-based sampling methods were proposed [Chen et al., 2018b,
+∗
+
+Part of the GPU acceleration in this work was implemented during an internship at NVIDIA Corporation.
+School of Computational Science and Engineering, Georgia Institute of Technology, Atlanta, GA, USA
+‡
+Amazon Web Services. This publication describes work performed at the Georgia Institute of Technology
+and is not associated with AWS.
+†
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

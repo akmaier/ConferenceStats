@@ -1,0 +1,76 @@
+Imitation by Predicting Observations
+
+Andrew Jaegle 1 Yury Sulsky 1 Arun Ahuja 1 Jake Bruce 1 Rob Fergus 1 Greg Wayne 1
+
+Abstract
+Imitation learning enables agents to reuse and
+adapt the hard-won expertise of others, offering
+a solution to several key challenges in learning
+behavior. Although it is easy to observe behavior in the real-world, the underlying actions may
+not be accessible. We present a new method for
+imitation solely from observations that achieves
+comparable performance to experts on challenging continuous control tasks while also exhibiting
+robustness in the presence of observations unrelated to the task. Our method, which we call
+FORM (for “Future Observation Reward Model”)
+is derived from an inverse RL objective and imitates using a model of expert behavior learned
+by generative modelling of the expert’s observations, without needing ground truth actions. We
+show that FORM performs comparably to a strong
+baseline IRL method (GAIL) on the DeepMind
+Control Suite benchmark, while outperforming
+GAIL in the presence of task-irrelevant features.
+
+1. Introduction
+The goal of imitation is to learn to produce behavior that
+matches that of an expert on unseen data, given demonstrations of the expert’s behavior (Abbeel & Ng, 2004; Osa et al.,
+2018). The field of imitation learning offers tools for learning behavior when programmed rewards cannot be provided,
+or when rewards can only be partially or sparsely specified.
+Imitation learning has been at the heart of several breakthroughs in building AI agents (Pomerleau, 1989; Abbeel
+et al., 2010; Silver et al., 2016; Vinyals et al., 2019; OpenAI
+et al., 2019), allowing agents to learn even when faced with
+hard exploration problems (Gulcehre et al., 2020).
+There is widespread evidence that imitation (among other
+forms of social learning) is a core mechanism by which humans and other animals learn to acquire a sophisticated behavioral repertoire (Tomasello, 1996; Laland, 2008; Byrne,
+1
+
+DeepMind. Correspondence to: Andrew Jaegle <drewjaegle@deepmind.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+2009; Huber et al., 2009). While most algorithms for imitation learning assume that demonstrations contain the actions
+the expert executed, animals must imitate without directly
+observing what actions the expert took (i.e. without knowing exactly what commands were issued to produce the
+observable changes). In the context of machine learning,
+solving the problem of imitation from observation is a key
+step towards the tantalizing possibility of learning behavior
+from unlabeled and easy to collect data, such as raw video
+footage of human activity. Many recent algorithms for imitation have focused on addressing the problem of imitation
+in very small data regimes, but the challenge in imitating
+from these abundant sources of data is not primarily one of
+quantity. The challenge is rather how to learn models for
+imitation that are general enough to learn and generalize
+from data that depicts a rich (and unknown) reward structure.
+In this work, we show how predictive generative models can
+be used to learn a general reward model from observations
+alone.
+Current state-of-the-art approaches to imitation (including
+from observation) pose learning as an adversarial game: a
+classifier estimates the probability that a state is visited by
+the expert or imitator, and the policy seeks to maximize
+the classifier error (Merel et al., 2017; Torabi et al., 2019a).
+Because these methods are based on matching the expert’s
+occupancy using a fixed dataset of demonstrations, they tend
+to be very sensitive to the precise details of the demonstrations and to the representation used. This property makes
+learning with adversarial methods difficult when using raw,
+noisy observations without extensive tuning and careful
+use of strong forms of regularization (Peng et al., 2019),
+domain or task knowledge (Zolna et al., 2020), or a combination of behavioral cloning and careful representation
+design (Abramson et al., 2020).
+In this work, we introduce the future observation reward
+model (FORM) (see Figure 1), which address the problem
+of imitation from observation while exhibiting both (1) generality and expressiveness by coupling predictive generative
+models with inverse RL (IRL) and (2) improved robustness
+by foregoing an adversarial formulation. In FORM, the imitator tries to match the probability of observation sequences
+in the expert data. It does so using a learned generative
+model of expert observation sequences and a learned generative model of its own observation sequences. In other words,
+
+

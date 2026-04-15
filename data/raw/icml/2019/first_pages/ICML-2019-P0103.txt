@@ -1,0 +1,120 @@
+Particle Flow Bayes’ Rule
+
+Xinshi Chen * 1 Hanjun Dai * 2 Le Song 2 3
+
+Abstract
+We present a particle flow realization of Bayes’
+rule, where an ODE-based neural operator is used
+to transport particles from a prior to its posterior
+after a new observation. We prove that such an
+ODE operator exists. Its neural parameterization
+can be trained in a meta-learning framework, allowing this operator to reason about the effect of
+an individual observation on the posterior, and
+thus generalize across different priors, observations and to sequential Bayesian inference. We
+demonstrated the generalization ability of our particle flow Bayes operator in several canonical and
+high dimensional examples.
+
+1. Introduction
+
+It therefore requires algorithms which allow for efficient
+online inference. In this case, both standard MCMC and
+variational inference become inefficient, since the former
+requires a complete scan of the dataset in each iteration, and
+the latter requires solving an optimization for every new
+observation. Thus, sequential Monte Carlo (SMC) (Doucet
+et al., 2001; Balakrishnan & Madigan, 2006) or stochastic
+approximations, such as stochastic gradient Langevin dynamics (Welling & Teh, 2011) and stochastic variational inference (Hoffman et al., 2012), are developed to improve the
+efficiency. However, SMC suffers from the path degeneracy
+problems in high dimensions (Daum & Huang, 2003; Snyder
+et al., 2008), and rejuvenation steps are designed but may
+violate the online sequential update requirement (Canini
+et al., 2009; Chopin et al., 2013). Stochastic approximation
+methods are prescribed algorithms that cannot exploit the
+structure of the problem for further improvement.
+
+In many data analysis tasks, it is important to estimate
+unknown quantities x ∈ Rd from observations Om :=
+{o1 , · · · , om }. Given prior knowledge π(x) and likelihood
+functions p(ot |x), the essence of Bayesian
+inference is to
+Qm
+compute the posterior p(x|Om ) ∝ π(x) t=1 p(ot |x) by
+Bayes’ rule. For many nontrivial models, the prior might
+not be conjugate to the likelihood, making the posterior
+not in a closed form. Therefore, computing the posterior
+often results in intractable integration and poses significant
+challenges. Typically, one resorts to approximate inference
+methods such as sampling (e.g., MCMC) (Andrieu et al.,
+2003) or variational inference (Wainwright & Jordan, 2003).
+
+To address these challenges, the seminal work of Kernel
+Bayes Rule (KBR) views the Bayes update as an operator
+in reproducing kernel Hilbert spaces (RKHS) which can
+be learned and directly produce the posterior from prior
+after each observation (Fukumizu et al., 2012). In the KBR
+framework, the posterior is represented as an embedding
+µm := Ep(x|Om ) [φ(x)] using a feature map φ(·) associated with a kernel function; then the kernel Bayes operator
+K(·, o) will take this embedding as input and produce the
+embedding of the updated posterior,
+
+In many real problems, observations arrive sequentially online, and Bayesian inference needs be performed recursively,
+
+Another novel aspect of KBR method is that it contains a
+training phase and a testing phase, where the structure of the
+problem at hand (e.g., the likelihood) is taken into account
+in the training phase, and in the testing phase, the learned
+operator K will directly operate on the current posterior µm
+to produce the output. However, despite the nice concepts
+of KBR operator, it only works well for a limited range of
+problems due to its strong theoretical assumptions.
+
+updated posterior
+
+current posterior
+
+likelihood
+
+z }| {
+z }| { z }| {
+p(x|Om+1 ) ∝ p(x|Om ) p(om+1 |x) .
+(1)
+That is the estimation of p(x|Om+1 ) should be computed
+based on the estimation of p(x|Om ) obtained from the last
+iteration and the presence of the new observation om+1 .
+*
+Equal contribution 1 School of Mathematics, 2 School of Computational Science and Engineering, Georgia Institute of Technology, Atlanta, Georgia, USA. 3 Ant Financial, Hangzhou, China.
+Correspondence to: Xinshi Chen <xinshi.chen@gatech.edu>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+current embedding
+
+updated embedding
+
+z }| {
+µm+1
+
+=
+
+K(
+
+z}|{
+µm
+
+,
+
+om+1
+
+).
+
+(2)
+
+In this work, we aim to lift the limitation of KBR operator,
+and will design a novel continuous particle flow operator
+F to realize the Bayes update, for which we call it particle flow Bayes’ rule (PFBR). In the PFBR framework
+(Fig. 1), a prior distribution π(x), or, the current posterior
+πm (x) := p(x|Om ) is approximated by a set of N equally
+
+

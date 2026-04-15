@@ -1,0 +1,56 @@
+Supervising the Multi-Fidelity Race
+of Hyperparameter Configurations
+
+Martin Wistuba∗ †
+Amazon Web Services, Berlin, Germany
+marwistu@amazon.com
+
+Arlind Kadra∗
+University of Freiburg, Freiburg, Germany
+kadraa@cs.uni-freiburg.de
+
+Josif Grabocka
+University of Freiburg, Freiburg, Germany
+grabocka@cs.uni-freiburg.de
+
+Abstract
+Multi-fidelity (gray-box) hyperparameter optimization techniques (HPO) have
+recently emerged as a promising direction for tuning Deep Learning methods.
+However, existing methods suffer from a sub-optimal allocation of the HPO budget to the hyperparameter configurations. In this work, we introduce DyHPO, a
+Bayesian Optimization method that learns to decide which hyperparameter configuration to train further in a dynamic race among all feasible configurations. We
+propose a new deep kernel for Gaussian Processes that embeds the learning curve
+dynamics, and an acquisition function that incorporates multi-budget information.
+We demonstrate the significant superiority of DyHPO against state-of-the-art hyperparameter optimization methods through large-scale experiments comprising 50
+datasets (Tabular, Image, NLP) and diverse architectures (MLP, CNN/NAS, RNN).
+
+1
+
+Introduction
+
+Hyperparameter Optimization (HPO) is arguably an acute open challenge for Deep Learning (DL),
+especially considering the crucial impact HPO has on achieving state-of-the-art empirical results.
+Unfortunately, HPO for DL is a relatively under-explored field and most DL researchers still optimize
+their hyperparameters via obscure trial-and-error practices. On the other hand, traditional Bayesian
+Optimization HPO methods [Snoek et al., 2012, Bergstra et al., 2011] are not directly applicable to
+deep networks, due to the infeasibility of evaluating a large number of hyperparameter configurations.
+In order to scale HPO for DL, three main directions of research have been recently explored. (i)
+Online HPO methods search for hyperparameters during the optimization process via meta-level
+controllers [Chen et al., 2017, Parker-Holder et al., 2020], however, this online adaptation can not
+accommodate all hyperparameters (e.g. related to architectural changes). (ii) Gradient-based HPO
+techniques, on the other hand, compute the derivative of the validation loss w.r.t. hyperparameters by
+reversing the training update steps [Maclaurin et al., 2015, Franceschi et al., 2017, Lorraine et al.,
+2020], however, the reversion is not directly applicable to all cases (e.g. dropout rate). The last
+direction, (iii) Gray-box HPO techniques discard sub-optimal configurations after evaluating them on
+lower budgets [Li et al., 2017, Falkner et al., 2018].
+In contrast to the online and gradient-based alternatives, gray-box approaches can be deployed in
+an off-the-shelf manner to all types of hyperparameters and architectures. The gray-box concept is
+based on the intuition that a poorly-performing hyperparameter configuration can be identified and
+∗
+†
+
+equal contribution
+work does not relate to position at Amazon
+
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+

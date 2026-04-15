@@ -1,0 +1,76 @@
+Correct-N-Contrast: A Contrastive Approach for Improving
+Robustness to Spurious Correlations
+Michael Zhang 1 Nimit S. Sohoni 1 Hongyang R. Zhang 2 Chelsea Finn 1 Christopher Ré 1
+
+Abstract
+Spurious correlations pose a major challenge for
+robust machine learning. Models trained with
+empirical risk minimization (ERM) may learn to
+rely on correlations between class labels and spurious attributes, leading to poor performance on
+data groups without these correlations. This is
+challenging to address when the spurious attribute
+labels are unavailable. To improve worst-group
+performance on spuriously correlated data without training attribute labels, we propose CorrectN -Contrast (C N C), a contrastive approach to directly learn representations robust to spurious correlations. As ERM models can be good spurious
+attribute predictors, C N C works by (1) using a
+trained ERM model’s outputs to identify samples
+with the same class but dissimilar spurious features, and (2) training a robust model with contrastive learning to learn similar representations
+for these samples. To support C N C, we introduce
+new connections between worst-group error and
+a representation alignment loss that C N C aims
+to minimize. We empirically observe that worstgroup error closely tracks with alignment loss,
+and prove that the alignment loss over a class
+helps upper-bound the class’s worst-group vs. average error gap. On popular benchmarks, C N C
+reduces alignment loss drastically, and achieves
+state-of-the-art worst-group accuracy by 3.6% average absolute lift. C N C is also competitive with
+oracle methods that require group labels.
+
+1. Introduction
+For many tasks, deep neural networks (NNs) are negatively
+affected by spurious correlations—dependencies between
+observed features and class labels that only hold for certain
+1
+
+Stanford University. Stanford, CA, USA 2 Northeastern University. Boston, MA, USA. Correspondence to: Michael Zhang
+<mzhang@cs.stanford.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+groups of data. For example, consider classifying cows
+versus camels in natural images. 90% of cows may appear
+on grass, and 90% of camels on sand. A model trained
+with standard ERM may learn to minimize average training
+error by relying on the spurious background attribute instead of the desired animal, performing well on average yet
+obtaining high worst-group test error (e.g., misclassifying
+cows on sand as camels) (Ribeiro et al., 2016; Beery et al.,
+2018). This illustrates a widespread issue where models
+are systematically biased due to the presence of spurious
+attributes. This issue is critical to address in fields ranging
+from algorithmic fairness to medical ML (Blodgett et al.,
+2016; Buolamwini & Gebru, 2018; Hashimoto et al., 2018).
+How can we improve robustness to spurious correlations
+and reduce worst-group error? If group or spurious attribute
+labels are available, one option is to reweight groups during
+training to directly minimize worst-group error, e.g. via
+group distributionally robust optimization (GDRO) (Sagawa
+et al., 2019). However, such group labels may be expensive to obtain or unknown a priori (Oakden-Rayner et al.,
+2020), limiting the applicability of these “oracle” methods.
+To tackle spurious correlations without these labels, many
+prior works recognize that because ERM models can learn
+spurious correlations, such models can help infer the groups
+or spurious attributes. These methods thus first infer data
+groups with a trained ERM model, before using these inferred groups to train a more robust model. For example,
+Sohoni et al. (2020) cluster an ERM model’s feature representations to infer groups, before running GDRO using
+these clusters as groups. Nam et al. (2020); Liu et al. (2021)
+treat an ERM model’s misclassifications as minority group
+samples, and upweight these groups to train a robust model.
+Ahmed et al. (2021); Creager et al. (2021) use invariance
+objectives to both infer groups with an ERM model and
+train a more robust model. However, while these methods
+significantly improve worst-group error over ERM without
+training group labels, they still perform worse than methods
+that use group labels (e.g., GDRO).
+In this work, we thus aim to further improve worst-group
+accuracy without requiring group labels. We start with the
+motivating observation that across spurious correlation settings, a neural network’s worst-group accuracy strongly
+
+

@@ -1,0 +1,123 @@
+Transformer Quality in Linear Time
+
+Weizhe Hua * 1 2 Zihang Dai * 2 Hanxiao Liu * 2 Quoc V. Le 2
+
+Abstract
+
+1. Introduction
+Transformers (Vaswani et al., 2017) have become the new
+engine of state-of-the-art deep learning systems, leading to
+many recent breakthroughs in language (Devlin et al., 2018;
+Brown et al., 2020) and vision (Dosovitskiy et al., 2020).
+Although they have been growing in model size, most Transformers are still limited to short context size due to their
+quadratic complexity over the input length. This limitation
+prevents Transformer models from processing long-term
+information, a critical property for many applications.
+Many techniques have been proposed to speedup Transformers over extended context via more efficient attention mechanisms (Child et al., 2019; Dai et al., 2019; Rae et al., 2019;
+Choromanski et al., 2020; Wang et al., 2020; Katharopoulos
+et al., 2020; Beltagy et al., 2020; Zaheer et al., 2020; Kitaev
+et al., 2020; Roy et al., 2021; Jaegle et al., 2021). Despite
+the linear theoretical complexity for some of those methods,
+vanilla Transformers still remain as the dominant choice in
+*
+1
+Equal contribution
+Cornell University 2 Google Research, Brain Team.
+Correspondence to: Weizhe Hua
+<wh399@cornell.edu>, Zihang Dai <zihangd@google.com>,
+Hanxiao Liu <hanxiaol@google.com>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+4.9x
+TFM+ +
+
+-2.8
+Neg. log pplx
+
+We revisit the design choices in Transformers,
+and propose methods to address their weaknesses
+in handling long sequences. First, we propose a
+simple layer named gated attention unit, which
+allows the use of a weaker single-head attention with minimal quality loss. We then propose
+a linear approximation method complementary
+to this new layer, which is accelerator-friendly
+and highly competitive in quality. The resulting
+model, named FLASH3 , matches the perplexity
+of improved Transformers over both short (512)
+and long (8K) context lengths, achieving training
+speedups of up to 4.9× on Wiki-40B and 12.1×
+on PG-19 for auto-regressive language modeling,
+and 4.8× on C4 for masked language modeling.
+
+FLASH
+
+25.6x
+TFM
+
+-3.0
+
+Speedup
+Length over TFM over TFM++
+512
+1024
+2048
+4096
+8192
+
+-3.2
+0
+
+5
+
+10
+
+1.8×
+9.0×
+8.9×
+13.1×
+25.6×
+
+15
+20
+TPU-core-days
+
+1.2×
+1.3×
+1.6×
+2.7×
+4.9×
+
+25
+
+30
+
+Figure 1: TPU-v4 training speedup of FLASH relative to the
+vanilla Transformer (TFM) and an augmented Transformer
+(TFM++) for auto-regressive language modeling on Wiki40B — All models are comparable in size at around 110M and
+trained for 125K steps with 218 tokens per batch.
+
+state-of-the-art systems. Here we examine this issue from
+a practical perspective, and find existing efficient attention
+methods suffer from at least one of the following drawbacks:
+• Inferior Quality. Our studies reveal that vanilla Transformers, when augmented with several simple tweaks,
+can be much stronger than the common baselines used
+in the literature (see Transformer vs. Transformer++ in
+Figure 1). Existing efficient attention methods often incur
+significant quality drop compared to augmented Transformers, and this drop outweighs their efficiency benefits.
+• Overhead in Practice. As efficient attention methods
+often complicate Transformer layers and require extensive
+memory re-formatting operations, there can be a nontrivial
+gap between their theoretical complexity and empirical
+speed on accelerators such as GPUs or TPUs.
+• Inefficient Auto-regressive Training. Most attention linearization techniques enjoy fast decoding during inference, but can be extremely slow to train on auto-regressive
+tasks such as language modeling. This is primarily due
+to their RNN-style sequential state updates over a large
+number of steps, making it infeasible to fully leverage the
+strength of modern accelerators during training.
+3
+
+FLASH = Fast Linear Attention with a Single Head
+
+

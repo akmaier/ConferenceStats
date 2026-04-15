@@ -1,0 +1,71 @@
+LLMDFA: Analyzing Dataflow in Code with
+Large Language Models
+
+Chengpeng Wang1 , Wuqi Zhang2 , Zian Su1 , Xiangzhe Xu1 , Xiaoheng Xie3 , Xiangyu Zhang1
+1
+Purdue University, 2 Hong Kong University of Science and Technology, 3 Ant Group
+{wang6590, su284, xu1415, xyzhang}@purdue.edu
+wuqi.zhang@connect.ust.hk, xiexie@antgroup.com
+
+Abstract
+Dataflow analysis is a fundamental code analysis technique that identifies dependencies between program values. Traditional approaches typically necessitate
+successful compilation and expert customization, hindering their applicability and
+usability for analyzing uncompilable programs with evolving analysis needs in realworld scenarios. This paper presents LLMDFA, an LLM-powered compilation-free
+and customizable dataflow analysis framework. To address hallucinations for reliable results, we decompose the problem into several subtasks and introduce a series
+of novel strategies. Specifically, we leverage LLMs to synthesize code that outsources delicate reasoning to external expert tools, such as using a parsing library
+to extract program values of interest and invoking an automated theorem prover
+to validate path feasibility. Additionally, we adopt a few-shot chain-of-thought
+prompting to summarize dataflow facts in individual functions, aligning the LLMs
+with the program semantics of small code snippets to mitigate hallucinations. We
+evaluate LLMDFA on synthetic programs to detect three representative types of
+bugs and on real-world Android applications for customized bug detection. On
+average, LLMDFA achieves 87.10% precision and 80.77% recall, surpassing existing techniques with F1 score improvements of up to 0.35. We have open-sourced
+LLMDFA at https://github.com/chengpeng-wang/LLMDFA.
+
+1
+
+Introduction
+
+1 public class Demo {
+Dataflow analysis is a formal method that iden2 public static int foo(int a, int b){
+tifies the dependence between values in a pro3
+if (Math.abs(b) > 1)
+4
+System.out.print(a / b);//sink: b, safe
+gram [1]. Its primary objective is to determine
+5
+return b;
+whether the value of a variable defined at a par6 }
+7 public static void main(String[] args){
+ticular line, referred to as a source, affects the
+8
+int x;
+value of another variable used at a subsequent
+9
+x = Integer.parseInt(args[0]);//source: x
+line, referred to as a sink. This crucial informa- 10
+int y = x * x + 1;
+int z = x / y; //sink: y, safe
+tion offers valuable insights into various down- 11
+z = x;
+stream applications, such as program optimiza- 12
+13
+y = foo(y, z);
+tion [2] and bug detection [3, 4]. In Figure 1, for
+14
+System.out.print(x / y);//sink: y, buggy
+15 }
+example, we can regard the variable x at line 9
+16 }
+as a source and the divisors at lines 4, 11, and 14
+Figure 1: An example of DBZ bug
+as sinks and eventually detect a divide-by-zero
+(DBZ) bug at line 14. The intuition is that x at line 9 comes from user input and can be zero. If it can
+flow to the divisors, DBZ bugs may occur.
+
+Despite decades of effort, current dataflow analysis techniques have drawbacks in terms of
+applicability and usability. First, many scenarios where dataflow analysis is needed involve
+incomplete and uncompilable programs, e.g., on-the-fly code flaw analysis in Integrated Development
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

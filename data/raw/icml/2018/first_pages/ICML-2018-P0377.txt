@@ -1,0 +1,89 @@
+Rapid Adaptation with Conditionally Shifted Neurons
+
+Tsendsuren Munkhdalai 1 Xingdi Yuan 1 Soroush Mehri 1 Adam Trischler 1
+
+Abstract
+
+adversarial data points (Szegedy et al., 2013).
+
+We describe a mechanism by which artificial neural networks can learn rapid adaptation – the ability to adapt on the fly, with little data, to new
+tasks – that we call conditionally shifted neurons.
+We apply this mechanism in the framework of
+metalearning, where the aim is to replicate some
+of the flexibility of human learning in machines.
+Conditionally shifted neurons modify their activation values with task-specific shifts retrieved from
+a memory module, which is populated rapidly
+based on limited task experience. On metalearning benchmarks from the vision and language
+domains, models augmented with conditionally
+shifted neurons achieve state-of-the-art results.
+
+1. Introduction
+The ability to adapt our behavior rapidly in response to
+external or internal feedback is a primary ingredient of human intelligence. This cognitive flexibility is commonly
+ascribed to prefrontal cortex (PFC) and working memory in
+the brain. Neuroscientific evidence suggests that these areas
+use incoming information to support task-specific temporal
+adaptation and planning (Stokes et al., 2013; Siegel et al.,
+2015; Miller & Buschman, 2015; Brincat & Miller, 2016).
+This occurs on the fly, within only a few hundred milliseconds, and supports a wide variety of task-specific behaviors
+(Monsell, 2003; Sakai, 2008).
+On the other hand, most existing machine learning systems
+are designed for a single task. They are trained through
+one optimization phase after which learning ceases. Systems built in such a train-and-then-test manner do not scale
+to complex, realistic environments: they require gluts of
+single-task data and are prone to issues related to distributional shifts, such as catastrophic forgetting (Srivastava et al.,
+2013; Goodfellow et al., 2014; Kirkpatrick et al., 2016) and
+1
+
+Microsoft Research, Montréal, Québec,
+Correspondence to:
+Tsendsuren Munkhdalai
+suren.munkhdalai@microsoft.com>.
+th
+
+Canada.
+<tsend-
+
+Proceedings of the 35 International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+There is growing interest and progress in building flexible, adaptive models, particularly within the framework
+of metalearning (learning to learn) (Mitchell et al., 1993;
+Andrychowicz et al., 2016; Vinyals et al., 2016; Bachman
+et al., 2017). The goal of metalearning algorithms is the
+ability to learn new tasks efficiently, given little training
+data for each individual task. Metalearning models learn
+this ability (to learn) by training on a distribution of related
+tasks.
+In this work we develop a neural mechanism for metalearning via rapid adaptation that we call conditionally shifted
+neurons. Conditionally shifted neurons (CSNs), like standard artificial neurons, produce activation values based on
+input from connected neurons modulated by the connection
+weights. Additionally, they have the capacity to shift their
+activation values on the fly based on auxiliary conditioning
+information. These conditional shifts adapt model behavior
+to the task at hand.
+A model with CSNs operates in two phases: a description phase and a prediction phase. Assume, for each task
+τ ∼ p(τ ), that we have access to a description Dτ . In
+the simplest case, this is a set of example datapoints and
+their corresponding labels: Dτ = {(x0i , yi0 )}ni=1 .1,2 In the
+description phase, the model processes Dτ and extracts conditioning information as a function of its performance on
+Dτ . Based on this information, it generates activation shifts
+to adapt itself to the task and stores them in a key-value
+memory. In the prediction phase, the model acts on unseen
+datapoints xj ∈ τ , from the same task, to predict their labels
+yj . To improve these predictions, the model retrieves shifts
+from memory and applies them to the activations of individual neurons. During training, the model learns the meta
+procedure of how to extract conditioning information in the
+description phase and generate useful conditional shifts for
+the prediction phase. At test time, it uses this procedure to
+adapt itself to new tasks from p(τ ).
+We define and investigate two forms of conditioning information in this work (§2.3). The first uses the gradient of
+1
+
+More abstractly, a task description could be given by a set of
+instructions or demonstrations of expert behavior.
+2
+In a C-way, k-shot classification task, n = k × C.
+
+

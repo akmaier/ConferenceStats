@@ -1,0 +1,95 @@
+Robust Training of Neural Networks Using Scale Invariant Architectures
+
+Zhiyuan Li 1 Srinadh Bhojanapalli 2 Manzil Zaheer 3 Sashank J. Reddi 2 Sanjiv Kumar 2
+
+Abstract
+In contrast to SGD, adaptive gradient methods
+like A DAM allow robust training of modern deep
+networks, especially large language models. However, the use of adaptivity not only comes at the
+cost of extra memory but also raises the fundamental question: can non-adaptive methods like SGD
+enjoy similar benefits? In this paper, we provide
+an affirmative answer to this question by proposing to achieve both robust and memory-efficient
+training via the following general recipe: (1) modify the architecture and make it scale invariant,
+(2) train with SGD and weight decay, and optionally (3) clip the global gradient norm
+q proportional
+
+to weight norm multiplied by 2λ
+η , where η is
+learning rate and λ is weight decay. We show that
+this general approach is robust to rescaling of parameter and loss by proving that its convergence
+only depends logarithmically on the scale of initialization and loss, whereas the standard SGD
+might not even converge for many initializations.
+Following our recipe, we design a scale invariant version of B ERT, called S IBERT, which when
+trained simply by vanilla SGD achieves performance comparable to B ERT trained by adaptive
+methods like A DAM on downstream tasks.
+
+1. Introduction
+Neural architectures like transformers are the cornerstone
+for modern machine learning applications. However, training them is difficult and often results in training instability
+(Liu et al., 2020; Zhang et al., 2020b). To enable stable
+training, one typically requires adaptive and carefully tuned
+learning rates. However, the reason behind this issue is not
+very well-understood and lacks a formal treatment.
+1
+
+Princeton University, the work is done when interning
+at Google Research New York 2 Google Research New York
+3
+Google DeepMind New York. Correspondence to: Zhiyuan Li
+<zhiyuanli@cs.princeton.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+In this paper, we hypothesize that a primary cause of such
+behavior is the k-homogeneous (k ≥ 2) nature of the network i.e., property where network’s output is scaled by sk
+when its parameters are scaled by s. To illustrate our point,
+we consider the following instructive toy model.
+Example 1.1. Consider logistic regression with
+1-dimensional non-separable data, {zi , yi }ni=1
+∈
+n
+(R × {±1}) . The loss is defined as L(x1 , , . . . , x2k ) =
+Pn
+e
+L(X)
+:= − i=1 ln(1 + e−zi yi X ) where X = x1 . . . x2k
+and k ≥ 2.
+e is convex with bounded smoothness in X, there
+Since L
+exists step size that are independent of any initialization
+that allow GD to converge to the optimal solution. In
+sharp contrast, the reparametrized loss L(x1 , , . . . , x2k )
+with 2k-homogeneous structure does not enjoy this nice
+stability property — the learning rate has to be tuned
+according to the initialization. In particular, when η ≥
+1
+2
+(X(0)) k −1 and X(0) > X ∗ where X ∗ > 0 is
+|∇ e
+L(X(0))|
+the global minimizer, X(t) will monotonically increase and
+explode, if all xi are initialized to be the same.
+
+We refer the reader to Appendix B for a formal justification of this example. In the above example, the success
+of optimization is very sensitive to the right choice of the
+learning rate that depends on the initialization. Furthermore,
+the training cannot recover once the norm explodes due to
+large gradient update.
+In the above one-dimensional example it is still possible to
+find a small workable learning rate by extensive grid search
+that depends on the initial point, however, the situation
+can get worse when the k-homogeneous structure has an
+unbalanced initialization as below.
+Example 1.2. Consider solving low-rank matrix decomposi2
+tion by Gradient Descent. Let L(A, B) = 12 AB > − Y 2
+where A, B ∈ Rd×r are both initialized i.i.d. gaussian with
+−2
+2
+2
+covariance σA
+ σB
+≈ σA
+, Y ∈ Rd and d  r.
+Solving this optimization problem requires A and B learning the column and row space of Y respectively, but the
+
+

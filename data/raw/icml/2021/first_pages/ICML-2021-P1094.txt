@@ -1,0 +1,82 @@
+Path Planning using Neural A* Search
+
+Ryo Yonetani * 1 Tatsunori Taniai * 1 Mohammadamin Barekatain 1 2 Mai Nishimura 1 Asako Kanezaki 3
+
+Abstract
+We present Neural A*, a novel data-driven search
+method for path planning problems. Despite the
+recent increasing attention to data-driven path
+planning, machine learning approaches to searchbased planning are still challenging due to the
+discrete nature of search algorithms. In this work,
+we reformulate a canonical A* search algorithm
+to be differentiable and couple it with a convolutional encoder to form an end-to-end trainable
+neural network planner. Neural A* solves a path
+planning problem by encoding a problem instance
+to a guidance map and then performing the differentiable A* search with the guidance map. By
+learning to match the search results with groundtruth paths provided by experts, Neural A* can
+produce a path consistent with the ground truth
+accurately and efficiently. Our extensive experiments confirmed that Neural A* outperformed
+state-of-the-art data-driven planners in terms of
+the search optimality and efficiency trade-off. Furthermore, Neural A* successfully predicted realistic human trajectories by directly performing
+search-based planning on natural image inputs1 .
+
+1. Introduction
+Path planning refers to the problem of finding a valid lowcost path from start to goal points in an environmental map.
+Search-based planning, including the popular A* search
+(Hart et al., 1968), is a common approach to path planning problems and has been used in a wide range of applications such as autonomous vehicle navigation (Paden
+et al., 2016), robot arm manipulation (Smith et al., 2012),
+and game AI (Abd Algfoor et al., 2015). Compared to
+other planning approaches such as sampling-based plan*
+
+Equal contribution 1 OMRON SINIC X, Tokyo, Japan
+Now at DeepMind, London, UK. 3 Tokyo Institute of Technology, Tokyo, Japan. Correspondence to: Ryo Yonetani
+<ryo.yonetani@sinicx.com>.
+2
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+1
+Project page: https://omron-sinicx.github.io/
+neural-astar/.
+
+(a) Input
+
+A*
+
+Neural A*
+
+Human trajectory
+
+Neural A*
+
+Goal
+
+Start
+
+(b) Input
+
+Figure 1. Two Scenarios of Path Planning with Neural A*.
+(a) Point-to-point shortest path search: finding a near-optimal
+path (red) with fewer node explorations (green) for an input map.
+(b) Path planning on raw image inputs: accurately predicting a
+human trajectory (red) on a natural image.
+
+ning (González et al., 2015) and reactive planning (Tamar
+et al., 2016; Lee et al., 2018), search-based planning is guaranteed to find a solution path, if one exists, by incrementally
+and extensively exploring the map.
+Learning how to plan from expert demonstrations is gathering attention as promising extensions to classical path
+planners. Recent work has demonstrated major advantages of such data-driven path planning in two scenarios:
+(1) finding near-optimal paths more efficiently than classical heuristic planners in point-to-point shortest path search
+problems (Choudhury et al., 2018; Qureshi et al., 2019;
+Takahashi et al., 2019; Chen et al., 2020; Ichter et al., 2020)
+and (2) enabling path planning on raw image inputs (Tamar
+et al., 2016; Lee et al., 2018; Ichter & Pavone, 2019; Vlastelica et al., 2020), which is hard for classical planners unless
+semantic pixel-wise labeling of the environment is given.
+In this study, we address both of these separately studied
+scenarios in a principled fashion, as highlighted in Fig. 1.
+In contrast to most of the existing data-driven methods that
+extend either sampling-based or reactive planning, we pursue a search-based approach to data-driven planning with
+the intrinsic advantage of guaranteed planning success.
+Studies in this direction so far are largely limited due to
+
+

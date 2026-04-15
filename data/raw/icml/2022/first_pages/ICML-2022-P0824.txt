@@ -1,0 +1,73 @@
+Constraint-based Graph Network Simulator
+
+Yulia Rubanova * 1 Alvaro Sanchez-Gonzalez * 1 Tobias Pfaff 1 Peter Battaglia 1
+
+Abstract
+In the area of physical simulations, nearly all
+neural-network-based methods directly predict future states from the input states. However, many
+traditional simulation engines instead model the
+constraints of the system and select the state
+which satisfies them. Here we present a framework for constraint-based learned simulation,
+where a scalar constraint function is implemented
+as a graph neural network, and future predictions
+are computed by solving the optimization problem defined by the learned constraint. Our model
+achieves comparable or better accuracy to top
+learned simulators on a variety of challenging
+physical domains, and offers several unique advantages. We can improve the simulation accuracy on a larger system by applying more solver
+iterations at test time. We also can incorporate
+novel hand-designed constraints at test time and
+simulate new dynamics which were not present in
+the training data. Our constraint-based framework
+shows how key techniques from traditional simulation and numerical methods can be leveraged as
+inductive biases in machine learning simulators.
+
+1. Introduction
+Consider a bowling ball colliding with a bowling pin. You
+might explain this event through a pair of forces being generated: one causes the pin to move, the other one causes the
+ball to careen away. This approach is analogous to physical
+simulators that apply an explicit forward model to calculate
+a future state directly from the current one, i.e. by numerically integrating equations of motion. An alternative, but
+equally valid, way to explain the collision is in terms of
+constraint satisfaction: the ball and pin cannot occupy the
+same location at the same time, and their combined energies and momenta must be conserved. The post-collision
+*
+
+Equal contribution 1 DeepMind, London, UK. Correspondence to: Yulia Rubanova <rubanova@deepmind.com>, Alvaro
+Sanchez-Gonzalez <alvarosg@deepmind.com>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+trajectories are the only way the future can unfold without
+violating these constraints. This approach is analogous to
+the constraint-based simulators that generate a prediction by
+searching for a future state that respects all the constraints.
+Both families of simulators—those based on explicit, forward functions versus those which define the dynamics implicitly, via constraints—are widely used in physics, engineering, and graphics. In principle they can model the same
+types of dynamics. In practice these simulators strike different trade-offs that determine which one is preferred in different domains. Explicit methods are popular for large systems
+with (mostly) independent local effects where space and
+time derivatives are relatively smooth. By contrast, implicit
+approaches are often preferred for systems with strong interactions, such rigid and stiff dynamics, and more accurate
+solutions can often be found by using more solver iterations
+or more sophisticated solvers. In machine learning, so far
+almost all methods for learned simulation have focused on
+explicit forward models (Sanchez-Gonzalez et al., 2020;
+Pfaff et al., 2021), with few exceptions (Yang et al., 2020).
+Here we present a framework for learning to simulate complex dynamics via constraint satisfaction. Our “Constraintbased Graph Network Simulator” (C-GNS) defines a single
+learned constraint function that indicates whether a future
+state is consistent with the current and previous states. Conditioning on the previous states allows our method to capture
+the time dynamics within its learned constraint function. We
+implement the constraint function as a Graph Neural Network (GNN, Bronstein et al. (2017); Battaglia et al. (2018)),
+which can model systems with rich compositional structure,
+such as multiple bodies and complex meshes. To predict the
+future state, we use a gradient-based solver that iteratively
+refines a proposed state to minimize the learned constraint.
+We train the model end-to-end by backpropagating the loss
+gradients through the solver. Crucially, our model is trained
+directly on observed trajectory data and does not require
+knowledge of the true underlying constraints which govern the system dynamics. The learned constraint function
+only needs to yield the same solution as the true constraints,
+while their objective landscapes may differ (e.g., the learned
+constraint function may be convex, as in Figure 1(c), while
+the true constraint may not be).
+There are several potential advantages to constraint-based
+
+

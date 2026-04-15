@@ -1,0 +1,77 @@
+Regularized Submodular Maximization at Scale
+
+Ehsan Kazemi 1 Shervin Minaee 2 Moran Feldman 3 Amin Karbasi 4
+
+Abstract
+In this paper, we propose scalable methods for
+maximizing a regularized submodular function
+f , expressed as the difference between a monotone submodular function g and a modular function `. Submodularity is related to the notions
+of diversity, coverage, and representativeness. In
+particular, finding the mode (most likely configuration) of many popular probabilistic models of
+diversity, such as determinantal point processes
+and strongly log-concave distributions, involves
+maximization of (regularized) submodular functions. Since a regularized function can potentially
+take on negative values, the classic theory of submodular maximization, which heavily relies on a
+non-negativity assumption, is not applicable. We
+avoid this issue by developing the first one-pass
+streaming algorithm for maximizing a regularized
+submodular function subject to a cardinality constraint. Furthermore, we give the first distributed
+algorithm that (roughly) reproduces the guarantees of state-of-the-art centralized algorithms for
+the problem using only O(1/ε) rounds of MapReduce. We highlight that our result, even for the
+unregularized case where the modular term ` is
+zero, improves over the memory and communication complexity of the state-of-the-art by a factor
+of O(1/ε). We also empirically study the performance of our scalable methods on real-life applications, including finding the mode of negatively
+correlated distributions, vertex cover of social networks, and several data summarization tasks.
+
+1. Introduction
+Finding a diverse set of items, also known as data summarization, is one of the central tasks in machine learning. It
+usually involves either maximizing a utility function that
+1
+
+Google, Zürich, Switzerland 2 Snap Inc 3 Department of Computer Science, University of Haifa, Israel 4 Yale Institute for Network Science, Yale University. Correspondence to: Ehsan Kazemi
+<ehsankazemi@google.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+promotes coverage and representativeness (Wei et al., 2015)
+(we call this an optimization perspective) or sampling from
+discrete probabilistic models that promote negative correlations and show repulsive behaviors (Gotovos et al., 2015)
+(we call this a sampling perspective). Celebrated examples
+of probabilistic models that encourage negative dependency
+include determinantal point processes (Kulesza & Taskar,
+2012), strongly Rayleigh measures (Borcea et al., 2009)
+strongly log-concave distributions (Gurvits, 2009), and probabilistic submodular models (Djolonga & Krause, 2014; Iyer
+& Bilmes, 2015). In fact, the two above views are related
+in the sense that often the mode (most likely configuration)
+of a diversity promoting distribution is a simple variant of
+a (regularized) submodular function. For instance, determinantal point processes are log-submodular. Or, as we show
+later, a strongly log-concave distribution is a regularized
+log-submodular plus a log quadratic term. This paper aims
+to show how such optimization tasks can be done at scale.
+From the optimization perspective, to effectively select a
+diverse subset of items, we need to define a measure that
+captures the representativeness that lies within a selected
+subset. Often, such a measure naturally has the diminishing
+returns property, and thus, is formally captured by submodularity. Given a finite ground set N of size n, consider a
+set function g : 2N → R assigning a utility g(A) to every
+subset A ⊆ N . We say that g is submodular if for any
+pair of subsets A ⊆ B ⊆ N and element u 6∈ B, we have
+g(A∪{u})−g(A) ≥ g(B ∪{u})−g(B), which intuitively
+means that the increase in “representativeness” following
+the addition of u to a set is smaller when u is added to a
+larger set. For shorthand, we write the marginal gain of an
+element as g(e | S) , g(S ∪ {e}) − g(S) and the marginal
+gain of adding an entire set as g(A | S) , g(S ∪ A) − g(S).
+Additionally, a set function is said to be monotone if
+g(A) ≤ g(B) for all A ⊆ B ⊆ N ; that is, adding more
+data can only increase the representativeness. Many of the
+previous works in data summarization and diverse subset
+selection that take an optimization perspective simply aim to
+maximize a monotone submodular function (Mirzasoleiman
+et al., 2013). Monotonicity has the advantage of promoting
+coverage, but it also enhances the danger of over-fitting to
+the data as adding more elements can never decrease the
+utility. To address this issue, as is often done in machine
+learning, we need to add a simple penalty, or a regular-
+
+

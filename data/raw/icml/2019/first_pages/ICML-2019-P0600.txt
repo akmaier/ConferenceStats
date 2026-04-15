@@ -1,0 +1,78 @@
+Insertion Transformer:
+Flexible Sequence Generation via Insertion Operations
+
+Mitchell Stern 1 2 William Chan 1 Jamie Kiros 1 Jakob Uszkoreit 1
+
+Abstract
+We present the Insertion Transformer, an iterative, partially autoregressive model for sequence
+generation based on insertion operations. Unlike
+typical autoregressive models which rely on a
+fixed, often left-to-right ordering of the output,
+our approach accommodates arbitrary orderings
+by allowing for tokens to be inserted anywhere
+in the sequence during decoding. This flexibility confers a number of advantages: for instance,
+not only can our model be trained to follow specific orderings such as left-to-right generation or
+a binary tree traversal, but it can also be trained
+to maximize entropy over all valid insertions for
+robustness. In addition, our model seamlessly accommodates both fully autoregressive generation
+(one insertion at a time) and partially autoregressive generation (simultaneous insertions at multiple locations). We validate our approach by analyzing its performance on the WMT 2014 EnglishGerman machine translation task under various
+settings for training and decoding. We find that
+the Insertion Transformer outperforms many prior
+non-autoregressive approaches to translation at
+comparable or better levels of parallelism, and
+successfully recovers the performance of the original Transformer while requiring only logarithmically many iterations during decoding.
+
+1. Introduction
+Neural sequence models (Sutskever et al., 2014; Cho et al.,
+2014) have been successfully applied to many applications,
+including machine translation (Bahdanau et al., 2015; Luong et al., 2015), speech recognition (Bahdanau et al., 2016;
+1
+Google Brain, Mountain View, Toronto, Berlin
+University of California, Berkeley.
+Correspondence to:
+Mitchell Stern <mitchell@berkeley.edu>, William Chan
+<williamchan@google.com>.
+2
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+Chan et al., 2016), speech synthesis (Oord et al., 2016a;
+Wang et al., 2017), image captioning (Vinyals et al., 2015b;
+Xu et al., 2015) and image generation (Oord et al., 2016b;c).
+These models have a common theme: they rely on the chainrule factorization and have an autoregressive left-to-right
+structure. This formulation bestows many advantages in
+both training and inference. Log-likelihood computation is
+tractable, allowing for efficient maximum likelihood learning. Efficient approximate inference is also made possible
+through beam search decoding. However, the autoregressive
+framework does not easily accommodate for parallel token
+generation or more elaborate generation orderings (e.g., tree
+orders).
+More recently, there has been work on non-autoregressive
+sequence models such as the Non-Autoregressive Transformer (NAT) (Gu et al., 2018) and the Iterative Refinement
+model (Lee et al., 2018). In both of these models, the decoder is seeded with an initial input derived from the source
+sequence, then produces the entire target sequence in parallel. Lee et al. (2018) adds an iterative refinement stage to the
+decoder in which a new hypothesis is produced conditioning
+on the input and the previous output.
+While allowing for highly parallel generation, there are a
+few drawbacks to such approaches. The first is that the target
+sequence length needs to be chosen up front, preventing the
+output from growing dynamically as generation proceeds.
+This can be problematic if the chosen length is too short
+to accommodate the desired target, or can be wasteful if
+it is too long. In the case of Gu et al. (2018), there is
+also a strong conditional independence assumption between
+output tokens, limiting the model’s expressive power. Lee
+et al. (2018) relaxes this assumption but in turn requires two
+separate decoders for the initial hypothesis generation and
+the iterative refinement stage.
+In this work, we present a flexible sequence generation
+framework based on insertion operations. The Insertion
+Transformer is an iterative, partially autoregressive model
+which can be trained in a fully end-to-end fashion. Generation is accomplished by repeatedly making insertions
+into an initially-empty output sequence until a termination
+condition is met. Our approach bypasses the problem of
+needing to predict the target sequence length ahead of time
+
+

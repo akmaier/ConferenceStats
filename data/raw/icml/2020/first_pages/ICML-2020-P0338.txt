@@ -1,0 +1,78 @@
+Unraveling Meta-Learning: Understanding Feature
+Representations for Few-Shot Tasks
+
+Micah Goldblum 1 Steven Reich * 1 Liam Fowl * 1 Renkun Ni * 1 Valeriia Cherepanova * 1 Tom Goldstein 1
+
+Abstract
+Meta-learning algorithms produce feature extractors which achieve state-of-the-art performance
+on few-shot classification. While the literature is
+rich with meta-learning methods, little is known
+about why the resulting feature extractors perform so well. We develop a better understanding of the underlying mechanics of meta-learning
+and the difference between models trained using meta-learning and models which are trained
+classically. In doing so, we introduce and verify
+several hypotheses for why meta-learned models perform better. Furthermore, we develop a
+regularizer which boosts the performance of standard training routines for few-shot classification.
+In many cases, our routine outperforms metalearning while simultaneously running an order
+of magnitude faster.
+
+1. Introduction
+Training neural networks from scratch requires large
+amounts of labeled data, making it impractical in many
+settings. When data is expensive or time consuming to
+obtain, training from scratch may be cost prohibitive (AltaeTran et al., 2017). In other scenarios, models must adapt
+efficiently to changing environments before enough time has
+passed to amass a large and diverse data corpus (Nagabandi
+et al., 2018). In both of these cases, massive state-of-the-art
+networks would overfit to the tiny training sets available.
+To overcome this problem, practitioners pre-train on large
+auxiliary datasets and then fine-tune the resulting models
+on the target task. For example, ImageNet pre-training of
+large ResNets has become an industry standard for transfer
+learning (Kornblith et al., 2019b). Unfortunately, transfer
+learning from classically trained models often yields sub-par
+performance in the extremely data-scarce regime or breaks
+*
+Equal contribution 1 University of Maryland, College Park.
+Correspondence to: Micah Goldblum <goldblum@umd.edu>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+down entirely when only a few data samples are available
+in the target domain.
+Recently, a number of few-shot benchmarks have been
+rapidly improved using meta-learning methods (Lee et al.,
+2019; Song et al., 2019). Unlike classical transfer learning, which uses a base model pre-trained on a different
+task, meta-learning algorithms produce a base network that
+is specifically designed for quick adaptation to new tasks
+using few-shot data. Furthermore, meta-learning is still effective when applied to small, lightweight base models that
+can be fine-tuned with relatively few computations.
+The ability of meta-learned networks to rapidly adapt to new
+domains suggests that the feature representations learned
+by meta-learning must be fundamentally different than feature representations learned through conventional training.
+Because of the good performance that meta-learning offers
+in various settings, many researchers have been content to
+use these features without considering how or why they
+differ from conventional representations. As a result, little is known about the fundamental differences between
+meta-learned feature extractors and those which result from
+classical training. Training routines are often treated like a
+black box in which high performance is celebrated, but a
+deeper understanding of the phenomenon remains elusive.
+To further complicate matters, a myriad of meta-learning
+strategies exist that may exploit different mechanisms.
+In this paper, we delve into the differences between features learned by meta-learning and classical training. We
+explore and visualize the behaviors of different methods and
+identify two different mechanisms by which meta-learned
+representations can improve few-shot learning. In the case
+of meta-learning strategies that fix the feature extractor and
+only update the last (classification) layer of a network during
+the inner-loop, such as MetaOptNet (Lee et al., 2019) and
+R2-D2 (Bertinetto et al., 2018), we find that meta-learning
+tends to cluster object classes more tightly in feature space.
+As a result, the classification boundaries learned during
+fine-tuning are less sensitive to the choice of few-shot samples. In the second case, we hypothesize that meta-learning
+strategies that use end-to-end fine-tuning, such as Reptile
+(Nichol & Schulman, 2018), search for meta-parameters
+that lie close in weight space to a wide range of task-specific
+
+

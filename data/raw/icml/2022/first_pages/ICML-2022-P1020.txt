@@ -1,0 +1,73 @@
+DRAGONN: Distributed Randomized Approximate Gradients of Neural
+Networks
+Zhuang Wang * 1 Zhaozhuo Xu * 1 Xinyu Crystal Wu 1 Anshumali Shrivastava 1 2 T. S. Eugene Ng 1
+
+Abstract
+Data-parallel distributed training (DDT) has become the de-facto standard for accelerating the
+training of most deep learning tasks on massively
+parallel hardware. In the DDT paradigm, the
+communication overhead of gradient synchronization is the major efficiency bottleneck. A widely
+adopted approach to tackle this issue is gradient sparsification (GS). However, the current GS
+methods introduce significant new overhead in
+compressing the gradients, outweighing the communication overhead and becoming the new efficiency bottleneck. In this paper, we propose
+DRAGONN, a randomized hashing algorithm for
+GS in DDT. DRAGONN can significantly reduce
+the compression time by up to 70% compared to
+state-of-the-art GS approaches, and achieve up to
+3.52× speedup in total training throughput.
+
+1. Introduction
+Recent years have witnessed the popularity of Deep Learning (DL) in both research and industrial communities. Deep
+Neural Networks (DNN) trained on massive amount of
+data have experienced significant success in computer vision (Dosovitskiy et al., 2020; Tolstikhin et al., 2021), language processing (Vaswani et al., 2017; Radford et al.,
+2019), recommendation systems (Naumov et al., 2019) and
+geophysics (Desai et al., 2021).
+The Need for Data-parallel Distributed Training: Recently, multilayer perceptron (MLP) models have demonstrated improvement over state-of-the-art (SOTA) DL benchmarks (Tolstikhin et al., 2021; Liu et al., 2021). However,
+these MLP models introduce million-scale weight tensors.
+As a result, large batch training over these giant weight
+*
+Equal contribution 1 Computer Science Department, Rice
+University, Houston, TX, USA 2 ThirdAI Corp, Houston, TX,
+USA. Correspondence to: Anshumali Shrivastava <anshumali@rice.edu>, T. S. Eugene Ng <eugeneng@cs.rice.edu>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+tensors is infeasible due to the limited memory resources
+of Graphic Processing Unit (GPU) (Owens et al., 2008).
+To overcome this obstacle, data-parallel distributed training (DDT) becomes a widely adopted paradigm. In this
+paradigm, the data loader partitions the dataset according
+to the number of workers. Next, each worker only trains on
+its own partition. Then, the model gradients generated from
+each worker are synchronized. Finally, the weights at each
+worker is updated by the synchronized gradients. This data
+parallelism can scale the training of neural network over
+large numbers of GPUs with reduced total training time.
+Communication Bottleneck in Gradient Synchronization: The innovations of hardware accelerators (Luo et al.,
+2018; NVIDIA, 2021) and domain-specific software optimization (Chen et al., 2018; Zheng et al., 2020; Chetlur
+et al., 2014) have dramatically reduced the iteration time
+of DNN training jobs. This trend results in more frequent
+gradient synchronization in DDT. However, it is difficult for
+the cloud network bandwidth to keep up with the pace of the
+computation-related improvement (Sapio et al., 2019; Bai
+et al., 2021). Moreover, the number of GPUs for DNN training keeps increasing due to the ever-growing training dataset,
+which further worsens the communication time (Jiang et al.,
+2020; Thakur et al., 2005). The communication overhead in
+DDT has become a well-known performance bottleneck as
+each GPU needs to transmit the full gradients for synchronization (Fei et al., 2021; Huang et al., 2019; Aji & Heafield,
+2017; Lin et al., 2017).
+Gradient Sparsification for Efficient Communication:
+Gradient sparsification (GS) (Strom, 2015; Aji & Heafield,
+2017; Shi et al., 2021; Stich et al., 2018; Barnes et al., 2020)
+has great potential to alleviate the communication bottleneck. GS approaches only select a subset of the original
+gradients for synchronization. There exists two well-known
+GS paradigms, namely exact TopK (Aji & Heafield, 2017)
+and approximate TopK, such as deep gradient compression
+(DGC) (Lin et al., 2017) and MSTopk (Shi et al., 2021). The
+exact TopK method selects the exact top-k gradients while
+approximate TopK selects the gradients with values greater
+than an estimated threshold. Both approaches can save up
+to 99.9% of the gradient exchange in DDT while preserving
+the iteration-wise performance towards convergence. Approximate TopK can achieve higher practical training speed
+
+

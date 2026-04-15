@@ -1,0 +1,89 @@
+Speeding Up Policy Simulation in Supply Chain RL
+
+Vivek Farias 1 Joren Gijsbrechts 2 Aryan Khojandi 3 Tianyi Peng 4 Andrew Zheng 5
+
+Abstract
+
+as dynamic optimization problems, albeit with intractable
+state-spaces that must track inventory and other resource
+levels across a large number of products and nodes. The
+development of detailed simulators (‘digital twins’) of supply chains in recent years has made SCO problems a ripe
+target for reinforcement learning. A prime example of such
+a target with immense economic significance is the so-called
+Fulfillment Optimization (FO) problem (Amazon.com, Inc.,
+2023; Acimovic & Graves, 2015; Acimovic & Farias, 2019;
+Zhao et al., 2022; Liu et al., 2023), which will be a main
+focus of this paper.
+
+Simulating a single trajectory of a dynamical system under some state-dependent policy is a core
+bottleneck in policy optimization (PO) algorithms.
+The many inherently serial policy evaluations that
+must be performed in a single simulation constitute the bulk of this bottleneck. In applying PO to
+supply chain optimization (SCO) problems, simulating a single sample path corresponding to one
+month of a supply chain can take several hours.
+We present an iterative algorithm to accelerate
+policy simulation, dubbed Picard Iteration. This
+scheme carefully assigns policy evaluation tasks
+to independent processes. Within an iteration, any
+given process evaluates the policy only on its assigned tasks while assuming a certain ‘cached’
+evaluation for other tasks; the cache is updated at
+the end of the iteration. Implemented on GPUs,
+this scheme admits batched evaluation of the policy across a single trajectory. We prove that the
+structure afforded by many SCO problems allows
+convergence in a small number of iterations independent of the horizon. We demonstrate practical
+speedups of 400x on large-scale SCO problems
+even with a single GPU, and also demonstrate
+practical efficacy in other RL environments.
+
+A time-step in an SCO problem typically corresponds to
+either a demand or supply event; there are hundreds of millions of such events in a month for a large supply chain
+(Shopping, 2024). As such, the task of simulating a fixed
+control policy is onerous, requiring the serial evaluation of
+the policy over a horizon, T , of tens or hundreds of millions
+of time-steps. For a policy parameterized by a non-trivial
+deep neural network (DNN), the task of simply simulating
+a single sample path under the policy can thus take several
+hours (or more) in the context of an SCO problem. This is
+an impediment to the application of PO methods to SCO
+problems which require simulating multiple sample paths
+of the system at each policy update iteration, and conservatively require hundreds of PO iterations to converge to a
+good policy. The key expensive step in any policy simulation is the task of evaluating a policy at a system state. This
+cannot be batched since the states encountered on a sample
+path are themselves computed serially. Still, one may hope
+that a clever scheme for parallel discrete event simulation
+(Fujimoto, 1990; Fujimoto et al., 2017) might help:
+
+1. Introduction
+The core problems in supply chain optimization (SCO) all relate to managing inventory over time across some potentially
+large network of nodes, so as to match costly supply with
+uncertain demand. These problems are naturally viewed
+
+1.1. Time Warp Falls Short
+Time Warp is the mainstay approach to parallel discrete
+event simulation (Jefferson, 1985; Jefferson et al., 1987;
+Ghosh et al., 1993; Barnes Jr et al., 2013; Fujimoto, 2024).
+Time Warp is at its core a message passing framework: a
+processor processes ‘events’ and then sends the outcome
+of this processing to other processors that are potentially
+impacted by these events. Upon receiving a processed event
+from a neighboring processor, a processor may need to ‘roll
+back’ its computations, if the received event invalidates
+them. If the set of processors potentially impacted by a
+given processor is small (so called ‘local causality’), Time
+
+*
+
+Equal contribution 1 Sloan School of Management, Massachusetts Institute of Technology, Cambridge, MA 02139 2 Esade
+Business School, Ramon Llull University, Barcelona, Spain
+3
+Operations Research Center, Massachusetts Institute of Technology, Cambridge, MA 02139 4 Columbia Business School, New
+York, NY 10027 5 Sauder School of Business, The University of
+British Columbia, Vancouver, Canada. Correspondence to: Vivek
+Farias <vivekf@mit.edu>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

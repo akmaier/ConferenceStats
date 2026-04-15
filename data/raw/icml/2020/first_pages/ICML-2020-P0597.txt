@@ -1,0 +1,76 @@
+Countering Language Drift with Seeded Iterated Learning
+
+Yuchen Lu 1 Soumye Singhal 1 Florian Strub 2 Olivier Pietquin 3 Aaron Courville 1 4
+
+Abstract
+Pretraining on human corpus and then finetuning
+in a simulator has become a standard pipeline
+for training a goal-oriented dialogue agent. Nevertheless, as soon as the agents are finetuned to
+maximize task completion, they suffer from the
+so-called language drift phenomenon: they slowly
+lose syntactic and semantic properties of language
+as they only focus on solving the task. In this paper, we propose a generic approach to counter language drift called Seeded iterated learning (SIL).
+We periodically refine a pretrained student agent
+by imitating data sampled from a newly generated
+teacher agent. At each time step, the teacher is
+created by copying the student agent, before being finetuned to maximize task completion. SIL
+does not require external syntactic constraint nor
+semantic knowledge, making it a valuable taskagnostic finetuning protocol. We evaluate SIL in
+a toy-setting Lewis Game, and then scale it up
+to the translation game with natural language. In
+both settings, SIL helps counter language drift as
+well as it improves the task completion compared
+to baselines.
+
+1. Introduction
+Recently, neural language modeling methods have achieved
+a high level of performance on standard natural language
+processing tasks (Adiwardana et al., 2020; Radford et al.,
+2019). Those agents are trained to capture the statistical
+properties of language by applying supervised learning techniques over large datasets (Bengio et al., 2003; Collobert
+et al., 2011). While such approaches correctly capture the
+syntax and semantic components of language, they give
+rise to inconsistent behaviors in goal-oriented language settings, such as question answering and other dialogue-based
+1
+Mila, University of Montreal 2 DeepMind 3 Google Research
+- Brain Team 4 CIFAR Fellow. Correspondence to: Yuchen
+Lu <luyuchen.paul@gmail.com>, Soumye Singhal <singhalsoumye@gmail.com>, Florian Strub <fstrub@google.com>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+tasks (Gao et al., 2019). Conversational agents trained via
+traditional supervised methods tend to output uninformative
+utterances such as, for example, recommend generic locations while booking for a restaurant (Bordes et al., 2017).
+As models are optimized towards generating grammaticallyvalid sentences, they fail to correctly ground utterances to
+task goals (Strub et al., 2017; Lewis et al., 2017).
+A natural follow-up consists in rewarding the agent to solve
+the actual language task, rather than solely training it to generate grammatically valid sentences. Ideally, such training
+would incorporate human interaction (Skantze & Hjalmarsson, 2010; Li et al., 2016a), but doing so quickly faces
+sample-complexity and reproducibility issues. As a consequence, agents are often trained by interacting with a second
+model to simulate the goal-oriented scenarios (Levin et al.,
+2000; Schatzmann et al., 2006; Lemon & Pietquin, 2012). In
+the recent literature, a common setting is to pretrain two neural models with supervised learning to acquire the language
+structure; then, at least one of the agents is finetuned to maximize task-completion with either reinforcement learning,
+e.g., policy gradient (Williams, 1992), or Gumbel softmax
+straight-through estimator (Jang et al., 2017; Maddison et al.,
+2017). This finetuning step has shown consistent improvement in dialogue games (Li et al., 2016b; Strub et al., 2017;
+Das et al., 2017), referential games (Havrylov & Titov, 2017;
+Yu et al., 2017) or instruction following (Fried et al., 2018).
+Unfortunately, interactive learning gives rise to the language
+drift phenomenon. As the agents are solely optimizing for
+task completion, they have no incentive to preserve the
+initial language structure. They start drifting away from
+the pretrained language output by shaping a task-specific
+communication protocol. We thus observe a co-adaptation
+and overspecialization of the agent toward the task, resulting in significant changes to the agent’s language distribution. In practice, there are different forms of language
+drift (Lazaridou et al., 2020) including (i) structural drift: removing grammar redundancy (e.g. ”is it a cat?” becomes ”is
+cat?” (Strub et al., 2017)), (ii) semantic drift: altering word
+meaning (e.g. ”an old teaching” means ”an old man” (Lee
+et al., 2019)) or (iii) functional drift: the language results in
+unexpected actions (e.g. after agreeing on a deal, the agent
+performs another trade (Li et al., 2016b)). Thus, these agents
+perform poorly when paired with humans (Chattopadhyay
+et al., 2017; Zhu et al., 2017; Lazaridou et al., 2020).
+
+

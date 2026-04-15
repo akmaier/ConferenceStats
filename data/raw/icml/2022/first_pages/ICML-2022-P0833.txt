@@ -1,0 +1,83 @@
+Off-Policy Evaluation for Large Action Spaces via Embeddings
+
+Yuta Saito 1 Thorsten Joachims 1
+
+Abstract
+Off-policy evaluation (OPE) in contextual bandits
+has seen rapid adoption in real-world systems,
+since it enables offline evaluation of new policies
+using only historic log data. Unfortunately, when
+the number of actions is large, existing OPE estimators – most of which are based on inverse
+propensity score weighting – degrade severely
+and can suffer from extreme bias and variance.
+This foils the use of OPE in many applications
+from recommender systems to language models.
+To overcome this issue, we propose a new OPE
+estimator that leverages marginalized importance
+weights when action embeddings provide structure in the action space. We characterize the bias,
+variance, and mean squared error of the proposed
+estimator and analyze the conditions under which
+the action embedding provides statistical benefits
+over conventional estimators. In addition to the
+theoretical analysis, we find that the empirical
+performance improvement can be substantial, enabling reliable OPE even when existing estimators
+collapse due to a large number of actions.
+
+1. Introduction
+Many intelligent systems (e.g., recommender systems, voice
+assistants, search engines) interact with the environment
+through a contextual bandit process where a policy observes
+a context, takes an action, and obtains a reward. Logs of
+these interactions provide valuable data for off-policy evaluation (OPE), which aims to accurately evaluate the performance of new policies without ever deploying them in the
+field. OPE is of great practical relevance, as it helps avoid
+costly online A/B tests and can also act as subroutines for
+batch policy learning (Dudı́k et al., 2014; Su et al., 2020a).
+However, OPE is challenging, since the logs contain only
+partial-information feedback – specifically the reward of the
+1
+
+Department of Computer Science, Cornell University, Ithaca,
+NY, USA. Correspondence to: Yuta Saito <ys552@cornell.edu>,
+Thorsten Joachims <tj@cs.cornell.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+chosen action, but not the counterfactual rewards of all the
+other actions a different policy might choose.
+When the action space is small, recent advances in the design
+of OPE estimators have led to a number of reliable methods
+with good theoretical guarantees (Dudı́k et al., 2014; Swaminathan & Joachims, 2015a; Wang et al., 2017; Farajtabar
+et al., 2018; Su et al., 2019; 2020a; Metelli et al., 2021).
+Unfortunately, these estimators can degrade severely when
+the number of available actions is large. Large action spaces
+are prevalent in many potential applications of OPE, such as
+recommender systems where policies have to handle thousands or millions of items (e.g., movies, songs, products).
+In such a situation, the existing estimators based on inverse
+propensity score (IPS) weighting (Horvitz & Thompson,
+1952) can incur high bias and variance, and as a result, be
+impractical for OPE. First, a large action space makes it
+challenging for the logging policy to have common support
+with the target policies, and IPS is biased under support
+deficiency (Sachdeva et al., 2020). Second, a large number of actions typically leads to high variance of IPS due
+to large importance weights. To illustrate, we find in our
+experiments that the variance and mean squared error of IPS
+inflate by a factor of over 300 when the number of actions
+increases from 10 to 5000 given a fixed sample size. While
+doubly robust (DR) estimators can somewhat reduce the
+variance by introducing a reward estimator as a control variate (Dudı́k et al., 2014), they do not address the fundamental
+issues that come with large action spaces.
+To overcome the limitations of the existing estimators when
+the action space is large, we leverage additional information about the actions in the form of action embeddings.
+There are many cases where we have access to such prior
+information. For example, movies are characterized by auxiliary information such as genres (e.g., adventure, science
+fiction, documentary), director, or actors. We should then
+be able to utilize these supplemental data to infer the value
+of actions under-explored by the logging policy, potentially
+achieving much more accurate policy evaluation than the
+existing estimators. We first provide the conditions under
+which action embeddings provide another path for unbiased
+OPE, even with support deficient actions. We then propose
+the Marginalized IPS (MIPS) estimator, which uses the
+marginal distribution of action embeddings, rather than actual actions, to define a new type of importance weights. We
+
+

@@ -1,0 +1,59 @@
+Blockwise Parallel Decoding for
+Deep Autoregressive Models
+
+Mitchell Stern∗
+University of California, Berkeley
+mitchell@berkeley.edu
+
+Noam Shazeer
+Google Brain
+noam@google.com
+
+Jakob Uszkoreit
+Google Brain
+usz@google.com
+
+Abstract
+Deep autoregressive sequence-to-sequence models have demonstrated impressive
+performance across a wide variety of tasks in recent years. While common architecture classes such as recurrent, convolutional, and self-attention networks make
+different trade-offs between the amount of computation needed per layer and the
+length of the critical path at training time, generation still remains an inherently
+sequential process. To overcome this limitation, we propose a novel blockwise
+parallel decoding scheme in which we make predictions for multiple time steps
+in parallel then back off to the longest prefix validated by a scoring model. This
+allows for substantial theoretical improvements in generation speed when applied to
+architectures that can process output sequences in parallel. We verify our approach
+empirically through a series of experiments using state-of-the-art self-attention
+models for machine translation and image super-resolution, achieving iteration
+reductions of up to 2x over a baseline greedy decoder with no loss in quality, or up
+to 7x in exchange for a slight decrease in performance. In terms of wall-clock time,
+our fastest models exhibit real-time speedups of up to 4x over standard greedy
+decoding.
+
+1
+
+Introduction
+
+Neural autoregressive sequence-to-sequence models have become the de facto standard for a wide
+variety of tasks, including machine translation, summarization, and speech synthesis (Vaswani et al.,
+2017; Rush et al., 2015; van den Oord et al., 2016). One common feature among recent architectures
+such as the Transformer and convolutional sequence-to-sequence models is an increased capacity for
+parallel computation, making them a better fit for today’s massively parallel hardware accelerators
+(Vaswani et al., 2017; Gehring et al., 2017). While advances in this direction have allowed for
+significantly faster training, outputs are still generated one token at a time during inference, posing a
+substantial challenge for many practical applications (Oord et al., 2017).
+In light of this limitation, a growing body of work is concerned with different approaches to accelerating generation for autoregressive models. Some general-purpose methods include probability
+density distillation (Oord et al., 2017), subscaling (Kalchbrenner et al., 2018), and decomposing the
+problem into the autoregressive generation of a short sequence of discrete latent variables followed by
+a parallel generation step conditioned on the discrete latents (Kaiser et al., 2018). Other techniques
+are more application-specific, such as the non-autoregressive Transformer for machine translation
+(Gu et al., 2018). While speedups of multiple orders of magnitude have been achieved on tasks with
+high output locality like speech synthesis, to the best of our knowledge, published improvements in
+machine translation either show much more modest speedups or come at a significant cost in quality.
+∗
+
+Work performed while the author was an intern at Google Brain.
+
+32nd Conference on Neural Information Processing Systems (NeurIPS 2018), Montréal, Canada.
+
+

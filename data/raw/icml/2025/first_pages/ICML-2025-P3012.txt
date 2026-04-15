@@ -1,0 +1,75 @@
+SageAttention2: Efficient Attention with Thorough Outlier Smoothing and
+Per-thread INT4 Quantization
+
+Jintao Zhang * 1 Haofeng Huang * 1 2 Pengle Zhang 1 Jia Wei 1 Jun Zhu 1 Jianfei Chen 1
+https://github.com/thu-ml/SageAttention
+
+Abstract
+
+increase in real-world applications (Jiang et al., 2024; Zhang
+et al., 2025b). Several strategies have been developed to
+mitigate the computational demands of attention —such as
+(1) Linear attention methods (Wang et al., 2020; Choromanski et al., 2021; Yu et al., 2022; Katharopoulos et al.,
+2020) that reduce complexity to O(N ) and (2) Sparse attention methods (Liu et al., 2021; Chu et al., 2021; Li et al.,
+2022; Xiao et al., 2024b;a; Chen et al., 2024; Jiang et al.,
+2024; Venkataramanan et al., 2024; Gao et al., 2024; Fu
+et al., 2024; Zhang et al., 2025e; Xi et al., 2025; Yang et al.,
+2025a; Zhang et al., 2025f;h;i) that selectively process parts
+of the context — these methods are only suitable for a limited range of models and tasks. The widely used attention
+methods optimize attention by exploiting hardware capacities, such as FlashAttention V1, V2, V3 (Dao et al., 2022;
+Dao, 2024; Shah et al., 2024), xformers (Lefaudeux et al.,
+2022), and SageAttention (Zhang et al., 2025c;d;g;a). These
+works do not omit computations across the entire sequence
+and achieve impressive speed and accuracy performance
+across various tasks.
+
+Although quantization for linear layers has been
+widely used, its application to accelerate the attention process remains limited. To further enhance
+the efficiency of attention computation compared
+to SageAttention while maintaining precision, we
+propose SageAttention2, which utilizes significantly faster 4-bit matrix multiplication (Matmul) alongside additional precision-enhancing
+techniques. First, we propose to quantize matrices (Q, K) to INT4 in a hardware-friendly threadlevel granularity and quantize matrices (Pe, V ) to
+FP8. Second, we propose a method to smooth Q,
+enhancing the accuracy of INT4 QK ⊤ . Third, we
+propose a two-level accumulation strategy for PeV
+to enhance the accuracy of FP8 PeV . The operations per second (OPS) of SageAttention2
+surpass FlashAttention2 and xformers by about
+3x and 4.5x. Moreover, SageAttention2
+matches the speed of FlashAttention3(fp8) on the
+Hopper GPUs, while delivering much higher accuracy. Comprehensive experiments confirm that
+our approach incurs negligible end-to-end metrics loss across diverse models, including those
+for language, image, and video generation. The
+code is available at https://github.com/
+thu-ml/SageAttention.
+
+Motivation. For the two matrix multiplication (Matmul)
+operations in attention: QK ⊤ and PeV , SageAttention accelerates them by quantizing the QK ⊤ to INT8 and uses
+FP16 Matmul with FP16 accumulators for PeV . Moreover, to maintain attention accuracy, SageAttention proposes smoothing K by eliminating its channel-wise outliers. SageAttention achieves 2 × speedup compared with
+FlashAttention2 and is the first quantized attention that incurs a negligible end-to-end metrics loss across language,
+image, and video generation models. However, SageAttention has two weaknesses. (W1) INT8 Matmul achieves
+only half the speed of INT4. (W2) FP16 Matmul with FP16
+accumulators provides a speedup only on RTX 4090 and
+RTX 3090 GPUs. To leverage the faster INT4 tensor cores
+for QK ⊤ and using a method that can accelerate PeV on
+a broader range of GPUs, we propose to quantize Q, K to
+INT4 and Pe, V to FP8.
+
+1. Introduction
+Due to the quadratic time complexity of attention, its efficient implementation becomes crucial as sequence lengths
+*
+
+Equal contribution 1 Dept. of Comp. Sci. and Tech., Institute for AI, BNRist Center, THBI Lab, Tsinghua-Bosch Joint ML
+Center, Tsinghua University 2 Institute for Interdisciplinary Information Sciences, Tsinghua University. Correspondence to: Jianfei
+Chen <jianfeic@tsinghua.edu.cn>.
+
+Challenges. Quantizing Q, K to INT4 and Pe, V to FP8
+presents significant challenges. For example, when only pertensor quantizing Q, K to INT4, the text-to-video model
+CogvideoX will generate a completely blurry video, and
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

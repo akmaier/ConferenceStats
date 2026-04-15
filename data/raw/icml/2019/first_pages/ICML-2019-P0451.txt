@@ -1,0 +1,76 @@
+Same, Same But Different: Recovering Neural Network Quantization Error
+Through Weight Factorization
+
+Meller Eldad 1 Finkelstein Alexander 1 Almog Uri 1 Grobman Mark 1
+
+Abstract
+Quantization of neural networks has become common practice, driven by the need for efficient implementations of deep neural networks on embedded devices. In this paper, we exploit an
+oft-overlooked degree of freedom in most networks - for a given layer, individual output channels can be scaled by any factor provided that
+the corresponding weights of the next layer are
+inversely scaled. Therefore, a given network has
+many factorizations which change the weights of
+the network without changing its function. We
+present a conceptually simple and easy to implement method that uses this property and show
+that proper factorizations significantly decrease
+the degradation caused by quantization. We show
+improvement on a wide variety of networks and
+achieve state-of-the-art degradation results for
+MobileNets. While our focus is on quantization,
+this type of factorization is applicable to other
+domains such as network-pruning, neural nets
+regularization and network interpretability.
+
+1. Introduction
+Early efforts in the field of deep learning have focused
+mostly on the training aspect of neural networks. The success of these efforts has led to widespread deployment of
+trained neural networks in data-centers (Park et al., 2018;
+Jouppi et al., 2017) and on embedded devices (Ignatov et al.,
+2018) where they are used for inference which in turn emphasized the need to make the inference phase more efficient.
+Quantization, which means conversion of the arithmetic
+used within the net from high-precision floating-points to
+low-precision integers, is an essential step for efficient deployment, however, quantization degrades network perfor1
+
+Hailo technologies, Tel Aviv, Israel. Correspondence to:
+Meller Eldad <eldad.meller@hailotech.com>, Grobman Mark
+<mark@hailotech.com>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+mance. Here, we follow the commonly used quantization
+scheme described in Jacob et al. (2017) but note that other
+schemes exist (Vanhoucke et al., 2011; Gupta et al., 2015;
+Courbariaux et al., 2014) to which our results apply as well.
+Briefly, integer quantization consists of approximating real
+values with intergers according to xQ = x/scale where
+scale = (max(x) − min(x))/2N and N is the number of
+bits used in the approximation. Each layer’s weights and
+activations are given a different scale according to their
+extremum values. The noise introduced by this limited precision approximation encapsulates a fundamental dynamic
+range-precision trade-off.
+Existing approaches to decreasing induced degradation are
+quantization-aware training (Jacob et al., 2017; Banner et al.,
+2018a; Zhou et al., 2017; 2018; McKinstry et al., 2018) and
+reducing the dynamic range of activations by clipping outliers (Migacz, 2017; Choi et al., 2018; Banner et al., 2018b).
+Training is a powerful method but it is time-consuming, hard
+to implement, and requires access to the original training
+dataset which might not always be available (e.g. when the
+user wishes to use an off-the-shelf pre-trained model). Clipping has limited effect since it only addresses noise from
+activation quantization.
+In this paper, we propose a different approach. Instead of
+focusing on improving the quantization process itself, we
+explore an equivalent weight arrangement that make the
+net less sensitive to quantization. An equivalent weight arrangement is a factorization that changes the weights of the
+networks without changing its function - i.e. for a given
+input, the network output remains the same. During quantization, the range of each layer is set by the channel with the
+largest absolute activation which we term the dominant channel. This single channel determines the noise in all other
+channels, many of which have smaller values. Therefore,
+amplifying these channels to match the dominant channel
+while compensating the change at the next layer can reduce
+the effect of the noise.
+We begin by analyzing the noise introduced by quantization
+of weights and activations in terms of signal-to-quantizationnoise ratio (SQNR). We inspect the effect of channel-scaling
+on SQNR and introduce an equalization procedure which,
+under some constraints, tries to scale each output channel
+
+

@@ -1,0 +1,75 @@
+Neural Autoregressive Flows
+Chin-Wei Huang 1 2 * David Krueger 1 2 * Alexandre Lacoste 2 Aaron Courville 1 3
+
+Abstract
+Normalizing flows and autoregressive models
+have been successfully combined to produce
+state-of-the-art results in density estimation, via
+Masked Autoregressive Flows (MAF) (Papamakarios et al., 2017), and to accelerate stateof-the-art WaveNet-based speech synthesis to
+20x faster than real-time (Oord et al., 2017),
+via Inverse Autoregressive Flows (IAF) (Kingma
+et al., 2016). We unify and generalize these approaches, replacing the (conditionally) affine univariate transformations of MAF/IAF with a more
+general class of invertible univariate transformations expressed as monotonic neural networks.
+We demonstrate that the proposed neural autoregressive flows (NAF) are universal approximators for continuous probability distributions, and
+their greater expressivity allows them to better
+capture multimodal target distributions. Experimentally, NAF yields state-of-the-art performance
+on a suite of density estimation tasks and outperforms IAF in variational autoencoders trained on
+binarized MNIST. 1
+
+1. Introduction
+Invertible transformations with a tractable Jacobian, also
+known as normalizing flows, are useful tools in many machine learning problems, for example: (1) In the context
+of deep generative models, training necessitates evaluating data samples under the model’s inverse transformation
+(Dinh et al., 2017). Tractable density is an appealing property for these models, since it allows the objective of interest
+to be directly optimized; whereas other mainstream methods
+rely on alternative losses, in the case of intractable density
+models (Kingma & Welling, 2014; Rezende et al., 2014), or
+*
+
+Equal contribution 1 MILA, University of Montreal 2 Element
+AI CIFAR fellow. Correspondence to: Chin-Wei Huang <chinwei.huang@umontreal.ca>.
+3
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+1
+Implementation can be found at https://github.com/CWHuang/NAF/
+
+implicit losses, in the case of adversarial models (Goodfellow et al., 2014). (2) In the context of variational inference
+(Rezende & Mohamed, 2015), they can be used to improve
+the variational approximation to the posterior by parameterizing more complex distributions. This is important since
+a poor variational approximation to the posterior can fail
+to reflect the right amount of uncertainty, and/or be biased
+(Turner & Sahani, 2011), resulting in inaccurate and unreliable predictions. We are thus interested in improving
+techniques for normalizing flows.
+Recent work by Kingma et al. (2016) reinterprets autoregressive models as invertible transformations suitable for
+constructing normalizing flows. The inverse transformation
+process, unlike sampling from the autoregressive model, is
+not sequential and thus can be accelerated via parallel computation. This allows multiple layers of transformations to
+be stacked, increasing expressiveness for better variational
+inference (Kingma et al., 2016) or better density estimation
+for generative models (Papamakarios et al., 2017). Stacking
+also makes it possible to improve on the sequential conditional factorization assumed by autoregressive models such
+as PixelRNN or PixelCNN (Oord et al., 2016), and thus
+define a more flexible joint probability.
+We note that the normalizing flow introduced by Kingma
+et al. (2016) only applies an affine transformation of each
+scalar random variable. Although this transformation is
+conditioned on preceding variables, the resulting flow can
+still be susceptible to bad local minima, and thus failure to
+capture the multimodal shape of a target density; see Figure
+1 and 2.
+1.1. Contributions of this work
+We propose replacing the conditional affine transformation
+of Kingma et al. (2016) with a more rich family of transformations, and note the requirements for doing so. We
+determine that very general transformations, for instance
+parametrized by deep neural networks, are possible. We
+then propose and evaluate several specific monotonic neural
+network architectures which are more suited for learning
+multimodal distributions. Concretely, our method amounts
+to using an autoregressive model to output the weights of
+multiple independent transformer networks, each of which
+operates on a single random variable, replacing the affine
+
+

@@ -1,0 +1,86 @@
+Rolling Diffusion Models
+
+David Ruhe 1 2 * Jonathan Heek 1 Tim Salimans 1 Emiel Hoogeboom 1
+
+Abstract
+
+2023). Other impressive results for generating video data
+have been achieved by, e.g., (Blattmann et al., 2023; Ge
+et al., 2023; Harvey et al., 2022; Singer et al., 2022; Ho
+et al., 2022b). Applications of sequential generative modeling outside video include, e.g., fluid mechanics or weather
+and climate modeling (Price et al., 2023; Meng et al., 2022;
+Lippe et al., 2023).
+
+Diffusion models have recently been increasingly
+applied to temporal data such as video, fluid mechanics simulations, or climate data. These methods generally treat subsequent frames equally regarding the amount of noise in the diffusion process. This paper explores Rolling Diffusion: a
+new approach that uses a sliding window denoising process. It ensures that the diffusion process
+progressively corrupts through time by assigning
+more noise to frames that appear later in a sequence, reflecting greater uncertainty about the
+future as the generation process unfolds. Empirically, we show that when the temporal dynamics are complex, Rolling Diffusion is superior to
+standard diffusion. In particular, this result is
+demonstrated in a video prediction task using the
+Kinetics-600 video dataset and in a chaotic fluid
+dynamics forecasting experiment.
+
+What is common across many of these works is that they
+treat the temporal axis as an ‘extra spatial dimension’. That
+is, they treat the video as a 3D tensor of shape K × H × W .
+This has several downsides. First, the memory and computational requirements can quickly grow infeasible if one
+wants to generate long sequences. Second, one is typically
+interested in being able to roll out the sampling process for
+a variable number of time steps. Therefore, an alternative
+angle is a fully autoregressive approach by conditioning on
+a sequence of input frames and simulating a single output
+frame, which is then concatenated to the input frames, upon
+which the recursion can continue. In this case, one has to
+traverse the entire denoising diffusion sampling chain for
+every single frame, which is computationally intensive. Additionally, iteratively sampling single frames leads to quick
+autoregressive error accumulation. A middle ground can be
+found by jointly generating blocks of frames. However, in
+this block-autoregressive case, a diffusion model would use
+the same number of denoising steps for every frame. This is
+suboptimal since, given a sequence of conditioning frames,
+the generative uncertainty about the next few is much lower
+than the frames further into the future. Finally, both methods sample frames only jointly with earlier frames, which is
+potentially a suboptimal parameterization.
+
+1. Introduction
+Diffusion models (Sohl-Dickstein et al., 2015; Song & Ermon, 2019; Ho et al., 2020) have significantly boosted the
+field of generative modeling. They provided the fundaments for large-scale text-to-image systems like DALL-E 2
+(Ramesh et al., 2022), Imagen (Saharia et al., 2022), Parti
+(Yu et al., 2022), and Stable Diffusion (Rombach et al.,
+2022). Other applications of diffusion models include density estimation, text-to-speech, and image editing (Kingma
+et al., 2021; Gao et al., 2023; Kawar et al., 2023).
+
+In this paper, we propose a new framework called Rolling
+Diffusion, a method that explicitly corrupts data from past
+to future. This is achieved by reparameterizing the global
+diffusion time to a local time for each frame. It turns out
+that by doing this, one can (apart from boundary conditions)
+completely focus on a local sliding window sequential denoising process. This has several temporal inductive biases,
+alleviating some of the abovementioned issues.
+
+After these successes in these domains, interest in developing diffusion models for time sequences has grown. Prominent recent large-scale works include, e.g., Imagen Video
+(Ho et al., 2022a), Stable Diffusion Video (StabilityAI,
+∗
+
+Work done as a Student Researcher at Google. 1 Google
+Deepmind, Amsterdam, Netherlands 2 University of Amsterdam, Netherlands.
+Correspondence to: David Ruhe
+<david.ruhe@gmail.com>, Jonathan Heek, Tim Salimans, Emiel
+Hoogeboom <{jheek, salimans, emielh}@google.com>.
+
+1. In denoising diffusion models, the model output tends
+to contain low-frequency information in high noise
+regimes and includes high-frequency information only
+when corruptions are light. In our framework, the noise
+
+st
+
+Proceedings of the 41 International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

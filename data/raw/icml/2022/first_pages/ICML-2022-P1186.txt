@@ -1,0 +1,84 @@
+ROCK : Causal Inference Principles
+for Reasoning about Commonsense Causality
+
+Jiayao Zhang 1 2 Hongming Zhang 1 3 Weijie J. Su 2 Dan Roth 1 4
+
+Abstract
+Commonsense causality reasoning (CCR) aims
+at identifying plausible causes and effects in natural language descriptions that are deemed reasonable by an average person. Although being of great academic and practical interest, this
+problem is still shadowed by the lack of a wellposed theoretical framework; existing work usually relies on deep language models wholeheartedly, and is potentially susceptible to confounding
+co-occurrences. Motivated by classical causal
+principles, we articulate the central question of
+CCR and draw parallels between human subjects
+in observational studies and natural languages
+to adopt CCR to the potential-outcomes framework which, to the best of our knowledge, is the
+first such attempt for commonsense tasks. We
+propose a novel framework, ROCK, to Reason
+O(A)bout Commonsense K(C)ausality, which utilizes temporal signals as incidental supervision,
+and balances confounding effects using temporal propensities that are analogous to propensity
+scores. ROCK is modular and zero-shot, and
+demonstrates good CCR capabilities.
+
+1. Introduction
+Commonsense causality reasoning (CCR) is an important
+yet non-trivial task in natural language processing (NLP)
+that exerts broad industrial and societal impacts (Kuipers,
+1984; Gordon et al., 2012; Mostafazadeh et al., 2020; Sap
+et al., 2020). We articulate this task as
+reasoning about cause-and-effect relationships
+between events in natural language descriptions
+1
+
+Cognitive Computation Group, University of Pennsylvania, USA. 2 Department of Statistics and Data Science,
+University of Pennsylvania, USA. 3 Tencent AI Lab Seattle,
+USA. 4 Amazon AWS AI Labs, USA. Correspondence to:
+<{zjiayao,hzhangal,danroth,suw}@upenn.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+E1: Alice entered
+a restaurant.
+
+causes?
+
+E2: Alice ordered a pizza.
+Time
+
+X1: Alice felt hungry.
+
+A1: Alice opened a
+food-delivery app.
+
+Figure 1: An Example of CCR: does E1 cause E2 ? The
+temporal order E1 ≺ E2 does not necessitate causation
+due to confounding co-occurrences (e.g., X1 ). Since when
+conditioning on X1 , a comparable intervention A1 of E1
+also precedes E2 , the effect from E1 to E2 shrinks.
+
+that are deemed reasonable by an average person.
+This definition naturally excludes questions that are beyond
+commonsense knowledge, such as those scientific in nature
+(e.g., does a surgery procedure reduce mortality?). Instead,
+it accommodates causal queries within the reach of an ordinary reasonable person. As a concrete instantiation, we
+consider the problem of defining and estimating the strength
+of causation from one given event, E1 , to another, E2 . For
+example, in Figure 1, is Alice’s “entering a restaurant” (E1 )
+a plausible cause for her “ordering a pizza” (E2 )? Although
+the precedence from E1 to E2 is logical, it might be less a
+“cause” compared with Alice’s “feeling hungry” (X1 ).
+Temporality informs causation, but it is still unclear how to
+account for confounding co-occurrences (such as X1 in Figure 1). Motivated by causal inference principles (Section 2),
+we formulate CCR as estimating the change in the likelihood of E2 ’s occurrence due to intervening E1 (denoted by
+¬E1 ):
+∆ = P (E1 ≺ E2 ) − P (¬E1 ≺ E2 )
+(1)
+where P(·) can be estimated by pretrained language models
+(LMs) e.g., via masked language modeling (see Section 4
+for implementation details). The estimand ∆ measures the
+average treatment effect (ATE): its magnitude signifies the
+strength of the effect and its sign informs the direction. For
+example, when ∆ is close to −1, E1 has a strong effect on
+E2 towards making E2 less prone to occurring. If the occurrences of E1 and ¬E1 on any unit are purely random, a direct
+estimation of the temporal probabilities in Equation (1) suffices; however, due to confounding co-occurrences (e.g.,
+
+

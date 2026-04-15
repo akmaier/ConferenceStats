@@ -1,0 +1,55 @@
+Block-State Transformers
+Jonathan Pilault124∗ Mahan Fathi123∗
+Orhan Firat
+Christopher Pal24 Pierre-Luc Bacon23 Ross Goroshin1
+1
+Google DeepMind 2 Mila 3 Université de Montréal 4 Polytechnique Montréal
+1
+
+Abstract
+State space models (SSMs) have shown impressive results on tasks that require
+modeling long-range dependencies and efficiently scale to long sequences owing to
+their subquadratic runtime complexity. Originally designed for continuous signals,
+SSMs have shown superior performance on a plethora of tasks, in vision and audio;
+however, SSMs still lag Transformer performance in Language Modeling tasks. In
+this work, we propose a hybrid layer named Block-State Transformer (BST), that
+internally combines an SSM sublayer for long-range contextualization, and a Block
+Transformer sublayer for short-term representation of sequences. We study three
+different, and completely parallelizable, variants that integrate SSMs and blockwise attention. We show that our model outperforms similar Transformer-based
+architectures on language modeling perplexity and generalizes to longer sequences.
+In addition, the Block-State Transformer demonstrates more than tenfold increase
+in speed at the layer level compared to the Block-Recurrent Transformer when
+model parallelization is employed.
+
+1
+
+Introduction
+
+Transformers have shown impressive performance on a wide range of natural language processing
+(NLP) tasks. While they have been primarily used for language modeling the Transformer architecture
+[40] has also been successfully applied to other tasks outside of the NLP and have mostly replaced
+Recurrent Neural Networks (RNNs). Several factors contribute to this success, including computational efficiency and architectural inductive biases that are well-suited for training on natural language
+tasks at scale. On the computational upside, Transformers are able to process tokens of a given
+input sequence in parallel, making the most of modern accelerator hardware. Moreover, the attention
+mechanism enables Transformers to find relationships in longer sequences by providing ready access
+to all the extracted information from past tokens when inferring the next token. Compared to RNNs
+and LSTMs [19], the benefits of self-attention are two-fold: (i) the capacity of what could be stored
+and directly accessible as context is drastically increased, and (ii) training on longer sequences is
+more stable [18, 23].
+Given the remarkable achievements of Transformers in language modeling tasks, and their improved
+performance at scale on hard NLP tasks such as reasoning and question answering [2, 39, 6], the
+demand for deploying even deeper and larger networks is greater than ever before. An orthogonal
+scaling dimension, which could be potentially even more consequential, is the size of the input
+sequence. Despite the several advantages of Transformers over RNNs, it is still problematic to scale
+the input sequence length, again for both computational performance and quality reasons. Further, the
+Transformer’s runtime is quadratic with respect to the input sequence length, which makes training
+these models increasingly expensive. Furthermore, Transformers with attention, that is local [8],
+sparse [4, 43, 36], low-rank approximated [41] or linearized via kernel methods [5, 22], notoriously
+struggle on long-input classification tasks [37]. Vanilla transformers can be unstable when trained
+∗
+
+Equal Contribution.
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

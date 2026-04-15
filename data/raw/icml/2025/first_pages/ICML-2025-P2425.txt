@@ -1,0 +1,247 @@
+Softmax is not Enough (for Sharp Size Generalisation)
+
+Petar Veličković 1 Christos Perivolaropoulos 1 Federico Barbero 2 * Razvan Pascanu 1
+y
+
+Abstract
+A key property of reasoning systems is the ability to make sharp decisions on their input data.
+For contemporary AI systems, a key carrier of
+sharp behaviour is the softmax function, with
+its capability to perform differentiable query-key
+lookups. It is a common belief that the predictive power of networks leveraging softmax arises
+from “circuits” which sharply perform certain
+kinds of computations consistently across many
+diverse inputs. However, for these circuits to be
+robust, they would need to generalise well to arbitrary valid inputs. In this paper, we dispel this
+myth: even for tasks as simple as finding the maximum key, any learned circuitry must disperse
+as the number of items grows at test time. We
+attribute this to a fundamental limitation of the
+softmax function to robustly approximate sharp
+functions with increasing problem size, prove this
+phenomenon theoretically, and propose adaptive
+temperature as an ad-hoc technique for improving
+the sharpness of softmax at inference time.
+
+y
+
+(in-distribution)
+
+(out-of-distribution)
+
+e1
+
+(4)
+
+e2
+
+(4)
+
+e3
+
+(4)
+
+e4
+
+(4)
+
+e1
+
+(n)
+
+e2
+
+(n)
+
+e3
+
+(n)
+
+e4
+
+(n)
+
+e5
+
+(n)
+
+e6
+
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+q
+
+q
+
+(n)
+
+...
+
+(n)
+
+en
+..
+.
+
+...
+...
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+..
+.
+
+(4)
+x1
+
+(4)
+x2
+
+(4)
+x3
+
+(4)
+x4
+
+(n)
+x1
+
+(n)
+x2
+
+(n)
+x3
+
+(n)
+x4
+
+(n)
+x5
+
+(n)
+x6
+
+..
+.
+...
+
+(n)
+xn
+
+Figure 1. Illustration of Theorem 2.2, one of our key results. Assuming a tokenised input from a fixed vocabulary and a non-zero
+temperature, for every softmax attention head inside an architecture comprising only MLPs and softmax self-attention layers,
+it must hold that, given sufficiently many tokens, its attention
+coefficients will disperse, even if they were sharp in-distribution.
+
+of logits, e ∈ Rn , into a probability distribution, in a form
+that is part of the exponential family. Further, softmax
+allows for application of a temperature parameter, θ ∈ R, to
+adjust the amount of probability mass attached to the highest
+logit—a concept borrowed from the Boltzmann distribution
+in statistical mechanics.
+Initially, the primary utilisation of softmax in deep learning
+was within the final layer of classifiers. Its influence in
+this domain vastly expanded after it saw use in the internal
+layers—as a differentiable key-value store (Graves et al.,
+2014) or a mechanism for attending over the most relevant
+parts of the input (Bahdanau et al., 2015). This attentional
+framing of softmax was critical in defining important models for sequences (Vaswani et al., 2017, Transformers), images (Dosovitskiy et al., 2021, ViTs) and graphs (Veličković
+et al., 2018, GATs).
+
+1. Motivation
+It is no understatement to say that the softmaxθ : Rn →
+[0, 1]n function1 :
+
+
+exp(e1 /θ)
+exp(en /θ)
+... P
+softmaxθ (e) = P
+k exp(ek /θ)
+k exp(ek /θ)
+(1)
+is one of the most fundamental functions in contemporary
+artificial intelligence systems.
+
+Several efforts attribute the success of softmax to its capability of modelling computations relevant to reasoning. This
+can be related to the concept of circuits in theoretical computer science (Arora & Barak, 2009). Several interpretable
+pieces of “circuitry” (Olah et al., 2020) have already been
+discovered in large Transformers, primarily under the umbrella of mechanistic interpretability (Elhage et al., 2021;
+Olsson et al., 2022; Wang et al., 2022).
+
+The role of softmax in deep learning is to convert any vector
+∗
+
+Work performed while the author was at Google DeepMind.
+Google DeepMind 2 University of Oxford. Correspondence to:
+Petar Veličković <petarv@google.com>.
+
+1
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+1
+Strictly speaking, the proper name for this function should
+be softargmax. We choose to retain the terminology introduced
+by Bridle (1989), primarily for reasons of alignment with modern
+deep learning frameworks.
+
+Here we study the robustness of such circuitry, especially
+when going beyond the distribution the models are trained
+on—a critical regime for reasoning engines. We find that,
+in spite of its many successes, softmax is fundamentally
+1
+
+

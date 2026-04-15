@@ -1,0 +1,83 @@
+Wasserstein Generative Adversarial Networks
+Martin Arjovsky 1 Soumith Chintala 2 Léon Bottou 1 2
+
+Abstract
+We introduce a new algorithm named WGAN,
+an alternative to traditional GAN training. In
+this new model, we show that we can improve
+the stability of learning, get rid of problems like
+mode collapse, and provide meaningful learning
+curves useful for debugging and hyperparameter
+searches. Furthermore, we show that the corresponding optimization problem is sound, and
+provide extensive theoretical work highlighting
+the deep connections to different distances between distributions.
+
+1. Introduction
+The problem this paper is concerned with is that of unsupervised learning. Mainly, what does it mean to learn a
+probability distribution? The classical answer to this is to
+learn a probability density. This is often done by defining
+a parametric family of densities (Pθ )θ∈Rd and finding the
+one that maximized the likelihood on our data: if we have
+real data examples {x(i) }m
+i=1 , we would solve the problem
+m
+
+1 X
+log Pθ (x(i) )
+θ∈Rd m
+i=1
+max
+
+If the real data distribution Pr admits a density and Pθ is the
+distribution of the parametrized density Pθ , then, asymptotically, this amounts to minimizing the Kullback-Leibler
+divergence KL(Pr kPθ ).
+For this to make sense, we need the model density Pθ to
+exist. This is not the case in the rather common situation
+where we are dealing with distributions supported by low
+dimensional manifolds. It is then unlikely that the model
+manifold and the true distribution’s support have a nonnegligible intersection (see (Arjovsky & Bottou, 2017)),
+and this means that the KL distance is not defined (or simply infinite).
+1
+
+Courant Institute of Mathematical Sciences, NY 2 Facebook
+AI Research, NY. Correspondence to: Martin Arjovsky <martinarjovsky@gmail.com>.
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+The typical remedy is to add a noise term to the model distribution. This is why virtually all generative models described in the classical machine learning literature include
+a noise component. In the simplest case, one assumes a
+Gaussian noise with relatively high bandwidth in order to
+cover all the examples. It is well known, for instance, that
+in the case of image generation models, this noise degrades
+the quality of the samples and makes them blurry. For example, we can see in the recent paper (Wu et al., 2016)
+that the optimal standard deviation of the noise added to
+the model when maximizing likelihood is around 0.1 to
+each pixel in a generated image, when the pixels were already normalized to be in the range [0, 1]. This is a very
+high amount of noise, so much that when papers report the
+samples of their models, they don’t add the noise term on
+which they report likelihood numbers. In other words, the
+added noise term is clearly incorrect for the problem, but is
+needed to make the maximum likelihood approach work.
+Rather than estimating the density of Pr which may not exist, we can define a random variable Z with a fixed distribution p(z) and pass it through a parametric function
+gθ : Z → X (typically a neural network of some kind)
+that directly generates samples following a certain distribution Pθ . By varying θ, we can change this distribution and
+make it close to the real data distribution Pr . This is useful in two ways. First of all, unlike densities, this approach
+can represent distributions confined to a low dimensional
+manifold. Second, the ability to easily generate samples is
+often more useful than knowing the numerical value of the
+density (for example in image superresolution or semantic
+segmentation when considering the conditional distribution
+of the output image given the input image). In general, it
+is computationally difficult to generate samples given an
+arbitrary high dimensional density (Neal, 2001).
+Variational Auto-Encoders (VAEs) (Kingma & Welling,
+2013) and Generative Adversarial Networks (GANs)
+(Goodfellow et al., 2014) are well known examples of this
+approach. Because VAEs focus on the approximate likelihood of the examples, they share the limitation of the standard models and need to fiddle with additional noise terms.
+GANs offer much more flexibility in the definition of the
+objective function, including Jensen-Shannon (Goodfellow
+et al., 2014), and all f -divergences (Nowozin et al., 2016)
+as well as some exotic combinations (Huszar, 2015). On
+
+

@@ -6,6 +6,7 @@ import html
 import json
 import re
 import subprocess
+import time
 from pathlib import Path
 from urllib.parse import quote, urljoin
 
@@ -37,6 +38,9 @@ OPENREVIEW_HTML_NOTE_RE = re.compile(
     flags=re.S,
 )
 OPENREVIEW_HTML_AUTHOR_RE = re.compile(r'<a [^>]*href="/profile\?id=[^"]+"[^>]*>([^<]+)</a>')
+OPENREVIEW_PAGE_RE = re.compile(r"/submissions\?page=(\d+)(?:&amp;|\\u0026)venue=NeurIPS\.cc%2F2025%2FConference")
+OPENREVIEW_FETCH_RETRIES = 6
+OPENREVIEW_INITIAL_DELAY_SECONDS = 2.0
 
 
 def normalize_space(value: str) -> str:
@@ -48,13 +52,24 @@ def decode_json_string(value: str) -> str:
 
 
 def fetch_url(url: str) -> str:
-    result = subprocess.run(
-        ["curl", "-L", "--fail", "--silent", "-A", USER_AGENT, url],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout
+    delay = OPENREVIEW_INITIAL_DELAY_SECONDS
+    last_exc = None
+    for attempt in range(OPENREVIEW_FETCH_RETRIES + 1):
+        try:
+            result = subprocess.run(
+                ["curl", "-L", "--fail", "--silent", "-A", USER_AGENT, url],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            return result.stdout
+        except subprocess.CalledProcessError as exc:
+            last_exc = exc
+            if attempt == OPENREVIEW_FETCH_RETRIES:
+                raise
+            time.sleep(delay)
+            delay *= 2
+    raise last_exc
 
 
 def write_csv(path: Path, fieldnames, rows):
@@ -130,6 +145,11 @@ def parse_openreview_entries(toc_html: str):
     return entries
 
 
+def extract_openreview_max_page(toc_html: str) -> int:
+    pages = [int(match) for match in OPENREVIEW_PAGE_RE.findall(toc_html)]
+    return max(pages) if pages else 1
+
+
 def collect_entries(args, raw_dir: Path):
     if args.year <= 2024:
         toc_html = fetch_url(args.proceedings_url)
@@ -139,23 +159,31 @@ def collect_entries(args, raw_dir: Path):
     base_url = f"https://openreview.net/submissions?venue={quote('NeurIPS.cc/2025/Conference', safe='')}"
     entries = []
     seen_pages = []
+    max_page = None
     page = 1
     while True:
         page_url = base_url if page == 1 else f"{base_url}&page={page}"
-        toc_html = fetch_url(page_url)
+        empty_attempts = 0
+        while True:
+            toc_html = fetch_url(page_url)
+            page_entries = parse_openreview_entries(toc_html)
+            if max_page is None:
+                max_page = extract_openreview_max_page(toc_html)
+            # OpenReview can return a partial app shell or transient block page mid-crawl.
+            # Retry a few times before treating an empty page as terminal.
+            if page_entries or empty_attempts >= 3 or page >= (max_page or 1):
+                break
+            empty_attempts += 1
+            time.sleep(OPENREVIEW_INITIAL_DELAY_SECONDS * (2 ** empty_attempts))
+
         seen_pages.append(page_url)
         (raw_dir / f"toc_page_{page:02d}.html").write_text(toc_html, encoding="utf-8")
-        page_entries = parse_openreview_entries(toc_html)
-        if not page_entries:
+        if not page_entries and page > (max_page or 1):
             break
         entries.extend(page_entries)
         if args.paper_limit and len(entries) >= args.paper_limit:
             break
-        next_page_patterns = [
-            f"/submissions?page={page + 1}&venue=NeurIPS.cc%2F2025%2FConference",
-            f"/submissions?page={page + 1}\\u0026venue=NeurIPS.cc%2F2025%2FConference",
-        ]
-        if not any(pattern in toc_html for pattern in next_page_patterns):
+        if page >= (max_page or 1):
             break
         page += 1
     return entries, seen_pages

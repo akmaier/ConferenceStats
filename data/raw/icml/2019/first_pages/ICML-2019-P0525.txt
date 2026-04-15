@@ -1,0 +1,80 @@
+Fault Tolerance in Iterative-Convergent Machine Learning
+Aurick Qiao 1 2 Bryon Aragam 3 Bingjing Zhang 1 Eric P. Xing 1 2 3
+
+Abstract
+
+Machine learning (ML) training algorithms often possess an inherent self-correcting behavior due to their iterativeconvergent nature. Recent systems exploit this property to achieve adaptability and efficiency in unreliable computing
+environments by relaxing the consistency of execution and allowing calculation errors to be self-corrected during training.
+However, the behavior of such systems are only well understood for specific types of calculation errors, such as those
+caused by staleness, reduced precision, or asynchronicity, and for specific algorithms, such as stochastic gradient descent.
+In this paper, we develop a general framework to quantify the effects of calculation errors on iterative-convergent
+algorithms. We then use this framework to derive a worst-case upper bound on the cost of arbitrary perturbations to
+model parameters during training and to design new strategies for checkpoint-based fault tolerance. Our system, SCAR,
+can reduce the cost of partial failures by 78%–95% when compared with traditional checkpoint-based fault tolerance
+across a variety of ML models and training algorithms, providing near-optimal performance in recovering from failures.
+
+1. Introduction
+Distributed model training for machine learning (ML) is a
+workload that is typically long-running and resource-intensive.
+Throughout a job’s lifetime, it is susceptible to hardware failures, performance fluctuations, and other uncertainties inherent
+to real-world cluster environments. For example, processes
+can be preempted by a cluster resource allocator (Vavilapalli
+et al., 2013; Hindman et al., 2011), parameter synchronization
+can be bottlenecked on a slow or congested network (Li et al.,
+2014b; Zhang et al., 2017b), and stragglers can severely impact
+overall job throughput (Cipar et al., 2013; Harlap et al., 2016).
+These concerns are amplified in modern shared clusters and
+cloud-based spot instances such as those provided by Amazon
+Web Services (AWS). Thus, developing new fault-tolerance
+strategies for modern ML systems is a critical area of research.
+ML-agnostic distributed systems approaches for addressing
+such problems often adopt strong consistency semantics. They
+aim to provide strong execution guarantees at a per-operation
+level (such as linearizability or serializability), but may also
+incur higher performance overhead. On the other hand, ML
+training is often tolerant to small calculation errors and may not
+require such strong consistency guarantees. This observation
+has been exploited by recent ML systems to overcome cluster
+1
+
+Petuum, Inc., Pittsburgh, Pennsylvania, USA 2 Computer Science
+Department, Carnegie Mellon Univeristy, Pittsburgh, Pennsylvania,
+USA 3 Machine Learning Department, Carnegie Mellon Univeristy,
+Pittsburgh, Pennsylvania, USA. Correspondence to: Aurick Qiao
+<aurick.qiao@petuum.com>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright 2019
+by the author(s).
+
+x(T)
+
+x*
+x(k)
+
+x(0)
+x(T) + δ
+Figure 1. The self-correcting behavior of iterative-convergent
+algorithms. Even though a calculation error results in an undesirable
+perturbation of at iteration T , the subsequent iterations still brings
+the solution closer to the optimum value of x⇤ .
+
+unreliability and resource limitation issues, such as bounded
+staleness consistency (Ho et al., 2013; Cipar et al., 2013; Cui
+et al., 2014), quantization and low-precision arithmetic (Courbariaux et al., 2014; Gupta et al., 2015; Hubara et al., 2017),
+and lock-free execution (Niu et al., 2011; Dean et al., 2012).
+One notable exception to this trend is checkpoint-based fault
+tolerance, a common strategy in current ML systems for
+mitigating hardware failures (Abadi et al., 2016; Wei et al.,
+2015; Low et al., 2012) which continues to enforce strong
+consistency semantics at a high cost of re-computing lost work.
+This trend of relaxing consistency in ML systems relies
+on the self-correcting behavior of iterative-convergent ML
+training algorithms (Fig. 1). During each step, the training
+algorithm calculates updates based on the current values of
+model parameters, and then applies the updates to obtain a
+“better” set of model parameters. By iteratively performing this
+computation, the model parameters eventually converge to a
+set of optimal values. Small computation errors made during
+this procedure are eventually washed out by the successive
+
+

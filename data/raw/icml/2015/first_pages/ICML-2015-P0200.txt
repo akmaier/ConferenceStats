@@ -1,0 +1,74 @@
+Trust Region Policy Optimization
+John Schulman
+JOSCHU @ EECS . BERKELEY. EDU
+Sergey Levine
+SLEVINE @ EECS . BERKELEY. EDU
+Philipp Moritz
+PCMORITZ @ EECS . BERKELEY. EDU
+Michael Jordan
+JORDAN @ CS . BERKELEY. EDU
+Pieter Abbeel
+PABBEEL @ CS . BERKELEY. EDU
+University of California, Berkeley, Department of Electrical Engineering and Computer Sciences
+
+Abstract
+In this article, we describe a method for optimizing control policies, with guaranteed monotonic
+improvement. By making several approximations to the theoretically-justified scheme, we develop a practical algorithm, called Trust Region
+Policy Optimization (TRPO). This algorithm is
+effective for optimizing large nonlinear policies such as neural networks. Our experiments
+demonstrate its robust performance on a wide variety of tasks: learning simulated robotic swimming, hopping, and walking gaits; and playing
+Atari games using images of the screen as input.
+Despite its approximations that deviate from the
+theory, TRPO tends to give monotonic improvement, with little tuning of hyperparameters.
+
+1 Introduction
+Most algorithms for policy optimization can be classified
+into three broad categories: policy iteration methods, which
+alternate between estimating the value function under the
+current policy and improving the policy (Bertsekas, 2005);
+policy gradient methods, which use an estimator of the gradient of the expected cost obtained from sample trajectories (Peters & Schaal, 2008a) (and which, as we later
+discuss, have a close connection to policy iteration); and
+derivative-free optimization methods, such as the crossentropy method (CEM) and covariance matrix adaptation
+(CMA), which treat the cost as a black box function to be
+optimized in terms of the policy parameters (Fu et al., 2005;
+Szita & Lörincz, 2006).
+General derivative-free stochastic optimization methods
+such as CEM and CMA are preferred on many problems, because they achieve good results while being simple to understand and implement. For example, while
+Tetris is a classic benchmark problem for approximate dyProceedings of the 31 st International Conference on Machine
+Learning, Lille, France, 2015. JMLR: W&CP volume 37. Copyright 2015 by the author(s).
+
+namic programming (ADP) methods, stochastic optimization methods are difficult to beat on this task (Gabillon
+et al., 2013). For continuous control problems, methods
+like CMA have been successful at learning control policies for challenging tasks like locomotion when provided
+with hand-engineered policy classes with low-dimensional
+parameterizations (Wampler & Popović, 2009). The inability of ADP and gradient-based methods to consistently
+beat gradient-free random search is unsatisfying, since
+gradient-based optimization algorithms enjoy much better
+sample complexity guarantees than gradient-free methods
+(Nemirovski, 2005). Continuous gradient-based optimization has been very successful at learning function approximators for supervised learning tasks with huge numbers of
+parameters, and extending their success to reinforcement
+learning would allow for efficient training of complex and
+powerful policies.
+In this article, we first prove that minimizing a certain surrogate loss function guarantees policy improvement with
+non-trivial step sizes. Then we make a series of approximations to the theoretically-justified algorithm, yielding a
+practical algorithm, which we call trust region policy optimization (TRPO). We describe two variants of this algorithm: first, the single-path method, which can be applied
+in the model-free setting; second, the vine method, which
+requires the system to be restored to particular states, which
+is typically only possible in simulation. These algorithms
+are scalable and can optimize nonlinear policies with tens
+of thousands of parameters, which have previously posed a
+major challenge for model-free policy search (Deisenroth
+et al., 2013). In our experiments, we show that the same
+TRPO methods can learn complex policies for swimming,
+hopping, and walking, as well as playing Atari games directly from raw images.
+
+2
+
+Preliminaries
+
+Consider an infinite-horizon discounted Markov decision
+process (MDP), defined by the tuple (S, A, P, c, ⇢0 , ),
+where S is a finite set of states, A is a finite set of actions,
+P : S ⇥ A ⇥ S ! R is the transition probability distribution, c : S ! R is the cost function, ⇢0 : S ! R is
+
+

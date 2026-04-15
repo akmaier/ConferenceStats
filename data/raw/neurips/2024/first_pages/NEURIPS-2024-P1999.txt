@@ -1,0 +1,67 @@
+SGLang: Efficient Execution of
+Structured Language Model Programs
+
+Lianmin Zheng2∗ Liangsheng Yin3
+Zhiqiang Xie1
+Chuyue Sun1
+Jeff Huang4
+5
+2
+1
+2
+Cody Hao Yu
+Shiyi Cao
+Christos Kozyrakis
+Ion Stoica
+Joseph E. Gonzalez2
+Clark Barrett1
+Ying Sheng1∗
+1
+
+Stanford University 2 UC Berkeley 3 Shanghai Jiao Tong University
+4
+Texas A&M University 5 Independent Researcher
+
+Abstract
+Large language models (LLMs) are increasingly used for complex tasks that
+require multiple generation calls, advanced prompting techniques, control flow, and
+structured inputs/outputs. However, efficient systems are lacking for programming
+and executing these applications. We introduce SGLang, a system for efficient
+execution of complex language model programs. SGLang consists of a frontend
+language and a runtime. The frontend simplifies programming with primitives for
+generation and parallelism control. The runtime accelerates execution with novel
+optimizations like RadixAttention for KV cache reuse and compressed finite state
+machines for faster structured output decoding. Experiments show that SGLang
+achieves up to 6.4× higher throughput compared to state-of-the-art inference
+systems on various large language and multi-modal models on tasks including
+agent control, logical reasoning, few-shot learning benchmarks, JSON decoding,
+retrieval-augmented generation pipelines, and multi-turn chat. The code is publicly
+available at https://github.com/sgl-project/sglang.
+
+1
+
+Introduction
+
+Recent increases in the capabilities of LLMs have broadened their utility, enabling them to tackle a
+wider range of general tasks and act as autonomous agents [35, 6, 36, 52, 46]. In such applications,
+LLMs engage in multi-round planning, reasoning, and interaction with external environments. This
+is accomplished through tool usage [41, 38], multiple input modalities [47, 2], and a wide range of
+prompting techniques [30], like few-shot learning [5], self-consistency [53], skeleton-of-thought [33],
+and tree-of-thought [56]. All of these new use cases require multiple, often dependent, LLM
+generation calls, showing a trend of using multi-call structures to complete complex tasks [57, 21].
+The emergence of these patterns signifies a shift in our interaction with LLMs, moving from simple
+chatting to a more sophisticated form of programmatic usage of LLMs, which means using a program
+to schedule and control the generation processes of LLMs. We refer to these programs as "Language
+Model Programs" (LM Programs) [4, 20]. The advanced prompting techniques and agentic workflow
+mentioned above fall within the scope of LM programs. There are two common properties of LM
+programs: (1) LM programs typically contain multiple LLM calls interspersed with control flow.
+This is needed to complete complex tasks and improve overall quality. (2) LM programs receive
+structured inputs and produce structured outputs. This is needed to enable the composition of LM
+programs and to integrate LM programs into existing software systems.
+∗
+
+Equal contribution.
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

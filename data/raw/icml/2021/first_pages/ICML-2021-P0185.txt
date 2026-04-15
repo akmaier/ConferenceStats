@@ -1,0 +1,78 @@
+Phasic Policy Gradient
+Karl Cobbe 1 Jacob Hilton 1 Oleg Klimov 1 John Schulman 1
+
+Abstract
+We introduce Phasic Policy Gradient (PPG), a reinforcement learning framework which modifies
+traditional on-policy actor-critic methods by separating policy and value function training into distinct phases. In prior methods, one must choose
+between using a shared network or separate networks to represent the policy and value function.
+Using separate networks avoids interference between objectives, while using a shared network
+allows useful features to be shared. PPG is able
+to achieve the best of both worlds by splitting
+optimization into two phases, one that advances
+training and one that distills features. PPG also enables the value function to be more aggressively
+optimized with a higher level of sample reuse.
+Compared to PPO, we find that PPG significantly
+improves sample efficiency on the challenging
+Procgen Benchmark.
+
+1. Introduction
+Model free reinforcement learning (RL) has enjoyed remarkable success in recent years, achieving impressive results
+in diverse domains including DoTA (OpenAI et al., 2019b),
+Starcraft II (Vinyals et al., 2019), and robotic control (OpenAI et al., 2019a). Although policy gradient methods like
+PPO (Schulman et al., 2017), A3C (Mnih et al., 2016), and
+IMPALA (Espeholt et al., 2018) are behind some of the most
+high profile results, many related algorithms have proposed
+a variety of policy objectives (Schulman et al., 2015a; Wu
+et al., 2017; Peng et al., 2019; Song et al., 2019; Lillicrap
+et al., 2015; Haarnoja et al., 2018). All of these algorithms
+fundamentally rely on the actor-critic framework, with two
+key quantities driving learning: the policy and the value
+function. In practice, whether or not to share parameters
+between the policy and the value function networks is an important implementation decision. There is a clear advantage
+to sharing parameters: features trained by each objective
+1
+
+OpenAI, San Francisco, CA, USA. Correspondence to: Karl
+Cobbe <karl@openai.com>.
+th
+
+Proceedings of the 38 International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+can be used to better optimize the other.
+However, there are also disadvantages to sharing network
+parameters. First, it is not clear how to appropriately balance
+the competing objectives of the policy and the value function.
+Any method that jointly optimizes these two objectives with
+the same network must assign a relative weight to each.
+Regardless of how well this hyperparameter is chosen, there
+is a risk that the optimization of one objective will interfere
+with the optimization of the other. Second, the use of a
+shared network all but requires the policy and value function
+objectives to be trained with the same data, and consequently
+the same level of sample reuse. This is an artificial and
+undesirable restriction.
+We address these problems with Phasic Policy Gradient
+(PPG), an algorithm which preserves the feature sharing
+between the policy and value function, while otherwise decoupling their training. PPG operates in two alternating
+phases: the first phase trains the policy, and the second
+phase distills useful features from the value function. More
+generally, PPG can be used to perform any auxiliary optimization alongside RL, though in this work we take value
+function error to be the sole auxiliary objective. Using PPG,
+we highlight two important observations about on-policy
+actor-critic methods:
+• Interference between policy and value function optimization can negatively impact performance when
+parameters are shared between the policy and the value
+function networks.
+• Value function optimization often tolerates a significantly higher level of sample reuse than policy optimization.
+By mitigating the interference between the policy and value
+function objectives while still sharing representations, and
+by optimizing each with the appropriate level of sample
+reuse, PPG significantly improves sample efficiency.
+
+2. Algorithm
+In PPG, training proceeds in two alternating phases: the
+policy phase, followed by the auxiliary phase. During the
+policy phase, we train the agent with Proximal Policy Opti-
+
+

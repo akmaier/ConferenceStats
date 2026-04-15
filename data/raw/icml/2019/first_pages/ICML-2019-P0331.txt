@@ -1,0 +1,83 @@
+Processing Megapixel Images with Deep Attention-Sampling Models
+
+Angelos Katharopoulos 1 2 François Fleuret 1 2
+
+Abstract
+Existing deep architectures cannot operate on very
+large signals such as megapixel images due to
+computational and memory constraints. To tackle
+this limitation, we propose a fully differentiable
+end-to-end trainable model that samples and processes only a fraction of the full resolution input
+image. The locations to process are sampled from
+an attention distribution computed from a low resolution view of the input. We refer to our method
+as attention sampling and it can process images
+of several megapixels with a standard single GPU
+setup. We show that sampling from the attention
+distribution results in an unbiased estimator of the
+full model with minimal variance, and we derive
+an unbiased estimator of the gradient that we use
+to train our model end-to-end with a normal SGD
+procedure. This new method is evaluated on three
+classification tasks, where we show that it allows
+to reduce computation and memory footprint by
+an order of magnitude for the same accuracy as
+classical architectures. We also show the consistency of the sampling that indeed focuses on
+informative parts of the input images.
+
+1. Introduction
+For a variety of computer vision tasks, such as cancer detection, self driving vehicles, and satellite image processing, it
+is necessary to develop models that are able to handle high
+resolution images. The existing CNN architectures, that
+provide state-of-the-art performance in various computer
+vision fields such as image classification (He et al., 2016),
+object detection (Liu et al., 2016), semantic segmentation
+(Wu et al., 2019) etc., cannot operate directly on such images due to computational and memory requirements. To
+address this issue, a common practice is to downsample the
+original image before passing it to the network. However,
+1
+
+Idiap Research Institute, Martigny, Switzerland 2 EPFL, Lausanne, Switzerland. Correspondence to: Angelos Katharopoulos
+<firstname.lastname@idiap.ch>.
+th
+
+Proceedings of the 36 International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+(b)
+
+(a)
+
+(c)
+
+Figure 1: Common practice to process megapixel images
+with CNNs is to downsample them, however this results in
+significant loss of information (b, c).
+this leads to loss of significant information possibly critical
+for certain tasks.
+Another research direction seeks to mitigate this problem by
+splitting the original high resolution image into patches and
+processing them separately (Hou et al., 2016; Golatkar et al.,
+2018; Nazeri et al., 2018). Naturally, these methods either
+waste computational resources on uninformative patches or
+require ground truth annotations for each patch. However,
+per patch labels are typically expensive to acquire and are
+not available for the majority of the available datasets.
+The aforementioned limitations are addressed by two disjoint lines of work: the recurrent visual attention models
+(Mnih et al., 2014; Ba et al., 2014) and the attention based
+multiple instance learning (Ilse et al., 2018). The first seeks
+to limit the wasteful computations by only processing some
+parts of the full image. However, these models result in
+hard optimization problems that limit their applicability to
+high resolution images. The second line of work shows
+that regions of interest can be identified without explicit
+patch annotations by aggregating per patch features with an
+attention mechanism. Nevertheless, such methods do not
+address the computational and memory issues inherent in
+all patch based models.
+This work aims at combining the benefits of both. Towards
+this goal, we propose an end-to-end trainable model able to
+handle multi-megapixel images using a single GPU or CPU.
+In particular, we sample locations of “informative patches”
+
+

@@ -1,0 +1,104 @@
+An Imitation Learning Approach for Cache Replacement
+
+Evan Zheran Liu 1 2 Milad Hashemi 2 Kevin Swersky 2 Parthasarathy Ranganathan 2 Junwhan Ahn 2
+
+Abstract
+Program execution speed critically depends on increasing cache hits, as cache hits are orders of
+magnitude faster than misses. To increase cache
+hits, we focus on the problem of cache replacement: choosing which cache line to evict upon inserting a new line. This is challenging because it
+requires planning far ahead and currently there is
+no known practical solution. As a result, current
+replacement policies typically resort to heuristics designed for specific common access patterns,
+which fail on more diverse and complex access
+patterns. In contrast, we propose an imitation
+learning approach to automatically learn cache
+access patterns by leveraging Belady’s, an oracle
+policy that computes the optimal eviction decision
+given the future cache accesses. While directly
+applying Belady’s is infeasible since the future
+is unknown, we train a policy conditioned only
+on past accesses that accurately approximates Belady’s even on diverse and complex access patterns, and call this approach PARROT. When evaluated on 13 of the most memory-intensive SPEC
+applications, PARROT increases cache miss rates
+by 20% over the current state of the art. In addition, on a large-scale web search benchmark,
+PARROT increases cache hit rates by 61% over a
+conventional LRU policy. We release a Gym environment to facilitate research in this area, as data
+is plentiful, and further advancements can have
+significant real-world impact.
+
+1. Introduction
+Caching is a universal concept in computer systems that
+bridges the performance gap between different levels of data
+storage hierarchies, found everywhere from databases to operating systems to CPUs (Jouppi, 1990; Harty & Cheriton,
+1
+
+Department of Computer Science, Stanford University, California, USA 2 Google Research, Sunnyvale, California, USA. Correspondence to: Evan Z. Liu <evanliu@cs.stanford.edu>.
+th
+
+Proceedings of the 37 International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Evict
+Cache
+
+A
+
+B
+
+C
+
+A
+
+B
+
+Miss
+Accesses
+
+D
+
+D
+
+A
+
+B
+
+Hit
+A
+
+D
+Miss
+
+C
+
+Figure 1. Cache replacement. At t = 0, line D is accessed, causing
+a cache miss. The replacement policy chooses between lines A,
+B, and C in the cache and in this case evicts C. At t = 1, line A
+is accessed and is already in the cache, causing a cache hit. No
+action from the replacement policy is needed. At t = 2, line C
+is accessed, causing another cache miss. The replacement policy
+could have avoided this miss by evicting a different line at t = 0.
+
+1992; Xu et al., 2013; Cidon et al., 2016). Correctly selecting what data is stored in caches is critical for latency, as
+accessing the data directly from the cache (a cache hit) is
+orders of magnitude faster than retrieving the data from a
+lower level in the storage hierarchy (a cache miss). For example, Cidon et al. (2016) show that improving cache hit
+rates of web-scale applications by just 1% can decrease total latency by as much as 35%.
+Thus, general techniques for increasing cache hit rates
+would significantly improve performance at all levels of the
+software stack. Broadly, two main avenues for increasing
+cache hit rates exist: (i) avoiding future cache misses by
+proactively prefetching the appropriate data into the cache
+beforehand; and (ii) strategically selecting which data to
+evict from the cache when making space for new data (cache
+replacement). Simply increasing cache sizes is a tempting
+third avenue, but is generally prohibitively expensive.
+This work focuses on single-level cache replacement (Figure 1). When a new block of data (referred to as a line) is
+added to the cache (i.e., due to a cache miss), an existing
+cache line must be evicted from the cache to make space for
+the new line. To do this, during cache misses, a cache replacement policy takes as inputs the currently accessed line
+and the lines in the cache and outputs which of the cache
+lines to evict.
+Prior work frequently relies on manually-engineered heuristics to capture the most common cache access patterns, such
+as evicting the most recently used (MRU) or least recently
+used (LRU) cache lines, or trying to identify the cache
+
+

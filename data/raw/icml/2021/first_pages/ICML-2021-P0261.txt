@@ -1,0 +1,78 @@
+Order-Agnostic Cross Entropy for Non-Autoregressive Machine Translation
+
+Cunxiao Du 1 Zhaopeng Tu 2 Jing Jiang 1
+
+Abstract
+We propose a new training objective named orderagnostic cross entropy (OA XE) for fully nonautoregressive translation (NAT) models. OA XE
+improves the standard cross-entropy loss to ameliorate the effect of word reordering, which is
+a common source of the critical multimodality
+problem in NAT. Concretely, OA XE removes the
+penalty for word order errors, and computes the
+cross entropy loss based on the best possible alignment between model predictions and target tokens.
+Since the log loss is very sensitive to invalid references, we leverage cross entropy initialization
+and loss truncation to ensure the model focuses
+on a good part of the search space. Extensive
+experiments on major WMT benchmarks show
+that OA XE substantially improves translation performance, setting new state of the art for fully
+NAT models. Further analyses show that OA XE
+alleviates the multimodality problem by reducing token repetitions and increasing prediction
+confidence. Our code, data, and trained models are available at https://github.com/
+tencent-ailab/ICML21_OAXE.
+
+1. Introduction
+Non-autoregressive translation (NAT, Gu et al., 2018; Libovický & Helcl, 2018) has received increasing attention for
+its efficient decoding by predicting every target token in parallel. However, such advantage comes at the cost sacrificing
+translation quality due to the multimodality problem. There
+exist many possible translations of the same sentence, while
+vanilla NAT models may consider them at the same time due
+to the independent predictions, which leads to multi-modal
+outputs in the form of token repetitions (Gu et al., 2018).
+1
+School of Computing and Information System, Singapore
+Management University, Singapore. Work was done when Cunxiao
+Du was under the Rhino-Bird Elite Training Program of Tencent
+AI Lab. 2 Tencent AI Lab, China. Correspondence to: Zhaopeng
+Tu <zptu@tencent.com>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+A number of recent efforts have explored ways to improve
+the NAT models’ ability to handle multimodality. One
+thread of research relaxes the fully non-autoregressive restriction and iteratively refine the generated outputs with K
+decoding passes (Lee et al., 2018; Gu et al., 2019). However, the iterative refinement method improves translation
+quality by sacrificing the primary benefit of NAT models –
+fast inference (Kasai et al., 2021).
+Another thread of work focuses on improving fully NAT
+models (i.e., one decoding pass) to maintain their advantage
+of decoding efficiency. Along this direction, recent works
+have incorporated approaches to improving the standard
+cross-entropy loss to ameliorate the effect of multimodality.
+Ghazvininejad et al. (2020) state that modeling word order
+is difficult for NAT, since the model cannot condition on
+its previous predictions like its autoregressive counterpart.
+Starting from this intuition, they propose a new training
+loss that softens the penalty for word order errors, which
+assigns loss based on the best possible monotonic alignment
+between target tokens and model predictions. Similarly, Libovický & Helcl (2018); Saharia et al. (2020) marginalize
+all the monotonic alignments between target and predictions
+to compute loss. While both approaches improve NAT performance by relaxing the word order restriction based on the
+monotonic alignment assumption, they cannot handle word
+reordering – a common source of multimodality problem
+(see Figure 1). In response to this problem, we propose to
+remove the penalty for word order errors, which makes the
+loss more compatible with parallel decoding in NAT.
+To achieve this more relaxed loss, we introduce orderagnostic cross entropy (OA XE), a new training objective
+function that computes the cross entropy loss based on the
+best possible alignment between model predictions and target tokens. Compared with previous studies (Ghazvininejad
+et al., 2020; Saharia et al., 2020), OA XE guides NAT models to focus on lexical matching, which is at the core of
+machine translation tasks. We use Hungarian algorithm to
+efficiently implement OA XE (e.g., 7 lines of core code, see
+Appendix A.1), which makes our new loss accommodate
+existing NAT models seamlessly. The log loss is sensitive
+to invalid and noisy references (Kang & Hashimoto, 2020),
+and there exists a large number of invalid alignments in the
+search space, which will hurt the performance of OA XE in
+the form of log loss. We tackle these challenges by removing
+
+

@@ -1,0 +1,92 @@
+CommVQ: Commutative Vector Quantization for KV Cache Compression
+
+Junyan Li 1 Yang Zhang 2 Muhammad Yusuf Hassan 1 Talha Chafekar 1 Tianle Cai 3 Zhile Ren 4
+Pengsheng Guo 4 Binazir Karimzadeh 4 Colorado J Reed 4 Chong Wang 4 Chuang Gan 1
+
+Abstract
+
+2024; Jin et al., 2024) has managed to extend this even
+further, with some models achieving context lengths of over
+1 million. Supporting longer contexts enables LLMs to
+process richer inputs and generate more tokens, improving
+their capacity for more complex tasks and reasoning (Wei
+et al., 2022).
+
+Large Language Models (LLMs) are increasingly used in applications requiring long context
+lengths, but the key-value (KV) cache often becomes a memory bottleneck on GPUs as context
+grows. To address this, we propose Commutative
+Vector Quantization (CommVQ) to significantly
+reduce memory usage for long-context LLM inference. We first introduce additive quantization
+with a lightweight encoder and codebook to compress the KV cache, which can be decoded via
+simple matrix multiplication. To further reduce
+computational costs during decoding, we design
+the codebook to be commutative with Rotary Position Embedding (RoPE) and train it using an
+Expectation-Maximization (EM) algorithm. This
+enables efficient integration of decoding into the
+self-attention mechanism. Our approach achieves
+high accuracy with additive quantization and low
+overhead via the RoPE-commutative codebook.
+Experiments on long-context benchmarks and
+GSM8K show that our method reduces FP16 KV
+cache size by 87.5% with 2-bit quantization, while
+outperforming state-of-the-art KV cache quantization methods. Notably, it enables 1-bit KV cache
+quantization with minimal accuracy loss, allowing a LLaMA-3.1 8B model to run with a 128K
+context length on a single RTX 4090 GPU. The
+source code is available at: https://github.
+com/UMass-Embodied-AGI/CommVQ.
+
+However, this increased context length presents a significant challenge on GPU memory usage. The causal attention
+mechanism used in LLMs relies on a Key-Value (KV) cache
+to speed up inference. This cache stores the keys and values
+of all previous tokens, eliminating the need to recompute
+them when generating the next token. As context lengths
+increase, the size of the KV cache grows proportionally,
+eventually becoming the primary bottleneck for memory
+usage — often far exceeding the memory required for the
+model itself. For instance, a LLaMA 3.1 8B model requires
+16 GB of memory to store the model weight in FP16 precision. If the context length is set to its maximum of 128K
+with a batch size of 2, the KV cache alone would require 88
+GB of memory. This makes it impossible to run inference
+on a single GPU without KV cache offloading, even for
+H100-80GB.
+Efforts to reduce KV cache size are ongoing (Shi et al.,
+2024; Yuan et al., 2024), with KV cache quantization (Liu
+et al., 2024b; Hooper et al., 2024) being a key approach.
+Quantization lowers the memory footprint by reducing the
+bit width used to represent each FP16 scalar in the KV cache.
+For instance, INT4 quantization cuts memory usage by a
+factor of four compared to FP16. However, this comes at
+a cost: aggressive quantization, such as 2-bit or even 1-bit
+quantization, results in significant information loss, severely
+degrading model performance.
+
+1. Introduction
+
+To address these challenges, we propose Commutative
+Vector Quantization (CommVQ), a novel method for efficient and accurate KV cache quantization tailored to longcontext LLMs. Unlike existing quantization techniques that
+treat each scalar in the KV cache independently, CommVQ
+performs quantization at the vector level. Specifically, we
+treat the key/value vector for each token as a single unit
+rather than processing scalars individually. To achieve this,
+
+We are witnessing a growing trend in increasing the context
+length of large language models (LLMs). For instance, the
+latest LLaMA 3.1 models (Dubey et al., 2024) support up
+to a 128K context length, and recent research (Ding et al.,
+1
+
+University of Massachusetts Amherst 2 Massachusetts Institute
+of Technology 3 Princeton University 4 Apple Inc. Correspondence
+to: Junyan Li <junyanli@umass.edu>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+∗
+
+All experiments were conducted by Junyan Li at UMass
+Amherst.
+
+1
+
+

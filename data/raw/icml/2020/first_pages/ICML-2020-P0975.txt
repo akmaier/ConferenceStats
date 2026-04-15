@@ -1,0 +1,77 @@
+On Layer Normalization in the Transformer Architecture
+
+Ruibin Xiong†* 1 2 Yunchang Yang* 3 Di He 4 5 Kai Zheng 4 Shuxin Zheng 5 Chen Xing 6 Huishuai Zhang 5
+Yanyan Lan 1 2 Liwei Wang 4 3 Tie-Yan Liu 5
+
+Abstract
+The Transformer is widely used in natural language processing tasks. To train a Transformer
+however, one usually needs a carefully designed
+learning rate warm-up stage, which is shown to
+be crucial to the ﬁnal performance but will slow
+down the optimization and bring more hyperparameter tunings. In this paper, we ﬁrst study
+theoretically why the learning rate warm-up stage
+is essential and show that the location of layer normalization matters. Speciﬁcally, we prove with
+mean ﬁeld theory that at initialization, for the
+original-designed Post-LN Transformer, which
+places the layer normalization between the residual blocks, the expected gradients of the parameters near the output layer are large. Therefore, using a large learning rate on those gradients makes
+the training unstable. The warm-up stage is practically helpful for avoiding this problem. On the
+other hand, our theory also shows that if the layer
+normalization is put inside the residual blocks
+(recently proposed as Pre-LN Transformer), the
+gradients are well-behaved at initialization. This
+motivates us to remove the warm-up stage for the
+training of Pre-LN Transformers. We show in our
+experiments that Pre-LN Transformers without
+the warm-up stage can reach comparable results
+with baselines while requiring signiﬁcantly less
+training time and hyper-parameter tuning on a
+wide range of applications.
+*
+Equal contribution † Works done while interning at Microsoft
+Research Asia 1 CAS Key Laboratory of Network Data Science
+and Technology, Institute of Computing Technolog, Chinese
+Academy of Sciences 2 University of Chinese Academy of Sciences 3 Center for Data Science, Peking University, Beijing Institute of Big Data Research 4 Key Laboratory of Machine Perception,
+MOE, School of EECS, Peking University 5 Microsoft Research
+6
+College of Computer Science, Nankai University. Correspondence to: Shuxin Zheng <shuxin.zheng@microsoft.com>, Di He
+<dihe@microsoft.com>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+1. Introduction
+The Transformer (Vaswani et al., 2017) is one of the most
+commonly used neural network architectures in natural language processing. Layer normalization (Lei Ba et al., 2016)
+plays a key role in Transformer’s success. The originally designed Transformer places the layer normalization between
+the residual blocks, which is usually referred to as the Transformer with Post-Layer Normalization (Post-LN) (Wang
+et al., 2019). This architecture has achieved state-of-the-art
+performance in many tasks including language modeling
+(Dai et al., 2019; Al-Rfou et al., 2018) and machine translation (Dehghani et al., 2018; Edunov et al., 2018). Unsupervised pre-trained models based on the Post-LN Transformer
+architecture also show impressive performance in many
+downstream tasks (Radford et al., 2019; Devlin et al., 2018;
+Yang et al., 2019b).
+Despite its great success, people usually need to deal with
+the optimization of the Post-LN Transformer more carefully
+than convolutional networks or other sequence-to-sequence
+models (Popel & Bojar, 2018). In particular, to train the
+model from scratch, any gradient-based optimization approach requires a learning rate warm-up stage (Vaswani
+et al., 2017; Liu et al., 2019a): the optimization starts with
+an extremely small learning rate, and then gradually increases it to a pre-deﬁned maximum value in a pre-deﬁned
+number of iterations. Such a warm-up stage not only slows
+down the optimization process but also brings more hyperparameter tunings. Popel & Bojar (2018) has shown that
+the ﬁnal model performance is quite sensitive to the value
+of the maximum learning rate and the number of warm-up
+iterations. Tuning such sensitive hyper-parameters is costly
+in training large-scale models, e.g., BERT (Devlin et al.,
+2018) or XLNet (Yang et al., 2019b).
+In this paper, we try to alleviate this problem by ﬁnding
+ways to safely remove the learning rate warm-up stage. As
+the warm-up stage happens in the ﬁrst several iterations, we
+investigate the optimization behavior at initialization using
+mean ﬁeld theory (Lee et al., 2017; Xiao et al., 2018; Yang
+et al., 2019a; Yang, 2019; Lee et al., 2019; Zhang et al.,
+2019). According to our theoretical analysis, when putting
+the layer normalization between the residual blocks, the
+expected gradients of the parameters near the output layer
+
+

@@ -1,0 +1,78 @@
+Self-Similar Epochs: Value in Arrangement
+
+Eliav Buchnik * 1 2 Edith Cohen * 2 1 Avinatan Hassidim 2 Yossi Matias 2
+
+Abstract
+Optimization of machine learning models is commonly performed through stochastic gradient updates on randomly ordered training examples.
+This practice means that each fraction of an epoch
+comprises an independent random sample of the
+training data that may not preserve informative
+structure present in the full data. We hypothesize that the training can be more effective with
+self-similar arrangements that potentially allow
+each epoch to provide benefits of multiple ones.
+We study this for “matrix factorization” – the
+common task of learning metric embeddings of
+entities such as queries, videos, or words from
+example pairwise associations. We construct arrangements that preserve the weighted Jaccard
+similarities of rows and columns and experimentally observe training acceleration of 3%-37% on
+synthetic and recommendation datasets. Principled arrangements of training examples emerge
+as a novel and potentially powerful enhancement
+to SGD that merits further exploration.
+
+1. Introduction
+Large scale machine learning models are commonly trained
+on data of the form of associations between entities. The
+goals are to obtain a model that generalizes (supports inference of associations not present in the input data) or obtain
+metric representations of entities that capture their associations and can be used as in downstream tasks. Prevalent
+examples are images and their labels (Deng et al., 2009),
+similar image pairs (Schroff et al., 2015), text documents
+and occurring terms (Berry et al., 1995; Dumais, 1995; Deerwester et al., 1990), users and watched or rated videos (Koren et al., 2009), pairs of co-occurring words (Mikolov et al.,
+2013), and pairs of nodes in a graph that co-occur in short
+random walks (Perozzi et al., 2014). This setting is fairly
+*
+
+Equal contribution 1 Tel Aviv University, Israel 2 Google
+Research.
+Correspondence to:
+Eliav Buchnik <eliavbuh@gmail.com>, Edith Cohen <edith@cohenwang.com>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+broad: entities can be of one or multiple types and example
+associations used for training can be raw or preprocessed
+by reweighing raw frequencies (Salton & Buckley, 1988;
+Deerwester et al., 1990; Mikolov et al., 2013; Pennington
+et al., 2014) or adding negative examples when the raw data
+includes only positive ones (Koren et al., 2009; Mikolov
+et al., 2013).
+The optimization objective of the model parameters has
+the general form of a sum over example associations. In
+modern applications the number of terms can be huge and
+the de facto method is stochastic gradient descent (SGD)
+(Robbins & Siegmund, 1971; Koren, 2008; Salakhutdinov
+et al., 2007; Gemulla et al., 2011; Mikolov et al., 2013).
+With SGD, gradient updates computed over stochasticallyselected minibatches of training examples are performed
+over multiple epochs. The extensive practice and theory
+of SGD optimization introduced numerous tunable hyperparameters and extensions aimed to improve quality and
+efficiency. These include tuning the learning rate also perparameter (Duchi et al., 2011) and altering the distribution
+of training examples by gradient magnitudes (Alain et al.,
+2015; Zhao & Zhang, 2015), cluster structure (Fu & Zhang,
+2017), and diversity criteria (Zhang et al., 2017). Another
+popular method, Curriculum Learning (Bengio et al., 2009),
+alters the distribution of examples (from easy to hard) in the
+course of training. In this work we motivate and explore
+the potential benefits of tuning the arrangement of training
+examples – a novel optimization method that is combinable
+with those mentioned above.
+The baseline practice, which we refer to as independent arrangements, forms the training order by drawing examples
+(or minibatches of examples) independently at random according to prescribed probabilities (that may correspond to
+the frequency of the association in the training set). This i.i.d
+practice is supported by optimization theory as it bounds
+the variance of stochastic gradient updates. Independent
+arrangements, however, have a potential drawback: Informative structure that is present in the full data is not recoverable from the independent random samples that comprise
+fractional epochs. We demonstrate this point for a common “matrix factorization” task where the data is pairwise
+associations such as users watches of videos for recommendation tasks (Koren et al., 2009) and term co-occurrences
+for word embeddings (Mikolov et al., 2013). The rows and
+
+

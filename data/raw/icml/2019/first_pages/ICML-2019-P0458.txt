@@ -1,0 +1,71 @@
+Understanding and correcting pathologies in the training of learned optimizers
+
+Luke Metz 1 Niru Maheswaranathan 1 Jeremy Nixon 1 C. Daniel Freeman 1 Jascha Sohl-Dickstein 1
+
+Abstract
+Deep learning has shown that learned functions can dramatically outperform hand-designed
+functions on perceptual tasks. Analogously,
+this suggests that learned optimizers may similarly outperform current hand-designed optimizers, especially for specific problems. However, learned optimizers are notoriously difficult to train and have yet to demonstrate wallclock speedups over hand-designed optimizers,
+and thus are rarely used in practice. Typically, learned optimizers are trained by truncated
+backpropagation through an unrolled optimization process resulting in gradients that are either
+strongly biased (for short truncations) or have exploding norm (for long truncations). In this work
+we propose a training scheme which overcomes
+both of these difficulties, by dynamically weighting two unbiased gradient estimators for a variational loss on optimizer performance, allowing
+us to train neural networks to perform optimization of a specific task faster than tuned first-order
+methods. We demonstrate these results on problems where our learned optimizer trains convolutional networks faster in wall-clock time compared to tuned first-order methods and with an
+improvement in test loss.
+
+1. Introduction
+Gradient based optimization is a cornerstone of modern
+machine learning. A large body of research has been targeted at developing improved gradient based optimizers. In
+practice, this typically involves analysis and development
+of hand-designed optimization algorithms (Nesterov, 1983;
+Duchi et al., 2011; Tieleman & Hinton, 2012; Kingma &
+Ba, 2014). These algorithms generally work well on a wide
+variety of tasks, and are tuned to specific problems via hy1
+Google Brain.
+<lmetz@google.com>.
+
+Correspondence to:
+
+Luke Metz
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+perparameter search. On the other hand, a complementary
+approach is to learn the optimization algorithm (Bengio
+et al., 1990; Schmidhuber, 1995; Hochreiter et al., 2001;
+Andrychowicz et al., 2016; Wichrowska et al., 2017; Li &
+Malik, 2017b; Lv et al., 2017; Bello et al., 2017). That is,
+to learn a function that performs optimization, targeted at
+particular problems of interest. In this way, the algorithm
+may learn task specific structure, enabling dramatic performance improvements over more general optimizers.
+However, training learned optimizers is notoriously difficult. Existing work in this vein can be classified into
+two broad categories. On one hand are black-box methods such as evolutionary algorithms (Goldberg & Holland,
+1988; Bengio et al., 1992), random search (Bergstra & Bengio, 2012), reinforcement learning (Bello et al., 2017; Li &
+Malik, 2017a;b), or Bayesian optimization (Snoek et al.,
+2012). However, these methods scale poorly with the number of optimizer parameters.
+The other approach is to use first-order methods, by computing the gradient of some measure of optimizer effectiveness with respect to the optimizer parameters. Computing these gradients is costly as we need to iteratively apply
+the learned update rule, and then backpropagate through
+these applications, a technique commonly referred to as
+“unrolled optimization” (Bengio, 2000; Maclaurin et al.,
+2015). To address the problem of backpropagation through
+many optimization steps (analogous to many timesteps
+in recurrent neural networks), many works make use of
+truncated backpropagation though time (TBPTT) to partition the long unrolled computational graph into separate
+pieces (Werbos, 1990; Domke, 2012; Tallec & Ollivier,
+2017). This not only yields computational savings, at the
+cost of increased bias (Tallec & Ollivier, 2017), but also
+limits exploding gradients which emerge from too many
+iterated non-linear function applications (Pascanu et al.,
+2013; Parmas et al., 2018). Existing methods have been
+proposed to address the bias of TBPTT but come at the
+cost of increased variance or computational complexity
+(Williams & Zipser, 1989; Ollivier et al., 2015; Tallec &
+Ollivier, 2017). Previous techniques for training RNNs via
+TBPTT have thus far not been effective for training optimizers.
+In this paper, we analytically and experimentally explore
+
+

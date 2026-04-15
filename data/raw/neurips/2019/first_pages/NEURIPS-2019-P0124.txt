@@ -1,0 +1,73 @@
+Bayesian Layers: A Module for
+Neural Network Uncertainty
+
+Dustin Tran
+Google Brain
+
+Michael W. Dusenberry
+Google Brain∗
+
+Mark van der Wilk
+Prowler.io
+
+Danijar Hafner
+Google Brain
+
+Abstract
+We describe Bayesian Layers, a module designed for fast experimentation with
+neural network uncertainty. It extends neural network libraries with drop-in replacements for common layers. This enables composition via a unified abstraction
+over deterministic and stochastic functions and allows for scalability via the underlying system. These layers capture uncertainty over weights (Bayesian neural nets),
+pre-activation units (dropout), activations (“stochastic output layers”), or the function itself (Gaussian processes). They can also be reversible to propagate uncertainty from input to output. We include code examples for common architectures
+such as Bayesian LSTMs, deep GPs, and flow-based models. As demonstration,
+we fit a 5-billion parameter “Bayesian Transformer” on 512 TPUv2 cores for uncertainty in machine translation and a Bayesian dynamics model for model-based
+planning. Finally, we show how Bayesian Layers can be used within the Edward2
+language for probabilistic programming with stochastic processes.1
+lstm = ed.layers.LSTMCellReparameterization(512)
+output_layer = tf.keras.layers.Dense(10)
+def loss_fn(features, labels, dataset_size):
+state = lstm.get_initial_state(features)
+nll = 0.
+for t in range(features.shape[1]):
+net, state = lstm(features[:, t], state)
+logits = output_layer(net)
+nll += tf.reduce_mean(
+tf.nn.softmax_cross_entropy_with_logits(
+labels[:, t], logits))
+kl = sum(lstm.losses) / dataset_size
+return nll + kl
+
+Figure 1: Bayesian RNN (Fortunato et al., 2017).
+Bayesian Layers integrates easily into existing
+workflows (here, a custom loss function followed
+by any training loop). Keras’ model.fit is also
+supported. See Appendix A for comparisons to
+a vanilla TensorFlow, Edward1, and Pyro implementation.
+
+Wh
+Wx
+
+xt
+
+bh
+···
+Wy
+by
+
+···
+ht
+yt
+
+Figure 2: Graphical model depiction. Default
+arguments specify learnable distributions over
+the LSTM’s weights and biases; we apply a deterministic output layer.
+
+∗
+
+Work done during Google AI residency.
+All code is available at https://github.com/google/edward2 as part of the edward2 namespace.
+Code snippets assume import edward2 as ed; import tensorflow as tf; tensorflow==2.0.0.
+1
+
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

@@ -1,0 +1,86 @@
+EL-Attention: Memory Efficient Lossless Attention for Generation
+
+Yu Yan 1 Jiusheng Chen 1 Weizhen Qi * 2 Nikhil Bhendawade * 1 Yeyun Gong * 3 Nan Duan 3 Ruofei Zhang 4
+
+Abstract
+Transformer model with multi-head attention requires caching intermediate results for efficient
+inference in generation tasks. However, cache
+brings new memory-related costs and prevents
+leveraging larger batch size for faster speed.
+We propose memory-efficient lossless attention
+(called EL-attention) to address this issue. It
+avoids heavy operations for building multi-head
+keys and values, cache for them is not needed.
+EL-attention constructs an ensemble of attention
+results by expanding query while keeping key
+and value shared. It produces the same result
+as multi-head attention with less GPU memory
+and faster inference speed. We conduct extensive
+experiments on Transformer, BART, and GPT-2
+for summarization and question generation tasks.
+The results show EL-attention speeds up existing
+models by 1.6x to 5.3x without accuracy loss.
+
+1. Introduction
+Transformer model with multi-head attention achieves success in various generation tasks, such as text generation (Raffel et al., 2019; Radford et al., 2019; Lewis et al., 2020;
+Brown et al., 2020), image generation (Parmar et al., 2018;
+Cho et al., 2020), and music generation (Huang et al., 2018).
+However, inference speed is a serious problem in generation
+models. Recently, a variety of methods have been proposed
+for the speed up of Transformer and variant models. Many
+methods focus on reducing complexity on sequence length,
+like restricting tokens which can be looked at (Zaheer et al.,
+2020; Beltagy et al., 2020), using sort (Tay et al., 2020)
+or hash technology (Kitaev et al., 2020), keeping cumulative states (Katharopoulos et al., 2020), and compressing
+dimension (Goyal et al., 2020; Wang et al., 2020a). Others study reducing model size to accelerate inference by
+*
+
+Equal contribution 1 Microsoft, Redmond, WA, USA
+University of Science and Technology of China 3 Microsoft Research Asia 4 Microsoft, Sunnyvale, CA, USA. Correspondence to:
+Yu Yan <yyua@microsoft.com>.
+2
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+pruning layer (Fan et al., 2019) or training a smaller student model (Shleifer & Rush, 2020). Another way is nonautoregressive generation (Gu et al., 2018; Lee et al., 2018;
+Qi et al., 2020) which generates all tokens at once, instead of
+predicting the next token step by step. While these excellent
+methods can effectively speed up the models, they require
+users to train a new model, and it is hard to apply them to
+an existing model directly. Moreover, most of them suffer
+more or less accuracy loss (Tay et al., 2021).
+In this paper, we explore generation speedup by optimizing
+cache size and memory movement rather than reducing computational complexity. This choice is based on an insight
+from studying the generation process. Multi-head attention
+needs to convert query, key, and value to their multi-head
+format for assembling attention results. Under the context
+of incremental generation, a query is a feature vector belonging to Rdm , while key and value are sequences of n feature
+vectors with shape Rn×dm . Changes in key and value are
+minimal during an incremental decoding step, and they are
+usually cached to avoid complex and duplicated computation. With cache, overall speed is much faster than without
+cache, but cache maintenance cost is still non-trivial. There
+is a significant room to achieve quicker speed by reducing
+memory complexity.
+We present a new memory-efficient lossless attention, called
+EL-attention. It can speed up inference by reducing cache
+size and memory movement complexity. Memory used for
+caching input related model states is reduced from O(Ldm )
+to O(dm ) where L is number of decoder layers and dm is
+model dimension. EL-attention further reduces memory
+movement when using beam search or other search methods
+to produce many candidates for each input. We achieve this
+by only expanding query when constructing an ensemble
+of attention results. Our method avoids converting key and
+value to multi-head format. All queries from different heads
+and beams share the same key and value. Despite the change
+of attention, our method can be compatible with multi-head
+attention via a particular converted form of query. By taking
+advantage of the saved memory movement, our method can
+accelerate inference under the same setting as the baseline.
+Also, our method saves a massive amount of memory. This
+saved memory can be harvested in multiple ways, like fitting
+a bigger model in GPU, or using a larger batch size for
+further speed up.
+
+

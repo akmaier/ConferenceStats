@@ -1,0 +1,83 @@
+Composable Planning with Attributes
+Amy Zhang * 1 Adam Lerer * 1 Sainbayar Sukhbaatar 2 Rob Fergus 1 2 Arthur Szlam 1
+
+Abstract
+The tasks that an agent will need to solve often
+are not known during training. However, if the
+agent knows which properties of the environment
+are important then, after learning how its actions
+affect those properties, it may be able to use this
+knowledge to solve complex tasks without training specifically for them. Towards this end, we
+consider a setup in which an environment is augmented with a set of user defined attributes that
+parameterize the features of interest. We propose
+a method that learns a policy for transitioning between “nearby” sets of attributes, and maintains a
+graph of possible transitions. Given a task at test
+time that can be expressed in terms of a target set
+of attributes, and a current state, our model infers
+the attributes of the current state and searches over
+paths through attribute space to get a high level
+plan, and then uses its low level policy to execute
+the plan. We show in 3D block stacking, gridworld games, and StarCraft that our model is able
+to generalize to longer, more complex tasks at test
+time by composing simpler learned policies.
+
+1. Introduction
+Researchers have demonstrated impressive successes in
+building agents that can achieve excellent performance in
+difficult tasks, e.g. (Mnih et al., 2015; Silver et al., 2016).
+However, these successes have mostly been confined to situations where it is possible to train a large number of times on
+a single known task. On the other hand, in some situations,
+the tasks of interest are not known at training time or the
+space of tasks is so large that an agent will not realistically
+be able to train many times on any single task in the space.
+We might hope that the tasks of interest are compositional:
+for example, cracking an egg is the same whether one is
+*
+
+Equal contribution 1 Facebook AI Research, New York, NY,
+USA 2 New York University, New York, NY, USA. Correspondence
+to: Adam Lerer <alerer@fb.com>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+making pancakes or an omelette. If the space of tasks we
+want an agent to be able to solve has compositional structure,
+then a state abstraction that exposes this structure could
+be used both to specify instructions to the agent, and to
+plan through sub-tasks that allow the agent to complete its
+instructions.
+In this work we show how to train agents that can solve
+complex tasks by planning over a sequence of previously
+experienced simpler ones. The training protocol relies on
+a state abstraction that is manually specified, consisting of
+a set of binary attributes designed to capture properties of
+the environment we consider important. These attributes,
+learned at train time from a set of (state, attribute) pairs,
+provide a natural way to specify tasks, and a natural state
+abstraction for planning. Once the agent learns how its
+actions affect the environment in terms of the attribute representation, novel tasks can be solved compositionally by
+executing a plan consisting of a sequence of transitions between abstract states defined by those attributes. Thus, as in
+(Dayan & Hinton, 1992; Dietterich, 2000; Vezhnevets et al.,
+2017), temporal abstractions are explicitly linked with state
+abstractions.
+Our approach is thus a form of model-based planning, where
+the agent first learns a model of its environment (the mapping from states to attributes, and the attribute transition
+graph), and then later uses that model for planning. There
+is no supervision or reward given for completing the tasks
+of interest; outside of the (state, attribute) pairs, the agent
+receives no other reward or extrinsic supervision. In the experiments below, we will show empirically that this kind of
+approach can be useful on problems that can be challenging
+for standard reinforcement learning.
+We evaluate compositional planning in several environments.
+We first consider 3D block stacking, and show that we can
+compose single-action tasks seen during training to perform
+multi-step tasks. Second, we plan over multi-step policies
+in 2-D grid world tasks. Finally, we see how our approach
+scales to a unit-building task in StarCraft.
+
+2. The Attribute Planner Model
+We consider an agent in a Markov environment, i.e. at
+each time the agent observes the state s and takes action
+
+

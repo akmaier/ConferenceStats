@@ -1,0 +1,53 @@
+Analyzing & Reducing the Need for
+Learning Rate Warmup in GPT Training
+
+Atli Kosson
+
+Bettina Messmer
+Martin Jaggi
+EPFL, Switzerland
+firstname.lastname@epfl.ch
+
+Abstract
+Learning Rate Warmup is a popular heuristic for training neural networks, especially at larger batch sizes, despite limited understanding of its benefits. Warmup
+decreases the update size ∆wt = ηt ut early in training by using lower values for
+the learning rate ηt . In this work we argue that warmup benefits training by keeping
+the overall size of ∆wt limited, counteracting large initial values of ut . Focusing
+on small-scale GPT training with AdamW/Lion, we explore the following question:
+Why and by which criteria are early updates ut too large? We analyze different
+metrics for the update size including the ℓ2 -norm, resulting directional change,
+and impact on the representations of the network, providing a new perspective on
+warmup. In particular, we find that warmup helps counteract large angular updates
+as well as a limited critical batch size early in training. Finally, we show that
+the need for warmup can be significantly reduced or eliminated by modifying the
+optimizer to explicitly normalize ut based on the aforementioned metrics.
+
+1
+
+Introduction
+
+Neural networks are typically trained using variations of stochastic gradient descent. The weight
+updates ∆w have the form ∆w = ηu, where η denotes the learning rate and u an unscaled update
+vector derived from the history of weight gradients. Throughout training, the learning rate is often
+adjusted over time t according to a learning rate schedule, η = ηt . This schedule frequently includes
+an initial phase known as a learning rate warmup, where the learning rate starts low and is increased
+to a target value before being reduced according to a decay schedule. Both the choice of warmup and
+decay strategy can significantly affect the final model performance. In this work, we focus on the
+linear warmup introduced by Goyal et al. [10] for large batch size ResNet [11] training, which is also
+commonly used for transformers [37].
+The length of the warmup is a hyperparameter that requires tuning, which is complicated by the
+fact that the reasons for its effectiveness are somewhat unclear. Warmup empirically helps stabilize
+training and allows the use of larger learning rates throughout the rest of training, which can speed up
+the process and provide beneficial regularization [10]. Since the learning rate simply scales the size
+of the updates ∆w = ηu, warmup must achieve these effects by decreasing the size of early updates.
+However, it is not fully clear why this helps. Are the initial updates too large for some reason? For
+example, we might need small ηt values to counteract large u values early in training. How should
+we quantify what makes an update ∆w large? Why do large updates adversely affect training?
+In this work, we explore warmup from this perspective, focusing on GPT2 [29] training with adaptive
+optimizers like AdamW [24] and Lion [3]. We identify three key issues that necessitate warmup:
+1. The way Adam handles momentum can lead to artificially large initial updates ∆w.
+2. Early updates ∆w are large compared to the initial weight magnitude of w for matrices.
+3. The gradients of early samples are highly correlated, limiting effective mini-batch sizes.
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

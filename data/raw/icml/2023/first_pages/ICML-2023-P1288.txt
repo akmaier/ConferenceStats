@@ -1,0 +1,108 @@
+FlexGen: High-Throughput Generative Inference of Large Language Models
+with a Single GPU
+
+Generation throughput (token/s)
+
+Ying Sheng 1 Lianmin Zheng 2 Binhang Yuan 3 Zhuohan Li 2 Max Ryabinin 4 5
+Beidi Chen 6 7 Percy Liang 1 Christopher Ré 1 Ion Stoica 2 Ce Zhang 3
+
+Abstract
+
+The high computational and memory requirements of large language model (LLM) inference
+make it feasible only with multiple high-end accelerators. Motivated by the emerging demand for
+latency-insensitive tasks with batched processing,
+this paper initiates the study of high-throughput
+LLM inference using limited resources, such as
+a single commodity GPU. We present FlexGen,
+a high-throughput generation engine for running
+LLMs with limited GPU memory. FlexGen can
+be flexibly configured under various hardware resource constraints by aggregating memory and
+computation from the GPU, CPU, and disk. By
+solving a linear programming problem, it searches
+for efficient patterns to store and access tensors.
+FlexGen further compresses the weights and the
+attention cache to 4 bits with negligible accuracy loss. These techniques enable FlexGen to
+have a larger space of batch size choices and
+thus significantly increase maximum throughput.
+As a result, when running OPT-175B on a single 16GB GPU, FlexGen achieves significantly
+higher throughput compared to state-of-the-art offloading systems, reaching a generation throughput of 1 token/s for the first time with an effective batch size of 144. On the HELM benchmark, FlexGen can benchmark a 30B model with
+a 16GB GPU on 7 representative sub-scenarios
+in 21 hours. The code is available at https:
+//github.com/FMInference/FlexGen.
+
+20
+
+FlexGen (c)
+FlexGen
+OPT-175B
+
+22
+
+21
+
+24
+
+21
+
+26
+28
+
+23
+
+DeepSpeed
+Accelerate
+OPT-30B
+
+23
+211
+213
+Latency (s)
+
+28
+29
+210
+Latency (s)
+
+Figure 1. The total latency for a block and throughput trade-offs of
+three offloading-based systems for OPT-175B (left) and OPT-30B
+(right) on a single NVIDIA T4 (16 GB) GPU with 208 GB CPU
+DRAM and 1.5TB SSD. FlexGen achieves a new Pareto-optimal
+frontier with 100× higher maximum throughput for OPT-175B.
+Other systems cannot further increase throughput due to out-ofmemory issues. “(c)” denotes compression.
+
+1. Introduction
+In recent years, large language models (LLMs) have
+demonstrated strong performance across a wide range of
+tasks (Brown et al., 2020; Bommasani et al., 2021; Zhang
+et al., 2022; Chowdhery et al., 2022). Along with these unprecedented capabilities, generative LLM inference comes
+with unique challenges. These models can have billions, if
+not trillions of parameters (Chowdhery et al., 2022; Fedus
+et al., 2022), which leads to extremely high computational
+and memory requirements to run. For example, GPT-175B
+requires 325GB of GPU memory simply to load its model
+weights. Fitting this model onto GPUs would require at least
+five A100 (80GB) GPUs and complex parallelism strategies (Pope et al., 2022; Aminabadi et al., 2022). Thus,
+lowering LLM inference resource requirements has recently
+attracted intense interest.
+In this paper, we focus on a setting that we call throughputoriented generative inference. In addition to interactive
+use cases such as chatbots, LLMs are also applied to many
+“back-of-house” tasks such as benchmarking (Liang et al.,
+2022), information extraction (Narayan et al., 2018), data
+wrangling (Narayan et al., 2022), and form processing (Chen
+et al., 2021). One key characteristic of these tasks is that they
+often require running LLM inference in batches over a large
+number of tokens (e.g., all the documents in a company’s
+
+1
+
+Stanford University 2 UC Berkeley 3 ETH Zurich 4 Yandex
+HSE University 6 Meta 7 Carnegie Mellon University. Correspondence to: Ying Sheng <ying1123@stanford.edu>.
+5
+
+Proceedings of the 40 th International Conference on Machine
+Learning, Honolulu, Hawaii, USA. PMLR 202, 2023. Copyright
+2023 by the author(s).
+
+1
+
+

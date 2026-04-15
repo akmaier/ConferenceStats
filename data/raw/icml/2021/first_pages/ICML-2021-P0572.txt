@@ -1,0 +1,125 @@
+BASE Layers: Simplifying Training of Large, Sparse Models
+
+Mike Lewis 1 Shruti Bhosale 1 Tim Dettmers 1 2 Naman Goyal 1 Luke Zettlemoyer 1 2
+
+Abstract
+We introduce a new balanced assignment of experts (BASE) layer for large language models that
+greatly simplifies existing high capacity sparse
+layers. Sparse layers can dramatically improve
+the efficiency of training and inference by routing
+each token to specialized expert modules that contain only a small fraction of the model parameters.
+However, it can be difficult to learn balanced routing functions that make full use of the available
+experts; existing approaches typically use routing
+heuristics or auxiliary expert-balancing loss functions. In contrast, we formulate token-to-expert
+allocation as a linear assignment problem, allowing an optimal assignment in which each expert
+receives an equal number of tokens. This optimal assignment scheme improves efficiency by
+guaranteeing balanced compute loads, and also
+simplifies training by not requiring any new hyperparameters or auxiliary losses. Code is publicly
+released.1
+
+1. Introduction
+Sparse expert models enable sparse computation by spreading model capacity across a set of experts, while ensuring
+that only a small subset of the experts are used for each
+input (Shazeer et al., 2017; Lepikhin et al., 2020; Fedus
+et al., 2021). Sparse models can often realize the strong performance gains that come with training very large models,
+while also alleviating much of the associated computational,
+financial and environmental costs (Strubell et al., 2019).
+However, such models are notoriously difficult to train; the
+experts must be carefully balanced so that they can specialize to different parts of the input space. In this paper,
+we present a simple, efficient, and performant method for
+expert-based sparsity in language models, built around the
+use of a linear assignment algorithm to explicitly balance
+1
+
+Facebook AI Research 2 University of Washington. Correspondence to: Mike Lewis <mikelewis@fb.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+1
+https://github.com/pytorch/fairseq/
+
+Worker 1
+
+Worker 2
+
+Re-route to original worker
+
+Dogs
+
+bark
+
+Cats
+
+purr
+
+Mix in expert output:
+hi +σ(wa . hi )fa (hi )
+
++
+
++
+
++
+
++
+
+i
+
+i
+
+Expert Computation
+f(hi )
+
+Expert1 Expert1
+
+Expert2 Expert2
+
+Balanced assignment of
+token i to expert ai
+
+Dogs
+
+Cats
+
+bark
+
+purr
+
+Hidden states hi
+
+Dogs
+
+bark
+
+Cats
+
+purr
+
+Figure 1. Overview of a BASE layer. Each worker contains a
+separate expert module. During training, we compute a balanced
+assignment of tokens such that each worker sends an equal number
+of tokens to each expert. By softly mixing in the expert module,
+experts can learn to specialize for particular types of tokens.
+
+the assignment of tokens to experts during training.
+The mostly widely used Sparse Expert models are mixtures
+of experts (MoE) models (Shazeer et al., 2017; Lepikhin
+et al., 2020) that learn a gating function to route each token to a few experts, which creates a challenging, discrete
+latent variable learning problem. In practice, carefully tuning and the introduction of extra loss functions with new
+hyperparameters is required to avoid imbalanced or degenerate experts. Recently, the Switch transformer (Fedus et al.,
+2021) simplified the framework by routing tokens to only a
+single expert, improving stability and efficiency overall but
+again using custom auxiliary losses that require tuning, and
+requiring capacity factors to prevent too many tokens being
+assigned to a single expert. We show that it is possible to
+go even further. We also assign a single expert per token
+but are the first to algorithmically balance the assignment
+with no extra model modifications, providing more formal
+guarantees of balanced compute while simplifying both the
+implementation and optimization.
+We introduce a simple and effective solution for routing tokens to experts during training, which we use to estimate a
+new Balanced Assignment of Sparse Experts (BASE) layer.
+To ensure balanced routing in the BASE layer, we formulate
+a linear assignment problem that maximizes token-expert
+affinities while ensuring that each expert receives an equal
+
+

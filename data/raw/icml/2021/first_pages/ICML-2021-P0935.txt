@@ -1,0 +1,71 @@
+Understanding Self-Supervised Learning Dynamics without Contrastive Pairs
+
+Yuandong Tian 1 Xinlei Chen 1 Surya Ganguli 1 2
+
+Abstract
+While contrastive approaches of self-supervised
+learning (SSL) learn representations by minimizing the distance between two augmented views
+of the same data point (positive pairs) and maximizing views from different data points (negative pairs), recent non-contrastive SSL (e.g.,
+BYOL and SimSiam) show remarkable performance without negative pairs, with an extra
+learnable predictor and a stop-gradient operation. A fundamental question arises: why do
+these methods not collapse into trivial representations? We answer this question via a simple
+theoretical study and propose a novel approach,
+DirectPred, that directly sets the linear predictor
+based on the statistics of its inputs, without gradient training. On ImageNet, it performs comparably with more complex two-layer non-linear
+predictors that employ BatchNorm and outperforms a linear predictor by 2.5% in 300-epoch
+training (and 5% in 60-epoch). DirectPred is
+motivated by our theoretical study of the nonlinear learning dynamics of non-contrastive SSL in
+simple linear networks. Our study yields conceptual insights into how non-contrastive SSL
+methods learn, how they avoid representational
+collapse, and how multiple factors, like predictor networks, stop-gradients, exponential moving averages, and weight decay all come into
+play. Our simple theory recapitulates the results
+of real-world ablation studies in both STL-10 and
+ImageNet. Code is released1 .
+
+1. Introduction
+Self-supervised learning (SSL) has emerged as a powerful method for learning useful representations without re1
+
+Facebook AI Research 2 Stanford University. Correspondence
+to: Yuandong Tian <yuandong@fb.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+1
+https://github.com/facebookresearch/
+luckmatters/tree/master/ssl
+
+quiring expensive target labels (Devlin et al., 2018). Many
+state-of-the-art SSL methods in computer vision employ
+the principle of contrastive learning (Oord et al., 2018; Tian
+et al., 2019; He et al., 2020; Chen et al., 2020a; Bachman et al., 2019) whereby the hidden representations of
+two augmented views of the same object (positive pairs)
+are brought closer together, while those of different objects (negative pairs) are encouraged to be further apart.
+Minimizing differences between positive pairs encourages
+modeling invariances, while contrasting negative pairs is
+thought to be required to prevent representational collapse
+(i.e., mapping all data to the same representation).
+However, some recent SSL work, notably BYOL (Grill
+et al., 2020) and SimSiam (Chen & He, 2020), have shown
+the remarkable capacity to learn powerful representations
+using only positive pairs, without ever contrasting negative pairs. These methods employ a dual pair of Siamese
+networks (Bromley et al., 1994) (Fig. 1): the representation of two views are trained to match, one obtained by the
+composition of an online and predictor network, and the
+other by a target network. The target network is not trained
+via gradient descent; and either employs a direct copy of
+the online network (e.g., SimSiam (Chen & He, 2020)), or
+a momentum encoder that slowly follows the online network in a delayed fashion through an exponential moving
+average (EMA) (e.g., MoCo (He et al., 2020; Chen et al.,
+2020b) and BYOL (Grill et al., 2020)). Compared to contrastive learning, these non-contrastive SSL methods do not
+require large batch size (e.g., 4096 in SimCLR (Chen et al.,
+2020a)) or memory queue (e.g., MoCo (He et al., 2020;
+Chen et al., 2020b)) to provide negative pairs. Therefore,
+they are generally more efficient and conceptually simple
+while maintaining state-of-the-art performance.
+Since the entire procedure in non-contrastive SSL encourages the online+predictor network and the target network to become similar to each other, this overall scheme
+raises several fundamental unsolved theoretical questions.
+Why/how does it avoid collapsed representations? What is
+the nature of the learned representations? How do multiple
+design choices and hyperparameters interact nonlinearly in
+the learning dynamics? While there are interesting theoretical studies of contrastive SSL (Arora et al., 2019; Lee
+et al., 2020; Tosh et al., 2020), any theoretical understanding of the nonlinear learning dynamics of non-contrastive
+
+

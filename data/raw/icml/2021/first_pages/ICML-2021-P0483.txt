@@ -1,0 +1,69 @@
+SKIing on Simplices: Kernel Interpolation on the Permutohedral Lattice for
+Scalable Gaussian Processes
+Sanyam Kapoor * 1 Marc Finzi * 1 Ke Alexander Wang 2 Andrew Gordon Wilson 1
+
+Abstract
+State-of-the-art methods for scalable Gaussian
+processes use iterative algorithms, requiring fast
+matrix vector multiplies (MVMs) with the covariance kernel. The Structured Kernel Interpolation (SKI) framework accelerates these MVMs
+by performing efficient MVMs on a grid and interpolating back to the original space. In this
+work, we develop a connection between SKI
+and the permutohedral lattice used for highdimensional fast bilateral filtering. Using a
+sparse simplicial grid instead of a dense rectangular one, we can perform GP inference exponentially faster in the dimension than SKI. Our
+approach, Simplex-GP, enables scaling SKI to
+high dimensions, while maintaining strong predictive performance. We additionally provide
+a CUDA implementation of Simplex-GP, which
+enables significant GPU acceleration of MVM
+based inference.
+
+1. Introduction
+Gaussian processes (GPs) are widely used where uncertainty is critical to the task at hand (Deisenroth et al., 2013;
+Frazier, 2018; Balandat et al., 2019). At the same time,
+datasets in machine learning applications are growing in
+not only size but also dimensionality (Deng et al., 2009;
+Brown et al., 2020). To address the cubic complexity of exact inference with GPs, past works have proposed a myriad
+of approximation methods (Snelson & Ghahramani, 2007;
+Titsias, 2009; Hensman et al., 2013; 2015b;a; Salimbeni
+& Deisenroth, 2017; Izmailov et al., 2018; Gardner et al.,
+2018a; Liu et al., 2020). Structured Kernel Interpolation
+(SKI), proposed by Wilson & Nickisch (2015), is particularly effective on large datasets (Wilson et al., 2015).
+SKI tiles the data space with a dense rectangular grid of
+*
+Equal contribution 1 New York University, NY, USA
+Stanford University, CA, USA. Correspondence to: Sanyam
+Kapoor <sanyam@nyu.edu>.
+2
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Figure 1. Comparison of the number of grid points required in
+SKI (Wilson & Nickisch, 2015) against our method. SKI requires
+exponentially more number of grid points due to its dense lattice
+construction. Simplex-GP on the other hand can get away with
+only a sparse set of points on the permutohedral lattice.
+
+inducing points. By interpolating kernels to the grid, and
+exploiting structure in the matrices, SKI greatly reduces
+the computational cost of inference to be only linear in the
+dataset size and sub-quadratic in the number of grid points.
+The powerful grid structure of SKI, however, is also its
+downfall in high dimensional settings, since SKI requires
+at least 2d grid points for a d-dimensional dataset. Thus,
+SKI requires time and memory exponential in the dataset
+dimensionality, making it unsuitable for datasets with more
+than ⇠ 5 dimensions. Building on SKI, Gardner et al.
+(2018b) proposed SKIP, which reuses a one-dimensional
+grid across all dimensions and builds up low rank approximations to the covariance matrices, reducing inference time
+to be linear in n as well as d. However, even with these
+improvements, SKIP is limited to d ⇠ 10 to 30 for large
+datasets since the method uses memory equivalent to storing ⇠ 20 · d copies of the training dataset, and the low rank
+approximation can sometimes be limiting.
+Dimensionality is not a challenge in GP inference alone. In
+image filtering, a broad class of non-linear edge-preserving
+filters including the bilateral filter, non-local means, and
+other related filters have found growing importance (Aurich & Weule, 1995; Tomasi & Manduchi, 1998; Paris
+& Durand, 2006). Such filters map a set of vector values {yi } ✓ Rn (typically the pixel values in an image) to
+{y0i } ✓ Rn where each y0i is a Gaussian weighted linear
+
+

@@ -1,0 +1,53 @@
+H2 O: Heavy-Hitter Oracle for Efficient Generative
+Inference of Large Language Models
+
+Zhenyu Zhang1 , Ying Sheng2 , Tianyi Zhou3 , Tianlong Chen1 , Lianmin Zheng4 , Ruisi Cai1 ,
+Zhao Song5 , Yuandong Tian6 , Christopher Ré2 , Clark Barrett2 , Zhangyang Wang1 , Beidi Chen6,7
+1
+University of Texas at Austin, 2 Stanford University, 3 University of California, San Diego,
+4
+University of California, Berkeley, 5 Adobe Research, 6 Meta AI (FAIR), 7 Carnegie Mellon University
+{zhenyu.zhang,tianlong.chen,ruisi.cai,atlaswang}@utexas.edu, ying1123@stanford.edu,
+{chrismre,barrett}@cs.stanford.edu, t8zhou@ucsd.edu, lianminzheng@gmail.com,
+zsong@adobe.com, yuandong@meta.com, beidic@andrew.cmu.edu
+
+Abstract
+Large Language Models (LLMs), despite their recent impressive accomplishments,
+are notably cost-prohibitive to deploy, particularly for applications involving longcontent generation, such as dialogue systems and story writing. Often, a large
+amount of transient state information, referred to as the KV cache, is stored in GPU
+memory in addition to model parameters, scaling linearly with the sequence length
+and batch size. In this paper, we introduce a novel approach for implementing the
+KV cache which significantly reduces its memory footprint. Our approach is based
+on the noteworthy observation that a small portion of tokens contributes most of
+the value when computing attention scores. We call these tokens Heavy Hitters
+(H2 ). Through a comprehensive investigation, we find that (i) the emergence of H2
+is natural and strongly correlates with the frequent co-occurrence of tokens in the
+text, and (ii) removing them results in significant performance degradation. Based
+on these insights, we propose Heavy Hitter Oracle (H2 O), a KV cache eviction
+policy that dynamically retains a balance of recent and H2 tokens. We formulate
+the KV cache eviction as a dynamic submodular problem and prove (under mild
+assumptions) a theoretical guarantee for our novel eviction algorithm which could
+help guide future work. We validate the accuracy of our algorithm with OPT,
+LLaMA, and GPT-NeoX across a wide range of tasks. Our implementation of
+H2 O with 20% heavy hitters improves the throughput over three leading inference
+systems DeepSpeed Zero-Inference, Hugging Face Accelerate, and FlexGen by
+up to 29×, 29×, and 3× on OPT-6.7B and OPT-30B. With the same batch size,
+H2 O can reduce the latency by up to 1.9×. The code is available at https:
+//github.com/FMInference/H2O.
+
+1
+
+Introduction
+
+Large Language Models (LLMs) have demonstrated remarkable proficiency in a wide range of
+natural language processing applications such as content creation, summarization, and dialogue
+systems [1, 2, 3, 4]. However, their deployment is very costly. In addition to the widely-studied
+bottlenecks of model size and the quadratic cost of attention layers, the problem of the size of
+the KV cache, which stores the intermediate attention key and values during generation to avoid
+re-computation, is becoming increasingly prominent [5]. For instance, a 30 billion-parameter model
+with an input batch size of 128 and a sequence length of 1024 results in 180GB of KV cache. A
+natural approach is to limit its maximum size as is done in classical software or hardware caches [6].
+However, it is challenging to reduce KV cache memory footprints in LLMs without accuracy drops.
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

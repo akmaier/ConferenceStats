@@ -1,0 +1,83 @@
+Uncertainty Weighted Actor-Critic for Offline Reinforcement Learning
+
+Yue Wu 1 2 Shuangfei Zhai 1 Nitish Srivastava 1 Joshua Susskind 1 Jian Zhang 1 Ruslan Salakhutdinov 2
+Hanlin Goh 1
+
+Abstract
+Offline Reinforcement Learning promises to learn
+effective policies from previously-collected, static
+datasets without the need for exploration. However, existing Q-learning and actor-critic based
+off-policy RL algorithms fail when bootstrapping
+from out-of-distribution (OOD) actions or states.
+We hypothesize that a key missing ingredient from
+the existing methods is a proper treatment of uncertainty in the offline setting. We propose Uncertainty Weighted Actor-Critic (UWAC), an algorithm that detects OOD state-action pairs and
+down-weights their contribution in the training
+objectives accordingly. Implementation-wise, we
+adopt a practical and effective dropout-based uncertainty estimation method that introduces very
+little overhead over existing RL algorithms. Empirically, we observe that UWAC substantially
+improves model stability during training. In addition, UWAC out-performs existing offline RL
+methods on a variety of competitive tasks, and
+achieves significant performance gains over the
+state-of-the-art baseline on datasets with sparse
+demonstrations collected from human experts.
+
+1. Introduction
+Deep reinforcement learning (RL) has seen a surge of interest over the recent years. It has achieved remarkable success
+in simulated tasks (Silver et al., 2017; Schulman et al., 2017;
+Haarnoja et al., 2018), where the cost of data collection is
+low. However, one of the drawbacks of RL is its difficulty of
+learning from prior experiences. Therefore, the application
+of RL to unstructured real-world tasks is still in its primal
+stages, due to the high cost of active data collection. It is
+thus crucial to make full use of previously collected datasets
+whenever large scale online RL is infeasible.
+Offline batch RL algorithms offer a promising direction to
+1
+
+Apple Inc. 2 Carnegie Mellon University. Correspondence to:
+Yue Wu <ywu5@andrew.cmu.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+leveraging prior experience (Lange et al., 2012). However,
+most prior off-policy RL algorithms (Haarnoja et al., 2018;
+Munos et al., 2016; Kalashnikov et al., 2018; Espeholt et al.,
+2018; Peng et al., 2019) fail on offline datasets, even on expert demonstrations (Fu et al., 2020). The sensitivity to the
+training data distribution is a well known issue in practical
+offline RL algorithms (Fujimoto et al., 2019; Kumar et al.,
+2019; 2020; Peng et al., 2019; Yu et al., 2020). A large
+portion of this problem is attributed to actions or states not
+being covered within the training set distribution. Since the
+value estimate on out-of-distribution (OOD) actions or states
+can be arbitrary, OOD value or reward estimates can incur
+destructive estimation errors that propagates through the
+Bellman loss and destabilizes training. Prior attempts try to
+avoid OOD actions or states by imposing strong constraints
+or penalties that force the actor distribution to stay within
+the training data (Kumar et al., 2019; 2020; Fujimoto et al.,
+2019; Laroche et al., 2019). While such approaches achieve
+some degree of experimental success, they suffer from the
+loss of generalization ability of the Q function. For example,
+a state-action pair that does not appear in the training set
+can still lie within the training set distribution, but policies
+trained with strong penalties will avoid the unseen states regardless of whether the Q function can produce an accurate
+estimate of the state-action value. Therefore, strong penalty
+based solutions often promote a pessimistic and sub-optimal
+policy. In the extreme case, e.g., in certain benchmarking
+environments with human demonstrations, the best performing offline algorithms only achieve the same performance
+as a random agent (Fu et al., 2020), which demonstrates the
+need of robust offline RL algorithms.
+In this paper, we hypothesize that a key aspect of a robust
+offline RL algorithm is a proper estimation and usage of
+uncertainty. On the one hand, one should be able to reliably
+assign an uncertainty score to any state-action pair; on the
+other hand, there should be a mechanism that utilizes the
+estimated uncertainty to prevent the model from learning
+from data points that induce high uncertainty scores.
+The first problem relates closely to OOD sample detection,
+which has been extensively studied in the Bayesian deep
+learning community. (Gal & Ghahramani, 2016a; Gal, 2016;
+Osawa et al., 2019), often measured by the uncertainty of
+the model. We adopt the dropout based approach (Gal &
+
+

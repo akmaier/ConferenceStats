@@ -1,0 +1,117 @@
+How Good is the Bayes Posterior in Deep Neural Networks Really?
+
+Florian Wenzel * 1 Kevin Roth * + 2 Bastiaan S. Veeling * + 3 1 Jakub Świ ˛
+atkowski 4 + Linh Tran 5 +
+6+
+1
+1
+Stephan Mandt
+Jasper Snoek Tim Salimans Rodolphe Jenatton 1 Sebastian Nowozin 7 +
+0.94
+
+During the past five years the Bayesian deep learning community has developed increasingly accurate and efficient approximate inference procedures that allow for Bayesian inference in deep
+neural networks. However, despite this algorithmic progress and the promise of improved
+uncertainty quantification and sample efficiency
+there are—as of early 2020—no publicized deployments of Bayesian neural networks in industrial practice. In this work we cast doubt on
+the current understanding of Bayes posteriors in
+popular deep neural networks: we demonstrate
+through careful MCMC sampling that the posterior predictive induced by the Bayes posterior
+yields systematically worse predictions compared
+to simpler methods including point estimates obtained from SGD. Furthermore, we demonstrate
+that predictive performance is improved significantly through the use of a “cold posterior” that
+overcounts evidence. Such cold posteriors sharply
+deviate from the Bayesian paradigm but are commonly used as heuristic in Bayesian deep learning papers. We put forward several hypotheses
+that could explain cold posteriors and evaluate
+the hypotheses through experiments. Our work
+questions the goal of accurate posterior approximations in Bayesian deep learning: If the true
+Bayes posterior is poor, what is the use of more
+accurate approximations? Instead, we argue that
+it is timely to focus on understanding the origin
+of the improved performance of cold posteriors.
+C ODE :
+https://github.com/
+google-research/google-research/
+tree/master/cold_posterior_bnn
+*
+
+Equal contribution + Work done while at Google 1 Google
+Research 2 ETH Zurich 3 University of Amsterdam 4 University
+of Warsaw 5 Imperial College London 6 University of California,
+Irvine 7 Microsoft Research. Correspondence to: Florian Wenzel
+<florianwenzel@google.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Test accuracy
+
+Abstract
+
+0.92
+
+0.90
+
+0.88
+10−4
+
+SG-MCMC
+Baseline: SGD
+10−3
+
+10−2
+
+10−1
+
+100
+
+Temperature T
+
+Figure 1. The “cold posterior” effect: for a ResNet-20 on CIFAR10 we can improve the generalization performance significantly by
+cooling the posterior with a temperature T  1, deviating from
+the Bayes posterior p(θ|D) ∝ exp(−U (θ)/T ) at T = 1.
+
+1. Introduction
+In supervised deep learning we use a training dataset
+D = {(xi , yi )}i=1,...,n and a probabilistic model p(y|x, θ)
+to minimize the regularized cross-entropy objective,
+n
+
+L(θ) := −
+
+1X
+log p(yi |xi , θ) + Ω(θ),
+n i=1
+
+(1)
+
+where Ω(θ) is a regularizer over model parameters. We
+approximately optimize (1) using variants of stochastic gradient descent (SGD), (Sutskever et al., 2013). Beside being
+efficient, the SGD minibatch noise also has generalization
+benefits (Masters & Luschi, 2018; Mandt et al., 2017).
+1.1. Bayesian Deep Learning
+In Bayesian deep learning we do not optimize for a single
+likely model but instead want to discover all likely models.
+To this end we approximate the posterior distribution over
+model parameters, p(θ|D) ∝ exp(−U (θ)/T ), where U (θ)
+is the posterior energy function,
+U (θ) := −
+
+n
+X
+
+log p(yi |xi , θ) − log p(θ),
+
+(2)
+
+i=1
+
+and T is a temperature. Here p(θ) is a proper prior density
+function, for example a Gaussian density. If we scale U (θ)
+by 1/n and set Ω(θ) = − n1 log p(θ) we recover L(θ) in (1).
+Therefore exp(−U (θ)) simply gives high probability to
+models which have low loss L(θ). Given p(θ|D) we predict
+on a new instance x by averaging over all likely models,
+Z
+p(y|x, D) = p(y|x, θ) p(θ|D) dθ,
+(3)
+
+

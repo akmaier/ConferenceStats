@@ -1,0 +1,82 @@
+Online Learning for Active Cache Synchronization
+
+Andrey Kolobov 1 Sébastien Bubeck 1 Julian Zimmert 2
+
+Abstract
+Existing multi-armed bandit (MAB) models make
+two implicit assumptions: an arm generates a payoff only when it is played, and the agent observes
+every payoff that is generated. This paper introduces SYNCHRONIZATION BANDITS, a MAB variant where all arms generate costs at all times, but
+the agent observes an arm’s instantaneous cost
+only when the arm is played. S YNCHRONIZATION
+MABs are inspired by online caching scenarios
+such as Web crawling, where an arm corresponds
+to a cached item and playing the arm means downloading its fresh copy from a server. We present
+M IRROR S YNC, an online learning algorithm for
+SYNCHRONIZATION BANDITS , establish an adversarial regret of O(T 2/3 ) for it, and show how to
+make it practical.
+
+1. Introduction
+Multi-armed bandits (MAB) (Robbins, 1952) have been
+widely applied in settings where an agent repeatedly faces
+K choices (arms), each associated with its own payoff distribution unknown to the agent at the start, and needs to eventually identify the arm with the highest mean payoff by pulling
+a subset of arms at a time and observing a payoff sampled
+from their distributions. MABs’ defining property is that
+the agent observes an arm’s instantaneous payoff when and
+only when the agent plays it. A key hidden assumption that
+goes hand-in-hand with it in the existing bandit models is
+that each arm generates reward when and only when it is
+played, which, combined with the bandit feedback property,
+also implies that the agent observes all generated payoffs.
+In this paper, we go beyond these seemingly fundamental
+assumptions by identifying a class of practical settings that
+violate them and analyzing it using online learning theory.
+Specifically, this paper formalizes scenarios that we call
+1
+Microsoft Research, Redmond 2 Google Research, Berlin.
+Work on this paper partially done during a visit to Microsoft
+Research, Redmond. Correspondence to: Andrey Kolobov
+<akolobov@microsoft.com>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+SYNCHRONIZATION MABs. In these settings, the agent can
+be thought of as holding copies of K files whose originals
+come from different remote sources. As time goes by, the
+files change at the sources, and their copies increasingly
+differ from the originals, becoming stale. The agent’s task
+is to refresh these files by occasionally downloading their
+new copies from remote sources, under a constraint B on
+the average number of downloads per time unit.
+
+For each file, the agent is continually penalized for its staleness. The expected penalty at each time step due to this file
+is a non-decreasing function of the time since the file’s last
+refresh. Playing arm k here corresponds to refreshing file
+k: doing so temporarily reduces its staleness and thereby
+diminishes the cost incurred due to it per time unit. The goal
+is to find a synchronization policy that minimizes regret in
+terms of the average staleness penalties by refreshing files
+according to a well-chosen schedule.
+Crucially, at any moment the agent doesn’t know how outdated its copy of a given file is, except at the time when
+it downloads its fresh copy, and therefore most of the time
+doesn’t know the penalties it is incurring. It observes the
+penalty only when it plays an arm, i.e., refreshes a file, and
+has a chance to see how different the cached copy was right
+before the refresh. Even this action reveals only the instantaneous penalty due to this file, not the cumulative penalty
+the file has brought on since its last refresh.
+S YNCHRONIZATION MABs are inspired by problems such
+as web crawl scheduling (Wolf et al., 2002; Cho & GarciaMolina, 2003a; Azar et al., 2018; Kolobov et al., 2019a;
+Upadhyay et al., 2020) and database update management
+(Gal & Eckstein, 2001; Bright et al., 2006). All these settings involve a cache that must proactively initiate downloads to refresh its content. This is in contrast to, e.g., Web
+browser caches that passively monitor a stream of download
+requests initiated by another program. The few existing
+works on policy learning for active caching (Kolobov et al.,
+2019a; Upadhyay et al., 2020) apply only to specific penalty
+functions. In contrast, the theoretical results in this paper
+are independent of the penalties’ functional form, and come
+with a practical online learning strategy for this model.
+
+High-level analysis idea and paper outline. Online learning theory is a powerful tool for analyzing decision-making
+models where an agent operates in discrete-time instantaneous rounds by playing a candidate solution (arm), imme-
+
+

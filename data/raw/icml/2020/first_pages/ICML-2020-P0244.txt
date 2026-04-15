@@ -1,0 +1,112 @@
+Multinomial Logit Bandit with Low Switching Cost
+Kefan Dong 1 Yingkai Li 2 Qin Zhang 3 Yuan Zhou 4
+
+Abstract
+We study multinomial logit bandit with limited
+adaptivity, where the algorithms change their exploration actions as infrequently as possible when
+achieving almost optimal minimax regret. We
+propose two measures of adaptivity: the assortment switching cost and the more fine-grained
+item switching cost. We present an anytime
+algorithm (AT-DUCB) with O(N log T ) assortment switches, almost matching the lower bound
+N log T
+⌦( log
+log T ). In the fixed-horizon setting, our algorithm FH-DUCB incurs O(N log log T ) assortment switches, matching the asymptotic lower
+bound. We also present the ESUCB algorithm
+with item switching cost O(N log2 T ).
+
+1. Introduction
+The dynamic assortment selection problem with the multinomial logic (MNL) choice model, also called MNL-bandit,
+is a fundamental problem in online learning and operations
+research. In this problem we have N distinct items, each of
+which is associated with a known reward ri and an unknown
+preference parameter vi . In the MNL choice model, given a
+def
+subset S ✓ [N ] = {1, 2, 3, . . . , N }, the probability that a
+user chooses i 2 S is given by
+8
+v
+<
+Pi
+if i 2 S [ {0}
+v0 + j2S vj
+pi (S) =
+, (1)
+: 0
+otherwise
+where “0” stands for the case that the user does not choose
+any item, and v0 is the associated preference parameter. As
+a convention (see, e.g. Agrawal et al., 2019), we assume
+
+Author names are listed in alphabetical order. 1 Institute for Interdisciplinary Information Sciences, Tsinghua University, Beijing,
+China. 2 Department of Computer Science, Northwestern University, Evanston, Illinois, USA. 3 Computer Science Department,
+Indiana University, Bloomington, Indiana, USA. 4 Department of
+ISE, University of Illinois at Urbana-Champaign, Urbana, Illinois,
+USA. Correspondence to: Yuan Zhou <yuanz@illinois.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+that no-purchase is the most frequent choice, which is very
+natural in retailing. W.l.o.g., we assume v0 = 1, and vi  1
+for all i 2 [N ]. The expected reward of the set S under the
+preference vector v = {v0 , v1 , . . . , vN } is defined to be
+X
+X
+rv
+Pi i
+R(S, v) =
+ri pi (S) =
+.
+(2)
+1 + j2S vj
+i2S
+
+i2S
+
+For any online policy that selects a subset St ✓ [N ]
+(|St |  K, where K is a predefined capacity parameter) at
+each time step t, observes the user’s choice at to gradually
+learn the preference parameters {vi }, and runs for a horizon
+of T time steps, we define the regret of the policy to be
+def
+
+RegT =
+
+T
+X
+
+(R(S ? , v)
+
+R(St , v)) ,
+
+(3)
+
+t=1
+
+where S ? = arg maxS✓[N ],|S|K R(S, v) is the optimal
+assortment in hindsight. The goal is to find a policy to
+minimize the expected regret E[RegT ] for all MNL-bandit
+instances.
+To motivate the definition of the MNL-bandit problem, let us
+consider a fast fashion retailer such as Zara or Mango. Each
+of its product corresponds to an item in [N ], and by selling
+the i-th item the retailer takes a profit of ri . At each specific
+time in each of its shops, the retailer can only present a
+certain number of items (say, at most K) on the shelf due
+to the space constraints. As a consequence, customers who
+visit the store can only pick items from the presented assortment (or, just buy nothing which corresponds to item
+0), following a choice model. There has been a number of
+choice models being proposed in the literature (see, e.g.,
+(Train, 2009; Luce, 2012) for overviews), and the MNL
+model is arguably the most popular one. The retailer certainly wants to maximize its profit by identifying the best
+assortment S ? to present. However, it does not know in
+advance customers’ preferences to items in [N ] (i.e., the
+preference vector v), to get which it has to learn from customers’ actual choices. More precisely, the retailer needs to
+develop a policy to choose at each time step t an assortment
+St ✓ [N ] (|St |  K) based on the previous presented assortments S1 , . . . , St 1 and customers’ choices in the past
+(t 1) time steps. The retailer’s expected reward in a time
+PT
+horizon T can be expressed by t=1 R(St , v), which is
+typically reformulated as the regret compared with the best
+policy in the form of (3).
+
+

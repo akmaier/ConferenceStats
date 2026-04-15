@@ -1,0 +1,79 @@
+Parallel WaveNet: Fast High-Fidelity Speech Synthesis
+
+Aaron van den Oord 1 Yazhe Li 1 Igor Babuschkin 1 Karen Simonyan 1 Oriol Vinyals 1 Koray Kavukcuoglu 1
+George van den Driessche 1 Edward Lockhart 1 Luis C. Cobo 1 Florian Stimberg 1 Norman Casagrande 1
+Dominik Grewe 1 Seb Noury 1 Sander Dieleman 1 Erich Elsen 1 Nal Kalchbrenner 1 Heiga Zen 1 Alex Graves 1
+Helen King 1 Tom Walters 1 Dan Belov 1 Demis Hassabis 1
+
+Abstract
+The recently-developed WaveNet architecture (van den Oord et al., 2016a) is the current
+state of the art in realistic speech synthesis,
+consistently rated as more natural sounding for
+many different languages than any previous
+system. However, because WaveNet relies on
+sequential generation of one audio sample at
+a time, it is poorly suited to today’s massively
+parallel computers, and therefore hard to deploy
+in a real-time production setting. This paper
+introduces Probability Density Distillation, a
+new method for training a parallel feed-forward
+network from a trained WaveNet with no
+significant difference in quality. The resulting
+system is capable of generating high-fidelity
+speech samples at more than 20 times faster than
+real-time, a 1000x speed up relative to the original
+WaveNet, and capable of serving multiple English
+and Japanese voices in a production setting.
+
+1. Introduction
+Recent successes of deep learning go beyond achieving
+state-of-the-art results in research benchmarks, and push the
+frontiers in some of the most challenging real world applications such as speech recognition (Hinton et al., 2012), image
+recognition (Krizhevsky et al., 2012; Szegedy et al., 2015),
+and machine translation (Wu et al., 2016). The recently published WaveNet (van den Oord et al., 2016a) model achieves
+state-of-the-art results in speech synthesis, and significantly
+closes the gap with natural human speech. However, it is
+not well suited for real world deployment due to its prohibitive generation speed. In this paper, we present a new
+algorithm for distilling WaveNet into a feed-forward neural
+1
+DeepMind Technologies, London, United Kingdom. Correspondence to: Aaron van den Oord <avdnoord@google.com>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+network which can synthesise equally high quality speech
+much more efficiently, and is deployed to millions of users.
+WaveNet is one of a family of autoregressive deep generative models that have been applied with great success to data
+as diverse as text (Mikolov et al., 2010), images (Larochelle
+& Murray, 2011; Theis & Bethge, 2015; van den Oord
+et al., 2016c;b), video (Kalchbrenner et al., 2016), handwriting (Graves, 2013) as well as human speech and music.
+Modelling raw audio signals, as WaveNet does, represents
+a particularly extreme form of autoregression, with up to
+24,000 samples predicted per second. Operating at such a
+high temporal resolution is not problematic during network
+training, where the complete sequence of input samples is
+already available and—thanks to the convolutional structure of the network—can be processed in parallel. When
+generating samples, however, each input sample must be
+drawn from the output distribution before it can be passed
+in as input at the next time step, making parallel processing
+impossible.
+Inverse autoregressive flows (IAFs) (Kingma et al., 2016)
+represent a kind of dual formulation of deep autoregressive
+modelling, in which sampling can be performed in parallel,
+while the inference procedure required for likelihood estimation is sequential and slow. The goal of this paper is to
+marry the best features of both models: the efficient training
+of WaveNet and the efficient sampling of IAF networks.
+The bridge between them is a new form of neural network
+distillation (Hinton et al., 2015), which we refer to as Probability Density Distillation, where a trained WaveNet model
+is used as a teacher for a feedforward IAF model.
+The next section describes the original WaveNet model,
+while Sections 3 and 4 define in detail the new, parallel
+version of WaveNet and the distillation process used to
+transfer knowledge between them. Section 5 then presents
+experimental results showing no loss in perceived quality for
+parallel versus original WaveNet, and continued superiority
+over previous benchmarks. We also present timings for
+sample generation, demonstrating more than 1000× speedup relative to original WaveNet.
+
+

@@ -1,0 +1,64 @@
+Guiding a Diffusion Model with a Bad Version of Itself
+
+Tero Karras
+NVIDIA
+
+Miika Aittala
+NVIDIA
+
+Jaakko Lehtinen
+NVIDIA, Aalto University
+
+Tuomas Kynkäänniemi
+Aalto University
+
+Timo Aila
+NVIDIA
+
+Samuli Laine
+NVIDIA
+
+Abstract
+The primary axes of interest in image-generating diffusion models are image
+quality, the amount of variation in the results, and how well the results align with
+a given condition, e.g., a class label or a text prompt. The popular classifier-free
+guidance approach uses an unconditional model to guide a conditional model,
+leading to simultaneously better prompt alignment and higher-quality images at
+the cost of reduced variation. These effects seem inherently entangled, and thus
+hard to control. We make the surprising observation that it is possible to obtain
+disentangled control over image quality without compromising the amount of
+variation by guiding generation using a smaller, less-trained version of the model
+itself rather than an unconditional model. This leads to significant improvements in
+ImageNet generation, setting record FIDs of 1.01 for 64×64 and 1.25 for 512×512,
+using publicly available networks. Furthermore, the method is also applicable to
+unconditional diffusion models, drastically improving their quality.
+
+1
+
+Introduction
+
+Denoising diffusion models [15, 46, 47, 48, 49] generate synthetic images by reversing a stochastic
+corruption process. Essentially, an image is revealed from pure noise by denoising it little by little
+in successive steps. A neural network that implements the denoiser (equivalently [53], the score
+function [20]) is a central design element, and various architectures have been proposed (e.g., [2, 7, 9,
+19, 21, 24, 38]). Equally important are the details of the multi-step denoising process that corresponds
+mathematically to solving an ordinary [35, 47] or a stochastic [49] differential equation, for which
+many different parameterizations, solvers, and step schedules have been evaluated [22, 23, 30, 43, 57].
+To control the output image, the denoiser is typically conditioned on a class label, an embedding of a
+text prompt, or some other form of conditioning input [36, 41, 45, 56].
+The training objective of a diffusion model aims to cover the entire (conditional) data distribution. This
+causes problems in low-probability regions: The model gets heavily penalized for not representing
+them, but it does not have enough data to learn to generate good images corresponding to them.
+Classifier-free guidance (CFG) [16] has become the standard method for “lowering the sampling
+temperature”, i.e., focusing the generation on well-learned high-probability regions. By training a
+denoiser network to operate in both conditional and unconditional setting, the sampling process can
+be steered away from the unconditional result — in effect, the unconditional generation task specifies
+a result to avoid. This results in better prompt alignment and improved image quality, where the
+former effect is due to CFG implicitly raising the conditional part of the probability density to a
+power greater than one [10].
+However, CFG has drawbacks that limit its usage as a general low-temperature sampling method.
+First, it is applicable only for conditional generation, as the guidance signal is based on the difference
+between conditional and unconditional denoising results. Second, because the unconditional and
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

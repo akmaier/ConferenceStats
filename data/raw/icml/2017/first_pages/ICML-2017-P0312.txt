@@ -1,0 +1,82 @@
+Hierarchy Through Composition with Multitask LMDPs
+Andrew M. Saxe 1 Adam C. Earle 2 Benjamin Rosman 2 3
+
+Abstract
+Hierarchical architectures are critical to the
+scalability of reinforcement learning methods.
+Most current hierarchical frameworks execute actions serially, with macro-actions comprising sequences of primitive actions. We propose a novel
+alternative to these control hierarchies based on
+concurrent execution of many actions in parallel.
+Our scheme exploits the guaranteed concurrent
+compositionality provided by the linearly solvable
+Markov decision process (LMDP) framework,
+which naturally enables a learning agent to draw
+on several macro-actions simultaneously to solve
+new tasks. We introduce the Multitask LMDP
+module, which maintains a parallel distributed
+representation of tasks and may be stacked to form
+deep hierarchies abstracted in space and time.
+
+1. Introduction
+Real world tasks unfold at a range of spatial and temporal
+scales, such that learning solely at the finest scale is likely to
+be slow. Hierarchical reinforcement learning (HRL) (Barto
+& Madadevan, 2003; Parr & Russell, 1998; Dietterich, 2000)
+attempts to remedy this by learning a nested sequence of
+ever more detailed plans. Hierarchical schemes have a number of desirable properties. Firstly, they are intuitive, as
+humans seldom plan at the level of raw actions, typically preferring to reason at a higher level of abstraction (Botvinick
+et al., 2009; Ribas-Fernandes et al., 2011; Solway et al.,
+2014). Secondly, they constitute one approach to tackling
+the curse of dimensionality (Bellman, 1957; Howard, 1960).
+In real world MDPs, the number of states typically grows
+dramatically in the size of a domain. A similar curse of dimensionality afflicts actions, such that a robot with multiple
+joints, for instance, must operate in the product space of
+1
+
+Center for Brain Science, Harvard University 2 School of
+Computer Science and Applied Mathematics, University of
+the Witwatersrand 3 Council for Scientific and Industrial Research, South Africa. Correspondence to: Andrew M. Saxe
+<asaxe@fas.harvard.edu>.
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017 by
+the author(s).
+
+actions for each joint individually (Mausam & Weld, 2008).
+Finally, the ‘tasks’ performed by an agent may come in
+great variety, and can also suffer from a curse of dimensionality: a robot that learns policies to navigate to each of ten
+rooms would need to learn 10 choose 2 policies to navigate
+to the closer of each pair of rooms. Transferring learning
+across tasks is therefore vital (Taylor & Stone, 2009; Foster
+& Dayan, 2002; Drummond, 1998; Fernández & Veloso,
+2006; Bonarini et al., 2006; Barreto et al., 2016).
+Many HRL schemes rely on a serial call/return procedure,
+in which temporally extended macro-actions or ‘options’
+can call other (macro-)actions. In this sense, these schemes
+draw on a computer metaphor, in which a serial processor
+chooses sequential primitive actions, occasionally pushing
+or popping new macro-actions onto a stack. The influential
+options framework (Sutton et al., 1999), MAXQ method
+(Dietterich, 2000; Jonsson & Gómez, 2016) and the hierarchy of abstract machines (Parr & Russell, 1998; Burridge
+et al., 1999) all share this sequential-execution structure.
+Concurrent MDPs (Mausam & Weld, 2008) relax the assumption of serial execution to allow multiple actions to be
+executed simultaneously at each time step, at the cost of a
+combinatorial increase in the size of the action space. In
+this paper, we develop a novel hierarchical scheme with a
+parallel and distributed execution structure that overcomes
+the combinatorial increase in action space by exploiting the
+guaranteed optimal compositionality afforded by the linearly solvable Markov decision process (LMDP) framework
+(Todorov, 2006; Kappen, 2005).
+We present a Multitask LMDP module that executes concurrent blends of previously learned tasks. Here we use
+the term ‘concurrent’ or ‘parallel’ to refer to ‘parallel distributed processing’ or neural network-like methods that
+form weighted blends of many simple elements to achieve
+their aim. In standard schemes, if a robot arm has acquired
+policies to individually reach two points in some space, this
+knowledge typically does not aid it in optimally reaching to
+either point. However in our scheme, such behaviours can
+be expressed as different weighted task blends, such that
+an agent can simultaneously draw on several sub-policies
+to achieve goals not explicitly represented by any of the
+individual behaviours, including tasks the agent has never
+performed before.
+
+

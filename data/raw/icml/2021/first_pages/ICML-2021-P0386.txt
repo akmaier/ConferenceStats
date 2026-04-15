@@ -1,0 +1,136 @@
+Muesli: Combining Improvements in Policy Optimization
+
+Matteo Hessel * 1 Ivo Danihelka * 1 2 Fabio Viola 1 Arthur Guez 1 Simon Schmitt 1 Laurent Sifre 1
+Theophane Weber 1 David Silver 1 2 Hado van Hasselt 1
+
+Abstract
+
+1. Introduction
+Reinforcement learning (RL) is a general formulation for the
+problem of sequential decision making under uncertainty,
+where a learning system (the agent) must learn to maximize
+the cumulative rewards provided by the world it is embedded in (the environment), from experience of interacting
+with such environment (Sutton & Barto, 2018). An agent
+is said to be value-based if its behavior, i.e. its policy, is
+inferred (e.g by inspection) from learned value estimates
+(Sutton, 1988; Watkins, 1989; Rummery & Niranjan, 1994;
+Tesauro, 1995). In contrast, a policy-based agent directly
+updates a (parametric) policy (Williams, 1992; Sutton et al.,
+2000) based on past experience. We may also classify as
+model free the agents that update values and policies directly
+from experience (Sutton, 1988), and as model-based those
+that use (learned) models (Oh et al., 2015; van Hasselt et al.,
+2019) to plan either global (Sutton, 1990) or local (Richalet
+et al., 1978; Kaelbling & Lozano-Pérez, 2010; Silver & Veness, 2010) values and policies. Such distinctions are useful
+for communication, but, to master the singular goal of optimizing rewards in an environment, agents often combine
+ideas from more than one of these areas (Hessel et al., 2018;
+Silver et al., 2016; Schrittwieser et al., 2020).
+*
+
+Equal contribution 1 DeepMind, London, UK 2 University
+College London.
+Correspondence to:
+Matteo Hessel
+<mtthss@google.com>, Ivo Danihelka <danihelka@google.com>, Hado
+van Hasselt <hado@google.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Median human-normalized score
+
+We propose a novel policy update that combines
+regularized policy optimization with model learning as an auxiliary loss. The update (henceforth
+Muesli) matches MuZero’s state-of-the-art performance on Atari. Notably, Muesli does so without
+using deep search: it acts directly with a policy
+network and has computation speed comparable
+to model-free baselines. The Atari results are
+complemented by extensive ablations, and by additional results on continuous control and 9x9 Go.
+
+atari57 median
+
+atari57 median
+
+Muesli
+TRPO penalty
+PPO
+PG
+MPO
+
+400%
+
+300%
+
+MuZero[2021]
+Muesli
+
+1000%
+800%
+600%
+
+200%
+
+100%
+
+0%
+
+0
+
+50
+100
+150
+Millions of frames
+(a)
+
+200
+
+400%
+
+LASER
+
+200%
+
+Rainbow
+
+0%
+
+0
+
+50
+100
+150
+Millions of frames
+(b)
+
+200
+
+Figure 1. Median human normalized score across 57 Atari
+games. (a) Muesli and other policy updates; all these use the
+same IMPALA network and a moderate amount of replay data
+(75%). Shades denote standard errors across 5 seeds. (b) Muesli
+with the larger MuZero network and the high replay fraction used
+by MuZero (95%), compared to the latest version of MuZero.
+These large scale runs use 2 seeds. Muesli still acts directly with
+the policy network and uses one-step look-aheads in updates.
+
+In this paper, we focus on a critical part of RL, namely policy
+optimization. We leave a precise formulation of the problem
+for later, but different policy optimization algorithms can be
+seen as answers to the following crucial question:
+given data about an agent’s interactions with the world,
+and predictions in the form of value functions or models,
+how should we update the agent’s policy?
+We start from an analysis of the desiderata for general policy
+optimization. These include support for partial observability
+and function approximation, the ability to learn stochastic policies, robustness to diverse environments or training
+regimes (e.g. off-policy data), and being able to represent
+knowledge as value functions and models. See Section 3 for
+further details on our desiderata for policy optimization.
+Then, we propose a policy update combining regularized
+policy optimization with model-based ideas so as to make
+progress on the dimensions highlighted in the desiderata.
+More specifically, we use a model inspired by MuZero
+(Schrittwieser et al., 2020) to estimate action values via
+one-step look-ahead. These action values are then plugged
+into a modified Maximum a Posteriori Policy Optimiza-
+
+

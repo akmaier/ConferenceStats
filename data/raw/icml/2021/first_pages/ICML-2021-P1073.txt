@@ -1,0 +1,75 @@
+Accelerating Safe Reinforcement Learning
+with Constraint-mismatched Baseline Policies
+Tsung-Yen Yang 1 Justinian Rosca 2 Karthik Narasimhan 1 Peter J. Ramadge 1
+
+Abstract
+We consider the problem of reinforcement learning when provided with (1) a baseline control
+policy and (2) a set of constraints that the learner
+must satisfy. The baseline policy can arise from
+demonstration data or a teacher agent and may
+provide useful cues for learning, but it might
+also be sub-optimal for the task at hand, and
+is not guaranteed to satisfy the specified constraints, which might encode safety, fairness or
+other application-specific requirements. In order
+to safely learn from baseline policies, we propose
+an iterative policy optimization algorithm that alternates between maximizing expected return on
+the task, minimizing distance to the baseline policy, and projecting the policy onto the constraintsatisfying set. We analyze our algorithm theoretically and provide a finite-time convergence
+guarantee. In our experiments on five different
+control tasks, our algorithm consistently outperforms several state-of-the-art baselines, achieving 10 times fewer constraint violations and 40%
+higher reward on average.
+
+1. Introduction
+Deep reinforcement learning (RL) has achieved impressive results in several domains such as games (Mnih et al.,
+2013; Silver et al., 2016) and robotic control (Levine et al.,
+2016; Rajeswaran et al., 2017). However, in these complex
+applications, learning policies from scratch often requires
+tremendous amounts of time and computational power. To
+alleviate this issue, one would like to leverage a baseline policy available from demonstrations, a teacher or a previous
+task. However, the baseline policy may be sub-optimal for
+the new application and may not be guaranteed to produce
+actions that satisfy desired constraints on safety, fairness,
+1
+Princeton University 2 Siemens Corporation, Corporate Technology.
+Correspondence to: Tsung-Yen Yang
+<ty3@princeton.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+or other costs. For instance, when you drive an unfamiliar
+vehicle, you do so cautiously to ensure safety, while adapting your driving technique to the vehicle characteristics to
+improve your ‘driving reward’. In effect, you (as the agent)
+gradually adapt a baseline policy (i.e., prior driving skill) to
+avoid violating the constraints (e.g., safety) while improving
+your driving reward (e.g., travel time, fuel efficiency).
+The problem of safely learning from baseline policies is
+challenging because directly leveraging the baseline policy, as in DAGGER (Ross et al., 2011) or GAIL (Ho &
+Ermon, 2016), may result in policies that violate the constraints since the baseline is not guaranteed to satisfy them.
+To ensure constraint satisfaction, prior work either adds a
+hyper-parameter weighted copy of the imitation learning
+(IL) objective (i.e., imitating the baseline policy) to the RL
+objective (Rajeswaran et al., 2017; Gao et al., 2018; Hester
+et al., 2018), or pre-trains a policy with the baseline policy
+(e.g., use a baseline policy as an initial policy) and then
+fine-tunes it through RL (Mülling et al., 2013; Chernova &
+Thomaz, 2014). However, both approaches do not ensure
+constraint satisfaction on every learning episode, which is
+an important feature of safe RL. In addition, the policy initialized by a low entropy baseline policy may never explore.
+In this work, to learn from the baseline policy while satisfying constraints, we propose an iterative algorithm that performs policy updates in three stages. The first step updates
+the policy to maximize expected reward using trust region
+policy optimization (e.g., TRPO (Schulman et al., 2015)).
+This can, however, result in a new intermediate policy that
+is too far from the baseline policy and may not satisfy the
+constraints. The second step performs a projection in policy space to control the distance between the current policy
+and the baseline policy. In contrast to the approach that
+regularizes the standard RL objective with the distance w.r.t.
+the baseline policy and makes the regularization parameter fade over time, our approach allows the learning agent
+to update the distance when needed. In addition, this step
+allows the agent to explore without being overly restricted
+by the potentially constraint-violating baseline policy. This
+also enables the baseline policy to influence the learning
+even at later iterations without the computational burden of
+learning a cost function for the baseline policy (Kwon et al.,
+2020). The third step ensures constraint satisfaction at every
+
+

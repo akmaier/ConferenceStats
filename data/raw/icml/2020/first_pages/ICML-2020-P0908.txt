@@ -1,0 +1,77 @@
+Safe Reinforcement Learning in Constrained Markov Decision Processes
+
+Akifumi Wachi 1 Yanan Sui 2
+
+Abstract
+Safe reinforcement learning has been a promising
+approach for optimizing the policy of an agent
+that operates in safety-critical applications. In
+this paper, we propose an algorithm, SNO-MDP,
+that explores and optimizes Markov decision processes under unknown safety constraints. Specifically, we take a stepwise approach for optimizing
+safety and cumulative reward. In our method, the
+agent first learns safety constraints by expanding
+the safe region, and then optimizes the cumulative
+reward in the certified safe region. We provide theoretical guarantees on both the satisfaction of the
+safety constraint and the near-optimality of the cumulative reward under proper regularity assumptions. In our experiments, we demonstrate the
+effectiveness of SNO-MDP through two experiments: one uses a synthetic data in a new, openlyavailable environment named GP-S AFETY-G YM,
+and the other simulates Mars surface exploration
+by using real observation data.
+
+1. Introduction
+In many real applications, environmental hazards are first
+detected in situ. For example, a planetary rover exploring
+Mars does not obtain high-resolution images at the time of
+its launch. In usual cases, after landing on Mars, the rover
+takes close-up images or observes terrain data. Leveraging the acquired data, ground operators identify whether
+each position is safe. Hence, for fully automated operation,
+an agent must autonomously explore the environment and
+guarantee safety.
+In most cases, however, guaranteeing safety (i.e., surviving) is not the primary objective. The optimal policy for
+ensuring safety is often extremely conservative (e.g., stay at
+the current position). Even though avoiding hazards is an
+1
+
+IBM Research AI, Tokyo, Japan 2 Tsinghua University,
+Beijing, China. Correspondence to: Akifumi Wachi <akifumi.wachi@ibm.com>, Yanan Sui <ysui@tsinghua.edu.cn>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+essential requirement, the primary objective is nonetheless
+to obtain rewards (e.g., scientific gain).
+As a framework to solve this problem, safe reinforcement
+learning (safe RL, Garcıa & Fernández (2015)) has recently
+been noticed by the research community. The objective of
+safe RL is to maximize the cumulative reward while guaranteeing or encouraging safety. Especially in problem settings
+in which the reward and safety functions are unknown a
+priori, however, a great deal of previous work (e.g., Wachi
+et al. (2018)) theoretically guarantees the satisfaction of
+the safety constraint, but the acquired policy is not necessarily near-optimal in terms of the cumulative reward. In
+this paper, we propose a safe RL algorithm that guarantees
+a near-optimal cumulative reward while guaranteeing the
+satisfaction of the safety constraint as well.
+
+Related work. Conventional reinforcement learning literature has been agnostic with respect to safety, while pursuing efficiency and optimality of the cumulative reward.
+Representatives of such work are probably approximately
+correct Markov decision process (PAC-MDP) algorithms
+(Brafman & Tennenholtz, 2002; Kearns & Singh, 2002;
+Strehl et al., 2006). Algorithms with the PAC-MDP property enable an agent to learn a near-optimal behavior with
+a polynomial number of samples. In addition, Kolter &
+Ng (2009) and Araya et al. (2012) proposed algorithms to
+obtain an -close solution to the Bayesian optimal policy.
+As the research community tries to apply RL algorithms
+to real-world systems, however, safety issues have been
+highlighted. RL algorithms inherently require an agent to
+explore unknown state-action pairs, and algorithms that are
+agnostic with respect to safety may execute unsafe actions
+without deliberateness. Hence, it is important to develop
+algorithms that guarantee safety even during training, at
+least with high probability.
+A notable approach is safe model-based RL (Berkenkamp
+et al., 2017; Fisac et al., 2018). In this domain, safety is associated with a state constraint; thus, the resulting algorithm
+is well suited for such contexts as a drone learning how to
+hover. The parameters of a drone are not perfectly known
+a priori, but we have prior knowledge on what states are
+unsafe (e.g., a pitch angle of more than 50 degrees is unsafe).
+In the field of control theory, constrained model predictive
+
+

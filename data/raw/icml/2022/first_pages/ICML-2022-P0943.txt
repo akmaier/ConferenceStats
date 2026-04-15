@@ -1,0 +1,71 @@
+A Temporal-Difference Approach to Policy Gradient Estimation
+
+Samuele Tosatto 1 Andrew Patterson 1 Martha White 1 2 A. Rupam Mahmood 1 2
+
+Abstract
+The policy gradient theorem (Sutton et al., 2000)
+prescribes the usage of a cumulative discounted
+state distribution under the target policy to approximate the gradient. Most algorithms based
+on this theorem, in practice, break this assumption, introducing a distribution shift that can cause
+the convergence to poor solutions. In this paper, we propose a new approach of reconstructing the policy gradient from the start state without requiring a particular sampling strategy. The
+policy gradient calculation in this form can be
+simplified in terms of a gradient critic, which
+can be recursively estimated due to a new Bellman equation of gradients. By using temporaldifference updates of the gradient critic from an
+off-policy data stream, we develop the first estimator that side-steps the distribution shift issue
+in a model-free way. We prove that, under certain realizability conditions, our estimator is unbiased regardless of the sampling strategy. We
+empirically show that our technique achieves
+a superior bias-variance trade-off and performance in presence of off-policy samples. The
+implementation of the experiments can be found
+at https://github.com/SamuelePolimi/temporaldifference-gradient.
+
+1. Introduction
+Policy gradient methods provide an elegant approach to
+learn a parameterized policy in reinforcement learning
+(Deisenroth et al., 2013). The policy gradient theorem (Sutton et al., 2000) provides a form for the gradient of the
+policy objective that can be sampled in a model-free way.
+This early work laid the foundation for practical methods,
+but as yet there is much more work to be done to provide
+*
+Equal contribution 1 Department of Computer Science, University of Alberta, Edmonton, Canada 2 CIFAR AI Chair, Alberta Machine Intelligence Institute (Amii). Correspondence to: Samuele
+Tosatto <tosatto@ualberta.ca>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+effective approximations for the gradient. This is specially
+important in the off-policy setting, where we need the gradient under the current policy (the target policy) but the
+agent’s experience is generated under a different policy (the
+behavior policy). Addressing this gap is critical for building
+sample-efficient methods that permit re-use of the agent’s
+experience either from past policies as replay (Mnih et al.,
+2015; Lillicrap et al., 2016), offline datasets (Levine et al.,
+2020), or human demonstrations. The difficulty of constructing policy gradient approximators arises from the need
+to sample states from the discounted state-distribution that
+is induced by the target policy. Although such sampling
+can be achieved in an on-policy manner, this approach is
+rarely used in practice, as it requires samples to be used
+only once, causing high variance and sample inefficiency.
+Instead, most methods reuse data, introducing some bias but
+compensating it with better sample efficiency.
+An alternative approach consists in correcting the state distribution. The most straightforward choice is to use importance sampling to reweight states, as if they had been
+sampled proportionally to the target policy (Shelton, 2001;
+Peshkin & Shelton, 2002). These methods are usually unbiased but affected by prohibitively large variance (Owen,
+2013). Many recent papers aim to lower the variance of pure
+importance sampling correction. Liu et al. (2018) and Liu
+et al. (2019) introduce the concept of state-wise importance
+sampling. Imani et al. (2018) proposes to combine semigradient with an emphatic weighting. Notably, they come
+across the gradient Bellman equation in their derivation. AlgaeDICE (Nachum et al., 2019) incorporates a correction of
+the off-policy distribution by relying on the dual problem
+of a modified objective that incorporates an f -divergence
+regularization. But as yet more work is needed to make
+state-reweighting a practical choice.
+The most common choice has been to simply omit any correction to the state distribution such as is done in OffPAC
+(Degris et al., 2012), DDPG (Lillicrap et al., 2016), A3C
+(Mnih et al., 2016), TD3 (Fujimoto et al., 2018) and SAC
+(Haarnoja et al., 2018). These methods are referred to as
+semi-gradient methods since the shift in the distribution
+can be seen as a result of the omission of a term in the
+gradient computation (Imani et al., 2018). Though most
+state-of-the-art policy gradient algorithms use this semigradient approach, there are well known counterexamples
+
+

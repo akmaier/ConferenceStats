@@ -1,0 +1,179 @@
+Learning Representations for Hierarchies with
+Minimal Support
+
+Benjamin Rozonoyer1 Michael Boratko2 Dhruvesh Patel1 Wenlong Zhao1
+Shib Dasgupta1 Hung Le1 Andrew McCallum1
+1
+University of Massachusetts Amherst
+2
+Google DeepMind
+{brozonoyer,dhruveshpate,wenlongzhao,ssdasgupta,hungle,mccallum}@cs.umass.edu
+mboratko@google.com
+
+Abstract
+When training node embedding models to represent large directed graphs (digraphs),
+it is impossible to observe all entries of the adjacency matrix during training. As a
+consequence most methods employ sampling. For very large digraphs, however,
+this means many (most) entries may be unobserved during training. In general,
+observing every entry would be necessary to uniquely identify a graph, however if
+we know the graph has a certain property some entries can be omitted - for example,
+only half the entries would be required for a symmetric graph.
+In this work, we develop a novel framework to identify a subset of entries required
+to uniquely distinguish a graph among all transitively-closed DAGs. We give an
+explicit algorithm to compute the provably minimal set of entries, and demonstrate
+empirically that one can train node embedding models with greater efficiency
+and performance, provided the energy function has an appropriate inductive bias.
+We achieve robust performance on synthetic hierarchies and a larger real-world
+taxonomy, observing improved convergence rates in a resource-constrained setting
+while reducing the set of training examples by as much as 99%.
+
+1
+
+Introduction
+
+Consider the directed graph and its associated adjacency matrix in Figure 1. In situations where this
+adjacency matrix is sparse, we can store it more efficiently by keeping a list of only the positive
+entries, effectively assuming any pairs not in our list are zero. But what about situations where we
+cannot assume that we have observed the full graph? For example, when obtaining annotations for
+edges of an unknown graph, the full adjacency matrix is unknown to us and we obtain the value of any
+particular entry by requesting an annotation. A less obvious scenario is training a model to represent
+a given graph. From the model’s perspective, every entry of this adjacency matrix is unknown, and it
+is only observed as a consequence of training. Therefore, it is of interest to determine: what is the
+smallest set of entries necessary to uniquely determine the graph?
+Root
+B
+
+A
+A1
+
+A2
+
+B1
+
+B2
+
+Root
+A
+B
+A1
+A2
+B1
+B2
+
+Root
+0
+0
+0
+0
+0
+0
+0
+
+A
+1
+0
+0
+0
+0
+0
+0
+
+B
+1
+0
+0
+0
+0
+0
+0
+
+A1 A2
+1
+1
+1
+1
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+
+B1 B2
+1
+1
+0
+0
+1
+1
+0
+0
+0
+0
+0
+0
+0
+0
+
+Figure 1: A transitively closed directed tree with branching factor 2
+and depth 2, with the associated adjacency matrix.
+
+Root
+B
+
+A
+A1
+
+Root
+
+A2
+
+B1
+
+B2
+
+Root
+A
+B
+A1
+A2
+B1
+B2
+
+A B
+1 1
+
+A1
+
+A2 B1
+
+B2
+
+1
+0
+
+1
+0
+0
+
+0
+1
+
+0
+1
+
+0
+0
+0
+
+Figure 2: A sufficient set of entries in the adjacency matrix to
+uniquely distinguish the graph in Figure 1 among all
+transitively-closed DAGs.
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

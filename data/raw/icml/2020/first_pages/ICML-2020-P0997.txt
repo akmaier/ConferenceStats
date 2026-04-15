@@ -1,0 +1,78 @@
+Multi-Agent Determinantal Q-Learning
+
+Yaodong Yang * 1 2 Ying Wen * 1 2 Liheng Chen 3 Jun Wang 2 Kun Shao 1 David Mguni 1 Weinan Zhang 3
+
+Abstract
+Centralized training with decentralized execution
+has become an important paradigm in multi-agent
+learning. Though practical, current methods rely
+on restrictive assumptions to decompose the centralized value function across agents for execution. In this paper, we eliminate this restriction by
+proposing multi-agent determinantal Q-learning.
+Our method is established on Q-DPP, an extension of determinantal point process (DPP) with
+partition-matroid constraint to multi-agent setting.
+Q-DPP promotes agents to acquire diverse behavioral models; this allows a natural factorization
+of the joint Q-functions with no need for a priori structural constraints on the value function or
+special network architectures. We demonstrate
+that Q-DPP generalizes major solutions including
+VDN, QMIX, and QTRAN on decentralizable cooperative tasks. To efficiently draw samples from
+Q-DPP, we adopt an existing linear-time sampler
+with theoretical approximation guarantee. The
+sampler also benefits exploration by coordinating agents to cover orthogonal directions in the
+state space during multi-agent training. We evaluate our algorithm on various cooperative benchmarks; its effectiveness has been demonstrated
+when compared with the state-of-the-art.
+
+1. Introduction
+Multi-agent reinforcement learning (MARL) methods hold
+great potential to solve a variety of real-world problems,
+such as mastering multi-player video games (Peng et al.,
+2017), dispatching taxi orders (Li et al., 2019), and studying
+population dynamics (Yang et al., 2018). In this work, we
+consider the multi-agent cooperative setting (Panait & Luke,
+2005) where a team of agents collaborate to achieve one
+common goal in a partially observed environment.
+*
+
+1
+Equal contribution
+Huawei Technology R&D UK.
+University College London. 3 Shanghai Jiaotong University. Correspondence to: Yaodong Yang <yaodong.yang@huawei.com>.
+2
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+A full spectrum of MARL algorithms has been developed
+to solve cooperative tasks (Panait & Luke, 2005); the two
+endpoints of the spectrum are independent and centralized
+learning (see Fig. 1). Independent learning (IL) (Tan, 1993)
+merely treats other agents’ influence to the system as part
+of the environment. The learning agent not only faces a
+non-stationary environment, but also suffers from spurious
+rewards (Sunehag et al., 2017; Du et al., 2019). Centralized
+learning (CL), at the other end, treats a multi-agent problem
+as a single-agent problem despite the fact that many realworld applications require local autonomy. Importantly, the
+CL approaches exhibit combinatorial complexity and can
+hardly scale to more than tens of agents (Yang et al., 2019).
+Another paradigm typically considered is a hybrid of centralized training and decentralized execution (CTDE) (Oliehoek
+et al., 2008). For value-based approaches in the framework
+of CTDE, a fundamental challenge is how to correctly decompose the centralized value function among agents for decentralized execution. For a cooperative task to be deemed
+decentralizable, it is required that local maxima on the value
+function per every agent should amount to the global maximum on the joint value function. In enforcing such a condition, current state-of-the-art methods rely on restrictive
+structural constraints and/or network architectures. For instance, Value Decomposition Network (VDN) (Sunehag
+et al., 2017) and Factorized-Q (Zhou et al., 2019) propose
+to directly factorize the joint value function into a summation of individual value functions. QMIX (Rashid et al.,
+2018) augments the summation to be non-linear aggregations, while maintaining a monotonic relationship between
+centralized and individual value functions. QTRAN (Son
+et al., 2019) introduces a refined learning objective on top
+of QMIX along with specific network designs.
+Unsurprisingly, the structural constraints put forward by
+VDN / QMIX / QTRAN inhibit the representational power
+of the centralized value function (Son et al., 2019); as a
+result, the class of decentralizable cooperative tasks these
+methods can tackle is limited. For example, poor empirical
+results of QTRAN have been reported on multiple multiagent cooperative benchmarks (Mahajan et al., 2019).
+Apart from the aforementioned problems, structural constraints also hinder efficient explorations when applied to
+value function decomposition. In fact, since agents behave
+
+

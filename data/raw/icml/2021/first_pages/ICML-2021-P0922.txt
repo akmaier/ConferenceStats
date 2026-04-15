@@ -1,0 +1,107 @@
+Taylor Expansions of Discount Factors
+
+Yunhao Tang 1 Mark Rowland 2 Rémi Munos 3 Michal Valko 3
+
+Abstract
+In practical reinforcement learning (RL), the discount factor used for estimating value functions
+often differs from that used for defining the evaluation objective. In this work, we study the effect
+that this discrepancy of discount factors has during learning, and discover a family of objectives
+that interpolate value functions of two distinct discount factors. Our analysis suggests new ways for
+estimating value functions and performing policy optimization updates, which demonstrate empirical performance gains. This framework also
+leads to new insights on commonly-used deep
+RL heuristic modifications to policy optimization
+algorithms.
+
+1. Introduction
+One of the most popular models for reinforcement learning
+(RL) is the Markov decision process (MDP) with exponential discounting over an infinite horizon (Sutton and Barto,
+2018; Puterman, 2014), with discounted objectives of the
+following form
+"∞
+#
+X
+π
+t
+Vγ (x) = Eπ
+γ rt x0 = x .
+t=0
+
+Discounted models enjoy favorable theoretical properties,
+and are also the foundation of many practical RL algorithms
+that enjoy empirical success (e.g. see (Mnih et al., 2015;
+Schulman et al., 2015a; Lillicrap et al., 2015; Schulman
+et al., 2017)). However, in most applications of RL, the
+objective of interest is the expected undiscounted cumulative
+return,
+" T
+#
+X
+Eπ
+rt x0 = x ,
+(1)
+t=0
+
+where T < ∞ is a (possibly random) evaluation horizon,
+which usually also denotes the end of the trajectory. For
+1
+Columbia University, New York, USA 2 DeepMind, London, UK 3 DeepMind, Paris, France. Correspondence to:
+yt2541@columbia.edu <Yunhao>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+example, T could be the first time the MDP gets into a terminal state (e.g., a robot falls); when the MDP does not have a
+natural terminal state, T could be enforced as a deterministic
+horizon. This creates a technical gap between algorithmic
+developments and implementations: it is tempting to design
+algorithms that optimize Vγπ (x), however, further heuristics
+are often needed to get strong practical performance. This
+issue manifests itself with the policy gradient (PG) theorem
+(Sutton et al., 2000). Let πθ be a parameterized policy. The
+policy gradient (PG) ∇θ Vγπθ (x) is computed as
+"∞
+#
+X
+t πθ
+Eπθ
+γ Qγ (xt , at )∇θ log πθ (at |xt ) x0 = x .
+t=0
+
+(2)
+However, the practical implementation of PG updates
+usually omits the discount factors (see for example the
+high-quality open source packages (Dhariwal et al., 2017;
+Achiam and OpenAI, 2018), leading to an approximate gradient of the form
+" T
+#
+X
+πθ
+Eπθ
+Qγ (xt , at )∇θ log πθ (at |xt ) x0 = x . (3)
+t=0
+
+Most prior work on PG algorithms rely on this heuristic update to work properly in deep RL applications. The intuitive
+argument for dropping the factor γ t is that Eqn (2) optimizes
+Vγπθ (x), which is very myopic compared to the objective in
+Eqn (1). Consequently, the exponential discount γ t is too
+aggressive for weighting updates with large t. As a concrete
+example, in many MuJoCo control tasks (Brockman et al.,
+2016), the most commonly used discount factor is γ = 0.99.
+1
+This leads to an effective horizon of 1−γ
+= 100, which
+is much smaller than the evaluation horizon T = 1000.
+This technical gap between theory and practice has been
+alluded to previously (by e.g., O’Donoghue et al., 2016) and
+is explicitly discussed by Nota and Thomas (2019).
+To bypass this gap, a straightforward solution would be to
+naı̈vely increase the discount factor γ ≥ 1 − T1 and apply
+the PG in Eqn (2). In the example above, this implies using
+γ ≥ 0.999. Unfortunately, this rarely works well in practice,
+as we will also see in experiments. The failure might be due
+to the higher variance of the estimation (Schulman et al.,
+2015b) or the collapse of the action gaps (Lehnert et al.,
+2018; Laroche and van Seijen, 2018), which is aggravated
+when combined with function approximations.
+
+

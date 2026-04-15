@@ -1,0 +1,85 @@
+Auto-reconfiguration for Latency Minimization in CPU-based DNN Serving
+
+Ankit Bhardwaj 1 2 Amar Phanishayee 1 3 Deepak Narayanan 1 4 Ryan Stutsman 5
+
+Abstract
+
+There are many DNN serving systems available today, including TensorFlow Serving (Olston et al., 2017), TorchServe (TorchServe Team, 2019), and Triton (NVIDIA Corporation, 2018). These systems are designed to use both
+CPUs and GPUs to execute DNN model inference. GPUs
+generally provide better throughput than CPUs, but they are
+often more expensive and power-hungry. They also end up
+underutilized for inference workloads (Kosaian et al., 2021).
+Recent CPU advances, like high core counts (56 to 64 cores
+are common today (Intel, 2019; AMD, 2022)) and specialized instructions that support lower numerical precision
+multiplications with higher precision accumulates (AVX512 (Intel, 2017), AMX (Intel, 2022)), improve inference
+performance. Every cloud server comes equipped with such
+multicore CPUs and many product groups at large companies already own large fleets of such servers that are also
+used for CPU-based serving, including at Meta and Microsoft (Hazelwood et al., 2018; Soifer et al., 2019).
+
+In this paper, we investigate how to push the performance limits of serving Deep Neural Network
+(DNN) models on CPU-based servers. Specifically, we observe that while intra-operator parallelism across multiple threads effectively reduces
+inference latency, it provides diminishing returns.
+Our primary insight is that instead of running
+a single instance of a model with all available
+threads on a server, running multiple instances,
+each with smaller batch sizes and fewer threads
+for intra-op parallelism, can provide lower inference latency. However, the right configuration is difficult to determine manually since it
+is workload-dependent (DNN model and batch
+size used by the serving system) and deploymentdependent (number of CPU cores on a server). We
+present Packrat, a new serving system for online
+inference that given a model and batch size (B)
+algorithmically picks the optimal number of instances (i), the number of threads each should be
+allocated (t), and the batch sizes each should operate on (b) that minimizes latency. Packrat is built
+as an extension to TorchServe and supports online reconfigurations to avoid serving downtime.
+Averaged across a range of batch sizes, Packrat
+improves inference latency by 1.43× to 1.83× on
+a range of commonly used DNNs.
+
+1
+
+In this paper, assuming the use of CPU-based serving, we
+push the performance limits of serving DNN models on
+a single multicore CPU-based server. Serving systems
+like Triton and TorchServe provide useful features like request handling, adaptive batching of inference requests, and
+multi-model serving. One important technique to improve
+the latency of DNN model serving is intra-operator parallelism (Shoeybi et al., 2019), where a single operator is
+split and run using multiple threads. However, we observe
+that increasing the number of threads results in diminishing
+returns; this observation is consistent across batch sizes and
+DNN models (§2.1). To sidestep the diminishing benefits
+from intra-op parallelism, a user might try to create one
+model instance per core and configure their workload to
+split each batch across the available threads, but as we will
+show quantitatively later, this does not minimize latency
+either. In short, neither maximizing intra-op parallelism nor
+maximizing parallelism across model instances results in
+the best inference latency.
+
+Introduction
+
+DNN serving is an increasingly important datacenter workload. DNN serving systems are often used in online services
+like image and video analytics, speech transcription, text
+and code completion, chatbots, and more. In these settings,
+requests arrive continuously and must be served in real time;
+thus, serving systems must handle high request rates efficiently and with low response latency.
+1
+
+In this paper, we present Packrat, an optimized CPU-based
+serving system for online inference that automatically determines the number of threads that need to be allocated to
+model instances to minimize inference latency. Packrat is
+motivated by the following key insight: instead of running
+a single instance of a model with all available threads (the
+default for systems like TorchServe), running multiple in-
+
+2
+
+Work done while authors were at Microsoft Research MIT
+CSAIL 3 Meta 4 NVIDIA 5 University of Utah. Correspondence to:
+Ankit Bhardwaj <ankitbwj@mit.edu>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

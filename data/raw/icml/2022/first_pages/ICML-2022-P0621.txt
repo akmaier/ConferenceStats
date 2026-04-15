@@ -1,0 +1,77 @@
+GACT: Activation Compressed Training for Generic Network Architectures
+
+Xiaoxuan Liu 1 Lianmin Zheng 1 Dequan Wang 1 Yukuo Cen 2 Weize Chen 2 Xu Han 2 Jianfei Chen 2
+Zhiyuan Liu 2 Jie Tang 2 Joseph E. Gonzalez 1 Michael W. Mahoney 1 3 4 Alvin Cheung 1
+
+Abstract
+Training large neural network (NN) models requires extensive memory resources, and Activation Compression Training (ACT) is a promising approach to reduce training memory footprint.
+This paper presents GACT, an ACT framework to
+support a broad range of machine learning tasks
+for generic NN architectures with limited domain
+knowledge. By analyzing a linearized version of
+ACT’s approximate gradient, we prove the convergence of GACT without prior knowledge on
+operator type or model architecture. To make
+training stable, we propose an algorithm that decides the compression ratio for each tensor by
+estimating its impact on the gradient at run time.
+We implement GACT as a PyTorch library that
+readily applies to any NN architecture. GACT
+reduces the activation memory for convolutional
+NNs, transformers, and graph NNs by up to 8.1×,
+enabling training with a 4.2× to 24.7× larger
+batch size, with negligible accuracy loss.
+
+1. Introduction
+In recent years, we have witnessed the trend of using larger
+and larger neural network (NN) models to deliver improved
+accuracy and generalization in various machine learning
+tasks (Devlin et al., 2018; Fedus et al., 2021). However,
+training these models requires a considerable amount of
+on-device GPU memory. Unfortunately, the increase of
+GPU memory capacity has been relatively slow, leading to a
+fundamental barrier to the development of large NN models.
+Activation Compression Training (ACT) is a promising approach to reduce the memory footprint of models during
+training. As all layers’ activations need to be kept in the
+1
+UC Berkeley 2 Dept. of Comp. Sci. & Tech., Institute for AI,
+Tsinghua-Bosch Joint Center for ML, BNRist Center, State Key
+Lab for Intell. Tech. & Sys., Tsinghua University 3 ICSI 4 LBNL.
+Correspondence to: Jianfei Chen <jianfeic@tsinghua.edu.cn>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+memory for computing the gradients during training, ACT
+reduces memory consumption by compressing these saved
+activations. Prior work (Chakrabarti & Moseley, 2019; Fu
+et al., 2020; Chen et al., 2021; Evans & Aamodt, 2021)
+has shown the effectiveness of ACT by reducing activation
+footprint by up to 12× with 2-bit activations.
+Although ACT has already demonstrated impressive compression capabilities, previous work on ACT is restricted to
+specific NN architectures. For example, ActNN (Chen et al.,
+2021) is a quantization framework for convolutional NNs
+only; Mesa (Pan et al., 2021) proposes a per head/layer quantization method for vision transformers; and AC-GC (Evans
+& Aamodt, 2021) derives convergence error bound for different types of operators separately.
+Developing a generic ACT framework is challenging. Theoretically, convergence guarantees must be made without
+assumptions on the network architecture. Algorithmically,
+the framework should find effective compression strategies
+for all kinds of networks automatically. From the system
+perspective, the framework should support arbitrary NN
+operations, including user-defined ones.
+In this work, we propose GACT, a general framework for
+ACT that is agnostic to the NN architecture. Neither specialized mathematical derivations nor customized implementation is needed to support different operators. To enable
+this, we develop a general convergence theory by analyzing the stochastic gradient (SG) introduced by ACT. We
+show that the SG can be well approximated by a linearized
+version, which is unbiased to stochastic compressors. The
+variance of the linearized gradient has a particularly simple
+structure that allows a numerical algorithm to predict the
+variance given a compression strategy. Then, we generate
+the strategy by approximately solving an integer program.
+We implement our method as a library based on PyTorch
+that can be quickly integrated into real-world machine learning systems. The library also provides several optimization
+levels to explore the trade-off between memory and speed.
+We demonstrate the flexibility and efficiency of GACT on
+various tasks, including image classification, object detection, text, and graph node classification. Our evaluation
+shows that GACT can reduce activation memory by up to
+8.1×, enabling training with a 24.7× larger batch size on the
+
+

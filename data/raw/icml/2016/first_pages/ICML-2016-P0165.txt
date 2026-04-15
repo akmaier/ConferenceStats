@@ -1,0 +1,73 @@
+Ensuring Rapid Mixing and Low Bias for Asynchronous Gibbs Sampling
+
+Christopher De Sa
+Department of Electrical Engineering, Stanford University, Stanford, CA 94309
+
+CDESA @ STANFORD . EDU
+
+Kunle Olukotun
+Department of Electrical Engineering, Stanford University, Stanford, CA 94309
+
+KUNLE @ STANFORD . EDU
+
+Christopher Ré
+Department of Computer Science, Stanford University, Stanford, CA 94309
+
+Abstract
+Gibbs sampling is a Markov chain Monte
+Carlo technique commonly used for estimating
+marginal distributions. To speed up Gibbs sampling, there has recently been interest in parallelizing it by executing asynchronously. While
+empirical results suggest that many models can
+be efficiently sampled asynchronously, traditional Markov chain analysis does not apply to
+the asynchronous case, and thus asynchronous
+Gibbs sampling is poorly understood. In this paper, we derive a better understanding of the two
+main challenges of asynchronous Gibbs: bias
+and mixing time. We show experimentally that
+our theoretical results match practical outcomes.
+
+1. Introduction
+Gibbs sampling is one of the most common Markov chain
+Monte Carlo methods used with graphical models (Koller
+& Friedman, 2009). In this setting, Gibbs sampling (Algorithm 1) operates iteratively by choosing at random a variable from the model at each timestep, and updating it by
+sampling from its conditional distribution given the other
+variables in the model. Often, it is applied to inference
+problems, in which we are trying to estimate the marginal
+probabilities of some query events in a given distribution.
+For sparse graphical models, to which Gibbs sampling is
+often applied, each of these updates needs to read the values of only a small subset of the variables; therefore each
+update can be computed very quickly on modern hardware.
+Because of this and other useful properties of Gibbs sampling, many systems use Gibbs sampling to perform inferProceedings of the 33 rd International Conference on Machine
+Learning, New York, NY, USA, 2016. JMLR: W&CP volume
+48. Copyright 2016 by the author(s).
+
+CHRISMRE @ STANFORD . EDU
+
+Algorithm 1 Gibbs sampling
+Require: Variables xi for 1 ≤ i ≤ n, and distribution π.
+for t = 1 to T do
+Sample s uniformly from {1, . . . , n}.
+Re-sample xs uniformly from Pπ (Xs |X{1,...,n}\{s} ).
+end for
+
+ence on big data (Lunn et al., 2009; McCallum et al., 2009;
+Newman et al., 2007; Smola & Narayanamurthy, 2010;
+Theis et al., 2012; Zhang & Ré, 2014).
+Since Gibbs sampling is such a ubiquitous algorithm, it is
+important to try to optimize its execution speed on modern
+hardware. Unfortunately, while modern computer hardware has been trending towards more parallel architectures (Sutter, 2005), traditional Gibbs sampling is an inherently sequential algorithm; that is, the loop in Algorithm 1 is not directly parallelizable. Furthermore, for
+sparse models, very little work happens within each iteration, meaning it is difficult to extract much parallelism
+from the body of this loop. Since traditional Gibbs sampling parallelizes so poorly, it is interesting to study variants of Gibbs sampling that can be parallelized. Several
+such variants have been proposed, including applications
+to latent Dirichlet allocation (Newman et al., 2007; Smola
+& Narayanamurthy, 2010) and distributed constraint optimization problems (Nguyen et al., 2013).
+In one popular variant, multiple threads run the Gibbs
+sampling update rule in parallel without locks, a strategy
+called asynchronous or H OGWILD ! execution—in this paper, we use these two terms interchangeably. This idea
+was proposed, but not analyzed theoretically, in Smola
+& Narayanamurthy (2010), and has been shown to give
+empirically better results on many models (Zhang & Ré,
+2014). But when can we be sure that H OGWILD ! Gibbs
+sampling will produce accurate results? Except for the case
+of Gaussian random variables (Johnson et al., 2013), there
+
+

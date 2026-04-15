@@ -1,0 +1,122 @@
+Accelerating Gossip SGD with Periodic Global Averaging
+
+Yiming Chen * 1 Kun Yuan * 1 Yingya Zhang 1 Pan Pan 1 Yinghui Xu 1 Wotao Yin 1
+
+Abstract
+Communication overhead hinders the scalability
+of large-scale distributed training. Gossip SGD,
+where each node averages only with its neighbors, is more communication-efficient than the
+prevalent parallel SGD. However, its convergence
+rate is reversely proportional to quantity 1 − β
+which measures the network connectivity. On
+large and sparse networks where 1 − β → 0,
+Gossip SGD requires more iterations to converge,
+which offsets against its communication benefit.
+This paper introduces Gossip-PGA, which adds
+Periodic Global Averaging into Gossip SGD. Its
+transient stage, i.e., the iterations required to reach
+asymptotic linear speedup stage, improves from
+Ω(β 4 n3 /(1−β)4 ) to Ω(β 4 n3 H 4 ) for non-convex
+problems. The influence of network topology in
+Gossip-PGA can be controlled by the averaging
+period H. Its transient-stage complexity is also
+superior to Local SGD which has order Ω(n3 H 4 ).
+Empirical results of large-scale training on image
+classification (ResNet50) and language modeling
+(BERT) validate our theoretical findings.
+
+ACC .%
+
+T IME ( HRS .)
+
+PARALLEL SGD
+G OSSIP SGD ( RING )
+G OSSIP SGD ( EXPO )
+G OSSIP SGD ( RING )
+G OSSIP SGD ( EXPO )
+
+120
+120
+120
+240
+240
+
+76.26
+74.86
+75.34
+75.62
+76.18
+
+2.22
+1.56
+1.55
+3.02
+3.03
+
+Parallel SGD methods are leading algorithms to solve (1),
+in which every node processes local training samples independently, and synchronize gradients every iteration either
+using a central Parameter Server (PS) (Li et al., 2014) or the
+All-Reduce communication primitive (Patarasuk & Yuan,
+2009). The global synchronization in Parallel SGD either
+incurs significant bandwidth cost or high latency, which
+hampers the training scalability.
+
+The scale of deep learning nowadays calls for efficient largescale distributed training across multiple computing nodes
+in the data-center clusters. In distributed optimization, a
+network of n nodes cooperate to solve the problem
+n
+
+1X
+[fi (x) := Eξi ∼Di Fi (x; ξ i )]
+x∈Rd n
+i=1
+
+E POCH
+
+Table 1. Top-1 validation accuracy for ImageNet with 256 GPUs
+connected with the ring or one-peer exponential network. Gossip
+SGD takes more time to reach the same accuracy as Parallel SGD.
+
+1. Introduction
+
+min
+
+M ETHOD
+
+(1)
+
+where each component fi is local and private to node i and
+the random variable ξ i denotes the local data that follows
+distribution Di . We assume each node i can locally evaluate
+stochastic gradients ∇Fi (x; ξ i ) where ξ i ∼ Di , but must
+communicate to access information from other nodes.
+*
+
+Equal contribution 1 Alibaba Group, Hangzhou, China. Correspondence to: Kun Yuan <kun.yuan@alibaba-inc.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Many alternative methods have been proposed to reduce
+communication overhead in distributed training. Gossip
+SGD, also known as decentralized SGD (Nedic & Ozdaglar,
+2009; Chen & Sayed, 2012; Lian et al., 2017; 2018; Assran et al., 2019), recently received lots of attention. This
+line of work lets each node communicate with (some of)
+their direct neighbors. In a sparse topology such as one-peer
+exponential graph (Assran et al., 2019), each node only communicates with one neighbor each time. This gossip-style
+communication is much faster than PS and All-Reduce but
+the computed average can be highly inaccurate. Local SGD
+(Stich, 2019; Yu et al., 2019; Lin et al., 2018) is another line
+of work that increases the computation-to-communication
+ratio. Local SGD lets each node to run local gradient descent for multiple rounds and only average their parameters
+globally once in a while. By communicating less frequently,
+Local SGD reduces the communication overhead.
+The reduced communication in Gossip and Local SGDs
+comes at a cost: slower convergence rate. While both algorithms are proved to have convergence linear speedup
+asymptotically, they are sensitive to network topology and
+synchronization period, respectively. For Gossip SGD, the
+convergence rate is inversely proportional to 1 − β (β is
+defined in Remark 1). Since β → 1 on the large and sparse
+network topology which is most valuable for deep training,
+Gossip SGD will converge very slow and require more iterations than Parallel SGD to achieve a desired solution. This
+
+

@@ -1,0 +1,105 @@
+Self-Imitation Learning
+
+Junhyuk Oh * 1 Yijie Guo * 1 Satinder Singh 1 Honglak Lee 2 1
+
+Abstract
+
+MontezumaRevenge
+
+This paper proposes Self-Imitation Learning
+(SIL), a simple off-policy actor-critic algorithm
+that learns to reproduce the agent’s past good decisions. This algorithm is designed to verify our
+hypothesis that exploiting past good experiences
+can indirectly drive deep exploration. Our empirical results show that SIL significantly improves
+advantage actor-critic (A2C) on several hard exploration Atari games and is competitive to the
+state-of-the-art count-based exploration methods.
+We also show that SIL improves proximal policy
+optimization (PPO) on MuJoCo tasks.
+
+1. Introduction
+The trade-off between exploration and exploitation is one of
+the fundamental challenges in reinforcement learning (RL).
+The agent needs to exploit what it already knows in order to
+maximize reward. But, the agent also needs to explore new
+behaviors in order to find a potentially better policy. The
+resulting performance of an RL agent emerges from this
+interaction between exploration and exploitation.
+This paper studies how exploiting the agent’s past experiences improves learning in RL. More specifically, we hypothesize that learning to reproduce past good experiences
+can indirectly lead to deeper exploration depending on the
+domain. A simple example of how this can occur can be
+seen through our results on an example Atari game, Montezuma’s Revenge (see Figure 1). In this domain, the first
+and more proximal source of reward is obtained by picking up the key. Obtaining the key is a precondition of the
+second and more distal source of reward (i.e., opening the
+door with the key). Many existing methods occasionally
+generate experiences that pick up the key and obtain the first
+reward, but fail to exploit these experiences often enough
+to learn how to open the door by exploring after picking up
+*
+
+Equal contribution 1 University of Michigan 2 Google Brain.
+Correspondence to: Junhyuk Oh <junhyuk@umich.edu>, Yijie
+Guo <guoyijie@umich.edu>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+Average reward
+
+2500
+2000
+1500
+A2C
+A2C (Best)
+A2C+SIL
+A2C+SIL (Best)
+
+1000
+500
+0
+0M
+
+5M
+
+10M
+Steps
+
+15M
+
+20M
+
+Figure 1. Learning curves on Montezuma’s Revenge. (Left) The
+agent needs to pick up the key in order to open the door. Picking
+up the key gives a small reward. (Right) The baseline (A2C) often
+picks up the key as shown by the best episode reward in 100K
+steps (A2C (Best)), but it fails to consistently reproduce such an
+experience. In contrast, self-imitation learning (A2C+SIL) quickly
+learns to pick up the key as soon as the agent experiences it, which
+leads to the next source of reward (door).
+
+the key. Thus, they end up with a poor policy (see A2C in
+Figure 1). On the other hand, by exploiting the experiences
+that pick up the key, the agent is able to explore onwards
+from the state where it has the key to successfully learn how
+to open the door (see A2C+SIL in Figure 1). Of course, this
+sort of exploitation can also hurt performance in problems
+where there are proximal distractor rewards and repeated
+exploitation of such rewards does not help in learning about
+more distal and higher rewards; in other words, these two aspects may both be present. In this paper we will empirically
+investigate many different domains to see how exploiting
+past experiences can be beneficial for learning agents.
+The main contributions of this paper are as follows: (1) To
+study how exploiting past good experiences affects learning,
+we propose a Self-Imitation Learning (SIL) algorithm which
+learns to imitate the agent’s own past good decisions. In
+brief, the SIL algorithm stores experiences in a replay buffer,
+learns to imitate state-action pairs in the replay buffer only
+when the return in the past episode is greater than the agent’s
+value estimate. (2) We provide a theoretical justification
+of the SIL objective by showing that the SIL objective is
+derived from the lower bound of the optimal Q-function. (3)
+The SIL algorithm is very simple to implement and can be
+applied to any actor-critic architecture. (4) We demonstrate
+that SIL combined with advantage actor-critic (A2C) is
+competitive to the state-of-the-art count-based exploration
+
+

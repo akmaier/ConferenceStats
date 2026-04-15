@@ -3,10 +3,12 @@
 import argparse
 import csv
 import html
+import time
 import re
 import subprocess
 import tempfile
 import urllib.request
+import urllib.error
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urljoin
@@ -16,6 +18,9 @@ USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/123.0.0.0 Safari/537.36"
 )
+RETRYABLE_HTTP_STATUS = {429, 500, 502, 503, 504}
+MAX_HTTP_RETRIES = 6
+INITIAL_RETRY_DELAY_SECONDS = 2.0
 
 
 def load_rows(path: Path):
@@ -31,16 +36,37 @@ def write_csv(path: Path, fieldnames, rows):
         writer.writerows(rows)
 
 
-def download_bytes(url: str) -> bytes:
+def read_with_retries(url: str, mode: str) -> bytes:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=60) as response:
-        return response.read()
+    delay = INITIAL_RETRY_DELAY_SECONDS
+    last_exc = None
+    for attempt in range(MAX_HTTP_RETRIES + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                return response.read()
+        except urllib.error.HTTPError as exc:
+            last_exc = exc
+            if exc.code not in RETRYABLE_HTTP_STATUS or attempt == MAX_HTTP_RETRIES:
+                raise
+            retry_after = exc.headers.get("Retry-After")
+            sleep_seconds = float(retry_after) if retry_after and retry_after.isdigit() else delay
+            time.sleep(sleep_seconds)
+            delay *= 2
+        except urllib.error.URLError as exc:
+            last_exc = exc
+            if attempt == MAX_HTTP_RETRIES:
+                raise
+            time.sleep(delay)
+            delay *= 2
+    raise last_exc
+
+
+def download_bytes(url: str) -> bytes:
+    return read_with_retries(url, "bytes")
 
 
 def fetch_text(url: str) -> str:
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=60) as response:
-        return response.read().decode("utf-8", errors="replace")
+    return read_with_retries(url, "text").decode("utf-8", errors="replace")
 
 
 def derived_pdf_url_from_paper_page(paper_page_url: str) -> str:

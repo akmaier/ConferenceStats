@@ -1,0 +1,58 @@
+John Ellipsoids via Lazy Updates
+
+David P. Woodruff
+Carnegie Mellon University
+dwoodruf@cs.cmu.edu
+
+Taisuke Yasuda
+Voleon Group
+yasuda.taisuke1@gmail.com
+
+Abstract
+We give a faster algorithm for computing an approximate John ellipsoid around 𝑛
+points in 𝑑 dimensions. The best known prior algorithms are based on repeatedly
+computing the leverage scores of the points and reweighting them by these scores
+[CCLY19]. We show that this algorithm can be substantially sped up by delaying
+the computation of high accuracy leverage scores by using sampling, and then later
+computing multiple batches of high accuracy leverage scores via fast rectangular
+matrix multiplication. We also give low-space streaming algorithms for John
+ellipsoids using similar ideas.
+
+1
+
+Introduction
+
+The John ellipsoid problem is a classic algorithmic problem, which takes as input a set of 𝑛 points
+{a1 , a2 , . . . , a𝑛 } in 𝑑 dimensions, and asks for the minimum volume enclosing ellipsoid (MVEE)
+of these 𝑛 points. If 𝑃 is the convex hull of these 𝑛 points, then a famous result of Fritz John
+[Joh48] states that such an ellipsoid satisfies 𝑑1 𝑄 ⊆ 𝑃 ⊆ 𝑄, and if 𝑃 is furthermore symmetric, then
+√1 𝑄 ⊆ 𝑃 ⊆ 𝑄. Equivalently, we may consider the 𝑛 input points to be constraints of a polytope
+𝑑
+{x : ⟨a𝑖 , x⟩ ≤ 1, 𝑖 ∈ [𝑛]}, in which case the problem is to compute a maximal volume inscribed
+ellipsoid (MVIE). These two problems are related by taking polars, which corresponds to inverting
+the quadratic form defining the ellipsoid. In this work, we focus on the symmetric case, so that the
+polytope 𝑃 may be written as 𝑃 = {x : ‖Ax‖∞ ≤ 1}, where A denotes the 𝑛 × 𝑑 matrix with the
+𝑛 input points
+√ a𝑖 in the rows, and our goal is to output an ellipsoid 𝑄 which approximately satisfies
+𝑄 ⊆ 𝑃 ⊆ 𝑑 · 𝑄.
+The John ellipsoid problem has far-reaching applications in numerous fields of computer science.
+In statistics, the John ellipsoid problem is equivalent to the dual of the D-optimal experiment
+design problem [Atw69, Sil13], in which one seeks weights for selecting a subset of a dataset to
+observe in an experiment. Other statistical applications of John ellipsoids include outlier detection
+[ST80] and pattern recognition [Ros65, Gli98]. In the optimization literature, computing John
+ellipsoids is a fundamental ingredient for the ellipsoid method for linear programming [Kha79],
+cutting plane methods [TKE88], and convex programming [Sho77, Vai96]. Other applications in
+theoretical computer science include sampling [Vem05, CDWY18, GN23], bandits [BCK12, HK16],
+differential privacy [NTZ13], coresets [TMF20, TWZ+ 22], and randomized numerical linear algebra
+[Cla05, DDH+ 09, WY23, BMV23].
+We refer to a survey of Todd [Tod16] for an account on algorithms and applications of John ellipsoids.
+1.1
+
+John ellipsoids via iterated leverage scores
+
+Following a long line of work on algorithms for computing John ellipsoids [Wol70, Atw73, KT93,
+NN94, Kha96, STT78, KY05, SF04, TY07, AST08, Yu11, HFR20] based on convex optimization
+techniques, the work of [CCLY19] developed a new approach towards computing approximate John
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

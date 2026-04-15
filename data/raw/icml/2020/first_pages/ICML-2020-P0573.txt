@@ -1,0 +1,93 @@
+Time-aware Large Kernel Convolutions
+
+Vasileios Lioutas 1 Yuhong Guo 1
+
+Abstract
+To date, most state-of-the-art sequence model­
+ing architectures use attention to build genera­
+tive models for language based tasks. Some of
+these models use all the available sequence to­
+kens to generate an attention distribution which
+results in time complexity of O(n2 ). Alterna­
+tively, they utilize depthwise convolutions with
+softmax normalized kernels of size k acting as a
+limited-window self-attention, resulting in time
+complexity of O(k·n). In this paper, we introduce
+Time-aware Large Kernel (TaLK) Convolutions,
+a novel adaptive convolution operation that learns
+to predict the size of a summation kernel instead
+of using a ﬁxed-sized kernel matrix. This method
+yields a time complexity of O(n), effectively mak­
+ing the sequence encoding process linear to the
+number of tokens. We evaluate the proposed
+method on large-scale standard machine trans­
+lation, abstractive summarization and language
+modeling datasets and show that TaLK Convo­
+lutions constitute an efﬁcient improvement over
+other attention/convolution based approaches.
+
+1. Introduction
+Sequence modeling has seen some great breakthroughs
+through recent years with the introduction of the use of neu­
+ral networks. Recurrent neural network methods (Sutskever
+et al., 2014; Bahdanau et al., 2015; Wu et al., 2016), convo­
+lution methods (Kim, 2014; Kalchbrenner et al., 2014; 2016;
+Gehring et al., 2017; Wu et al., 2019), and self-attention
+approaches (Paulus et al., 2018; Vaswani et al., 2017; Dai
+et al., 2019; Kitaev et al., 2020) have all yielded state-of­
+the-art results in various NLP tasks such as neural machine
+translation (NMT) (Sutskever et al., 2014; Wu et al., 2016;
+Britz et al., 2017; Aharoni et al., 2019), language model­
+ing (Sundermeyer et al., 2012; Tran et al., 2016; Devlin
+1
+School of Computer Science, Carleton University, Canada.
+Correspondence to: Vasileios Lioutas <contact@vlioutas.com>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the au­
+thor(s).
+
+et al., 2019; Radford et al., 2019), automatic summarization
+(Paulus et al., 2018; Fan et al., 2018; Celikyilmaz et al.,
+2018), named entity recognition (Lample et al., 2016; De­
+vlin et al., 2019) and sentiment analysis (Xu et al., 2016;
+Sachan et al., 2019).
+Seemingly all modern approaches of sequence encoding rely
+on the use of attention to “ﬁlter” the excessive information
+given at a current time-step. Attention can be expressed
+as the weighted sum over context representations using at­
+tention weights that are usually generated from the context
+representations (self-attention) (Cheng et al., 2016). The
+transformer network (Vaswani et al., 2017) assigns attention
+weights for a given time-step to all available context token
+representations, while the newly proposed dynamic convo­
+lution (Wu et al., 2019) only computes an attention over a
+ﬁxed context window.
+Self-attention over all context tokens is computationally
+very expensive. Speciﬁcally, the transformer network has
+a time complexity of O(n2 ) where n is the length of the
+input sequence. Thus, modeling long-range dependencies
+becomes very challenging and the practicality of the selfattention method has been questioned. The more recent
+approach of dynamic convolutions (Wu et al., 2019) suc­
+cessfully reduced the time complexity to O(k·n) where k is
+the kernel size speciﬁed for each layer.
+In this paper, we introduce a novel type of adaptive con­
+volution, Time-aware Large Kernel (TaLK) convolutions,
+that learns the kernel size of a summation kernel for each
+time-step instead of learning the kernel weights as in a typi­
+cal convolution operation. For each time-step, a function is
+responsible for predicting the appropriate size of neighbor
+representations to use in the form of left and right offsets
+relative to the time-step. The result is an efﬁcient encod­
+ing method that reduces the time complexity to O(n) and
+uses fewer parameters than all other methods. The method
+employs the fast Parallel Preﬁx Sum (Ladner & Fischer,
+1980; Vishkin, 2003) operation which has a time complexity
+of O(log(n)) to compute the integral image (Lewis, 1994),
+also known as summed-area table in the Computer Vision
+literature. This needs to be computed only once and can
+be used to calculate any summation between two boundary
+tokens in O(1). Applying it on a sequence with length n
+only needs O(n) time. To summarize, the contributions of
+
+

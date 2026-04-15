@@ -1,0 +1,81 @@
+Revisiting End-to-End Speech-to-Text Translation From Scratch
+
+Biao Zhang 1 Barry Haddow 1 Rico Sennrich 2 1
+
+Abstract
+End-to-end (E2E) speech-to-text translation (ST)
+often depends on pretraining its encoder and/or
+decoder using source transcripts via speech recognition or text translation tasks, without which
+translation performance drops substantially. However, transcripts are not always available, and how
+significant such pretraining is for E2E ST has
+rarely been studied in the literature. In this paper,
+we revisit this question and explore the extent to
+which the quality of E2E ST trained on speechtranslation pairs alone can be improved. We reexamine several techniques proven beneficial to ST
+previously, and offer a set of best practices that
+biases a Transformer-based E2E ST system toward training from scratch. Besides, we propose
+parameterized distance penalty to facilitate the
+modeling of locality in the self-attention model
+for speech. On four benchmarks covering 23 languages, our experiments show that, without using
+any transcripts or pretraining, the proposed system reaches and even outperforms previous studies adopting pretraining, although the gap remains
+in (extremely) low-resource settings. Finally, we
+discuss neural acoustic feature modeling, where a
+neural model is designed to extract acoustic features from raw speech signals directly, with the
+goal to simplify inductive biases and add freedom to the model in describing speech. For the
+first time, we demonstrate its feasibility and show
+encouraging results on ST tasks.1
+
+1. Introduction
+End-to-end (E2E) speech-to-text translation (ST) is the task
+of translating a source-language audio directly to a foreign
+1
+
+School of Informatics, University of Edinburgh 2 Department
+of Computational Linguistics, University of Zurich. Correspondence to: Biao Zhang <b.zhang@ed.ac.uk>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+1
+Source code is available at https://github.com/
+bzhangGo/zero.
+
+text without any intermediate outputs (Duong et al., 2016;
+Bérard et al., 2016), which has gained increasing popularity and obtained great success recently (Sung et al., 2019;
+Salesky et al., 2019; Zhang et al., 2020; Chen et al., 2020;
+Han et al., 2021; Zheng et al., 2021; Anastasopoulos et al.,
+2021). Different from the traditional cascading method
+which decomposes ST into two sub-tasks – automatic speech
+recognition (ASR) for transcription and machine translation
+(MT) for translation, E2E ST jointly handles them in a single, large neural network. This endows E2E ST with special
+advantages on reducing translation latency and bypassing
+transcription mistakes made by ASR models, making it
+theoretically attractive.
+However, directly modeling speech-to-text mapping is nontrivial. The translation alignment between speech and text
+is no longer subject to the monotonic assumption. Also,
+the high variation of speech increases the modeling difficulty. Therefore, rather than training E2E ST models from
+scratch, researchers often resort to pipeline-based training
+with auxiliary tasks utilizing source transcripts, which first
+pretrains the speech encoder on ASR data and/or the text
+decoder on MT data followed by a finetuning on ST data.
+Such pretraining was reported to greatly improve translation
+quality (Di Gangi et al., 2019; Wang et al., 2019a; Zhang
+et al., 2020; Xu et al., 2021), and has become the de-facto
+standard in recent ST studies and toolkits (Inaguma et al.,
+2020; Wang et al., 2020a; Zhao et al., 2021; Zheng et al.,
+2021). Despite these successes, nevertheless, how significant the pretraining is for E2E ST and how far we can go
+using speech-translation pairs alone are still open questions.
+In this paper, we aim at exploring the extent to which the
+quality of ST models trained from scratch can be improved,
+whether the performance gap against pretraining-based ST
+can be narrowed, and also when the pretraining really matters.23 We argue that the inferior performance of ST from
+scratch is mainly a result of the dominance of pretrain2
+
+Note there are two types of pretraining for E2E ST in general:
+1) pretraining with triplet (ASR/MT) data alone, and 2) pretraining
+with external unlabeled or ASR/MT data. In this study, we refer
+pretraining mainly to the former case, although we also compare
+our work to systems pretrained on unlabeled data.
+3
+By ST from scratch, we refer to the setup where ST models are
+trained on speech-translation pairs alone without using transcripts
+or any type of pretraining.
+
+

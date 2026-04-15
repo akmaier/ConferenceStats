@@ -1,0 +1,145 @@
+Practical Performance Guarantees for Pipelined DNN Inference
+
+Aaron Archer * 1 Matthew Fahrbach * 1 Kuikui Liu 2 Prakash Prabhu 1
+
+Abstract
+3
+stages (CUs)
+
+We optimize pipeline parallelism for deep neural
+network (DNN) inference by partitioning model
+graphs into k stages and minimizing the running
+time of the bottleneck stage, including communication. We give practical and effective algorithms for this NP-hard problem, but our emphasis is on tackling the practitioner’s dilemma of
+deciding when a solution is good enough. To this
+end, we design novel mixed-integer programming
+(MIP) relaxations for proving lower bounds. Applying these methods to a diverse testbed of 369
+production models, for k ∈ {2, 4, 8, 16, 32, 64},
+we empirically show that these lower bounds are
+strong enough to be useful in practice. Our lower
+bounds are substantially stronger than standard
+combinatorial bounds. For example, evaluated via
+geometric means across a production testbed with
+k = 16 pipeline stages, our MIP formulations
+raise the lower bound from 0.4598 to 0.9452, expressed as a fraction of the best partition found.
+In other words, our improved lower bounds close
+the optimality gap by a factor of 9.855x.
+
+2
+
+1
+
+i11
+0
+
+w11
+
+i13
+
+w13
+
+o13
+
+i23
+
+w23
+
+o23
+
+i12
+
+w12
+
+o12 i22
+
+w22
+
+o22 i32
+
+w32
+
+o32
+
+i21
+
+w21
+
+o21
+
+w31
+
+o31
+
+w41
+
+o41
+
+o11
+t
+
+i31
+2t
+
+i41
+3t
+
+4t
+
+time
+
+Figure 1. Inference pipeline from startup to steady state with k = 3
+stages. Each inference batch is represented with the same color as
+it advances through the pipeline. Values ib` , wb` , ob` are the times
+needed for stage ` to get its input for batch b, process it, and flush
+its output. Stage 2 is the bottleneck, i.e., t = i∗2 + w∗2 + o∗2 , and
+limits system throughput. Empty space (white) denotes idle time.
+
+on lower bound methods for proving per-instance approximation ratios.
+ML inference handles two main types of data: model parameters (weights learned during training) and activations
+(intermediate outputs of the model, e.g., from hidden layers).
+Keeping activations in fast memory (e.g., SRAM) is critical,
+so ML compilers often treat it as a hard constraint. Model
+parameters can be streamed from slow memory, but caching
+them in fast memory greatly boosts performance. When we
+partition an end-to-end inference computation into a linear
+pipeline with k stages and process each stage on a different
+CU, we increase the amount of fast memory at our disposal
+by a factor of k, allowing us to cache more parameters and
+support larger activations (and hence larger models and/or
+batch sizes). However, this introduces two main challenges:
+(1) CUs must send their outputs downstream, often via a
+slow and contended data channel, so we need to minimize
+communication overhead; and (2) we must balance the running time across all stages of the partition since the overall
+throughput is governed by the bottleneck stage.
+
+1. Introduction
+Large-scale machine learning (ML) workloads rely on distributed systems and specialized hardware accelerators, e.g.,
+graphics processing units (GPUs) and tensor processing
+units (TPUs). Fully utilizing this hardware, however, remains an increasingly important challenge. ML accelerators have a small amount of fast memory co-located with
+each computational unit (CU), and a much larger amount
+of slow memory that is accessed via an interconnect shared
+among the CUs. Achieving peak performance for deep neural network (DNN) training and inference requires the ML
+compiler and/or practitioner to pay significant attention to
+where intermediate data is stored and how it flows between
+CUs. This work addresses pipeline partitioning for DNNs
+to maximize inference throughput, with a particular focus
+
+1.1. Practioner’s dilemma
+Suppose you are an ML engineer who has been tasked with
+partitioning a model graph for pipelined inference as illustrated in Figure 1. We explain the practitioner’s dilemma
+with a toy example. Assume you are searching for the best
+way to partition a model among 8 processors, and you discover a solution where the bottleneck processor takes 10ms
+to finish. In this case, the pipeline finishes one inference
+every 10ms, so the throughput is 1 inference / 10ms = 100
+inferences per second, and the latency of a single inference
+
+*
+Equal contribution 1 Google 2 MIT. Correspondence to:
+Matthew Fahrbach <fahrbach@google.com>.
+
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

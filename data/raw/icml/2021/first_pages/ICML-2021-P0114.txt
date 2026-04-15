@@ -1,0 +1,79 @@
+A Gradient Based Strategy for Hamiltonian Monte Carlo
+Hyperparameter Optimization
+
+Andrew Campbell * 1 Wenlong Chen * 2 Vincent Stimper * 3 4 Jos´e Miguel Hern´andez-Lobato 3 Yichuan Zhang 5
+
+Abstract
+Hamiltonian Monte Carlo (HMC) is one of the
+most successful sampling methods in machine
+learning. However, its performance is signifcantly affected by the choice of hyperparameter
+values. Existing approaches for optimizing the
+HMC hyperparameters either optimize a proxy
+for mixing speed or consider the HMC chain as
+an implicit variational distribution and optimize
+a tractable lower bound that can be very loose
+in practice. Instead, we propose to optimize an
+objective that quantifes directly the speed of convergence to the target distribution. Our objective
+can be easily optimized using stochastic gradient
+descent. We evaluate our proposed method and
+compare to baselines on a variety of problems
+including sampling from synthetic 2D distributions, reconstructing sparse signals, learning deep
+latent variable models and sampling molecular
+confgurations from the Boltzmann distribution
+of a 22 atom molecule. We fnd that our method
+is competitive with or improves upon alternative
+baselines in all these experiments.
+
+1. Introduction
+Hamiltonian Monte Carlo (HMC) is a very popular Markov
+Chain Monte Carlo (MCMC) method for generating approximate samples from complex probability distributions. It
+fnds wide use in machine learning (Neal, 2011) and across
+the broader statistical community (Carpenter et al., 2017).
+Unfortunately, HMC’s performance depends heavily on the
+choice of hyperparameters such as the proposal step size.
+A step size that is too large can lead to unstable dynamics,
+while a step size that is too small may result in random walk
+*
+Equal contribution 1 Department of Statistics, University
+of Oxford 2 Baidu, Inc. 3 Department of Engineering, University of Cambridge 4 Max Planck Institute for Intelligent Systems
+5
+Boltzbit Ltd. Correspondence to: Andrew Campbell <campbell@stats.ox.ac.uk>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+behaviour and highly correlated samples. Furthermore, the
+step sizes may need to be tuned on a dimension by dimension basis depending on the scale and shape of the target
+distribution (Neal, 2011).
+Traditionally, samples are produced by running a single
+HMC chain for a long time compensating for imperfect hyperparameter choices through ergodicity. However, it is becomingly increasingly attractive to run many short MCMC
+chains in parallel to make better use of parallel compute
+hardware (Hoffman & Ma, 2020). In this case, it is even
+more important to choose good hyperparameters that encourage fast mixing. This approach also offers the novel
+opportunity to choose different hyperparameter values for
+each step in the chain, providing more tuning fexibility.
+Fully exploiting this opportunity in practice is a challenge.
+MCMC hyperparameters are commonly tuned according
+to the average acceptance probability but it is unclear how
+this can scale up to tuning every hyperparameter individually. Looking to backpropagation’s success in training
+neural networks, a gradient based method would seem most
+appropriate. Unfortunately, there is no universal tractable
+metric to quantify the performance of HMC that we can
+optimize for. We must therefore make a choice about which
+approximate metric is best suited for this application.
+One approach is to use a proxy for the mixing speed of the
+chain. Levy et al. (2018) make use of a variation of the expected squared jumped distance (Pasarica & Gelman, 2010)
+to encourage proposals to make large moves in space. Alternatively, one can draw upon ideas from Variational Inference
+(VI) (Jordan et al., 1999), which matches an approximate
+distribution q to the target distribution p by maximizing
+the Evidence Lower Bound or ELBO. This is equivalent to
+minimizing the KL-divergence between q and p.
+Salimans et al. (2015); Wolf et al. (2016) use VI to obtain a
+training objective in which q is the joint distribution of all
+HMC samples along the chain. For tractability, they introduce an auxiliary inference distribution approximating the
+reverse dynamics of the chain. The looseness of their ELBO
+then depends on the KL-divergence between the auxiliary
+inference distribution and the true reverse dynamics. As
+the chain length increases so does the dimensionality of
+
+

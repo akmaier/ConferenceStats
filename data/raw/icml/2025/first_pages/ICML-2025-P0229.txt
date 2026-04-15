@@ -1,0 +1,79 @@
+Shortcut-connected Expert Parallelism for Accelerating Mixture of Experts
+
+Weilin Cai 1 Juyong Jiang 1 Le Qin 1 Junwei Cui 1 Sunghun Kim 1 Jiayi Huang 1
+
+Abstract
+
+et al., 2021; Mustafa et al., 2022; Jiang et al., 2024). Expert
+parallelism (Lepikhin et al., 2021; Fedus et al., 2022) has
+emerged as a viable strategy to efficiently distribute MoE
+computations over multiple devices, synergizing with conventional parallelism techniques (Hwang et al., 2023; Singh
+et al., 2023) such as data parallelism (Rajbhandari et al.,
+2020; 2021) and model parallelism (Narayanan et al., 2021;
+Smith et al., 2022).
+
+Expert parallelism has emerged as a key strategy
+for distributing the computational workload of
+sparsely-gated mixture-of-experts (MoE) models
+across multiple devices, enabling the processing
+of increasingly large-scale models. However, the
+All-to-All communication inherent to expert parallelism poses a significant bottleneck, limiting
+the efficiency of MoE models. Although existing optimization methods partially mitigate this
+issue, they remain constrained by the sequential
+dependency between communication and computation operations. To address this challenge, we
+propose ScMoE, a novel shortcut-connected MoE
+architecture integrated with an overlapping parallelization strategy. ScMoE decouples communication from its conventional sequential ordering,
+enabling up to 100% overlap with computation.
+Compared to the prevalent top-2 MoE baseline,
+ScMoE achieves speedups of 1.49× in training
+and 1.82× in inference. Moreover, our experiments and analyses indicate that ScMoE not only
+achieves comparable but in some instances surpasses the model quality of existing approaches.
+
+Nevertheless, expert parallelism incurs substantial All-toAll communication overhead (Lepikhin et al., 2021; Fedus
+et al., 2022), which can contribute to approximately 50%
+of the total time in intra-node multi-GPUs or multi-nodes
+distributed environments (see Figure 1), thus forming a critical bottleneck in scaling MoE models (Nie et al., 2022;
+Hwang et al., 2023; Mayer & Jacobsen, 2020; Smith et al.,
+2022). Despite existing optimizations such as hierarchical
+All-to-All (He et al., 2022; Nie et al., 2022) and pipelining (Hwang et al., 2023; Zhang et al., 2023) strategies that
+mitigate communication delays and partially overlap communication with computation, the communication challenge
+persists due to the inherent sequential dependencies between
+these operations (Wang et al., 2023). To address this constraint, our intuitive idea is to reconstruct the inputs of MoE
+layer by incorporating not only the current-layer but also
+the preceding-layer representations through a shortcut connection, thereby refining the communication-computation
+dependencies and expanding the potential for their overlapping optimization.
+
+1. Introduction
+In recent years, Transformer-based large language models
+(LLMs) have significantly propelled the fields of Natural
+Language Processing (Vaswani et al., 2017; Brown et al.,
+2020; Wei et al., 2022b; Ouyang et al., 2022; Wei et al.,
+2022a; Chowdhery et al., 2023; Achiam et al., 2023), Computer Vision (Dosovitskiy et al., 2021; Liu et al., 2021), and
+Multimodality (Lu et al., 2019; Zhou et al., 2022; Zhang
+et al., 2021; Zhu et al., 2023). The sparsely-gated mixtureof-experts (MoE) approach has been integral in increasing parameter counts and enhancing model performance
+across various modalities (Shazeer et al., 2017; Riquelme
+
+In this paper, we propose the shortcut-connected MoE (ScMoE) architecture, which completely decouples communication processes from the sequence of conventional MoE
+models. ScMoE architecture is initially built on the standard
+top-2 MoE (see Figure 2 (a)), which typically substitutes the
+multi-layer perceptron (MLP) module with a top-2 gating
+MoE module in every second Transformer block (refer to the
+Transformer block with the MoE module as “current layer”,
+and the preceding one without the MoE module as “preceding layer”). Diverging from the top-2 approach, ScMoE
+utilizes a top-1 MoE module to process preceding-layer representations via a shortcut connection, while employing a
+shared expert (an MLP module) to process current-layer
+representations. These two processes are independently
+managed in parallel, with their results integrated into the
+final output of the current layer. Furthermore, the ScMoE
+
+1
+
+The Hong Kong University of Science and Technology
+(Guangzhou). Correspondence to: Jiayi Huang <hjy@hkustgz.edu.cn>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

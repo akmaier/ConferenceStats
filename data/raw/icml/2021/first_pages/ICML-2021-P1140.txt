@@ -1,0 +1,75 @@
+Differentiable Dynamic Quantization with Mixed Precision and
+Adaptive Resolution
+
+Zhang Zhaoyang 1 Shao Wenqi 1 Gu Jinwei 2 3 Wang Xiaogang 1 Luo Ping 4
+
+Abstract
+Model quantization is challenging due to many
+tedious hyper-parameters such as precision
+(bitwidth), dynamic range (minimum and maximum discrete values) and stepsize (interval between discrete values). Unlike prior arts that carefully tune these values, we present a fully differentiable approach to learn all of them, named Differentiable Dynamic Quantization (DDQ), which
+has several benefits. (1) DDQ is able to quantize challenging lightweight architectures like MobileNets, where different layers prefer different
+quantization parameters. (2) DDQ is hardwarefriendly and can be easily implemented using lowprecision matrix-vector multiplication, making
+it capable in many hardware such as ARM. (3)
+DDQ reduces training runtime by 25% compared
+to state-of-the-arts. Extensive experiments show
+that DDQ outperforms prior arts on many networks and benchmarks, especially when models
+are already efficient and compact. e.g. DDQ is the
+first approach that achieves lossless 4-bit quantization for MobileNetV2 on ImageNet.
+
+1. Introduction
+Deep Neural Networks (DNNs) have made significant
+progress in many applications. However, large memory and
+computations impede deployment of DNNs on portable devices. Model quantization (Courbariaux et al., 2015; 2016;
+Zhu et al., 2017) that discretizes the weights and activations
+of a DNN becomes an important topic, but it is challenging because of two aspects. Firstly, different network architectures allocate different memory and computational
+complexity in different layers, making quantization suboptimal when the quantization parameters such as bitwidth,
+1
+The Chinese University of Hong Kong 2 SenseBrain, Ltd
+Shanghai AI Lab 4 Hong Kong University. Correspondence to:
+Zhaoyang Zhang <zhaoyangzhang@link.cuhk.edu.hk>.
+3
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+dynamic range and stepsize are freezed in each layer. Secondly, gradient-based training of low-bitwidth models is
+difficult (Bengio et al., 2013), because the gradient of previous quantization function may vanish, i.e. back-propagation
+through a quantized DNN may return zero gradients.
+Previous approaches typically use the round operation with
+predefined quantization parameters, which can be summarized below. Let x and xq be values before and after quantization, we have xq = sign(x) · d · F(b|x|/d + 0.5e), where
+| · | denotes the absolute value, sign(·) returns the sign of
+x, d is the stepsize (i.e. the interval between two adjacent
+discrete values after quantization), and b·e denotes the round
+function2 . Moreover, F(·) is a function that maps a rounded
+value to a desired quantization level (i.e. a desired discrete
+value). For instance, the above equation would represent
+a uniform quantizer3 when F is an identity mapping, or
+it would represent a power-of-two (nonuniform) quantizer
+(Miyashita et al., 2016; Zhou et al., 2017; Liss et al., 2018;
+Zhang et al., 2018a; Li et al., 2020) when F is a function of
+power of two.
+Although using the round function is simple, model accuracy
+would drop when applying it on lightweight architectures
+such as MobileNets (Howard et al., 2019; Sandler et al.,
+2018) as observed by (Jain et al., 2019; Gong et al., 2019),
+because such models that are already efficient and compact
+do not have much room for quantization. As shown in Fig.1,
+small model is highly optimized for both efficiency and accuracy, making different layers prefer different quantization
+parameters. Applying predefined quantizers to them will
+result in large quantization errors (i.e. kx − xq k2 ), which
+significantly decreases model accuracy compared to their
+full-precision counterparts even after finetuning the network
+weights.
+To improve model accuracy, recent quantizers reduce ||x −
+xq ||2 . For example, TensorRT (Migacz, 2017), FAQ (McKinstry et al., 2018), PACT (Choi, 2018) and TQT (Jain et al.,
+2019) optimize an additional parameter that represents the
+2
+
+The round function returns the closest discrete value given a
+continuous value.
+3
+A uniform quantizer has uniform quantization levels, which
+means the stepsizes between any two adjacent discrete values are
+the same.
+
+

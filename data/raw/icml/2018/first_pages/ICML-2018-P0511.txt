@@ -1,0 +1,69 @@
+Learning Longer-term Dependencies in RNNs with Auxiliary Losses
+
+Trieu H. Trinh1 Andrew M. Dai Minh-Thang Luong Quoc V. Le
+{thtrieu, adai, thangluong, qvl}@google.com
+
+Abstract
+Despite recent advances in training recurrent neural networks (RNNs), capturing long-term dependencies in sequences remains a fundamental
+challenge. Most approaches use backpropagation
+through time (BPTT), which is difficult to scale
+to very long sequences. This paper proposes a
+simple method that improves the ability to capture long term dependencies in RNNs by adding
+an unsupervised auxiliary loss to the original objective. This auxiliary loss forces RNNs to either
+reconstruct previous events or predict next events
+in a sequence, making truncated backpropagation
+feasible for long sequences and also improving
+full BPTT. We evaluate our method on a variety
+of settings, including pixel-by-pixel image classification with sequence lengths up to 16 000, and
+a real document classification benchmark. Our
+results highlight good performance and resource
+efficiency of this approach over competitive baselines, including other recurrent models and a comparable sized Transformer. Further analyses reveal beneficial effects of the auxiliary loss on optimization and regularization, as well as extreme
+cases where there is little to no backpropagation.
+
+1. Introduction
+Many important applications in artificial intelligence require the understanding of long term dependencies between
+events in a sequence. For example, in natural language
+processing, it is sometimes necessary to understand relationships between distant events described in a book to
+answer questions about it. Typically, this is achieved by
+gradient descent and BPTT (Rumelhart et al., 1986) with
+recurrent networks. Learning long term dependencies with
+gradient descent, however, is difficult because the gradients
+computed by BPTT tend to vanish or explode during train1
+
+Work done as a member of the Google Brain Residency program (g.co/brainresidency.)
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+Figure 1. An overview of our method. The auxiliary loss improves
+the memory of the recurrent network such that the number of steps
+needed for the main task’s BPTT is small.
+
+ing (Hochreiter et al., 2001). Additionally, for BPTT to
+work, one needs to store the intermediate hidden states in
+the sequence. The memory requirement is therefore proportional to the sequence length, making it difficult to scale to
+large problems.
+Several promising approaches have been proposed to alleviate the aforementioned problems. First, instead of using
+the vanilla recurrent network, one can use Long Short-Term
+Memory (LSTM) (Hochreiter & Schmidhuber, 1997), which
+is designed to improve gradient flow in recurrent networks.
+In addition, one can also use gradient clipping (Pascanu
+et al., 2013) to stabilize the training of the LSTM. Finally,
+to reduce the memory requirement, one can either store
+the hidden states only periodically (Gruslys et al., 2016;
+Chen et al., 2016), use truncated BPTT, or use synthetic
+gradients (Jaderberg et al., 2017).
+Convolutional neural networks also mitigate the problem of
+long-term dependencies since large kernel sizes and deep
+networks such as ResNets (He et al., 2016) allow long-term
+dependencies to be learnt across distant parts of an image.
+However, this is a fundamentally different kind of architecture that has other tradeoffs. For example, the entire input
+(an image or sequence) and the intermediate activations of
+the model must be stored in memory during training. At
+inference time, typical CNNs also need O(n) storage where
+n is the size of the input.2 The Transformer (Vaswani et al.,
+2
+
+A convolutional layer is often followed by a reduction layer
+
+

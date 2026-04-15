@@ -1,0 +1,59 @@
+Solving Inverse Physics Problems with Score Matching
+Benjamin Holzschuh 1,2 ∗
+
+Simona Vegetti 2
+
+Nils Thuerey 1
+
+1
+
+2
+
+Technical University of Munich, 85748 Garching, Germany
+Max Planck Institute for Astrophysics, 85748 Garching, Germany
+
+Abstract
+We propose to solve inverse problems involving the temporal evolution of physics
+systems by leveraging recent advances from diffusion models. Our method moves
+the system’s current state backward in time step by step by combining an approximate inverse physics simulator and a learned correction function. A central
+insight of our work is that training the learned correction with a single-step loss
+is equivalent to a score matching objective, while recursively predicting longer
+parts of the trajectory during training relates to maximum likelihood training of a
+corresponding probability flow. We highlight the advantages of our algorithm compared to standard denoising score matching and implicit score matching, as well as
+fully learned baselines for a wide range of inverse physics problems. The resulting
+inverse solver has excellent accuracy and temporal stability and, in contrast to other
+learned inverse solvers, allows for sampling the posterior of the solutions. Code
+and experiments are available at https://github.com/tum-pbs/SMDP.
+
+1
+
+Introduction
+
+Many physical systems are time-reversible on a microscopic scale. For example, a continuous
+material can be represented by a collection of interacting particles [Gur82; BLL02] based on which
+we can predict future states. We can also compute earlier states, meaning we can evolve the
+simulation backward in time [Mar+96]. When taking a macroscopic perspective, we only know
+average quantities within specific regions [Far93], which constitutes a loss of information, and as a
+consequence, time is no longer reversible. In the following, we target inverse problems to reconstruct
+the distribution of initial macroscopic states for a given end state. This problem is genuinely tough
+[ZDG96; Góm+18; Del+18; LP22], and existing methods lack tractable approaches to represent and
+sample the distribution of states.
+Our method builds on recent advances from the field of diffusion-based approaches [Soh+15; HJA20;
+Son+21b]: Data samples x ∈ RD are gradually corrupted into Gaussian white noise via a stochastic
+differential equation (SDE) dx = f (x, t)dt + g(t)dW , where the deterministic component of the
+SDE f : RD × R≥0 → RD is called drift and the coefficient of the D-dimensional Brownian motion
+W denoted by g : R≥0 → R≥0 is called diffusion. If the score ∇x log pt (x) of the data distribution
+pt (x) of corrupted samples at time t is known, then the dynamics of the SDE can be reversed in time,
+allowing for the sampling of data from noise. Diffusion models are trained to approximate the score
+with a neural network sθ , which can then be used as a plug-in estimate for the reverse-time SDE.
+However, in our physics-based approach, we consider an SDE that describes the physics system as
+dx = P(x)dt + g(t)dW , where P : RD → RD is a physics simulator that replaces the drift term of
+diffusion models. Instead of transforming the data distribution to noise, we transform a simulation
+state at t = 0 to a simulation state at t = T with Gaussian noise as a perturbation. Based on a given
+∗
+
+Correspondence to: benjamin.holzschuh@tum.de
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

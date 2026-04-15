@@ -1,0 +1,88 @@
+Matrix Norms in Data Streams: Faster, Multi-Pass and Row-Order
+
+Vladimir Braverman 1 Stephen Chestnut 2 Robert Krauthgamer 3 Yi Li 4 David Woodruff 5 Lin Yang 6
+
+Abstract
+Given the prevalence of large scale linear algebra
+problems in machine learning, recently there has
+been considerable effort in characterizing which
+functions can be approximated efficiently of a
+matrix in the data stream model. We study a
+number of aspects of estimating matrix norms
+– an important class of matrix functions – in
+a stream that have not previously been considered: (1) multi-pass algorithms, (2) algorithms
+that see the underlying matrix one row at a time,
+and (3) time-efficient algorithms. Our multi-pass
+and row-order algorithms use less memory than
+what is provably required in the single-pass and
+entrywise-update models, and thus give separations between these models (in terms of memory). Moreover, all of our algorithms are considerably faster than previous ones. We also prove a
+number of lower bounds, and obtain for instance,
+a near-complete characterization of the memory
+required of row-order algorithms for estimating
+Schatten p-norms of sparse matrices. We complement our results with numerical experiments.
+
+1. Introduction
+Modern datasets, from text documents and images to social
+graphs, are often represented as a large matrix A ∈ Rm×n .
+In many application domains, including database queries,
+data mining, network transactions and sensor networks
+(see e.g. (Liberty, 2013; Wei et al., 2016; Huang & Kasiviswanathan, 2015) for recent examples), the input matrix
+A is presented to the algorithm as a data stream, i.e., a sequence of items/updates that can take several forms. In the
+entry-wise (or insertion-only) model, each item specifies
+(i, j, Aij ) and provides the value of one entry, in arbitrary
+order (and the unspecified entries are set to 0). The roworder model is similar, except that the items follow the nat*
+Equal contribution 1 Johns Hopkins University 2 ETH Zurich
+Weizmann Institute of Science 4 Nanyang Technological University 5 Carnegie Mellon University 6 Princeton University. Correspondence to: Lin F. Yang <lin.yang@princeton.edu>.
+3
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+ural order (sorted with i as the primary key, and j as the secondary one). In the turnstile model, each stream item has
+the form (i, j, δ) and represents an update Aij ← Aij + δ
+for δ ∈ R (after initializing A to the all-zeros matrix).
+These models capture different access patterns, but all three
+can represent sparse matrices quite efficiently, because zero
+entries are implicit. As usual, the key parameters of an
+algorithm in the data-stream model are its memory (also
+referred to as storage/space requirements) and its running
+time (per update and to report its output).
+Many properties of a matrix are directly related to its spectral characteristics, i.e., its singular values. For example,
+the number of non-zero singular values is just the matrix
+rank, which determines the degrees of freedom of a corresponding linear system; the maximum and minimum singular values of a matrix determine its condition number,
+which in turn determines the hardness of many problems,
+such as optimization problems; the leading singular values
+of a matrix determine how well a matrix can be represented
+by the principal components; and so forth. It is generally
+hard to compute directly the singular values of a matrix,
+especially in the streaming model, but luckily, the Schatten norms of the matrix can often be used as surrogates for
+its spectrum, see e.g. (Zhang et al., 2015; Kong & Valiant,
+2016; Di Napoli et al., 2016; Khetan & Oh, 2017). Formally, the Schatten p-norm of a matrix A ∈ Rm×n is defined, for every p ≥ 1, as
+1/p
+P
+p
+,
+kAkSp :=
+j≥1 σj
+where σ1 ≥ · · · ≥ σmin(m,n) are the singular values of
+A. This definition naturally extends to all 0 < p < 1
+although then it is not a norm, and also to p = 0, ∞ by
+taking the limit. This is a very important family of matrix norms, and includes as special
+P cases the well-known
+trace/nuclear norm ||A||∗ =
+j≥1 σj = kAkS1 , the
+
+P
+2 1/2
+Frobenius norm ||A||F =
+= kAkS2 , and
+j≥1 σj
+the spectral/operator norm kAkop = σ1 (A) = ||A||S∞ .
+We study algorithms that approximate the Schatten p-norm
+of a matrix A presented in a data stream. While this problem has attracted significant attention lately (Andoni &
+Nguyên, 2013; Li et al., 2014; Li & Woodruff, 2016a;b;
+2017), our results address three new aspects. First, we design faster and more space-efficient multi-pass algorithms.
+Second, we consider the row-order model, which is a com-
+
+

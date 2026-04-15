@@ -1,0 +1,63 @@
+Efficient LLM Scheduling by Learning to Rank
+
+Yichao Fu1
+1
+
+Siqi Zhu2 Runlong Su1 Aurick Qiao3
+UCSD 2 Tsinghua University 3 Snowflake
+
+Ion Stoica4 Hao Zhang1∗
+UC Berkeley
+
+4
+
+Abstract
+In Large Language Model (LLM) inference, the output length of an LLM request is
+typically regarded as not known a priori. Consequently, most LLM serving systems
+employ a simple First-come-first-serve (FCFS) scheduling strategy, leading to
+Head-Of-Line (HOL) blocking and reduced throughput and service quality. In
+this paper, we reexamine this assumption – we show that, although predicting the
+exact generation length of each request is infeasible, it is possible to predict the
+relative ranks of output lengths in a batch of requests, using learning to rank. The
+ranking information offers valuable guidance for scheduling requests. Building
+on this insight, we develop a novel scheduler for LLM inference and serving that can
+approximate the shortest-job-first (SJF) schedule better than existing approaches.
+We integrate this scheduler with the state-of-the-art LLM serving system and show
+significant performance improvement in several important applications: 2.8x lower
+latency in chatbot serving and 6.5x higher throughput in synthetic data generation.
+Our code is available at https://github.com/hao-ai-lab/vllm-ltr.git.
+
+1
+
+Introduction
+
+Large language models (LLMs) are increasingly becoming the backbone of many today’s Internet
+services and applications that serve millions of users [1]. Due to the surge in demand, efficient
+scheduling for LLM serving is crucial to ensure high-quality service amidst numerous concurrent users
+competing for computing resources. For popular interactive applications such as chatbots, this means
+minimizing the latency that each user perceives while maximizing the overall system throughput to
+accommodate as many users as possible.
+Under high load, LLM services that implement a first-come-first-serve (FCFS) scheduling strategy
+inevitably face significant Head-Of-Line (HOL) blocking, as many requests must wait for others to
+execute. Figure 1 illustrates a typical example of how a long request can block shorter ones in FCFS
+scheduling, leading to significant HOL blocking. In such scenarios, it is well-established that the
+shortest-job-first (SJF) and shortest-remaining-time-first (SRTF) scheduling algorithms minimize
+the average latency experienced across all requests. However, SJF/SRTF are seldom implemented in
+LLM services because they require requests to be ordered by their remaining generation lengths, which
+is traditionally assumed to be difficult or impossible to know ahead of time in existing systems [2, 3].
+In this paper, we contend that, although accurately knowing the generation length of requests may
+be difficult, it is actually not needed. Rather, just knowing the relative ordering between request
+lengths is sufficient for SJF/SRTF scheduling. To this end, we propose to use the Kendall rank
+correlation coefficient (Kendall’s Tau) [4] to measure the similarity between a predicted schedule and
+the SJF/SRTF schedule based on groundtruth generation lengths (i.e. oracle). We demonstrate that
+schedules with higher similarities (measured by Kendal’s Tau) to the oracle generally translate to lower
+latencies in real-world performance (Figure. 2).
+Based on this insight, we propose to optimize the request scheduling in LLM serving via learning
+to rank. We show that a small auxiliary model (e.g., OPT-125M [5]) can be trained to accurately rank
+∗
+
+Hao Zhang is the corresponding author
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

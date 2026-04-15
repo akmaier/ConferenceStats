@@ -1,0 +1,72 @@
+Safe Policy Improvement with Baseline Bootstrapping
+
+Romain Laroche 1 Paul Trichelair 1 Remi Tachet des Combes 1
+
+Abstract
+This paper considers Safe Policy Improvement
+(SPI) in Batch Reinforcement Learning (Batch
+RL): from a fixed dataset and without direct access to the true environment, train a policy that
+is guaranteed to perform at least as well as the
+baseline policy used to collect the data. Our approach, called SPI with Baseline Bootstrapping
+(SPIBB), is inspired by the knows-what-it-knows
+paradigm: it bootstraps the trained policy with
+the baseline when the uncertainty is high. Our
+first algorithm, Πb -SPIBB, comes with SPI theoretical guarantees. We also implement a variant,
+Π≤b -SPIBB, that is even more efficient in practice. We apply our algorithms to a motivational
+stochastic gridworld domain and further demonstrate on randomly generated MDPs the superiority of SPIBB with respect to existing algorithms, not only in safety but also in mean performance. Finally, we implement a model-free version of SPIBB and show its benefits on a navigation task with deep RL implementation called
+SPIBB-DQN, which is, to the best of our knowledge, the first RL algorithm relying on a neural
+network representation able to train efficiently
+and reliably from batch data, without any interaction with the environment.
+
+1. Introduction
+Most real-world Reinforcement Learning agents (Sutton &
+Barto, 1998, RL) are to be deployed simultaneously on numerous independent devices and cannot be patched quickly.
+In other practical applications, such as crop management
+or clinical tests, the outcome of a treatment can only be
+assessed after several years. Consequently, a bad update
+could be in effect for a long time, potentially hurting the
+user’s trust and/or causing irreversible damages. Devising
+safe algorithms with guarantees on the policy performance
+1
+Microsoft Research, Montréal, Canada. Correspondence to:
+Romain Laroche <romain.laroche@microsoft.com>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+is a key challenge of modern RL that needs to be tackled
+before any wide-scale adoption.
+Batch RL is an existing approach to such offline settings
+and consists in training a policy on a fixed set of observations without access to the true environment (Lange et al.,
+2012). It should not be mistaken with the multi-batch setting where the learner trains successive policies from small
+batches of interactions with the environment (Duan et al.,
+2016). Current Batch RL algorithms are however either unsafe or too costly computationally to be used in real-world
+applications. Safety in RL (Garcı́a & Fernández, 2015) is
+an overloaded term, as it may be considered with respect to
+parametric uncertainty (Thomas et al., 2015a; Petrik et al.,
+2016), internal uncertainty (Altman, 1999; Carrara et al.,
+2019), interruptibility (Orseau & Armstrong, 2016; Guerraoui et al., 2017), or as exploration in a hazardous environment (Schulman et al., 2015; 2017; Fatemi et al., 2019).
+We focus on the former.
+In this paper, we develop novel safe and efficient Batch RL
+algorithms. Our methodology for Safe Policy Improvement
+(SPI), called SPI with Baseline Bootstrapping (SPIBB), is
+introduced in Section 2. It consists in bootstrapping the
+trained policy with the behavioral policy, called baseline,
+in the state-action pair transitions that were not probed
+enough in the dataset. It therefore assumes access to the
+baseline, an assumption already made in the SPI literature (Petrik et al., 2016). Other SPI algorithms assume
+knowledge of the baseline performance instead (Thomas
+et al., 2015a;b). We argue that our assumption is more natural since SPI aims to improve an existing policy. This scenario is typically encountered when a policy is trained in a
+simulator and then run in its real environment, for instance
+in Transfer RL (Taylor & Stone, 2009); or when a system
+is designed with expert knowledge and then optimized, for
+example in Dialogue applications (Laroche et al., 2010).
+Still in Section 2, we implement a computationally efficient
+algorithm, Πb -SPIBB, that provably approximately outperforms the baseline with high confidence. At the expense
+of theoretical guarantees, we design a variant, Π≤b -SPIBB,
+that is even more efficient in practice. Moreover, we implement an equivalent model-free version. Coupled with
+a pseudo-count implementation (Bellemare et al., 2016),
+it allows applying SPIBB algorithms to tasks requiring a
+
+

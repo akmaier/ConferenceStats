@@ -1,0 +1,77 @@
+Langevin Monte Carlo for Contextual Bandits
+
+Pan Xu 1 Hongkai Zheng 1 Eric Mazumdar 1 Kamyar Azizzadenesheli 2 Anima Anandkumar 1
+
+Abstract
+We study the efficiency of Thompson sampling for
+contextual bandits. Existing Thompson samplingbased algorithms need to construct a Laplace approximation (i.e., a Gaussian distribution) of the
+posterior distribution, which is inefficient to sample in high dimensional applications for general
+covariance matrices. Moreover, the Gaussian approximation may not be a good surrogate for the
+posterior distribution for general reward generating functions. We propose an efficient posterior sampling algorithm, viz., Langevin Monte
+Carlo Thompson Sampling (LMC-TS), that uses
+Markov Chain Monte Carlo (MCMC) methods
+to directly sample from the posterior distribution
+in contextual bandits. Our method is computationally efficient since it only needs to perform
+noisy gradient descent updates without constructing the Laplace approximation of the posterior
+distribution. We prove that the proposed algorithm achieves the same sublinear regret bound
+as the best Thompson sampling algorithms for
+a special case of contextual bandits, viz., linear
+contextual bandits. We conduct experiments on
+both synthetic data and real-world datasets on
+different contextual bandit models, which demonstrates that directly sampling from the posterior is
+both computationally efficient and competitive in
+performance.
+
+1. Introduction
+A bandit problem is a sequential decision-making problem
+wherein an agent, in each round, observes an action set,
+chooses an action (or arm) from the set, and then observes a
+reward from the environment. A bandit learning algorithm
+aims to learn a policy for the agent to maximize its cumula1
+Department of Computing and Mathematical Sciences, California Institute of Technology, Pasadena, CA, USA 2 Department
+of Computer Science, Purdue University, West Lafayette, IN, USA.
+Correspondence to: Pan Xu <pan.xu@duke.edu>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+tive rewards based on its historical observations of actions
+and rewards. In the vast majority of real-world applications,
+each arm is usually associated with side information in the
+form of a feature or context vector that describes the arm.
+The mean reward for an arm is expressed as some unknown
+function of the arm’s feature vector and an unknown weight
+parameter that is shared across different arms. This setting—
+known as the contextual bandit problem— has been extensively studied in the literature (Langford & Zhang, 2007;
+Chu et al., 2011; Abbasi-Yadkori et al., 2011; Agrawal &
+Goyal, 2013; Filippi et al., 2010; Li et al., 2017; Lale et al.,
+2019; Kveton et al., 2020).
+The main challenge in contextual bandit problems is addressing the well known exploitation versus exploration trade-off,
+which requires a careful balance between choosing the myopically better arm and choosing an under-sampled worse
+arm. Existing algorithms for maximizing the cumulative
+reward in bandit problems mainly follow either one of the
+following two algorithmic frameworks. The first framework
+follows the principle of optimism in the face of uncertainty
+(OFU), and algorithms designed using such ideas have been
+widely applied to both finite armed bandits, also known as
+multi-armed bandits (MAB) (Auer et al., 2002; Ménard &
+Garivier, 2017), and contextual bandits (Chu et al., 2011;
+Abbasi-Yadkori et al., 2011; Li et al., 2017; Zhou et al.,
+2020; Xu et al., 2022). The second dominant category of
+bandit algorithm makes use of the idea of Thompson or
+posterior sampling (Thompson, 1933). Such algorithms
+have been widely used in practice due to their ease of implementation and impressive empirical performance, and have
+only recently started to be well understood theoretically in
+multi-armed bandits (Agrawal & Goyal, 2012; Kaufmann
+et al., 2012; Russo & Van Roy, 2014; Jin et al., 2021) and
+contextual bandits (Chapelle & Li, 2011; Agrawal & Goyal,
+2013; Riquelme et al., 2018; Wang & Zhou, 2020; Zhang
+et al., 2021).
+One crucial area in which the two types of algorithms differ is in their ease of implementation. In contextual bandit
+problems, algorithms based on the OFU principle usually
+need to solve a bi-linear optimization problem, making them
+computationally expensive to implement outside of simple
+problems despite coming with stronger theoretical guarantees. In contrast, Thompson sampling algorithms only need
+to solve a linear optimization problem over the arm set since
+
+

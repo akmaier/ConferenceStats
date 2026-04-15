@@ -1,0 +1,92 @@
+Efficiently Vectorized MCMC on Modern Accelerators
+
+Hugh Dance 1 Pierre Glaser 1 Peter Orbanz 1 Ryan Adams 2
+
+Abstract
+
+MCMC chains in parallel: one can simply write single-chain
+MCMC code, and call vmap to turn it into vectorized, multichain code that can run in parallel on the same processor.
+Many state-of-the-art MCMC libraries have consequently
+adopted machine learning frameworks with automatic vectorization tools as their backend.
+
+With the advent of automatic vectorization tools
+(e.g., JAX’s vmap), writing multi-chain MCMC
+algorithms is often now as simple as invoking
+those tools on single-chain code. Whilst convenient, for various MCMC algorithms this results
+in a synchronization problem—loosely speaking,
+at each iteration all chains running in parallel must
+wait until the last chain has finished drawing its
+sample. In this work, we show how to design
+single-chain MCMC algorithms in a way that
+avoids synchronization overheads when vectorizing with tools like vmap, by using the framework
+of finite state machines (FSMs). Using a simplified model, we derive an exact theoretical form of
+the obtainable speed-ups using our approach, and
+use it to make principled recommendations for
+optimal algorithm design. We implement several
+popular MCMC algorithms as FSMs, including
+Elliptical Slice Sampling, HMC-NUTS, and Delayed Rejection, demonstrating speed-ups of up
+to an order of magnitude in experiments.
+
+One limitation with automatic vectorization tools is how
+they handle control flow. Since all instructions must be
+executed in lock-step, if the algorithm has a while loop,
+all chains must wait until the last chain has finished its iterations. This can lead to large inefficiencies for MCMC
+algorithms that generate each sample using variable-length
+while loops. Roughly speaking, if vectorization executes,
+say, 100 chains in parallel, all but one finish after at most
+10 steps, and the remaining chain runs for 1000 steps, then
+about 99% of the GPU capacity assigned to vmap is wasted
+(and our simulations show the effect can indeed be this drastic). For the No-U-Turn Sampler (HMC-NUTS) (Hoffman
+et al., 2014), this problem is well-documented (BlackJax,
+2019; Sountsov et al., 2024; Radul et al., 2020). It also affects various other algorithms, such as variants of slice sampling (Neal, 2003; Murray et al., 2010; Cabezas and Nemeth,
+2023), delayed rejection methods (Mira et al., 2001; Modi
+et al., 2024) and unbiased Gibbs sampling (Qiu et al., 2019).
+
+1. Introduction
+
+In this work, we show how to transform MCMC algorithms
+into equivalent samplers that avoid these synchronization
+barriers when using vmap-style vectorization. In particular,
+
+Automatic vectorization is the act of transforming a function to handle batches of inputs without user intervention.
+Implementations of automatic vectorization algorithms are
+now available in many mainstream scientific computing libraries, and have dramatically simplified the task of running
+multiple instances of a single algorithm concurrently. They
+are routinely used to train neural networks (Flax, 2023) and
+in other scientific applications, e.g., Schoenholz and Cubuk
+(2021); Oktay et al. (2023); Pfau et al. (2020).
+
+1. We develop a novel approach to transform MCMC
+algorithms into finite state machines (FSMs), that can
+avoid synchronization barriers with vmap.
+2. We analyze the time complexity of our FSMs against
+standard MCMC implementations and derive a theoretical bound on the speed-up under a simplified model.
+
+This paper focuses on the use of automatic vectorization
+for Markov chain Monte Carlo (MCMC) algorithms. Tools
+like JAX’s vmap provide a convenient way to run multiple
+
+3. We use our analysis to develop principled recommendations for optimal FSM design, which enable us to
+nearly obtain the theoretical bound in speed-ups for
+certain MCMC algorithms.
+
+1
+
+Gatsby Unit, University College London, UK 2 Department of
+Computer Science, Princeton University, USA. Correspondence
+to: Hugh Dance <hugh.dance.15@ucl.ac.uk>.
+
+4. We implement popular MCMC algorithms as FSMs,
+including Elliptical Slice Sampling, HMC-NUTS, and
+Delayed-Rejection MH - demonstrating speed-ups of
+up to an order of magnitude in experiments.
+
+nd
+
+Proceedings of the 42 International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

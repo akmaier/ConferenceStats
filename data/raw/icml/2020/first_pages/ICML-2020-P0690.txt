@@ -1,0 +1,80 @@
+Learning to Score Behaviors for Guided Policy Optimization
+Aldo Pacchiano * 1 Jack Parker-Holder * 2 Yunhao Tang * 3 Anna Choromanska 4 Krzysztof Choromanski 5
+Michael I. Jordan 1
+
+Abstract
+We introduce a new approach for comparing reinforcement learning policies, using Wasserstein
+distances (WDs) in a newly defined latent behavioral space. We show that by utilizing the dual formulation of the WD, we can learn score functions
+over policy behaviors that can in turn be used to
+lead policy optimization towards (or away from)
+(un)desired behaviors. Combined with smoothed
+WDs, the dual formulation allows us to devise
+efficient algorithms that take stochastic gradient
+descent steps through WD regularizers. We incorporate these regularizers into two novel on-policy
+algorithms, Behavior-Guided Policy Gradient and
+Behavior-Guided Evolution Strategies, which we
+demonstrate can outperform existing methods in
+a variety of challenging environments. We also
+provide an open source demo1 .
+
+1. Introduction
+One of the key challenges in reinforcement learning (RL)
+is to efficiently incorporate the behaviors of learned policies into optimization algorithms (Lee & Popovic, 2010;
+Meyerson et al., 2016; Conti et al., 2018). The fundamental
+question we aim to shed light on in this paper is:
+What is the right measure of similarity between two policies
+acting on the same underlying MDP and how can we devise
+algorithms to leverage this information for RL?
+In simple terms, the main thesis motivating the methods we
+*
+
+Equal contribution 1 University of California Berkeley
+University of Oxford 3 Columbia University 4 New York University 5 Google Brain Robotics. Correspondence to: Aldo
+Pacchiano <pacchiano@berkeley.edu>, Jack Parker-Holder
+<jackph@robots.ox.ac.uk>.
+2
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+1
+Available
+at
+https://github.com/
+behaviorguidedRL/BGRL.
+We emphasize this is the
+exact code from our experiments, but a demo to build intuition
+and clarify our methods.
+
+propose is that:
+Two policies may perform similar actions at a local level
+but result in very different global behaviors.
+We propose to define behaviors via so-called Behavioral
+Policy Embeddings (henceforth referred to as Policy Embeddings), which can be both on policy and off policy.
+On policy embeddings are achieved via what we call Behavioral Embeddings Maps (BEMs) - functions mapping
+trajectories of a policy into a latent behavioral space representing trajectories in a compact way. We define the policy
+embedding as the pushforward distributions over trajectory
+embeddings as a result of applying a BEM to the policy’s
+trajectories. Importantly, two policies with distinct distributions over trajectories may result in the same probabilistic
+embedding. Off policy embeddings in contrast correspond
+to state and policy evaluation pairs resulting of evaluating
+the policy on states sampled from a probing state distribution that can be chosen independently from the policy.
+Both embedding mechanisms result in probabilistic Policy
+Embeddings, which allow us to identify a policy with a
+distribution with support on an embedding space. Policy
+Embeddings provide us a way to rigorously define dissimilarity between policies. We do this by equipping them with
+metrics defined on the manifold of probability measures,
+namely a class of Wasserstein distances (WDs, (Villani,
+2008)). There are several reasons for choosing WDs:
+• Flexibility. We can use any cost function between embeddings of trajectories, allowing the distance between policy
+embeddings to arise organically from an interpretable
+distance between embedding points.
+• Non-injective BEMs. Different trajectories may be
+mapped to the same embedding point (for example in
+the case of the last-state embedding). This precludes the
+use of likelihood-based distances such as the KL divergence (Kullback & Leibler, 1951), which we discuss in
+Section 6.
+• Behavioral Test Functions. Solving the dual formulation of the WD objective yields a pair of test functions
+over the space of embeddings, used to score trajectories
+or state policy pairs (see: Sec. 5.2).
+
+

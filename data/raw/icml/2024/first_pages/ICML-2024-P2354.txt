@@ -1,0 +1,86 @@
+StableMask: Refining Causal Masking in Decoder-only Transformer
+
+Qingyu Yin 1 Xuzheng He 2 Xiang Zhuang 1 Yu Zhao 3 Jianhua Yao 3 Xiaoyu Shen 4 Qiang Zhang 1
+
+Abstract
+
+decoder-only Transformer architecture (Vaswani et al., 2017;
+Radford et al., 2019), characterized by the self-attention
+mechanism and relative positional encoding (RPE) to aggregate information and catch the dependency among tokens. It
+has exhibited superior zero-shot generalization capabilities
+in comparison to its encoder-decoder counterparts, leading
+to its increased prevalence in pre-trained LLMs (Lester et al.,
+2021; Patel et al., 2023). Despite the impressive success, we
+identified two important issues within this architecture.
+
+The decoder-only Transformer architecture with
+causal masking and relative position encoding
+(RPE) has become the de facto choice in language
+modeling. Despite its exceptional performance
+across various tasks, we have identified two limitations: First, it requires all attention scores to be
+non-zero and sum up to 1, even if the current embedding has sufficient self-contained information.
+This compels the model to assign disproportional
+excessive attention to specific tokens. Second,
+RPE-based Transformers are not universal approximators due to their limited capacity at encoding
+absolute positional information, which limits their
+application in position-critical tasks. In this work,
+we propose StableMask: a parameter-free method
+to address both limitations by refining the causal
+mask. It introduces pseudo-attention values to
+balance attention distributions and encodes absolute positional information via a progressively decreasing mask ratio. StableMask’s effectiveness
+is validated both theoretically and empirically,
+showing significant enhancements in language
+models with parameter sizes ranging from 71M to
+1.4B across diverse datasets and encoding methods. We further show that it naturally supports (1)
+efficient extrapolation without special tricks such
+as StreamingLLM and (2) easy integration with
+existing attention optimization techniques. 1
+
+The first issue arises from the softmax function used in selfattention, as its outputs consist solely of non-zero values
+summing up to 1 (Pang et al., 2019). This forces to allocate a certain distribution of attention probability across
+all available tokens, even when the current token already
+has sufficient self-contained information (Xiao et al., 2023)
+or when the attention mechanism does not need to prioritize any token (Hua et al., 2022; Bondarenko et al., 2023).
+In such cases, the model tends to allocate disproportional
+attention scores to specific tokens like punctuation marks.
+This problem is exacerbated in decoder-only models as the
+varied sequence length leads to an extremely uneven attention distribution, particularly on the initial tokens. While
+approaches have been proposed to mitigate this issue, they
+all entail significant complexity. e.g., modifying the sparseness of softmax (Laha et al., 2018), or adding dedicated
+tokens to absorb unnecessary attention (Darcet et al., 2023).
+The second limitation is associated with various relative
+positional encoding strategies (Ke et al., 2020), e.g. ALiBi (Press et al., 2022), T5 (Raffel et al., 2020), and
+RoPE (Su et al., 2021). Compared with absolute position
+encoding (APE), RPE has achieved state-of-the-art performance in most natural language task. It also exhibits better
+extrapolation capabilities, and naturally preserves invariant
+properties for several important transformations like rotation
+and translation, making it more widely used in Transformers (Press et al., 2022). However, RPE fails to capture
+enough absolute positional information as the softmax always generates a right stochastic matrix (Luo et al., 2022),
+i.e., a square matrix where each row consists of non-negative
+real numbers adding up to 1. This restricts its application
+in situations where such positional information is crucial.
+Previous attempts to address this, such as URPE (Luo et al.,
+2022), added learnable relative position matrices atop the
+softmax outputs, which hurt the extrapolation capabilities
+
+1. Introduction
+Large Language Models (LLMs) have revolutionized natural
+language processing for their task-agnostic in-context learning paradigm (Brown et al., 2020). The core of LLMs is the
+1
+Zhejiang University 2 Peking University 3 Tencent AI Lab
+Eastern Institute of Technology, Ningbo. Correspondence
+to: Qiang Zhang <qiang.zhang.cs@zju.edu.cn>, Xiaoyu Shen
+<xyshen@eitech.edu.cn>.
+
+4
+
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+1
+The code of this paper is available at https://github.
+com/MikaStars39/StableMask
+
+1
+
+

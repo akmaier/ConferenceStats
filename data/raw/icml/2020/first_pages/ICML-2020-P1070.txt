@@ -1,0 +1,74 @@
+Go Wide, Then Narrow: Efficient Training of Deep Thin Networks
+
+Denny Zhou 1 Mao Ye 2 Chen Chen* 1 Tianjian Meng* 1 Mingxing Tan* 1 Xiaodan Song 1 Quoc Le 1
+Qiang Liu 2 Dale Schuurmans 1
+
+Abstract
+For deploying a deep learning model into production, it needs to be both accurate and compact to
+meet the latency and memory constraints. This
+usually results in a network that is deep (to ensure
+performance) and yet thin (to improve computational efficiency). In this paper, we propose
+an efficient method to train a deep thin network
+with a theoretic guarantee. Our method is motivated by model compression. It consists of three
+stages. First, we sufficiently widen the deep thin
+network and train it until convergence. Then, we
+use this well-trained deep wide network to warm
+up (or initialize) the original deep thin network.
+This is achieved by layerwise imitation, that is,
+forcing the thin network to mimic the intermediate outputs of the wide network from layer to
+layer. Finally, we further fine tune this already
+well-initialized deep thin network. The theoretical guarantee is established by using the neural
+mean field analysis. It demonstrates the advantage
+of our layerwise imitation approach over backpropagation. We also conduct large-scale empirical experiments to validate the proposed method.
+By training with our method, ResNet50 can outperform ResNet101, and BERTBASE can be comparable with BERTLARGE , when ResNet101 and
+BERTLARGE are trained under the standard training procedures as in the literature.
+
+1. Introduction
+In many machine learning applications, in particular, language modeling and image classification, it is becoming
+common to dramatically increase the model size to achieve
+significant performance improvement (e.g., He et al., 2016;
+*
+
+Equal contribution 1 Google Brain, USA 2 Department of Computer Science, The University of Texas at Austin, USA. Correspondence to: Denny Zhou <dennyzhou@google.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Wu et al., 2016; Devlin et al., 2019; Brock et al., 2019; Raffel et al., 2019; Brown et al., 2020). To enlarge a model,
+we can make it either much deeper or wider. A big deep
+learning model may involve millions or even billions of
+parameters, and be trained over a big computation cluster
+containing hundreds or thousands of computational nodes.
+Despite their impressive performance, however, it is almost
+impossible to directly deploy these big deep learning models
+into production because of the low latency and memory constraints. To remedy this issue, there has been an increasing
+interest in developing compact versions of good performing
+big models to meet the practical constraints while without
+much drop of accuracy (e.g., Iandola et al., 2016; Sandler
+et al., 2018; Howard et al., 2019; Tan & V. Le, 2019; Wortsman et al., 2019; Sun et al., 2020).
+In general, compact modeling results in networks which
+are both deep and thin. This is because a compact model
+must be sufficiently deep in order to extract hierarchical
+high-level representations that are impossible for shallow
+models to accomplish (e.g., Lee et al., 2009; Le et al., 2012;
+Allen-Zhu & Li, 2020), but each layer of the model does not
+have to be very wide since many neurons are redundant and
+can be pruned without hurting the performance (e.g., Han
+et al., 2015; Li et al., 2017; Frankle & Carbin, 2019; Liu
+et al., 2019; Ye et al., 2020).
+Nevertheless, training deep thin networks are much more
+difficult than training deep wide networks. The loss surface of a deep thin network tends to be highly irregular
+and nonconvex (e.g., Li et al., 2018). Moreover, during
+the backpropagation through a deep thin network, gradients
+may vanish or explode (e.g., Bengio et al., 1994; Pascanu
+et al., 2013). On the other hand, it has been observed that increasing the width of, or “overparameterizing” the network
+makes it much easier to train since its loss surface becomes
+smoother and nearly convex (e.g., Li et al., 2018; Du et al.,
+2019; Allen-Zhu et al., 2019).
+In this paper, we propose a generic algorithm to train deep
+thin networks with a theoretical guarantee. Our method
+is motivated by model compression. It consists of three
+stages (Figure 1 and Algorithm 1). In the first stage, we
+significantly widen the deep thin network to obtain a deep
+wide network, for example, twice wider, and then train it
+
+

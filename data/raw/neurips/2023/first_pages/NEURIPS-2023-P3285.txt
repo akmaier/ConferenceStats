@@ -1,0 +1,56 @@
+DAC-DETR: Divide the Attention Layers and Conquer
+
+Zhengdong Hu1,2∗, Yifan Sun2 , Jingdong Wang2 , Yi Yang3 †
+1
+ReLER, AAII, University of Technology Sydney
+2
+Baidu Inc.
+3
+CCAI, College of Computer Science and Technology, Zhejiang University
+huzhengdongcs@gmail.com , sunyf15@tsinghua.org.cn ,
+wangjingdong@baidu.com , yangyics@zju.edu.cn
+
+Abstract
+This paper reveals a characteristic of DEtection Transformer (DETR) that negatively impacts its training efficacy, i.e., the cross-attention and self-attention layers
+in DETR decoder have opposing impacts on the object queries (though both impacts
+are important). Specifically, we observe the cross-attention tends to gather multiple
+queries around the same object, while the self-attention disperses these queries far
+away. To improve the training efficacy, we propose a Divide-And-Conquer DETR
+(DAC-DETR) that separates out the cross-attention to avoid these competing objectives. During training, DAC-DETR employs an auxiliary decoder that focuses on
+learning the cross-attention layers. The auxiliary decoder, while sharing all the other
+parameters, has NO self-attention layers and employs one-to-many label assignment to improve the gathering effect. Experiments show that DAC-DETR brings
+remarkable improvement over popular DETRs. For example, under the 12 epochs
+training scheme on MS-COCO, DAC-DETR improves Deformable DETR (ResNet50) by +3.4AP and achieves 50.9 (ResNet-50) / 58.1 AP (Swin-Large) based on
+some popular methods (i.e., DINO and an IoU-related loss). Our code will be made
+available at https://github.com/huzhengdongcs/DAC-DETR.
+
+1
+
+Introduction
+
+Though DEtection Transformers (DETRs) have already achieved great progress, their low training
+efficacy problem remains a critical challenge. The research community has been paying great efforts
+to locate the causes of this problem and to improve the training efficacy. For example, DN-DETR [15]
+and DINO [42] find the one-to-one matching is prone to inconsistent optimization goals. In response,
+they propose to accelerate DETR training with auxiliary denoising queries. Hybrid DETR [12]
+and Group DETR [5] attribute the reason to the rare positive training queries and correspondingly
+increase positive queries through additional one-to-many matching. Some other works [20, 1] notice
+the misalignment between the predicted probability and position. They suppress such misalignment
+through IoU-related loss functions and achieve improvement.
+This paper, from another perspective, investigates this problem by rethinking the cooperation between
+cross-attention and self-attention layers in the DETR decoder. We find during their cooperation, these
+two attention types actually have some opposing impacts on the object queries. These two impacts
+are both critical for DETR (as explained later), but their opposition impairs the training efficacy.
+Specifically, we observe the cross-attention layers in DETR decoder tends to gather multiple queries
+around a single object, while the self-attention disperses these queries far away from each other. The
+above “gather ↔ disperse” phenomenon concerns not only the positional relationship (1st row in
+Fig. 1), but also the feature distance (2nd row in Fig. 1 visualized by t-SNE [36]):
+∗
+†
+
+Zhengdong Hu makes his part of work during internship in Baidu Inc.
+Corresponding author.
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

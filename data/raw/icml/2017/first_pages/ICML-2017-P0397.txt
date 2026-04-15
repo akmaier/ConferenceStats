@@ -1,0 +1,89 @@
+Adaptive Consensus ADMM for Distributed Optimization
+
+Zheng Xu 1 Gavin Taylor 2 Hao Li 1 Mário A. T. Figueiredo 3 Xiaoming Yuan 4 Tom Goldstein 1
+
+Abstract
+The alternating direction method of multipliers (ADMM) is commonly used for distributed model fitting problems, but its performance and reliability depend strongly on userdefined penalty parameters. We study distributed
+ADMM methods that boost performance by using different fine-tuned algorithm parameters on
+each worker node. We present a O(1/k) convergence rate for adaptive ADMM methods with
+node-specific parameters, and propose adaptive
+consensus ADMM (ACADMM), which automatically tunes parameters without user oversight.
+
+1. Introduction
+The alternating direction method of multipliers (ADMM)
+is a popular tool for solving problems of the form,
+min
+f (u) + g(v),
+n
+m
+
+u∈R ,v∈R
+
+subject to Au + Bv = b, (1)
+
+where f : Rn → R and g : Rm → R are convex functions,
+A ∈ Rp×n , B ∈ Rp×m , and b ∈ Rp . ADMM was first
+introduced in (Glowinski & Marroco, 1975) and (Gabay &
+Mercier, 1976), and has found applications in many optimization problems in machine learning, distributed computing and many other areas (Boyd et al., 2011).
+Consensus ADMM (Boyd et al., 2011) solves minimization
+P problems involving a composite objective f (v) =
+i fi (v), where worker i stores the data needed to compute fi , and so is well suited for distributed model fitting
+problems (Boyd et al., 2011; Zhang & Kwok, 2014; Song
+et al., 2016; Chang et al., 2016; Goldstein et al., 2016;
+Taylor et al., 2016). To distribute this problem, consensus methods assign a separate copy of the unknowns, ui , to
+1
+University of Maryland, College Park; 2 United States Naval
+Academy, Annapolis; 3 Instituto de Telecomunicações, IST, ULisboa, Portugal; 4 Hong Kong Baptist University, Hong Kong. Correspondence to: Zheng Xu <xuzhustc@gmail.com>.
+th
+
+Proceedings of the 34 International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+each worker, and then apply ADMM to solve
+min
+
+ui ∈Rd ,v∈Rd
+
+N
+X
+
+fi (ui ) + g(v),
+
+subject to ui = v, (2)
+
+i=1
+
+where v is the “central” copy of the unknowns, and g(v)
+is a regularizer. The consensus problem (2) coincides with
+(1) by defining u = (u1 ; . . . ; uN ) ∈ RdN , A = IdN ∈
+RdN ×dN , and B = −(Id ; . . . ; Id ) ∈ RdN ×d , where Id
+represents the d × d identity matrix.
+ADMM methods rely on a penalty parameter (stepsize) that
+is chosen by the user. In theory, ADMM converges for any
+constant penalty parameter (Eckstein & Bertsekas, 1992;
+He & Yuan, 2012; Ouyang et al., 2013). In practice, however, the efficiency of ADMM is highly sensitive to this
+parameter choice (Nishihara et al., 2015; Ghadimi et al.,
+2015), and can be improved via adaptive penalty selection methods (He et al., 2000; Song et al., 2016; Xu et al.,
+2017a).
+One such approach, residual balancing (RB) (He et al.,
+2000), adapts the penalty parameter so that the residuals (derivatives of the Lagrangian with respect to primal
+and dual variables) have similar magnitudes. When the
+same penalty parameter is used across nodes, RB is known
+to converge, although without a known rate guarantee.
+A more recent approach, AADMM (Xu et al., 2017a),
+achieves impressive practical convergence speed on many
+applications, including consensus problems, with adaptive
+penalty parameters by estimating the local curvature of the
+dual functions. However, the dimension of the unknown
+variables in consensus problems grows with the number of
+distributed nodes, causing the curvature estimation to be
+inaccurate and unstable. AADMM uses the same convergence analysis as RB. Consensus residual balancing (CRB)
+(Song et al., 2016) extends residual balancing to consensusbased ADMM for distributed optimization by balancing the
+local primal and dual residuals on each node. However,
+convergence guarantees for this method are fairly weak,
+and adaptive penalties need to be reset after several iterations to guarantee convergence.
+We study the use of adaptive ADMM in the distributed setting, where different workers use different local algorithm
+parameters to accelerate convergence. We begin by studying the theory and provide convergence guarantees when
+
+

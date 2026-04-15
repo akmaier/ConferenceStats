@@ -1,0 +1,77 @@
+Learning Deep Kernels for Exponential Family Densities
+
+Li K. Wenliang * 1 Danica J. Sutherland * 1 Heiko Strathmann 1 Arthur Gretton 1
+
+Abstract
+The kernel exponential family is a rich class of
+distributions, which can be fit efficiently and with
+statistical guarantees by score matching. Being
+required to choose a priori a simple kernel such as
+the Gaussian, however, limits its practical applicability. We provide a scheme for learning a kernel
+parameterized by a deep network, which can find
+complex location-dependent features of the local
+data geometry. This gives a very rich class of density models, capable of fitting complex structures
+on moderate-dimensional problems. Compared
+to deep density models fit via maximum likelihood, our approach provides a complementary
+set of strengths and tradeoffs: in empirical studies, deep maximum-likelihood models can yield
+higher likelihoods, while our approach gives better estimates of the gradient of the log density, the
+score, which describes the distribution’s shape.
+
+1. Introduction
+Density estimation is a foundational problem in statistics
+and machine learning (Devroye & Györfi, 1985; Wasserman,
+2006), lying at the core of both supervised and unsupervised
+machine learning problems. Classical techniques such as
+kernel density estimation, however, struggle to exploit the
+structure inherent to complex problems, and thus can require
+unreasonably large sample sizes for adequate fits. For instance, assuming only twice-differentiable densities, the L2
+risk of density estimation with N samples in D dimensions
+scales as O(N −4/(4+D) ) (Wasserman, 2006, Section 6.5).
+One promising approach for incorporating this necessary
+structure is the kernel exponential family (Canu & Smola,
+2006; Fukumizu, 2009; Sriperumbudur et al., 2017). This
+*
+Equal contribution 1 Gatsby Computational Neuroscience Unit,
+University College London, London, U.K.. Correspondence to: Li
+K. Wenliang <wenliang2012@gmail.com>, Danica J. Sutherland
+<djs@djsutherland.ml>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+model allows for any log-density which is suitably smooth
+under a given kernel, i.e. any function in the corresponding reproducing kernel Hilbert space. Choosing a finitedimensional kernel recovers any classical exponential family, but when the kernel is sufficiently powerful the class
+becomes very rich: dense in the family of continuous probability densities on compact domains in KL, TV, Hellinger,
+and Lr distances (Sriperumbudur et al., 2017, Corollary 2).
+The normalization constant is not available in closed form,
+making fitting by maximum likelihood difficult, but the alternative technique of score matching (Hyvärinen, 2005)
+allows for practical usage with theoretical convergence guarantees (Sriperumbudur et al., 2017).
+The choice of kernel directly corresponds to a smoothness
+assumption on the model, allowing one to design a kernel
+corresponding to prior knowledge about the target density.
+Yet explicitly deciding upon a kernel to incorporate that
+knowledge can be complicated. Indeed, previous applications of the kernel exponential family model have exclusively employed simple kernels, such as the Gaussian, with
+a small number of parameters (e.g. the length scale) chosen
+by heuristics or cross-validation (e.g. Sasaki et al., 2014;
+Strathmann et al., 2015). These kernels are typically spatially invariant, corresponding to a uniform smoothness
+assumption across the domain. Although such kernels are
+sufficient for consistency in the infinite-sample limit, the
+induced models can fail in practice on finite datasets, especially if the data takes differently-scaled shapes in different
+parts of the space. Figure 1 (left) illustrates this problem
+when fitting a simple mixture of Gaussians. Here there are
+two “correct” bandwidths, one for the broad mode and one
+for the narrow mode. A translation-invariant kernel must
+pick a single one, e.g. an average between the two, and any
+choice will yield a poor fit on at least part of the density.
+In this work, we propose to learn the kernel of an exponential family directly from data. We can then achieve far more
+than simply tuning a length scale, instead learning locationdependent kernels that adapt to the underlying shape and
+smoothness of the target density. We use kernels of the form
+k(x, y) = κ(φ(x), φ(y)),
+
+(1)
+
+where the deep network φ extracts features of the input
+and κ is a simple kernel (e.g. a Gaussian) on those features. These types of kernels have seen success in super-
+
+

@@ -1,0 +1,87 @@
+Multiscale Invertible Generative Networks
+for High-Dimensional Bayesian Inference
+
+Shumao Zhang 1 Pengchuan Zhang 2 Thomas Y. Hou 1
+
+Abstract
+
+where L is the likelihood given as
+L(y|x) = N (y − F(x); 0, Γ) ,
+
+We propose a Multiscale Invertible Generative
+Network (MsIGN) and associated training algorithm that leverages multiscale structure to solve
+high-dimensional Bayesian inference. To address
+the curse of dimensionality, MsIGN exploits the
+low-dimensional nature of the posterior, and generates samples from coarse to fine scale (low to
+high dimension) by iteratively upsampling and
+refining samples. MsIGN is trained in a multistage manner to minimize the Jeffreys divergence,
+which avoids mode dropping in high-dimensional
+cases. On two high-dimensional Bayesian inverse problems, we show superior performance
+of MsIGN over previous approaches in posterior
+approximation and multiple mode capture. On
+the natural image synthesis task, MsIGN achieves
+superior performance in bits-per-dimension over
+baseline models and yields great interpret-ability
+of its neurons in intermediate layers.
+
+1. Introduction
+To infer about hidden system states x ∈ Rd from observed
+system data y ∈ Rs , Bayesian inference blends some prior
+knowledge, given as a distribution ρ, with data y into a
+powerful posterior. Since direct measurement of x can be
+inaccessible, the data y is generated through y = F(x) + ε,
+where F is a forward map that can be highly nonlinear
+and complicated, ε ∈ Rs is random noise modelled by
+some distribution. For illustration simplicity, we assume a
+Gaussian N (0, Γ) for ε. The posterior is characterized as
+1
+(1)
+q(x|y) = ρ(x)L(y|x) ,
+Z
+1
+
+Department of Computational & Mathematical Sciences,
+Caltech, Pasadena, California, USA 2 MSR AI Lab, Redmond,
+Washington, USA. Correspondence to: Shumao Zhang <shumaoz@caltech.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+(2)
+
+which is the density of ε = y − F(x), and Z is some
+normalizing constant that is usually intractable in practice.
+For simplicity reason, in the following context we abbreviate
+q(x|y) in (1) as q(x) , because the data y only plays the role
+of defining the target distribution q(x) in our framework.
+A key and long-standing challenge in Bayesian inference is
+to approximate, or draw samples from the posterior q, especially in high-dimensional (high-d) cases. An arbitrary distribution can concentrate its density anywhere in the space,
+and these concentrations (also called “modes”) become less
+connected as d increases. As a result, detecting these modes
+requires computational cost that grows exponentially with d.
+This intrinsic difficulty of mode collapse is a consequence
+of the curse of dimensionality, which all existing Bayesian
+inference methods suffer from, e.g., MCMC-based methods
+(Neal et al., 2011; Welling & Teh, 2011; Cui et al., 2016),
+SVGD-type methods (Liu & Wang, 2016; Chen et al., 2018;
+2019a), and generative modeling (Morzfeld et al., 2012;
+Parno et al., 2016; Hou et al., 2019).
+In this paper, we exploit the multiscale structure to deal
+with the high-dimensional Bayesian inference problems.
+The multiscale structure means that the forward map F
+depends mostly on some low-d structure of x, referred as
+coarse scale, instead of the high-d structure, referred as
+fine scale. For example, the terrain shape x, given as the
+discretization of 2-D elevation map on a 2-D lattice grid,
+is a quantity with dimension equal to the number of grid
+points. Simulating the 2-D precipitation distribution y using
+terrain shape x at the scale of kilometer is a reasonable
+approximation to itself at the scale of meter. The former
+one is a coarse-scale version of the latter, and has 106 -times
+fewer problem dimension (grid points). Such multiscale
+structure is very common in high-d problems, especially
+when x is some spatial or temporal quantity. The coarsescale approximation to the original fine-scale problem is
+low-d and computationally attractive, and can help divideand-conquer the high-d challenge. The multiscale property
+is discussed in detail in Section 2.
+We approximate the target q by a parametric family of distri-
+
+

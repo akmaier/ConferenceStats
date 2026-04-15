@@ -1,0 +1,58 @@
+On-the-fly Operation Batching
+in Dynamic Computation Graphs
+Graham Neubig⇤
+Language Technologies Institute
+Carnegie Mellon University
+gneubig@cs.cmu.edu
+
+Yoav Goldberg⇤
+Computer Science Department
+Bar-Ilan University
+yogo@cs.biu.ac.il
+
+Chris Dyer
+DeepMind
+cdyer@google.com
+
+Abstract
+Dynamic neural network toolkits such as PyTorch, DyNet, and Chainer offer more
+flexibility for implementing models that cope with data of varying dimensions and
+structure, relative to toolkits that operate on statically declared computations (e.g.,
+TensorFlow, CNTK, and Theano). However, existing toolkits—both static and
+dynamic—require that the developer organize the computations into the batches
+necessary for exploiting high-performance algorithms and hardware. This batching
+task is generally difficult, but it becomes a major hurdle as architectures become
+complex. In this paper, we present an algorithm, and its implementation in the
+DyNet toolkit, for automatically batching operations. Developers simply write
+minibatch computations as aggregations of single instance computations, and the
+batching algorithm seamlessly executes them, on the fly, using computationally
+efficient batched operations. On a variety of tasks, we obtain throughput similar to
+that obtained with manual batches, as well as comparable speedups over singleinstance learning on architectures that are impractical to batch manually.2
+
+1
+
+Introduction
+
+Modern CPUs and GPUs evaluate batches of arithmetic operations significantly faster than the
+sequential evaluation of the same operations. For example, performing elementwise operations takes
+nearly the same amount of time on the GPU whether operating on tens or on thousands of elements,
+and multiplying a few hundred different vectors by the same matrix is significantly slower than
+executing a single (equivalent) matrix–matrix product using an optimized GEMM implementation on
+either a GPU or a CPU. Thus, careful grouping of operations into batches that can execute efficiently
+in parallel is crucial for making the most of available hardware resources.
+Today, developers who write code to train neural networks are responsible for crafting most of this
+batch handling by hand. In some cases this is easy: when inputs and outputs are naturally represented
+as fixed sized tensors (e.g., images of a fixed size such those in the MNIST and CIFAR datasets, or
+regression problems on fixed sized vector inputs), and the computations required to process each
+instance are instance-invariant and expressible as standard operations on tensors (e.g., a series of
+matrix multiplications, convolutions, and elementwise nonlinearities), a suitably flexible tensor library
+⇤
+
+Authors contributed equally.
+The proposed algorithm is implemented in DyNet (http://dynet.io/), and can be activated by using the
+“--dynet-autobatch 1” command line flag.
+2
+
+31st Conference on Neural Information Processing Systems (NIPS 2017), Long Beach, CA, USA.
+
+

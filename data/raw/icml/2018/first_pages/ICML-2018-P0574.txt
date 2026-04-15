@@ -1,0 +1,82 @@
+Yes, but Did It Work?: Evaluating Variational Inference
+
+Yuling Yao 1 Aki Vehtari 2 Daniel Simpson 3 Andrew Gelman 1
+
+Abstract
+While it’s always possible to compute a variational approximation to a posterior distribution,
+it can be difficult to discover problems with this
+approximation. We propose two diagnostic algorithms to alleviate this problem. The Paretosmoothed importance sampling (PSIS) diagnostic
+gives a goodness of fit measurement for joint distributions, while simultaneously improving the
+error in the estimate. The variational simulationbased calibration (VSBC) assesses the average
+performance of point estimates.
+
+1. Introduction
+Variational Inference (VI), including a large family of posterior approximation methods like stochastic VI (Hoffman
+et al. 2013), black-box VI (Ranganath et al. 2014), automatic
+differentiation VI (ADVI, Kucukelbir et al. 2017), and many
+other variants, has emerged as a widely-used method for
+scalable Bayesian inference. These methods come with few
+theoretical guarantees and it’s difficult to assess how well
+the computed variational posterior approximates the true
+posterior.
+Instead of computing expectations or sampling draws from
+the posterior p(θ | y), variational inference fixes a family of approximate densities Q, and finds the member q ∗
+minimizing the Kullback-Leibler (KL) divergence to the
+true posterior: KL (q(θ), p(θ | y)) . This is equivalent to
+maximizing the evidence lower bound (ELBO):
+Z
+ELBO(q) =
+(log p(θ, y) − log q(θ)) q(θ)dθ. (1)
+Θ
+
+There are many situations where the VI approximation is
+flawed. This can be due to the slow convergence of the
+1
+
+Department of Statistics, Columbia University, NY, USA
+2
+Helsinki Institute for Information Technology, Department of
+Computer Science, Aalto University, Finland 3 Department of Statistical Sciences, University of Toronto, Canada. Correspondence
+to: Yuling Yao <yy2618@columbia.edu>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+optimization problem, the inability of the approximation
+family to capture the true posterior, the asymmetry of the
+true distribution, the fact that the direction of the KL divergence under-penalizes approximation with too-light tails, or
+all these reasons. We need a diagnostic algorithm to test
+whether the VI approximation is useful.
+There are two levels of diagnostics for variational inference.
+First the convergence test should be able to tell if the objective function has converged to a local optimum. When
+the optimization problem (1) is solved through stochastic
+gradient descent (SGD), the convergence can be assessed
+by monitoring the running average of ELBO changes. Researchers have introduced many convergence tests based on
+the asymptotic property of stochastic approximations (e.g.,
+Sielken, 1973; Stroup & Braun, 1982; Pflug, 1990; Wada &
+Fujisaki, 2015; Chee & Toulis, 2017). Alternatively, Blei
+et al. (2017) suggest monitoring the expected log predictive
+density by holding out an independent test dataset. After
+convergence, the optimum is still an approximation to the
+truth. This paper is focusing on the second level of VI diagnostics whether the variational posterior q ∗ (θ) is close
+enough to the true posterior p(θ|y) to be used in its place.
+Purely relying on the objective function or the equivalent
+ELBO does not solve the problem. An unknown multiplicative constant exists in p(θ, y) ∝ p(θ | y) that changes
+with reparametrization, making it meaningless to compare
+ELBO across two approximations. Moreover, the ELBO is
+a quantity on an uninterpretable scale, that is it’s not clear at
+what value of the ELBO we can begin to trust the variational
+posterior. This makes it next to useless as a method to assess
+how well the variational inference has fit.
+In this paper we propose two diagnostic methods that assess,
+respectively, the quality of the entire variational posterior for
+a particular data set, and the average bias of a point estimate
+produced under correct model specification.
+The first method is based on generalized Pareto distribution
+diagnostics used to assess the quality of a importance sampling proposal distribution in Pareto smoothed importance
+sampling (PSIS, Vehtari et al., 2017). The benefit of PSIS
+diagnostics is two-fold. First, we can tell the discrepancy
+between the approximate and the true distribution by the
+estimated continuous k̂ value. When it is larger than a prespecified threshold, users should be alert of the limitation
+
+

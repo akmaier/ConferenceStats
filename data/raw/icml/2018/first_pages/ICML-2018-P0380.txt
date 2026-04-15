@@ -1,0 +1,79 @@
+Smoothed Action Value Functions for Learning Gaussian Policies
+
+Ofir Nachum 1 Mohammad Norouzi 1 George Tucker 1 Dale Schuurmans 1 2
+
+Abstract
+State-action value functions (i.e., Q-values) are
+ubiquitous in reinforcement learning (RL), giving
+rise to popular algorithms such as SARSA and Qlearning. We propose a new notion of action value
+defined by a Gaussian smoothed version of the
+expected Q-value. We show that such smoothed
+Q-values still satisfy a Bellman equation, making
+them learnable from experience sampled from an
+environment. Moreover, the gradients of expected
+reward with respect to the mean and covariance of
+a parameterized Gaussian policy can be recovered
+from the gradient and Hessian of the smoothed
+Q-value function. Based on these relationships,
+we develop new algorithms for training a Gaussian policy directly from a learned smoothed Qvalue approximator. The approach is additionally
+amenable to proximal optimization by augmenting the objective with a penalty on KL-divergence
+from a previous policy. We find that the ability to
+learn both a mean and covariance during training
+leads to significantly improved results on standard
+continuous control benchmarks.
+
+1. Introduction
+Model-free reinforcement learning algorithms often alternate between two concurrent but interacting processes: (1)
+policy evaluation, where an action value function (i.e., a
+Q-value) is updated to obtain a better estimate of the return
+associated with taking a specific action, and (2) policy improvement, where the policy is updated aiming to maximize
+the current value function. In the past, different notions
+of Q-value have led to distinct but important families of
+RL methods. For example, SARSA (Rummery & Niranjan,
+1994; Sutton & Barto, 1998; Van Seijen et al., 2009) uses the
+expected Q-value, defined as the expected return of following the current policy. Q-learning (Watkins, 1989) exploits a
+1
+
+Google Brain 2 Department of Computing Science, University of Alberta. Correspondence to: Ofir Nachum <ofirnachum@google.com>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+hard-max notion of Q-value, defined as the expected return
+of following an optimal policy. Soft Q-learning (Haarnoja
+et al., 2017) and PCL (Nachum et al., 2017) both use a
+soft-max form of Q-value, defined as the future return of
+following an optimal entropy regularized policy. Clearly,
+the choice of Q-value function has a considerable effect on
+the resulting algorithm; for example, restricting the types of
+policies that can be expressed, and determining the type of
+exploration that can be naturally applied. In each case, the
+Q-value at a state s and action a answers the question,
+“What would my future value from s be if I were to take an
+initial action a?”
+Such information about a hypothetical action is helpful
+when learning a policy; we want to nudge the policy distribution to favor actions with potentially higher Q-values.
+In this work, we investigate the practicality and benefits of
+answering a more difficult, but more relevant, question:
+“What would my future value from s be if I were to sample my
+initial action from a distribution centered at a?”
+We focus our efforts on Gaussian policies and thus the counterfactual posited by the Q-value inquires about the expected
+future return of following the policy when changing the
+mean of the initial Gaussian distribution. Thus, our new
+notion of Q-values maps a state-action pair (s, a) to the
+expected return of first taking an action sampled from a
+normal distribution N (·|a, Σ(s)) centered at a, and following actions sampled from the current policy thereafter. In
+this way, the Q-values we introduce may be interpreted as a
+Gaussian-smoothed version of the expected Q-value, hence
+we term them smoothed Q-values.
+We show that smoothed Q-values possess a number of important properties that make them attractive for use in RL
+algorithms. It is clear from the definition of smoothed Qvalues that, if known, their structure is highly beneficial for
+learning the mean of a Gaussian policy. We are able to show
+more than this: although the smoothed Q-values are not a
+direct function of the covariance, one can surprisingly use
+knowledge of the smoothed Q-values to derive updates to
+the covariance of a Gaussian policy. Specifically, the gradient of the standard expected return objective with respect to
+the mean and covariance of a Gaussian policy is equivalent
+to the gradient and Hessian of the smoothed Q-value func-
+
+

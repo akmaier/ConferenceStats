@@ -1,0 +1,76 @@
+Decoupled Greedy Learning of CNNs
+
+Eugene Belilovsky 1 Michael Eickenberg 2 Edouard Oyallon 3
+
+Abstract
+A commonly cited inefficiency of neural network
+training by back-propagation is the update locking problem: each layer must wait for the signal
+to propagate through the full network before updating. Several alternatives that can alleviate this
+issue have been proposed. In this context, we consider a simpler, but more effective, substitute that
+uses minimal feedback, which we call Decoupled
+Greedy Learning (DGL). It is based on a greedy
+relaxation of the joint training objective, recently
+shown to be effective in the context of Convolutional Neural Networks (CNNs) on large-scale
+image classification. We consider an optimization
+of this objective that permits us to decouple the
+layer training, allowing for layers or modules in
+networks to be trained with a potentially linear
+parallelization in layers. With the use of a replay
+buffer we show this approach can be extended
+to asynchronous settings, where modules can operate with possibly large communication delays.
+We show theoretically and empirically that this approach converges. Then, we empirically find that
+it can lead to better generalization than sequential
+greedy optimization. We demonstrate the effectiveness of DGL against alternative approaches
+on the CIFAR-10 dataset and on the large-scale
+ImageNet dataset.
+
+1. Introduction
+Jointly training all layers using back-propagation is the standard method for learning neural networks, including the
+computationally intensive Convolutional Neural Networks
+(CNNs). Due to the sequential nature of gradient processing,
+standard back-propagation has several well-known ineffi1
+MILA 2 Center for Computational Mathematics, Flatiron Institute 3 CNRS, LIP6. Correspondence to: Eugene Belilovsky
+<eugene.belilovsky@mila.quebec>, Michael Eickenberg <meickenberg@flatironinstitute.org>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+ciencies that prohibit parallelization of the computations of
+the different constituent modules. Jaderberg et al. (2017)
+characterize these in order of severity as the forward, update, and backward locking problems. Backward unlocking
+would permit updates of all modules once forward signals have propagated to all subsequent modules, update
+unlocking would permit updates of a module before a signal
+has reached all subsequent modules, and forward unlocking
+would permit a module to operate asynchronously from its
+predecessor and dependent modules.
+Methods addressing backward locking to a certain degree
+have been proposed in (Huo et al., 2018b;a; Choromanska
+et al., 2018; Nø kland, 2016). However, update locking is
+a far more severe inefficiency. Thus Jaderberg et al. (2017)
+and Czarnecki et al. (2017) propose and analyze Decoupled
+Neural Interfaces (DNI), a method that uses an auxiliary
+network to predict the gradient of the backward pass directly
+from the input. This method unfortunately does not scale
+well computationally or in terms of accuracy, especially
+in the case of CNNs (Huo et al., 2018a;b). Indeed, auxiliary networks must predict a weight gradient, usually high
+dimensional for larger models and input sizes.
+A major obstacle to update unlocking is the heavy reliance
+on the upper modules for feedback. Several works have
+recently revisited the classic (Ivakhnenko & Lapa, 1965;
+Bengio et al., 2007) approach of supervised greedy layerwise training of neural networks (Huang et al., 2018a;
+Marquez et al., 2018). In Belilovsky et al. (2019) it is shown
+that such an approach, which relaxes the joint learning objective, and does not require global feedback, can lead to
+high-performance deep CNNs on large-scale datasets. We
+will show that the greedy learning objective used in these
+papers can be solved with an alternative optimization algorithm, which permits decoupling the computations and
+achieves update unlocking. It can be augmented with replay
+buffers (Lin, 1992) to permit forward unlocking which is
+a challenge not effectively addressed by any of the prior
+work. This simpler strategy can be shown to be a superior
+baseline for parallelizing the training across modules of a
+neural network.
+The paper is structured as follows. In Sec. 2 we propose an
+optimization procedure for a decoupled greedy learning objective that achieves update unlocking and then extend it to
+
+

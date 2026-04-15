@@ -1,0 +1,78 @@
+EDEN: Communication-Efficient and Robust Distributed
+Mean Estimation for Federated Learning
+
+Shay Vargaftik * 1 Ran Ben Basat * 2 Amit Portnoy * 3
+Gal Mendelson 4 Yaniv Ben-Itzhak 1 Michael Mitzenmacher 5
+
+Abstract
+Distributed Mean Estimation (DME) is a central
+building block in federated learning, where clients
+send local gradients to a parameter server for averaging and updating the model. Due to communication constraints, clients often use lossy compression techniques to compress the gradients,
+resulting in estimation inaccuracies.
+DME is more challenging when clients have diverse network conditions, such as constrained
+communication budgets and packet losses. In
+such settings, DME techniques often incur a significant increase in the estimation error leading to
+degraded learning performance.
+In this work, we propose a robust DME technique named EDEN that naturally handles heterogeneous communication budgets and packet
+losses. We derive appealing theoretical guarantees for EDEN and evaluate it empirically. Our
+results demonstrate that EDEN consistently improves over state-of-the-art DME techniques.
+
+1. Introduction
+In the Distributed Mean Estimation (DME) problem, each
+of n senders has a d-dimensional vector of real numbers.
+Each sender sends information over the network to a central
+receiver, who uses this information to estimate the mean
+of these vectors. This problem is a central building block
+in many federated learning scenarios, where at each training round, a parameter server averages clients’ parameter updates (i.e., neural network gradients) and updates its
+model (McMahan et al., 2017). As neural network gradients
+are often large (e.g., can exceed a billion dimensions (Dean
+*
+
+Equal contribution
+VMware Research 2 University College London 3 Ben-Gurion
+University 4 Stanford University 5 Harvard University.
+
+1
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+et al., 2012; Shoeybi et al., 2019; Huang et al., 2019)), transmission over the network is often a bottleneck, and thus
+applying lossy compression to the gradients can be essential
+to adhere to client communication constraints, reduce the
+training time, and allow better inclusion and scalability.
+Typically, the desired design property is that the receiver’s
+resulting estimate will be unbiased. That is, the receiver’s
+derived estimate x̂ for a sender’s vector x ∈ Rd should
+satisfy E[x̂] = x. Unbiasedness is attractive because, under
+natural conditions (including independence of estimates), as
+it yields a Mean Squared Error (MSE) between the mean of
+the received estimates and the mean of the true vectors that
+decays linearly with respect to the number of clients (e.g.,
+see Vargaftik et al. (2021)). Besides being a useful property
+for DME in isolation, in federated learning contexts this can
+remove the need for error feedback mechanisms that are
+commonly used to deal with biased estimates (Seide et al.,
+2014; Karimireddy et al., 2019), but are often not practical
+due to client participation patterns (Kairouz et al., 2021).
+For unbiasedness, modern DME techniques employ randomized rounding techniques, commonly known as stochastic
+quantization (SQ), to map each vector coordinate to one of a
+limited number of possibilities, yielding a compressed form.
+Some SQ-based techniques have known issues when used
+in DME. In particular, the resulting error is sensitive to the
+vector’s distribution and the difference between the largest
+and smallest coordinates. This is specifically problematic in
+federated learning, where neural network gradients’ coordinates can differ by orders of magnitude, rendering vanilla
+SQ inapplicable for accurate DME in many settings.
+To address this limitation, recent works suggest the vector
+be randomly rotated prior to stochastic quantization (Suresh
+et al., 2017). That is, the clients and the parameter server
+draw rotation matrices according to some known distribution
+(e.g., uniform); the clients then send the quantization of the
+rotated vectors while the parameter server applies the inverse
+rotation on the estimated rotated vector. Intuitively, the
+coordinates of a vector rotated by uniform random rotation
+are identically distributed (albeit weakly dependent) and are
+closely concentrated around their mean, leading to a small
+
+

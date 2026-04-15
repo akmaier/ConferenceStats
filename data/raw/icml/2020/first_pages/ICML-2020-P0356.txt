@@ -1,0 +1,87 @@
+Improving the Gating Mechanism of Recurrent Neural Networks
+
+Albert Gu 1 Caglar Gulcehre 2 Tom Paine 2 Matt Hoffman 2 Razvan Pascanu 2
+
+Abstract
+Gating mechanisms are widely used in neural
+network models, where they allow gradients to
+backpropagate more easily through depth or time.
+However, their saturation property introduces
+problems of its own. For example, in recurrent
+models these gates need to have outputs near 1
+to propagate information over long time-delays,
+which requires them to operate in their saturation
+regime and hinders gradient-based learning of
+the gate mechanism. We address this problem by
+deriving two synergistic modifications to the standard gating mechanism that are easy to implement,
+introduce no additional hyperparameters, and
+improve learnability of the gates when they are
+close to saturation. We show how these changes
+are related to and improve on alternative recently
+proposed gating mechanisms such as chrono
+initialization and Ordered Neurons. Empirically,
+our simple gating mechanisms robustly improve
+the performance of recurrent models on a range
+of applications, including synthetic memorization
+tasks, sequential image classification, language
+modeling, and reinforcement learning, particularly
+when long-term dependencies are involved.
+
+1. Introduction
+Recurrent neural networks (RNNs) are an established
+machine learning tool for learning from sequential data.
+However, RNNs are prone to the vanishing gradient problem,
+which occurs when the gradients of the recurrent weights become vanishingly small as they get backpropagated through
+time (Hochreiter, 1991; Bengio et al., 1994; Hochreiter
+et al., 2001). A common approach to alleviate the vanishing
+gradient problem is to use gating mechanisms, leading to
+models such as the long short term memory (Hochreiter
+& Schmidhuber, 1997, LSTM) and gated recurrent units
+1
+
+Stanford University, USA 2 DeepMind, London, UK. Correspondence to: Albert Gu <albertgu@stanford.edu>, Caglar Gulcehre <caglarg@google.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+(Chung et al., 2014, GRUs). These gated RNNs have been
+very successful in several different application areas such
+as in reinforcement learning (Kapturowski et al., 2018;
+Espeholt et al., 2018) and natural language processing
+(Bahdanau et al., 2014; Kočiskỳ et al., 2018).
+At every time step, gated recurrent networks use a weighted
+combination of the history summarized by the previous state,
+and a function of the incoming inputs, to create the next
+state. The values of the gates, which are the coefficients of
+the weighted combination, control the length of temporal
+dependencies that can be addressed. This weighted update
+can be seen as an additive or residual connection on the
+recurrent state, which helps signals propagate through
+time without vanishing. However, the gates themselves
+are prone to a saturating property which can also hamper
+gradient-based learning. This can be problematic for RNNs,
+where carrying information for very long time delays
+requires gates to be very close to their saturated states.
+We address two particular problems that arise with the
+standard gating mechanism of recurrent models. Firstly,
+learning when gates are in their saturation regime is difficult
+because gradients through the gates vanish as they saturate.
+We derive a modification to standard gating mechanisms
+that uses an auxiliary refine gate (Section 3.1) to modulate a
+main gate. This mechanism allows the gates to have a wider
+range of activations without gradients vanishing as quickly.
+Secondly, typical initialization of the gates is relatively
+concentrated. This restricts the range of timescales the model
+can address at initialization, as the timescale of a particular
+unit is dictated by its gates. We propose uniform gate initialization (Section 3.2) that addresses this problem by directly
+initializing the activations of these gates from a distribution
+that captures a wider spread of dependency lengths.
+The main contribution of this paper is the refine gate mechanism. As the refine gate works better in tandem with uniform gate initialization, we call this combination the UR
+gating mechanism. We focus on comparing the UR gating
+mechanism against other approaches in our experiments.
+These changes can be applied to any gate (i.e. parameterized
+bounded function) and have minimal to no overhead in terms
+of speed, memory, code complexity, parameters, or hyper
+parameters. We apply them to the forget gate of recurrent
+models, and evaluate on several benchmark tasks that re-
+
+

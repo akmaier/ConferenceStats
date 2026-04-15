@@ -1,0 +1,77 @@
+Noisy Natural Gradient as Variational Inference
+
+Guodong Zhang * 1 2 Shengyang Sun * 1 2 David Duvenaud 1 2 Roger Grosse 1 2
+
+Abstract
+Variational Bayesian neural nets combine the flexibility of deep learning with Bayesian uncertainty
+estimation. Unfortunately, there is a tradeoff
+between cheap but simple variational families
+(e.g. fully factorized) or expensive and complicated inference procedures. We show that natural
+gradient ascent with adaptive weight noise implicitly fits a variational posterior to maximize the
+evidence lower bound (ELBO). This insight allows us to train full-covariance, fully factorized,
+or matrix-variate Gaussian variational posteriors
+using noisy versions of natural gradient, Adam,
+and K-FAC, respectively, making it possible to
+scale up to modern-size conv nets. On standard regression benchmarks, our noisy K-FAC algorithm
+makes better predictions and matches Hamiltonian Monte Carlo’s predictive variances better
+than existing methods. Its improved uncertainty
+estimates lead to more efficient exploration in
+active learning, and intrinsic motivation for reinforcement learning.
+
+1. Introduction
+Combining deep learning with Bayesian uncertainty estimation has the potential to fit flexible and scalable models that
+are resistant to overfitting (MacKay, 1992b; Neal, 1995; Hinton & Van Camp, 1993). Stochastic variational inference is
+especially appealing because it closely resembles ordinary
+backprop (Graves, 2011; Blundell et al., 2015), but such
+methods typically impose restrictive factorization assumptions on the approximate posterior, such as fully independent
+weights. There have been attempts to fit more expressive
+approximating distributions which capture correlations such
+as matrix-variate Gaussians (Louizos & Welling, 2016; Sun
+et al., 2017) or multiplicative normalizing flows (Louizos
+*
+Equal contribution 1 Department of Computer Science, University of Toronto, Canada 2 Vector Institute, Toronto, Canada.
+Correspondence to: Guodong Zhang <gdzhang@cs.toronto.edu>,
+Shengyang Sun <ssy@cs.toronto.edu>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+& Welling, 2017), but fitting such models can be expensive
+without further approximations.
+In this work, we introduce and exploit a surprising connection between natural gradient descent (Amari, 1998) and
+variational inference. In particular, several approximate
+natural gradient optimizers have been proposed which fit
+tractable approximations to the Fisher matrix to gradients
+sampled during training (Kingma & Ba, 2014; Martens &
+Grosse, 2015). While these procedures were described as
+natural gradient descent on the weights using an approximate Fisher matrix, we reinterpret these algorithms as natural gradient on a variational posterior using the exact Fisher
+matrix. Both the weight updates and the Fisher matrix estimation can be seen as natural gradient ascent on a unified
+evidence lower bound (ELBO), analogously to how Neal
+and Hinton (Neal & Hinton, 1998) interpreted the E and
+M steps of Expectation-Maximization (E-M) as coordinate
+ascent on a single objective.
+Using this insight, we give an alternative training method for
+variational Bayesian neural networks. For a factorial Gaussian posterior, it corresponds to a diagonal natural gradient
+method with weight noise, and matches the performance of
+Bayes By Backprop (Blundell et al., 2015), but converges
+faster. We also present noisy K-FAC, an efficient and GPUfriendly method for fitting a full matrix-variate Gaussian
+posterior, using a variant of Kronecker-Factored Approximate Curvature (K-FAC) (Martens & Grosse, 2015) with
+correlated weight noise.
+
+2. Background
+2.1. Variational Inference for Bayesian Neural Nets
+Given a dataset D = {(xi , yi )ni=1 }, a Bayesian neural net
+(BNN) is defined in terms of a prior p(w) on the weights, as
+well as the likelihood p(D | w). Variational Bayesian methods (Hinton & Van Camp, 1993; Graves, 2011; Blundell
+et al., 2015) attempt to fit an approximate posterior q(w) to
+maximize the evidence lower bound (ELBO):
+L[q] = Eq [log p(D | w)] − λDKL (q(w) k p(w))
+
+(1)
+
+where λ is a regularization parameter. Proper Bayesian
+inference corresponds to λ = 1, but other values may work
+better in practice on some problems.
+
+

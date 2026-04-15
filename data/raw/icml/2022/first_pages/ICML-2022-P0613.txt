@@ -1,0 +1,84 @@
+Communication-efficient Distributed Learning for Large Batch Optimization
+
+Rui Liu 1 Barzan Mozafari 1
+
+Abstract
+Many communication-efficient methods have
+been proposed for distributed learning, whereby
+gradient compression is used to reduce the communication cost. However, given recent advances
+in large batch optimization (e.g., large batch SGD
+and its variant L ARS with layerwise adaptive
+learning rates), the compute power of each machine is being fully utilized. This means, in modern distributed learning, the per-machine computation cost is no longer negligible compared to
+the communication cost. In this paper, we propose new gradient compression methods for large
+batch optimization, J OINT S PAR and its variant
+J OINT S PAR -L ARS with layerwise adaptive learning rates, that jointly reduce both the computation
+and the communication cost. To achieve this, we
+take advantage of the redundancy in the gradient
+computation, unlike the existing methods compute all coordinates of the gradient vector, even
+if some coordinates are later dropped for communication efficiency. J OINT S PAR and its variant further reduce the training time by avoiding
+the wasted computation on dropped coordinates.
+While computationally more efficient, we prove
+that J OINT S PAR and its variant also maintain the
+same convergence rates as their respective baseline methods. Extensive experiments show that,
+by reducing the time per iteration, our methods
+converge faster than state-of-the-art compression
+methods in terms of wall-clock time.
+
+1. Introduction
+Distributed machine learning has drawn much attention as
+an important approach to scale up machine learning models.
+Since machine learning model training is notoriously time
+consuming, most distributed machine learning methods are
+1
+
+Computer Science and Engineering, University of Michigan,
+Ann Arbor. Correspondence to: Rui Liu <ruixliu@umich.edu>,
+Barzan Mozafari <mozafari@umich.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+focused on parallelizing stochastic gradient descent (SGD)
+algorithms (Shalev-Shwartz & Zhang, 2013; Schmidt et al.,
+2017; Johnson & Zhang, 2013). This is because SGD (and
+its variants) are commonly used to train machine learning
+models, including deep learning models (Sutskever et al.,
+2013; Duchi et al., 2011; Kingma & Ba, 2014). In SGD, let
+f (x) be the loss function that we hope to minimize, where
+x ∈ RD is the parameter vector of a machine learning model.
+At each iteration t, we have access to the unbiased gradient
+vector gt = g(xt ) such that E[g(xt )] = ∇f (xt ), where
+xt is the parameter vector at current iteration. A standard
+SGD uses the following update rule to get xt+1 for the next
+iteraiton: xt+1 = xt − αt gt , where αt is a scalar for step
+size.
+A common method to parallelize SGD is to use several
+machines to collectively minimize f . Each machine has
+one partition of the whole training dataset, and maintains
+a local copy of the parameter vector xt . At each iteration,
+it obtains a new gradient vector gt according to its local
+parameter copy and data partition. After each iteration, all
+machines broadcast their local gradient vectors to their peers,
+so that gradient vectors can be aggregated to compute the
+new parameter vector xt+1 . This synchronization step of
+aggregating gradients can also be relaxed with asynchronous
+update methods (Leblond et al., 2018; Recht et al., 2011;
+Nguyen et al., 2018; Liu et al., 2015). It has been observed
+that gradient communication in each iteration is a significant
+performance bottleneck in practical applications (Chilimbi
+et al., 2014; Seide et al., 2014; Strom, 2015).
+Existing Approaches. The main mechanism for alleviating
+the communication overhead is to compress the gradients
+before synchronously1 broadcasting them to peer machines.
+There are two popular approaches to compressing the gradients: one is to quantize gradients (into lower precision
+representation) (De Sa et al., 2015; Alistarh et al., 2017;
+Zhou et al., 2016; Wen et al., 2017; De Sa et al., 2017;
+Zhang et al., 2017; Rastegari et al., 2016; De Sa et al., 2018;
+Bernstein et al., 2018), and the other is to sparsify gradients
+by dropping some of their coordinates (Mania et al., 2015;
+Leblond et al., 2016; Aji & Heafield, 2017; Lin et al., 2017;
+Chen et al., 2018a; Renggli et al., 2018; Tsuzuku et al., 2018;
+1
+State-of-the-art gradient compression often uses synchronous
+updates. We will also discuss asynchronous updates in Section 2.
+
+

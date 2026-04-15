@@ -1,0 +1,62 @@
+Resolving Discrepancies in Compute-Optimal Scaling
+of Language Models
+
+Tomer Porian∗
+
+Mitchell Wortsman†
+
+Jenia Jitsev‡
+
+Ludwig Schmidt†
+
+Yair Carmon∗
+
+Abstract
+Kaplan et al. [30] and Hoffmann et al. [25] developed influential scaling laws for
+the optimal model size as a function of the compute budget, but these laws yield
+substantially different predictions. We explain the discrepancy by reproducing
+the Kaplan et al. scaling law on two datasets (OpenWebText2 and RefinedWeb)
+and identifying three factors causing the difference: last layer computational cost,
+warmup duration, and scale-dependent optimizer tuning. With these factors corrected, we obtain excellent agreement with the Hoffmann et al. (i.e., “Chinchilla”)
+scaling law. Counter to a hypothesis implied in Hoffmann et al. [25], we find that
+careful learning rate decay is not essential for the validity of their scaling law. As
+a secondary result, we derive scaling laws for the optimal learning rate and batch
+size, finding that tuning the AdamW β2 parameter is essential at lower batch sizes.
+
+1
+
+Introduction
+
+We consider the problem of compute-optimal language model training: given a compute budget
+C, we wish to predict how to best allocate it across model size (in parameters) and dataset size(in
+tokens). With pretraining budgets ever-increasing, compute-optimal scaling is a question of paramount
+importance. In their seminal work, Kaplan et al. [30] proposed a scaling law predicting that the
+optimal ratio of tokens to parameters decays as a power of C. This scaling law was influential in
+determining the size of GPT-3 and several subsequent models [12, 51, 43, 32, 47, 62, 52]. However,
+Hoffmann et al. [25] challenged its validity, arguing instead that the optimal token-to-parameter ratio
+should be approximately independent of C, and that contemporary models had too many parameters
+relative to their number of training tokens. Based on this prediction, they trained a 67B parameters
+model called Chinchilla and which outperformed larger models with a similar compute budget.
+While Hoffmann et al. [25] and subsequent work [55, 56, 17, 26, 15] established that following the
+Hoffmann et al. scaling law leads to better performance than Kaplan et al. scaling, it is still important
+to understand why the two works arrived at different conclusions. Is the difference due to architecture,
+training setup, pretraining data, results analysis, or perhaps something else entirely? The answer
+could teach us important lessons on how to correctly predict and perform model scaling.
+Hoffmann et al. [25] hypothesize that the scaling law discrepancy is due to Kaplan et al. [30] not
+tailoring the learning rate schedule for each token budget separately. While they demonstrate that
+mismatched learning rate decay results in a higher loss, they do not show it leads to a different
+compute-optimal scaling law. We further discuss Hoffmann et al. [25]’s hypothesis in Appendix A.
+To the best of our knowledge, this hypothesis is the only explanation offered in the literature so far.
+Our contribution. In this work, we uncover three factors contributing to the discrepancy, and
+disprove Hoffman et al.’s hypothesis about the role of learning rate decay; Figure 1 illustrates our main
+∗
+
+Tel Aviv University; correspondence to tomerpor@gmail.com and ycarmon@tauex.tau.ac.il.
+University of Washington.
+‡
+Jülich Supercomputing Centre (JSC) and LAION.
+†
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

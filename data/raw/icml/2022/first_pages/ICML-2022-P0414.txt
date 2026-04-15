@@ -1,0 +1,182 @@
+Directed Acyclic Transformer for Non-Autoregressive Machine Translation
+
+Fei Huang 1 2 * Hao Zhou 3 Yang Liu 2 Hang Li 3 Minlie Huang 1 2
+
+Abstract
+Non-autoregressive Transformers (NATs) significantly reduce the decoding latency by generating all tokens in parallel. However, such independent predictions prevent NATs from capturing
+the dependencies between the tokens for generating multiple possible translations. In this paper,
+we propose Directed Acyclic Transfomer (DATransformer), which represents the hidden states
+in a Directed Acyclic Graph (DAG), where each
+path of the DAG corresponds to a specific translation. The whole DAG simultaneously captures
+multiple translations and facilitates fast predictions in a non-autoregressive fashion. Experiments on the raw training data of WMT benchmark show that DA-Transformer substantially
+outperforms previous NATs by about 3 BLEU
+on average, which is the first NAT model that
+achieves competitive results with autoregressive
+Transformers without relying on knowledge distillation.
+
+1. Introduction
+Transformer has been the most popular architecture for sequence-to-sequence learning, especially for machine translation (Vaswani et al., 2017). Vanilla Transformer adopts
+the autoregressive approach for generation, which obtains
+strong results but is inefficient in inference due to its sequential decoding. To tackle the problem, Non-autoregressive
+Transformers (NATs, Gu et al., 2018; Gu et al., 2019; Ma
+et al., 2019;Ding et al., 2021a; Gu & Kong, 2021) have been
+*
+This work is partially done during Fei Huang’s internship at
+ByteDance AI Lab. 1 The CoAI group, Tsinghua University, China.
+2
+Institute for Artificial Intelligence, State Key Lab of Intelligent
+Technology and Systems, Beijing National Research Center for
+Information Science and Technology, Department of Computer
+Science and Technology, Tsinghua University, China. 3 ByteDance
+AI Lab. Correspondence to: Fei Huang <f-huang18@mails.tsingh
+ua.edu.cn>, Hao Zhou <haozhou0806@gmail.com>, Yang Liu
+<liuyang2011@tsinghua.edu.cn>, Hang Li <lihang.lh@byteda
+nce.com>, Minlie Huang <aihuang@tsinghua.edu.cn>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+（a）Reference 1:
+
+I
+
+just
+
+went
+
+to
+
+the
+
+cinema
+
+.
+
+Reference 2:
+
+I
+
+went
+
+to
+
+the
+
+movie
+
+theater
+
+.
+
+
+
+
+
+
+
+
+
+
+
+went
+
+went
+
+the
+
+the
+
+theater
+
+✓
+Prediction:
+
+I
+
+✓
+.
+
+Vanilla NAT
+
+我
+
+去
+
+电影院
+
+just
+
+went
+went
+
+to
+to
+
+the
+the
+
+cinema
+
+just
+
+went
+
+to
+
+the
+
+cinema movie theater .
+
+Source:
+
+（b）Reference 1: I
+Reference 2: I
+Prediction: I
+
+了
+
+。
+.
+movie theater .
+
+Directed Acyclic Transformer
+Source:
+
+我
+
+去
+
+电影院
+
+了
+
+。
+
+Figure 1. (a) The multi-modality problem in vanilla NAT. Multiple
+possible references provide inconsistent labels at some positions,
+leading to an implausible prediction that mixes several translations.
+(b) The proposed DA-Transformer. Tokens from different translations are assigned to distinct vertices to avoid the inconsistent
+labels. In inference, we follow the transitions to recover the output
+translation.
+
+proposed, which significantly reduce the inference latency
+by predicting all tokens in parallel and achieve reasonably
+high performances in translation. Notably, an NAT-based
+system obtain the highest BLEU score in German to English translation of WMT21 (Qian et al., 2021b; Akhbardeh
+et al., 2021), even better than a line of Autoregressive Transformer (AT) systems.
+However, current NATs severely suffer from the multimodality problem (Gu et al., 2018) in both training and
+inference.1 Intuitively, in training, as shown in Fig.1(a),
+NAT models are trained to predict each token independently,
+where one position may have several possible tokens as labels from several different translation references. In such a
+case, an NAT model may learn to generate an implausible
+output mixing multiple translations. Additionally, in inference, the NAT still cannot sample fluent translations even if
+it captures multi-modal information in training. Since the
+NAT model generates all tokens simultaneously, no effective
+sampling approach can be used on top of it. In contrast, ATs
+do not have the same problem because of their left-to-right
+generation, where the multi-modality problem for a later
+position is not so severe since its prefix has been given.
+1
+The multi-modality here refers to the fact that there are multiple possible translations for a single source sentence.
+
+

@@ -1,0 +1,85 @@
+Soft Threshold Weight Reparameterization for Learnable Sparsity
+
+Aditya Kusupati 1
+Vivek Ramanujan
+Raghav Somani * 1 Mitchell Wortsman * 1
+Prateek Jain 3 Sham Kakade 1 Ali Farhadi 1
+*2
+
+Abstract
+Sparsity in Deep Neural Networks (DNNs) is
+studied extensively with the focus of maximizing prediction accuracy given an overall parameter budget. Existing methods rely on uniform
+or heuristic non-uniform sparsity budgets which
+have sub-optimal layer-wise parameter allocation
+resulting in a) lower prediction accuracy or b)
+higher inference cost (FLOPs). This work proposes Soft Threshold Reparameterization (STR),
+a novel use of the soft-threshold operator on
+DNN weights. STR smoothly induces sparsity while learning pruning thresholds thereby
+obtaining a non-uniform sparsity budget. Our
+method achieves state-of-the-art accuracy for unstructured sparsity in CNNs (ResNet50 and MobileNetV1 on ImageNet-1K), and, additionally,
+learns non-uniform budgets that empirically reduce the FLOPs by up to 50%. Notably, STR
+boosts the accuracy over existing results by up
+to 10% in the ultra sparse (99%) regime and
+can also be used to induce low-rank (structured
+sparsity) in RNNs. In short, STR is a simple
+mechanism which learns effective sparsity budgets that contrast with popular heuristics. Code,
+pretrained models and sparsity budgets are at
+https://github.com/RAIVNLab/STR.
+
+1. Introduction
+Deep Neural Networks (DNNs) are the state-of-the-art models for many important tasks in the domains of Computer
+Vision, Natural Language Processing, etc. To enable highly
+accurate solutions, DNNs require large model sizes resulting
+in huge inference costs, which many times become the main
+*
+1
+Equal contribution
+University of Washington, USA
+Allen Institute for Artificial Intelligence, USA 3 Microsoft Research, India. Correspondence to: Aditya Kusupati <kusupati@cs.washington.edu>.
+2
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+bottleneck in the real-world deployment of the solutions.
+During inference, a typical DNN model stresses the following aspects of the compute environment: 1) RAM - working
+memory, 2) Processor compute - Floating Point Operations
+(FLOPs1 ), and 3) Flash - model size. Various techniques are
+proposed to make DNNs efficient including model pruning
+(sparsity) (Han et al., 2015), knowledge distillation (Buciluǎ
+et al., 2006), model architectures (Howard et al., 2017) and
+quantization (Rastegari et al., 2016).
+Sparsity of the model, in particular, has potential for impact
+across a variety of inference settings as it reduces the model
+size and inference cost (FLOPs) without significant change
+in training pipelines. Naturally, several interesting projects
+address inference speed-ups via sparsity on existing frameworks (Liu et al., 2015; Elsen et al., 2019) and commodity
+hardware (Ashby et al.). On-premise or Edge computing
+is another domain where sparse DNNs have potential for
+deep impact as it is governed by billions of battery limited
+devices with single-core CPUs. These devices, including
+mobile phones (Anguita et al., 2012) and IoT sensors (Patil
+et al., 2019; Roy et al., 2019), can benefit significantly from
+sparsity as it can enable real-time on-device solutions.
+Sparsity in DNNs, surveyed extensively in Section 2, has
+been the subject of several papers where new algorithms
+are designed to obtain models with a given parameter budget. But state-of-the-art DNN models tend to have a large
+number of layers with highly non-uniform distribution both
+in terms of the number of parameters as well as FLOPs
+required per layer. Most existing methods rely either on
+uniform sparsity across all parameter tensors (layers) or
+on heuristic non-uniform sparsity budgets leading to a suboptimal weight allocation across layers and can lead to a
+significant loss in accuracy. Furthermore, if the budget is
+set at a global level, some of the layers with a small number
+of parameters would be fully dense as their contribution to
+the budget is insignificant. However, those layers can have
+significant FLOPs, e.g., in an initial convolution layer, a
+simple tiny 3×3 kernel would be applied to the entire image.
+Hence, while such models might decrease the number of
+non-zeroes significantly, their FLOPs could still be large.
+1
+
+One Multiply-Add is counted as one FLOP
+
+

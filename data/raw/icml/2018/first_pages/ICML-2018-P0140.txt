@@ -1,0 +1,80 @@
+A Distributed Second-Order Algorithm You Can Trust
+
+Celestine Dünner 1 Aurelien Lucchi 2 Matilde Gargiani 3 An Bian 2 Thomas Hofmann 2 Martin Jaggi 4
+
+Abstract
+Due to the rapid growth of data and computational
+resources, distributed optimization has become an
+active research area in recent years. While firstorder methods seem to dominate the field, secondorder methods are nevertheless attractive as they
+potentially require fewer communication rounds
+to converge. However, there are significant drawbacks that impede their wide adoption, such as
+the computation and the communication of a large
+Hessian matrix. In this paper we present a new algorithm for distributed training of generalized linear models that only requires the computation of
+diagonal blocks of the Hessian matrix on the individual workers. To deal with this approximate information we propose an adaptive approach that akin to trust-region methods - dynamically adapts
+the auxiliary model to compensate for modeling
+errors. We provide theoretical rates of convergence for a wide class of problems including L1 regularized objectives. We also demonstrate that
+our approach achieves state-of-the-art results on
+multiple large benchmark datasets.
+
+1. Introduction
+The last decade has witnessed a growing number of successful machine learning applications in various fields, along
+with the availability of larger training datasets. However,
+the speed at which training datasets grow in size is strongly
+outpacing the evolution of the computational power of single devices, as well as their memory capacity. Therefore,
+distributed approaches for training machine learning models have become tremendously important while also being increasingly more accessible to users with the rise of
+cloud-computing. Scaling up optimization algorithms for
+training machine learning models in such a setting poses
+1
+IBM Research – Zürich, Switzerland 2 ETH, Zürich, Switzerland 3 Albert-Ludwigs-Universität, Freiburg, Germany 4 EPFL,
+Lausanne, Switzerland. Correspondence to: Celestine Dünner
+<cdu@zurich.ibm.com>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+many challenges. One key aspect is communication efficiency; because communication is often more expensive
+than local computation, the overall speed of distributed
+algorithms strongly depends on how frequently information is exchanged between workers. In order to develop
+communication-efficient distributed algorithms, we advocate the use of second-order methods which benefit from
+faster rates of convergence compared to their first-order
+(gradient-based) counterparts, and hence require less communication rounds to achieve the same accuracy. However,
+second-order methods have the significant drawback of requiring the computation and storage – and potentially the
+communication – of a Hessian matrix. Exact methods are
+therefore elusive for large datasets and one has to resort to
+approximate methods. In this paper, we propose a method
+where every worker uses local Hessian information only
+(i.e., with respect to the local parameters on that worker),
+hence it does not require any second-order information to
+be communicated. Conceptually, this approach relies on approximating the full Hessian matrix with a block-diagonal
+version. At the same time, to automatically adapt to the
+model misfit, we use an adaptive approach similar in spirit
+to trust-region methods (Conn et al., 2000).
+Problem Setup & Distributed Setting. We address the
+problem of training generalized linear models which are
+ubiquitous in machine learning, including e.g. logistic regression, support vector machines as well as sparse linear
+models such as lasso and elastic net. Formally, we address
+convex optimization problems with an objective of the form
+F (α) := f (Aα) +
+
+X
+i
+
+gi (αi ),
+
+(1)
+
+where we assume f to be smooth and convex, and gi to be
+convex functions. A ∈ Rd×n is a given data matrix and
+α ∈ Rn the parameter vector to be learned from data.
+We assume that every worker k ∈ {1 . . . K} only has access to its own local part of the data, which corresponds to a
+subset of the columns of the matrix A. In machine learning,
+these columns typically correspond to a subset of the features or data examples, depending on the application. For
+example, in the case where (1) corresponds to the objective
+of a regularized generalized linear P
+model – i.e., where f
+is a data dependent loss and g =
+i gi a regularization
+term – the columns of A correspond to features. In another
+
+

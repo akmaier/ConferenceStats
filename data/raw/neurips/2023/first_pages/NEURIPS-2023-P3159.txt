@@ -1,0 +1,57 @@
+Clustering the Sketch: Dynamic Compression for
+Embedding Tables
+
+Henry Ling-Hei Tsang∗
+Meta
+henrylhtsang@meta.com
+
+Thomas Dybdahl Ahle∗
+Meta†
+Normal Computing
+thomas@ahle.dk
+
+Abstract
+Embedding tables are used by machine learning systems to work with categorical
+features. In modern Recommendation Systems, these tables can be very large,
+necessitating the development of new methods for fitting them in memory, even
+during training. We suggest Clustered Compositional Embeddings (CCE) which
+combines clustering-based compression like quantization to codebooks with dynamic methods like The Hashing Trick and Compositional Embeddings [Shi et al.,
+2020]. Experimentally CCE achieves the best of both worlds: The high compression rate of codebook-based quantization, but dynamically like hashing-based
+methods, so it can be used during training. Theoretically, we prove that CCE is
+guaranteed to converge to the optimal codebook and give a tight bound for the
+number of iterations required.
+
+1
+
+Introduction
+
+Neural networks can efficiently handle various data types, including continuous, sparse, and sequential
+features. However, categorical features present a unique challenge as they require embedding a
+typically vast vocabulary into a smaller vector space for further calculations. Examples of these
+features include user IDs, post IDs on social networks, video IDs, and IP addresses commonly
+encountered in Recommendation Systems.
+In some domains where embeddings are employed, such as Natural Language Processing [Mikolov
+et al., 2013], the vocabulary can be significantly reduced by considering “subwords” or “byte pair
+encodings”. In Recommendation Systems like Matrix Factorization or DLRM (see Figure 2) it is
+typically not possible to factorize the vocabulary this way, leading to large embedding tables that
+demand hundreds of gigabytes of GPU memory [Naumov et al., 2019]. This necessitates splitting
+models across multiple GPUs, increasing cost and creating a communication bottleneck during both
+training and inference.
+The traditional solution is to hash the IDs down to a manageable size using the Hashing Trick [Weinberger et al., 2009], accepting the possibility that unrelated IDs may share the same representation.
+Excessively aggressive hashing can impair the model’s ability to distinguish its inputs, as it may mix
+up unrelated concepts, ultimately reducing model performance.
+Another option for managing embedding tables is quantization. This typically involves reducing the
+precision to 4 or 8 bits or using multi-dimensional methods like Product Quantization and Residual
+Vector Quantization, which rely on clustering (e.g., K-means) to identify representative “code words”
+for each original ID. (See Gray and Neuhoff [1998] for a survey of quantization methods.) For
+instance, vectors representing “red”, “orange”, and “blue” may be stored as simply “dark orange”
+and “blue”, with the first two concepts pointing to the same average embedding. See Section 1 for
+∗
+†
+
+Equal contribution.
+Work done mostly at Probability at Meta.
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

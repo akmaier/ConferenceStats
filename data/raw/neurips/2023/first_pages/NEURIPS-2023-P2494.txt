@@ -1,0 +1,77 @@
+Self-Consistent Velocity Matching of Probability Flows
+
+Lingxiao Li
+MIT CSAIL
+lingxiao@mit.edu
+
+Samuel Hurault
+Univ. Bordeaux, Bordeaux INP, CNRS, IMB
+samuel.hurault@math.u-bordeaux.fr
+
+Justin Solomon
+MIT CSAIL
+jsolomon@mit.edu
+
+Abstract
+We present a discretization-free scalable framework for solving a large class
+of mass-conserving partial differential equations (PDEs), including the timedependent Fokker-Planck equation and the Wasserstein gradient flow. The main
+observation is that the time-varying velocity field of the PDE solution needs to
+be self-consistent: it must satisfy a fixed-point equation involving the probability flow characterized by the same velocity field. Instead of directly minimizing
+the residual of the fixed-point equation with neural parameterization, we use an
+iterative formulation with a biased gradient estimator that bypasses significant
+computational obstacles with strong empirical performance. Compared to existing
+approaches, our method does not suffer from temporal or spatial discretization,
+covers a wider range of PDEs, and scales to high dimensions. Experimentally,
+our method recovers analytical solutions accurately when they are available and
+achieves superior performance in high dimensions with less training time compared
+to alternatives.
+
+1
+
+Introduction
+
+Mass conservation is a ubiquitous phenomenon in dynamical systems arising from fluid dynamics,
+electromagnetism, thermodynamics, and stochastic processes. Mathematically, mass conservation is
+formulated as the continuity equation:
+∂t pt (x) = −∇ · (vt pt ), ∀x, t ∈ [0, T ],
+(1)
+R
+where pt : R → R is a scalar quantity such that the total mass pt (x) is conserved with respect to
+t, vt R: Rd → Rd is a velocity field, and T > 0 is total time. We will assume, for all t ∈ [0, T ], pt ≥ 0
+and pt (x) dx = 1, i.e., pt is a probability density function. We use µt to denote the probability
+measure with density pt . Once a pair (pt , vt ) satisfies (1), the density pt is coupled with vt in the
+sense that the evolution of pt in time is characterized by vt (Section 3.1).
+d
+
+We consider the subclass of mass-conserving PDEs that can be written succinctly as
+∂t pt (x) = −∇ · (ft (x; µt )pt ), ∀x, t ∈ [0, T ],
+
+(2)
+
+where ft (·; µt ) : R → R is a given function depending on µt , with initial condition µ0 = µ∗0 for a
+given initial probability measure µ∗0 with density p∗0 .
+d
+
+d
+
+Different choices of ft lead to a large class of mass-conserving PDEs. For instance, given a functional
+F : P2 (Rd ) → R on the space of probability distributions with finite second moments, if we take
+d
+
+ft (x; µt ) := −∇W2 F(µt )(x),
+
+(3)
+
+ft (x; µt ) := bt (x) − Dt (x)∇ log pt (x),
+
+(4)
+
+d
+
+where ∇W2 F(µ) : R → R is the Wasserstein gradient of F, then the solution to (2) is the
+Wasserstein gradient flow of F [Santambrogio, 2015, Chapter 8]. Thus, solving (2) efficiently allows
+us to optimize in the probability measure space. If we take
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

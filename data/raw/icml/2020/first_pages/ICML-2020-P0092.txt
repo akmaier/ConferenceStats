@@ -1,0 +1,77 @@
+Deep Coordination Graphs
+
+Wendelin Böhmer 1 Vitaly Kurin 1 Shimon Whiteson 1
+
+Abstract
+This paper introduces the deep coordination
+graph (DCG) for collaborative multi-agent reinforcement learning. DCG strikes a flexible tradeoff between representational capacity and generalization by factoring the joint value function of
+all agents according to a coordination graph into
+payoffs between pairs of agents. The value can
+be maximized by local message passing along the
+graph, which allows training of the value function end-to-end with Q-learning. Payoff functions are approximated with deep neural networks
+that employ parameter sharing and low-rank approximations to significantly improve sample efficiency. We show that DCG can solve predatorprey tasks that highlight the relative overgeneralization pathology, as well as challenging StarCraft
+II micromanagement tasks.
+
+1. Introduction
+One of the central challenges in cooperative multi-agent reinforcement learning (MARL, Oroojlooy jadid & Hajinezhad,
+2019) is coping with the size of the joint action space, which
+grows exponentially in the number of agents. For example,
+just eight agents, each with six actions, yield a joint action
+space with more than a million actions. Efficient MARL
+methods must thus generalize over large joint action spaces,
+in the same way that convolutional neural networks allow
+deep RL to generalize over large visual state spaces.
+MARL often addresses the issue of large joint observation
+and action spaces by assuming that the learned control policy is fully decentralized, that is, each agent acts independently based on its own observations only. For example,
+Figure 1a shows how the joint value function can be factored
+into utility functions that each depend only on the actions
+of one agent (Sunehag et al., 2018; Rashid et al., 2018).
+1
+
+Department of Computer Science, Oxford University,
+United Kingdom. Correspondence to: Wendelin Böhmer
+<wendelin.boehmer@gmail.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Consequently, the joint value function can be efficiently
+maximized if each agent simply selects the action that maximizes its corresponding utility function. This factorization
+can represent any deterministic (and thus at least one optimal) joint policy. However, that policy may not be learnable
+due to a game-theoretic pathology called relative overgeneralization1 (Panait et al., 2006): during exploration other
+agents act randomly and punishment caused by uncooperative agents may outweigh rewards that would be achievable
+with coordinated actions. If the employed value function
+does not have the representational capacity to distinguish the
+values of coordinated and uncoordinated actions, an optimal
+policy cannot be learned.
+A higher-order value factorization can be expressed as an
+undirected coordination graph (CG, Guestrin et al., 2002a),
+where each vertex represents one agent and each (hyper-)
+edge one payoff function over the joint action space of the
+connected agents. Figure 1b shows a CG with pairwise
+edges and the corresponding value factorization. Here the
+value depends non-trivially on the actions of all agents,
+yielding a richer representation. Although the value can no
+longer be maximized by each agent individually, the greedy
+action can be found using message passing along the edges
+(also known as belief propagation, Pearl, 1988). Sparse
+cooperative Q-learning (Kok & Vlassis, 2006) applies CGs
+to MARL, but does not scale to real-world tasks, as each
+payoff function (f 12 and f 23 in Figure 1b) is represented
+as a table over the state and joint action space of the connected agents. Castellini et al. (2019) use neural networks
+to approximate payoff functions in the simplified case of
+non-sequential one-shot games. Moreover, neither approach
+shares parameters between the approximated payoff functions, so agents in each factor, represented by an edge, must
+experience all corresponding action combinations. This can
+require visiting a large subset of the joint action space.
+While decentralization can be a requirement of the task at
+hand, for example when communication between agents
+is impossible, many important applications that allow for
+centralized or distributed controllers face the same issues.
+Examples are power, water or heat grids (Correa-Posada
+& Sánchez-Martin, 2015), electronic trading (Bacoyannis
+1
+
+Not to be confused with the general term generalization in
+the context of function approximation mentioned earlier.
+
+

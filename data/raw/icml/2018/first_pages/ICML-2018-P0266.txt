@@ -1,0 +1,80 @@
+Frank-Wolfe with Subsampling Oracle
+Thomas Kerdreux * 1 Fabian Pedregosa * 2 3 Alexandre d’Aspremont 4 1
+
+Abstract
+We analyze two novel randomized variants of the
+Frank-Wolfe (FW) or conditional gradient algorithm. While classical FW algorithms require
+solving a linear minimization problem over the
+domain at each iteration, the proposed method
+only requires to solve a linear minimization problem over a small subset of the original domain.
+The ﬁrst algorithm that we propose is a randomized variant of the original FW algorithm and
+achieves a O(1/t) sublinear convergence rate as
+in the deterministic counterpart. The second algorithm is a randomized variant of the Awaystep FW algorithm, and again as its deterministic counterpart, reaches linear (i.e., exponential)
+convergence rate making it the ﬁrst provably convergent randomized variant of Away-step FW. In
+both cases, while subsampling reduces the convergence rate by a constant factor, the cost of the
+linear minimization step can be a fraction of the
+deterministic versions, especially when the data
+is streamed. We illustrate computational gains on
+regression problems, involving both �1 and latent
+group lasso penalties.
+
+1. Introduction
+The Frank-Wolfe (FW) or conditional gradient algorithm (Frank & Wolfe, 1956; Jaggi, 2013) is designed to
+solve optimization problems of the form
+minimize f (x) , with M = conv(A) ,
+x∈M
+
+(OPT)
+
+where A is a (possibly inﬁnite) set of vectors which we
+call atoms, and conv(A) is its convex hull. The FW al*
+
+Equal contribution 1 D.I., UMR 8548, École Normale
+2
+UC Berkeley, USA. 3 ETH
+Supérieure, Paris, France.
+Zurich, Switzerland. 4 CNRS, France.. Correspondence to:
+Thomas Kerdreux <thomas.kerdreux@inria.fr>, Fabian Pedregosa <f@bianp.net>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+gorithm and variants have seen an impressive revival in
+recent years, due to their low memory requirements and
+projection-free iterations, which make them particularly
+appropriate to solve large scale convex problems, for instance convex relaxations of problems written over combinatorial polytopes (Zaslavskiy et al., 2009; Joulin et al.,
+2014; Vogelstein et al., 2015).
+The Frank-Wolfe algorithm is projection-free, i.e. unlike
+most methods to solve (OPT), it does not require to compute a projection onto the feasible set M. Instead, it relies on a linear minimization oracle over a set A, denoted
+LMO(·, A), which solves the following linear problem
+LMO(r, A) ∈ arg min�v, r� .
+
+(1)
+
+v∈A
+
+For some feasible sets such as the nuclear or latent group
+norm ball (Jaggi et al., 2010; Vinyes & Obozinski, 2017),
+computing the LMO can be orders of magnitude faster than
+projecting. Another feature of FW that has greatly contributed to its practical success is its low memory requirements. The algorithm maintains its iterates as a convex
+combination of a few atoms, enabling the resulting sparse
+and low rank iterates to be stored efﬁciently. This feature
+allows the FW algorithm to be used in situations with a
+huge or even inﬁnite number of features, such as architecture optimization in neural networks (Ping et al., 2016) or
+estimation of an inﬁnite-dimensional sparse matrix arising
+in multi-output polynomial networks (Blondel et al., 2017).
+Despite these attractive properties, for problems with a
+large number of variables or with a very large atomic set
+(or both), computing the full gradient and LMO at each iteration can become prohibitive. Designing variants of the
+FW algorithm which alleviate this computational burden
+would have a signiﬁcant practical impact on performance.
+One recent direction to achieve this is to replace the LMO
+with a randomized linear oracle in which the linear minimization is performed only over a random sample of the
+original atomic domain. This approach has proven to be
+highly successful on speciﬁc problems such as structured
+SVMs (Lacoste-Julien et al., 2013) and �1 -constrained regression (Frandi et al., 2016), however little is known in
+the general case. Is it possible to design a FW variant with
+a randomized oracle that achieves the same convergence
+rate (up to a constant factor) as the non-randomized vari-
+
+

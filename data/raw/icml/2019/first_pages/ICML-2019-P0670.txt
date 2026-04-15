@@ -1,0 +1,90 @@
+Jumpout : Improved Dropout for Deep Neural Networks with ReLUs
+
+Shengjie Wang * 1 Tianyi Zhou * 1 Jeff A. Bilmes 2
+
+Abstract
+We discuss three novel insights about dropout for
+DNNs with ReLUs: 1) dropout encourages each
+local linear piece of a DNN to be trained on data
+points from nearby regions; 2) the same dropout
+rate results in different (effective) deactivation
+rates for layers with different portions of ReLUdeactivated neurons; and 3) the rescaling factor
+of dropout causes a normalization inconsistency
+between training and test when used together
+with batch normalization. The above leads to
+three simple but nontrivial modifications resulting
+in our method “jumpout.” Jumpout samples
+the dropout rate from a monotone decreasing
+distribution (e.g., the right half of a Gaussian), so
+each local linear piece is trained, with high probability, to work better for data points from nearby
+than more distant regions. Jumpout moreover
+adaptively normalizes the dropout rate at each
+layer and every training batch, so the effective
+deactivation rate on the activated neurons is kept
+the same. Furthermore, it rescales the outputs
+for a better trade-off that keeps both the variance
+and mean of neurons more consistent between
+training and test phases, thereby mitigating the
+incompatibility between dropout and batch normalization. Jumpout significantly improves the
+performance of different neural nets on CIFAR10,
+CIFAR100, Fashion-MNIST, STL10, SVHN,
+ImageNet-1k, etc., while introducing negligible
+additional memory and computation costs.
+
+1
+
+Introduction
+
+While deep neural networks (DNNs) are successful on a
+wide variety of tasks (Russakovsky et al., 2015; Rajpurkar
+et al., 2016), they are often able to fit training data
+*
+
+Equal contribution 1 Paul G. Allen School of Computer Science & Engineering 2 Department of Electrical & Computer Engineering, University of Washington, Seattle, USA. Correspondence to: Shengjie Wang <wangsj@uw.edu>, Tianyi Zhou <tianyizh@uw.edu>, Jeff A. Bilmes <bilmes@uw.edu>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+perfectly, resulting in an overfitting problem and thereby
+weakening the generalization performance on unseen data.
+Dropout (Srivastava et al., 2014; Huang et al., 2016) is a
+simple yet effective technique to mitigate such problems
+by randomly setting the activations of hidden neurons to
+0, a strategy that reduces co-adaptation amongst neurons.
+Dropout applies to any layer in a DNN without causing
+significant additional computational overhead.
+Dropout, however, has several drawbacks. Firstly, dropout
+rates, constituting extra hyper-parameters at each layer, need
+to be tuned to get optimal performance. Too high a dropout
+rate can slow the convergence rate of the model, and often
+hurt final performance. Too low a rate yields few or no improvements on generalization performance. Ideally, dropout
+rates should be tuned separately for each layer and also during various training stages. In practice, to reduce computation, we often tune a single dropout rate and keep it constant
+for all dropout layers and throughout the training process.
+If we treat dropout as a type of perturbation on each
+training sample, it acts to generalize the DNN to noisy
+samples having that specific expected or typical amount
+of perturbation (due to the fixed dropout rate) with high
+probability. The fixed rate means noisy samples having less
+perturbation, i.e., those potentially more likely to be closer
+to the original samples and thus that are potentially more
+helpful to improve generalization, are much less likely to
+occur. Also, when a constant dropout rate is applied to
+layers and samples having different fractions of activated
+neurons, the effective dropout rate (i.e., the proportion of
+the activated neurons that are deactivated by dropout) varies,
+which might result in immoderate perturbation for some
+layers and samples and insufficient perturbation for others.
+Another deficiency of dropout lies in its incompatibility
+with batch normalization (BN) (Ioffe & Szegedy, 2015)
+(more empirical evidence of this is shown in Section 3.3).
+As dropout randomly shuts down activated neurons, it needs
+to rescale the undropped neurons to match the original
+overall activation gain of the layer. Unfortunately, such
+rescaling breaks the consistency of the normalization
+parameters required between training and test phases1 and
+1
+Dropout usually happens only during the training but not the
+test phase, since using it for testing requires averaging the results
+of multiple dropout inferences on each training sample, which is
+
+

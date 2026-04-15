@@ -1,0 +1,71 @@
+It’s Raw! Audio Generation with State-Space Models
+
+Karan Goel 1 Albert Gu 1 Chris Donahue 1 Christopher Ré 1
+
+Abstract
+Developing architectures suitable for modeling
+raw audio is a challenging problem due to the
+high sampling rates of audio waveforms. Standard sequence modeling approaches like RNNs
+and CNNs have previously been tailored to fit
+the demands of audio, but the resultant architectures make undesirable computational tradeoffs
+and struggle to model waveforms effectively. We
+propose S A S HI M I, a new multi-scale architecture
+for waveform modeling built around the recently
+introduced S4 model for long sequence modeling. We identify that S4 can be unstable during autoregressive generation, and provide a simple improvement to its parameterization by drawing connections to Hurwitz matrices. S A S HI M I
+yields state-of-the-art performance for unconditional waveform generation in the autoregressive
+setting. Additionally, S A S HI M I improves nonautoregressive generation performance when used
+as the backbone architecture for a diffusion model.
+Compared to prior architectures in the autoregressive generation setting, S A S HI M I generates piano
+and speech waveforms which humans find more
+musical and coherent respectively, e.g. 2× better
+mean opinion scores than WaveNet on an unconditional speech generation task.1 On a music generation task, S A S HI M I outperforms WaveNet on
+density estimation and speed at both training and
+inference even when using 3× fewer parameters.
+
+1. Introduction
+Generative modeling of raw audio waveforms is a challenging frontier for machine learning due to their highdimensionality—waveforms contain tens of thousands of
+1
+
+Department of Computer Science, Stanford University. Correspondence to: Karan Goel <kgoel@cs.stanford.edu>, Albert Gu
+<albertgu@stanford.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+1
+Examples:
+https://hazyresearch.stanford.
+edu/sashimi-examples
+
+timesteps per second and exhibit long-range behavior at multiple timescales. A key problem is developing architectures
+for modeling waveforms with the following properties:
+1. Globally coherent generation, which requires modeling
+unbounded contexts with long-range dependencies.
+2. Computational efficiency through parallel training, and
+fast autoregressive and non-autoregressive inference.
+3. Sample efficiency through a model with inductive biases
+well suited to high-rate waveform data.
+Among the many training methods for waveform generation,
+autoregressive (AR) modeling is a fundamentally important
+approach. AR models learn the distribution of future variables conditioned on past observations, and are central to
+recent advances in machine learning for language and image generation (Brown et al., 2020; Ramesh et al., 2021;
+Bommasani et al., 2021). With AR models, computing
+the exact likelihood is tractable, which makes them simple
+to train, and lends them to applications such as lossless
+compression (Kleijn et al., 2018) and posterior sampling (Jayaram & Thickstun, 2021). When generating, they can
+condition on arbitrary amounts of past context to sample
+sequences of unbounded length—potentially even longer
+than contexts observed during training. Moreover, architectural developments in AR waveform modeling can have
+a cascading effect on audio generation more broadly. For
+example, WaveNet—the earliest such architecture (van den
+Oord et al., 2016)—remains a central component of stateof-the-art approaches for text-to-speech (TTS) (Li et al.,
+2019), unconditional generation (Lakhotia et al., 2021), and
+non-autoregressive (non-AR) generation (Kong et al., 2021).
+Despite notable progress in AR modeling of (relatively)
+short sequences found in domains such as natural language (e.g. 1K tokens), it is still an open challenge
+to develop architectures that are effective for the much
+longer sequence lengths of audio waveforms (e.g. 1M samples). Past attempts have tailored standard sequence modeling approaches like CNNs (van den Oord et al., 2016),
+RNNs (Mehri et al., 2017), and Transformers (Child et al.,
+2019) to fit the demands of AR waveform modeling, but
+these approaches have limitations. For example, RNNs
+lack computational efficiency because they cannot be parallelized during training, while CNNs cannot achieve global
+
+

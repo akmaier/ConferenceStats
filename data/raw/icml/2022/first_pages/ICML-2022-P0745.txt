@@ -1,0 +1,81 @@
+Zero-Shot AutoML with Pretrained Models
+
+Ekrem Öztürk * 1 Fabio Ferreira * 1 Hadi S. Jomaa * 2 Lars Schmidt-Thieme 2 Josif Grabocka 1
+Frank Hutter 1 3
+
+Abstract
+Given a new dataset D and a low compute budget, how should we choose a pre-trained model
+to fine-tune to D, and set the fine-tuning hyperparameters without risking overfitting, particularly if
+D is small? Here, we extend automated machine
+learning (AutoML) to best make these choices.
+Our domain-independent meta-learning approach
+learns a zero-shot surrogate model, which, at test
+time, allows to select the right deep learning (DL)
+pipeline (including the pre-trained model and
+fine-tuning hyperparameters) for a new dataset
+D given only trivial meta-features describing D,
+such as image resolution or the number of classes.
+To train this zero-shot model, we collect performance data for many DL pipelines on a large collection of datasets and meta-train on this data to
+minimize a pairwise ranking objective. We evaluate our approach under the strict time limit of the
+vision track of the ChaLearn AutoDL challenge
+benchmark, clearly outperforming all challenge
+contenders.
+
+1. Introduction
+A typical problem in deep learning (DL) applications is to
+find a good model for a given dataset D in a restrictive time
+budget. In the case of tabular data, a popular approach for
+solving this problem is automated machine learning (AutoML), as implemented, e.g., in Auto-sklearn (Feurer et al.,
+2015a) or Auto-Gluon (Erickson et al., 2020). However,
+in domains such as computer vision and natural language
+processing, a better solution, especially under low resource
+constraints, is typically to fine-tune an existing pre-trained
+model. This, at first glance, appears to render AutoML
+unnecessary for those domains. However, as we will demonstrate in this paper, AutoML and pre-trained models can be
+*
+
+Equal contribution 1 University of Freiburg 2 University of
+Hildesheim 3 Bosch Center for Artificial Intelligence. Correspondence to: Fabio Ferreira <ferreira@cs.uni-freiburg.de>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+combined to yield much stronger performance than either
+of them alone.
+A great advantage of fine-tuning pre-trained models is strong
+anytime performance: the use of pre-trained models often allows to obtain very strong performance orders of magnitude
+faster than when training a model from scratch. In many
+practical applications, this strong anytime performance is
+crucial, e.g., for DL-based recognition systems in manufacturing, or automated DL (AutoDL) web services. The
+clock starts ticking as soon as a new dataset is available,
+and it would be far too costly to train a new model from
+scratch, let alone optimize its hyperparameters. The recent
+ChaLearn AutoDL competition (Liu et al., 2021) mimicked
+these tight time constraints, rewarding performance found
+in an anytime fashion.
+While fine-tuning pre-trained models enjoys strong anytime
+performance, it also introduces many additional degrees of
+freedom. Firstly, we need to select a pre-trained network
+to fine-tune. To obtain good anytime performance, we may
+even want to start by training a shallow model to obtain
+good results quickly, and at some point switch to fine-tuning
+a deeper model. There are many additional degrees of freedom in this fine-tuning phase, concerning learning rates,
+data augmentation, and regularization techniques. We refer
+to the combination of a pre-trained model and the fully specified fine-tuning phase, including its hyperparameters, as a
+DL pipeline. Which DL pipeline works best depends heavily
+on the dataset, for instance, datasets with high-resolution
+images may favor the use of more downsampling layers than
+the low-resolution images of the CIFAR dataset (Krizhevsky
+et al., 2009); likewise, datasets with few images may favor
+smaller learning rates. We, therefore, require an automated
+method for selecting the best DL pipeline based on the
+characteristics of the dataset at hand.
+In this paper, we tackle this problem by meta-learning a
+model across datasets that enables zero-shot DL pipeline
+selection. Specifically, we create a meta-dataset holding
+the performance of many DL pipelines on a broad range of
+datasets. Using this meta-dataset, we then learn a function
+that selects the right DL pipeline based on the properties
+of the dataset (e.g., the image resolution and the number of
+images) in a zero-shot setting. To learn this selection function, we first formulate DL pipeline selection as a classical
+
+

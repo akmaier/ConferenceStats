@@ -1,0 +1,74 @@
+HAWQ-V3: Dyadic Neural Network Quantization
+Zhewei Yao * 1 Zhen Dong * 1 Zhangcheng Zheng * 1 Amir Gholami * 1 Jiali Yu 2 3 Eric Tan 1 Leyuan Wang 2
+Qijing Huang 1 Yida Wang 2 Michael W. Mahoney 1 Kurt Keutzer 1
+
+Abstract
+Current low-precision quantization algorithms often have the hidden cost of conversion back and
+forth from floating point to quantized integer values. This hidden cost limits the latency improvement realized by quantizing Neural Networks.
+To address this, we present HAWQ-V3, a novel
+mixed-precision integer-only quantization framework. The contributions of HAWQ-V3 are the
+following: (i) An integer-only inference where
+the entire computational graph is performed only
+with integer multiplication, addition, and bit shifting, without any floating point operations or even
+integer division; (ii) A novel hardware-aware
+mixed-precision quantization method where the
+bit-precision is calculated by solving an integer
+linear programming problem that balances the
+trade-off between model perturbation and other
+constraints, e.g., memory footprint and latency;
+(iii) Direct hardware deployment and open source
+contribution for 4-bit uniform/mixed-precision
+quantization in TVM, achieving an average speed
+up of 1.45⇥ for uniform 4-bit, as compared to
+uniform 8-bit for ResNet50 on T4 GPUs; and (iv)
+extensive evaluation of the proposed methods on
+ResNet18/50 and InceptionV3, for various model
+compression levels with/without mixed precision.
+For ResNet50, our INT8 quantization achieves an
+accuracy of 77.58%, which is 2.68% higher than
+prior integer-only work, and our mixed-precision
+INT4/8 quantization can reduce INT8 latency by
+23% and still achieve 76.73% accuracy. Our
+framework and the TVM implementation have
+been open sourced (HAWQ, 2020).
+
+*
+
+Equal contribution 1 University of California, Berkeley
+Amazon 3 Shanghai Jiao Tong University. Correspondence
+to: Zhewei Yao <zheweiy@berkeley.edu>, Amir Gholami
+<amirgh@berkeley.edu>.
+2
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+1. Introduction
+An important step toward realizing pervasive deep learning is enabling real-time inference, both at the edge and in
+the cloud, with low energy consumption and state-of-theart model accuracy. This will have a significant impact on
+applications such as real-time intelligent healthcare monitoring, autonomous driving, audio analytics, and speech
+recognition. Over the past decade, we have observed significant improvements in the accuracy of Neural Networks
+(NNs) for various tasks. However, the state-of-the-art models are often prohibitively large and too compute-heavy to
+be deployed for real-time use. A promising approach to
+address this is through quantization (Gray & Neuhoff, 1998;
+Han et al., 2016), where low-precision quantized integer
+values are used to express the model parameters and feature maps. That can help reduce the model footprint, and
+improve inference speed and energy consumption.
+However, existing quantization algorithms often use simulated quantization, where the parameters are stored with
+quantization, but are cast to floating point for inference. As
+a result, all or part of the inference operations (e.g. convolution, matrix operations, batch norm layers, residual
+connections) are performed using floating point precision.
+This of course limits the speed up as we cannot utilize low
+precision logic. To address this, we build upon existing
+integer-only quantization methods (Jacob et al., 2018), and
+propose systematic methods to extend them to low and
+mixed-precision quantization. In particular, we make the
+following contributions:
+• We develop HAWQ-V3, a mixed-precision integeronly quantization framework with integer-only multiplication, addition, and bit shifting with static quantization. Importantly, no floating point and no integer
+division calculation is performed in the entire inference.
+This includes the batch norm layers and residual connections, which are typically kept at floating point precision in prior integer-only quantization work (Dong
+et al., 2019). While keeping these operations in floating
+point helps accuracy, this is not allowed for integeronly hardware. We show that ignoring this and attempting to deploy a model that uses floating point
+residual on integer-only hardware can lead to more
+
+

@@ -1,0 +1,74 @@
+Keyframe-Focused Visual Imitation Learning
+
+Chuan Wen * 1 Jierui Lin * 2 Jianing Qian 3 Yang Gao 1 4 Dinesh Jayaraman 3
+
+Abstract
+Imitation learning trains control policies by mimicking pre-recorded expert demonstrations. In partially observable settings, imitation policies must
+rely on observation histories, but many seemingly
+paradoxical results show better performance for
+policies that only access the most recent observation. Recent solutions ranging from causal graph
+learning to deep information bottlenecks have
+shown promising results, but failed to scale to realistic settings such as visual imitation. We propose
+a solution that outperforms these prior approaches
+by upweighting demonstration keyframes corresponding to expert action changepoints. This simple approach easily scales to complex visual imitation settings. Our experimental results demonstrate consistent performance improvements over
+all baselines on image-based Gym MuJoCo continuous control tasks. Finally, on the CARLA
+photorealistic vision-based urban driving simulator, we resolve a long-standing issue in behavioral cloning for driving by demonstrating effective imitation from observation histories. Supplementary materials and code at: https://
+tinyurl.com/imitation-keyframes.
+
+1. Introduction
+Learning controllers for complex, unmodeled agents and
+environments is a challenging problem. For tasks where at
+least one “expert” controller exists, such as a human driver
+for autonomous driving, imitation learning offers a simple,
+powerful family of solutions that exploit demonstrations
+provided by this expert to bootstrap control policy learning. Many imitation approaches employ a straightforward
+“behavioral cloning” (BC) strategy, to train policies completely “offline”, i.e., with no environmental interaction, by
+simply mapping expert observations to expert actions on
+*
+
+Equal contribution 1 Institute for Interdisciplinary Information Sciences, Tsinghua University 2 University of Texas at Austin
+3
+University of Pennsylvania 4 Shanghai Qi Zhi Institute. Correspondence to: Dinesh Jayaraman <dineshj@seas.upenn.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+the demonstration data. While BC has well-documented
+distributional shift issues due to compounding imitation errors when executed in the environment, several effective
+approaches have been proposed to address them, and BC
+remains widely used in practice (Pomerleau, 1989; Schaal,
+1999; Muller et al., 2006; Mülling et al., 2013; Bojarski
+et al., 2016a; Giusti et al., 2015).
+We focus on the open problem of effectively extending BC
+to realistic partially observed settings such as driving, where
+the agent cannot observe all task-relevant information instantaneously. This is commonly resolved in other controller
+design paradigms by integrating historical information in
+the control policy, but this has proven challenging in BC.
+For over 15 years now, researchers have reported seemingly
+paradoxical results that show performance drops in some
+POMDP settings from allowing BC agents to access history
+information, compared to when they are restricted to instantaneous observations alone (Muller et al., 2006; Bansal et al.,
+2019; de Haan et al., 2019; Wang et al., 2019). Recently,
+Wen et al. (2020) coined the phrase “copycat problem” to
+describe the issue, and show that the problem is wider still:
+even when history information does improve BC performance, the learned policies often perform suboptimally and
+have room to improve if the copycat problem is correctly
+addressed.
+Figure 1 shows a snippet of an expert driving demonstration
+from the imitation dataset CARLA100 (Dosovitskiy et al.,
+2017; Codevilla et al., 2019), where a car waiting at a red
+traffic light starts to move when the light turns green. We
+can see that the expert’s action at is identical to its previous
+action at−1 , except at one moment when the light turns
+green (figure shows throttle). Thus, a “copycat” policy that
+repeated the previous action without paying any attention to
+the images would only commit one imitation error on the
+expert data. Upon execution in the environment however,
+since no expert would be available, it would repeat its own
+previous action at each step, and never move at all! Indeed,
+Codevilla et al. (2019) report this special case of the copycat
+problem as the “inertia” problem.
+We study the reasons for the copycat problem and identify one key reason that can be algorithmically addressed:
+when expert actions are highly temporally correlated, the
+demonstration dataset has a very tiny fraction of important
+
+

@@ -1,0 +1,83 @@
+Learning Algebraic Multigrid Using Graph Neural Networks
+
+Ilay Luz 1 Meirav Galun 1 Haggai Maron 2 Ronen Basri 1 Irad Yavneh 3
+
+Abstract
+Efficient numerical solvers for sparse linear systems are crucial in science and engineering.
+One of the fastest methods for solving largescale sparse linear systems is algebraic multigrid
+(AMG). The main challenge in the construction
+of AMG algorithms is the selection of the prolongation operator—a problem-dependent sparse
+matrix which governs the multiscale hierarchy of
+the solver and is critical to its efficiency. Over
+many years, numerous methods have been developed for this task, and yet there is no known
+single right answer except in very special cases.
+Here we propose a framework for learning AMG
+prolongation operators for linear systems with
+sparse symmetric positive (semi-) definite matrices. We train a single graph neural network to
+learn a mapping from an entire class of such matrices to prolongation operators, using an efficient
+unsupervised loss function. Experiments on a
+broad class of problems demonstrate improved
+convergence rates compared to classical AMG,
+demonstrating the potential utility of neural networks for developing sparse system solvers.
+
+1. Introduction
+Algebraic multigrid (AMG) is a well-developed efficient
+numerical approach for solving large ill-conditioned sparse
+linear systems and eigenproblems. Introduced in the
+1980’s (Brandt et al., 1984; Ruge, 1983; Ruge & Stüben,
+1987), AMG and its many variants have been applied to
+diverse problems, including partial differential equations
+(PDEs), sparse Markov chains, and problems involving
+graph Laplacians, (e.g., Brezina et al. (2000); Henson &
+Vassilevski (2001); Heys et al. (2005); Stüben (2001); Horton & Leutenegger (1994); Virnik (2007); H. De Sterck et al.
+(2008; 2010); Treister & Yavneh (2010); Livne & Brandt
+1
+
+Weizmann Institute of Science, Rehovot, Israel. 2 NVIDIA
+Research 3 Technion, Israel Institute of Technology, Haifa, Israel.
+Correspondence to: Ilay Luz <ilayluz@gmail.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+(2013); Napov & Notay (2016); Fox & Manteuffel (2018)).
+While AMG is mathematically well grounded, its application involves the selection of problem-dependent parameters
+and heuristics, requiring expert knowledge and experience.
+Machine learning may therefore offer effective tools for
+developing efficient AMG algorithms.
+AMG is a multi-level iterative method for linear systems,
+Ax = b,
+
+(1)
+
+where A ∈ Rn×n is a sparse matrix and x, b ∈ Rn , with x
+the unknown solution vector. Given an initial approximate
+solution x0 ∈ Rn , the (k + 1)st iteration of AMG proceeds
+as follows, with details provided in Section 3. Given the
+kth iteration, x(k) , a few steps of a simple iterative solver
+(typically Gauss-Seidel relaxation) are applied, followed by
+the construction of a smaller linear system for the error at a
+“coarser scale”. This is done by selecting a subset of nc < n
+“representative” variables (called the coarse variables), and
+constructing a prolongation operator P ∈ Rn×nc relating
+the coarse variables in Rnc to the variables in Rn . This
+smaller problem is treated recursively, by applying relaxation and appealing to a still coarser representation, and so
+on. Using P , the resulting solution is then “prolongated”
+back to the fine level to update the approximate solution,
+and a few additional relaxation sweeps are applied, yielding x(k+1) . Note that the AMG procedure is analogous to
+the classical geometric multigrid algorithm (GMG) (Brandt,
+1977; Briggs et al., 2000; Trottenberg et al., 2001), but unlike GMG (and other common multilevel algorithms) the
+variables need not lie on a regular grid or even be associated
+with a metric space.
+The AMG procedure involves two critical heuristics which
+are applied at each level of the recursion, selection of coarse
+variables and construction of the prolongation matrix. Here
+we will use machine learning to address the latter heuristic. The choice of prolongation matrix P critically depends on A, and it strongly influences the efficiency of the
+AMG algorithm. After decades of research which yielded
+numerous theoretical insights and practical developments,
+there is still no single recipe for constructing prolongation
+operators that are optimal for a given class of problems.
+This paper proposes a framework for learning maps from
+entire classes of sparse symmetric positive definite and
+semidefinite (SPD/SPSD) matrices to prolongation opera-
+
+

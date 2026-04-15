@@ -1,0 +1,129 @@
+IntLoRA: Integral Low-rank Adaptation of Quantized Diffusion Models
+
+Hang Guo 1 Yawei Li 2 * † Tao Dai 3 † Shu-Tao Xia 1 4 Luca Benini 2
+(a) Previous pipeline of tuning-then-quantization
+
+Abstract
+Fine-tuning pre-trained diffusion models under
+limited budgets has gained great success. In particular, the recent advances that directly fine-tune
+the quantized weights using Low-rank Adaptation
+(LoRA) further reduces training costs. Despite
+these progress, we point out that existing adaptation recipes are not inference-efficient. Specifically, additional post-training quantization (PTQ)
+on tuned weights is needed during deployment,
+which results in noticeable performance drop
+when the bit-width is low. Based on this observation, we introduce IntLoRA, which adapts quantized diffusion models with integer-type low-rank
+parameters, to include inference efficiency during
+tuning. Specifically, IntLoRA enables pre-trained
+weights to remain quantized during training, facilitating fine-tuning on consumer-level GPUs. During inference, IntLoRA weights can be seamlessly
+merged into pre-trained weights to directly obtain
+quantized downstream weights without PTQ. Extensive experiments show our IntLoRA achieves
+significant speedup on both training and inference
+without losing performance. Code is available at
+https://github.com/csguoh/IntLoRA.
+
+B(FP16)
+
+Quantized
+Weights
+
+W(
+
+Merged
+Weights
+W = W + AB
+
+Weight Merge
+
+)
+
+A(FP16)
+
+PTQ
+
+(FP16)
+
+X
+
+X
+
+Quantized
+Merged
+Weights
+)
+W (
+
+X
+
+copy
+
+(b) Our integer adaptation w/o additional PTQ
+(
+
+Quantized
+Weights
+
+W(
+X
+
+)
+
+Quantized
+Merged
+Weights
+)
+W (
+
+Int-Multiplication / Bit-shifting
+
+)
+
+(
+copy
+
+)
+X
+
+Figure 1: (a) The arithmetic inconsistency between the pretrained and adaptation weights leads to the merged weights
+still in FP16. Consequently, additional PTQ is needed for
+low-bit inference. (b) Our IntLoRA allows to work directly
+on INT4 arithmetic, ensuring the merged weights seamlessly in INT4 format and streamlining the whole process.
+els for downstream tasks poses challenges on consumerlevel GPUs. For instance, only loading the FP32 FLUX.1dev (BlackForestLabs, 2024) weights into GPUs can consume over 24GB of memory, let alone subsequent finetuning. Therefore, the huge fine-tuning costs hinder personalized diffusion model customization.
+To facilitate efficient training, recent advances have introduced parameter efficient fine-tuning (PEFT) (Houlsby et al.,
+2019; Jia et al., 2022) techniques, such as LoRA (Hu et al.,
+2021), to fine-tune a limited number of parameters. With
+the reduced gradient and optimizer states, they can achieve
+comparable or even better adaptation performance than fully
+fine-tuning. More recently, some works (Dettmers et al.,
+2024; Qin et al., 2024) have successfully married PEFT
+and network quantization to allow the low-rank adaptation
+directly on the quantized weights (as shown in Fig. 1(a)).
+Through reducing the bit-widths, the GPU costs during finetuning are further decreased.
+
+1. Introduction
+Recently, large-scale text-to-image diffusion models (Rombach et al., 2022; Saharia et al., 2022; Podell et al., 2023)
+have shown promising capabilities for image generation.
+Taking advantage of the strong generative prior of pretrained parameters, a range of downstream adaptation applications have emerged, such as subject-driven generation (Ruiz et al., 2023), style-customized generation (Sohn
+et al., 2023), and controllable generation (Zhang et al.,
+2023). However, fully fine-tuning large pre-trained mod1
+Tsinghua University 2 ETH Zürich 3 Shenzhen University
+Peng Cheng Laboratory. * Project Lead. † Correspondence
+to:
+Yawei Li <yawei.li@vision.ee.ethz.ch>, Tao Dai
+<daitao.edu@gmail.com>.
+
+4
+
+Although the reduced training costs have facilitated user
+customization, obtaining an inference-aware tuning recipe
+remains an open challenge. Specifically, existing methods
+predominantly employ floating-point (e.g., FP16) low-rank
+parameters during training, as a result, it is inevitable to
+convert the quantized pre-trained weights back to FP16 for
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

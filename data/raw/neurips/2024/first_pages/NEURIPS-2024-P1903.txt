@@ -1,0 +1,50 @@
+QTIP: Quantization with Trellises and Incoherence
+Processing
+
+Albert Tseng
+Cornell University
+albert@cs.cornell.edu
+
+Qingyao Sun
+Cornell University
+qs234@cornell.edu
+
+David Hou
+dhou@alumni.caltech.edu
+
+Christopher De Sa
+Cornell University
+cdesa@cs.cornell.edu
+
+Abstract
+Post-training quantization (PTQ) reduces the memory footprint of LLMs by quantizing weights to low-precision datatypes. Since LLM inference is usually memorybound, PTQ methods can improve inference throughput. Recent state-of-the-art
+PTQ approaches use vector quantization (VQ) to quantize multiple weights at once,
+which improves information utilization through better shaping. However, VQ requires a codebook with size exponential in the dimension. This limits current VQbased PTQ works to low VQ dimensions (≤ 8) that in turn limit quantization quality. Here, we introduce QTIP, which instead uses trellis coded quantization (TCQ)
+to achieve ultra-high-dimensional quantization. TCQ uses a stateful decoder that
+separates the codebook size from the bitrate and effective dimension. QTIP introduces a spectrum of lookup-only to computed lookup-free trellis codes designed
+for a hardware-efficient “bitshift” trellis structure; these codes achieve state-of-theart results in both quantization quality and inference speed.
+
+1
+
+Introduction
+
+Large language models (LLMs) have accelerated advancements in fields ranging from natural
+language processing [34] to scientific modeling [28]. However, the largest LLMs have hundreds of
+billions of parameters that can take over a terabyte of memory to load in half-precision; this size
+poses significant challenges for the practical deployment of LLMs [33, 17, 2]. For example, smallbatch autoregressive decoding, a common form of inference for LLMs, is memory bound [35]. Even
+on a modern datacenter GPU with ≈ 3TB/s memory bandwidth, a large LLM (> 200GB) can only be
+directly run at < 20 tokens per second and may require multiple devices [35]. One way to accelerate
+inference is by compressing LLMs. This directly reduces the memory footprint of the model and
+increases the theoretical maximum inference throughput on any given machine.
+One form of compression, weight-only post-training quantization (PTQ), quantizes trained model
+weights to lower precision datatypes [9, 35, 5]. The latest state-of-the-art weight-only PTQ methods,
+QuIP# and AQLM, use vector quantization (VQ) to achieve high-quality 2-bit models [35, 11]. In VQ,
+kd
+a vector x ∈ Rd is quantized to one of 2kd vectors in Rd that form a codebook C ∈ R2 ×d . A higher
+vector dimension d allows for better codebook shaping and packing density, improving information
+utilization [19]. However, unstructured VQ requires exponential time and space in both the bitrate and
+dimension, limiting its practicality. During quantization, VQ costs O(2kd d) time to perform nearestneighbor rounding to C, and during inference, C must fit in hardware cache for fast lookups. This
+exponential scaling limits how high d can be and thus the advantages of VQ over scalar quantization.
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

@@ -1,0 +1,72 @@
+UNIREX: A Unified Learning Framework for
+Language Model Rationale Extraction
+
+Aaron Chan 1 Maziar Sanjabi 2 Lambert Mathias 2 Liang Tan 2
+Shaoliang Nie 2 Xiaochang Peng 2 Xiang Ren 1 Hamed Firooz 2
+
+Abstract
+An extractive rationale explains a language
+model’s (LM’s) prediction on a given task instance by highlighting the text inputs that most
+influenced the prediction. Ideally, rationale extraction should be faithful (reflective of LM’s actual behavior) and plausible (convincing to humans), without compromising the LM’s (i.e., task
+model’s) task performance. Although attribution
+algorithms and select-predict pipelines are commonly used in rationale extraction, they both rely
+on certain heuristics that hinder them from satisfying all three desiderata. In light of this, we
+propose UNIREX, a flexible learning framework
+which generalizes rationale extractor optimization
+as follows: (1) specify architecture for a learned
+rationale extractor; (2) select explainability objectives (i.e., faithfulness and plausibility criteria); and (3) jointly train the task model and rationale extractor on the task using selected objectives. UNIREX enables replacing prior works’
+heuristic design choices with a generic learned
+rationale extractor in (1) and optimizing it for
+all three desiderata in (2)-(3). To facilitate comparison between methods w.r.t. multiple desiderata, we introduce the Normalized Relative Gain
+(NRG) metric. On five English text classification
+datasets, our best UNIREX configuration outperforms baselines by an average of 32.9% NRG.
+Plus, UNIREX rationale extractors’ faithfulness
+can even generalize to unseen datasets and tasks.
+
+1. Introduction
+In recent years, neural language models (LMs) have yielded
+state-of-the-art performance on a wide range of natural lan1
+University of Southern California 2 Meta AI. Correspondence
+to: Aaron Chan <chanaaro@usc.edu>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+guage processing (NLP) tasks (Devlin et al., 2018; Liu et al.,
+2019). However, LMs’ complex processes are notoriously
+opaque (Rudin, 2019), posing concerns about the societal
+implications of using LMs for high-stakes decision-making
+(Bender et al., 2021). Thus, explaining LMs’ behavior is
+crucial for promoting trust, ethics, and safety in NLP systems (Doshi-Velez & Kim, 2017; Lipton, 2018). Given a
+LM’s (i.e., task model’s) predicted label on a text classification instance, an extractive rationale is a type of explanation
+that highlights the tokens that most influenced the model to
+predict that label (Luo et al., 2021). To provide meaningful
+explanations, rationale extraction should be faithful (reflective of LM’s actual behavior) (Ismail et al., 2021; Jain et al.,
+2020) and plausible (convincing to humans) (DeYoung et al.,
+2019), without compromising the LM’s task performance
+(DeYoung et al., 2019; Jacovi & Goldberg, 2020) (Fig. 1).
+Configuring the rationale extractor and its training process
+can greatly impact these desiderata, yet prior works have
+commonly adopted at least one of the following suboptimal
+heuristic design choices. First, many works rely in some
+way on attribution algorithms (AAs), which extract rationales via handcrafted functions (Sundararajan et al., 2017;
+Ismail et al., 2021; Situ et al., 2021). AAs may have built-in
+faithfulness-related properties but cannot be directly trained
+and tend to be compute-intensive (Bastings & Filippova,
+2020). The most similar work to ours is SGT (Ismail et al.,
+2021), which regularizes a task model to produce faithful
+AA-based rationales. Still, AAs can be a bottleneck for
+plausibility, as producing human-like rationales is a complex objective requiring high capacity rationale extractors
+(Narang et al., 2020; DeYoung et al., 2019). Second, many
+works use a specialized select-predict pipeline (SPP), where
+a predictor module is trained to solve the task using only
+tokens chosen by a selector module (Jain et al., 2020; Yu
+et al., 2021; Paranjape et al., 2020). Instead of faithfulness
+optimization, SPPs heuristically aim for “faithfulness by
+construction” by treating the selected tokens as a rationale
+for the predictor’s output (which depends only on those tokens). Still, SPPs typically have worse task performance
+than vanilla LMs since SPPs hide the full input from the
+predictor and are hard to train end-to-end (Jain et al., 2020;
+Bastings et al., 2019; Lei et al., 2016). Both AAs and SPPs
+
+

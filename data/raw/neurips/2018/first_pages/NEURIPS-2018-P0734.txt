@@ -1,0 +1,60 @@
+Sparsified SGD with Memory
+
+Sebastian U. Stich
+
+Jean-Baptiste Cordonnier
+
+Martin Jaggi
+
+Machine Learning and Optimization Laboratory (MLO)
+EPFL, Switzerland
+
+Abstract
+Huge scale machine learning problems are nowadays tackled by distributed optimization algorithms, i.e. algorithms that leverage the compute power of many
+devices for training. The communication overhead is a key bottleneck that hinders
+perfect scalability. Various recent works proposed to use quantization or sparsification techniques to reduce the amount of data that needs to be communicated,
+for instance by only sending the most significant entries of the stochastic gradient
+(top-k sparsification). Whilst such schemes showed very promising performance
+in practice, they have eluded theoretical analysis so far.
+In this work we analyze Stochastic Gradient Descent (SGD) with k-sparsification or
+compression (for instance top-k or random-k) and show that this scheme converges
+at the same rate as vanilla SGD when equipped with error compensation (keeping
+track of accumulated errors in memory). That is, communication can be reduced
+by a factor of the dimension of the problem (sometimes even more) whilst still
+converging at the same rate. We present numerical experiments to illustrate the
+theoretical findings and the good scalability for distributed applications.
+
+1
+
+Introduction
+
+Stochastic Gradient Descent (SGD) [29] and variants thereof (e.g. [10, 16]) are among the most
+popular optimization algorithms in machine- and deep-learning [5]. SGD consists of iterations of the
+form
+xt+1 := xt − ηt gt ,
+
+(1)
+
+d
+
+for iterates xt , xt+1 ∈ R , stepsize (or learning rate) ηt > 0, and stochastic gradient gt with the
+property E[gt ] = ∇f (xt ), for a loss function f : Rd → R. SGD addresses the computational
+bottleneck of full gradient descent, as the stochastic gradients can in general be computed much
+more efficiently than a full gradient ∇f (xt ). However, note that in general both gt and ∇f (xt )
+are dense vectors1 of size d, i.e. SGD does not address the communication bottleneck of gradient
+descent, which occurs as a roadblock both in distributed as well as parallel training. In the setting of
+distributed training, communicating the stochastic gradients to the other workers is a major limiting
+factor for many large scale (deep) learning applications, see e.g. [3, 21, 33, 44]. The same bottleneck
+can also appear for parallel training, e.g. in the increasingly common setting of a single multi-core
+machine or device, where locking and bandwidth of memory write operations for the common shared
+parameter xt often forms the main bottleneck, see e.g. [14, 18, 25].
+A remedy to address these issues seems to enforce applying smaller and more efficient updates
+comp(gt ) instead of gt , where comp : Rd → Rd generates a compression of the gradient, such as by
+lossy quantization or sparsification. We discuss different schemes below. However, too aggressive
+1
+Note that the stochastic gradients gt are dense vectors for the setting of training neural networks. The gt
+themselves can be sparse for generalized linear models under the additional assumption that the data is sparse.
+
+32nd Conference on Neural Information Processing Systems (NeurIPS 2018), Montréal, Canada.
+
+

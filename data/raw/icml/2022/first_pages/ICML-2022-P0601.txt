@@ -1,0 +1,74 @@
+Constrained Variational Policy Optimization for Safe Reinforcement Learning
+
+Zuxin Liu 1 Zhepeng Cen 1 Vladislav Isenbaev 2 Wei Liu 2 Zhiwei Steven Wu 1 Bo Li 3 Ding Zhao 1
+
+Abstract
+Safe reinforcement learning (RL) aims to learn
+policies that satisfy certain constraints before deploying them to safety-critical applications. Previous primal-dual style approaches suffer from
+instability issues and lack optimality guarantees.
+This paper overcomes the issues from the perspective of probabilistic inference. We introduce a
+novel Expectation-Maximization approach to naturally incorporate constraints during the policy
+learning: 1) a provable optimal non-parametric
+variational distribution could be computed in
+closed form after a convex optimization (E-step);
+2) the policy parameter is improved within the
+trust region based on the optimal variational distribution (M-step). The proposed algorithm decomposes the safe RL problem into a convex optimization phase and a supervised learning phase, which
+yields a more stable training performance. A wide
+range of experiments on continuous robotic tasks
+shows that the proposed method achieves significantly better constraint satisfaction performance
+and better sample efficiency than baselines. The
+code is available at https://github.com/
+liuzuxin/cvpo-safe-rl.
+
+1. Introduction
+The past few years have witnessed great success of reinforcement learning (RL) (Mnih et al., 2013; Silver et al.,
+2017). However, deploying a trained RL policy to the real
+world is challenging. One of the major obstacles is to ensure the learned policy satisfies safety constraints. Safe RL
+studies the RL problem subject to certain constraints, where
+the agent aims to not only maximize the task reward return,
+but also limit the constraint violation rate to a certain level.
+However, learning a parametrized policy that satisfies constraints is not a trivial task, especially when the policy is
+1
+
+Carnegie Mellon University 2 Nuro Inc. 3 University of
+Illinois Urbana-Champaign. Correspondence to: Zuxin Liu
+<zuxinl@cmu.edu>, Ding Zhao <dingzhao@cmu.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+represented by black-box neural networks (Liu et al., 2020;
+As et al., 2022; Chen et al., 2021).
+Many researchers have pointed out that prior knowledge
+of the environment (Dalal et al., 2018; Cheng et al., 2019;
+Thananjeyan et al., 2021; Chen et al., 2021) and expert
+interventions (Saunders et al., 2017; Alshiekh et al., 2018;
+Wagener et al., 2021) are helpful to improve safety, but the
+required domain knowledge on the dynamics, constraints, or
+the existence of an expert oracle may not always be available.
+This paper studies the safe RL problem in a more general
+setting: learning a safe policy purely from interacting with
+the environment and receiving constraint violation signals.
+We aim to unveil and resolve the fundamental issues for safe
+RL from the constrained optimization perspective.
+Most constrained optimization approaches for safe RL are
+under the primal-dual framework, which transforms the
+original constrained problem into an unconstrained one by
+introducing the dual variables (i.e., Lagrange multipliers)
+to penalize constraint violations (Chow et al., 2017; Liang
+et al., 2018; Tessler et al., 2018; Bohez et al., 2019; Ray
+et al., 2019). However, the primal-dual iterative optimization may run into numerical instability issues and lacks optimality guarantee for each policy iteration (Chow et al., 2018;
+Stooke et al., 2020). The instability usually comes from imbalanced learning rates of the primal and dual problem, and
+the optimality term means both feasibility (constraint satisfaction) and reward maximization. Another line of work
+approximate the constrained optimization problem with loworder Taylor expansions such that the dual variables could
+be solved efficiently (Achiam et al., 2017; Yang et al., 2020;
+Zhang et al., 2020) , but the induced approximations errors
+may yield poor constraint satisfaction performance in practice (Ray et al., 2019). In addition, these policy-gradient
+algorithms are on-policy by design, and extending them to a
+more sample efficient off-policy setting is non-trivial. Note
+that in safe RL context, sample efficiency means using both
+minimum constraint violation costs and minimum interaction samples to achieve the same level of rewards. As a
+result, a constrained RL optimization method that is 1) sample efficient, 2) stable and has 3) performance guarantees is
+absent in the literature.
+To bridge the gap, this paper proposes the Constrained Variational Policy Optimization (CVPO) algorithm from the
+
+

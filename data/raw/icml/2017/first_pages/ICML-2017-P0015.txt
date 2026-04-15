@@ -1,0 +1,80 @@
+OptNet: Differentiable Optimization as a Layer in Neural Networks
+
+Brandon Amos 1 J. Zico Kolter 1
+
+Abstract
+This paper presents OptNet, a network architecture that integrates optimization problems (here,
+specifically in the form of quadratic programs)
+as individual layers in larger end-to-end trainable deep networks. These layers encode constraints and complex dependencies between the
+hidden states that traditional convolutional and
+fully-connected layers often cannot capture. In
+this paper, we explore the foundations for such
+an architecture: we show how techniques from
+sensitivity analysis, bilevel optimization, and implicit differentiation can be used to exactly differentiate through these layers and with respect to
+layer parameters; we develop a highly efficient
+solver for these layers that exploits fast GPUbased batch solves within a primal-dual interior
+point method, and which provides backpropagation gradients with virtually no additional cost on
+top of the solve; and we highlight the application of these approaches in several problems. In
+one notable example, we show that the method
+is capable of learning to play mini-Sudoku (4x4)
+given just input and output games, with no a priori information about the rules of the game; this
+highlights the ability of our architecture to learn
+hard constraints better than other neural architectures.
+
+1. Introduction
+In this paper, we consider how to treat exact, constrained
+optimization as an individual layer within a deep learning architecture. Unlike traditional feedforward networks,
+where the output of each layer is a relatively simple (though
+non-linear) function of the previous layer, our optimization
+framework allows for individual layers to capture much
+richer behavior, expressing complex operations that in to1
+School of Computer Science, Carnegie Mellon University. Pittsburgh, PA, USA. Correspondence to: Brandon Amos
+<bamos@cs.cmu.edu>, J. Zico Kolter <zkolter@cs.cmu.edu>.
+
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+tal can reduce the overall depth of the network while preserving richness of representation. Specifically, we build a
+framework where the output of the i + 1th layer in a network is the solution to a constrained optimization problem
+based upon previous layers. This framework naturally encompasses a wide variety of inference problems expressed
+within a neural network, allowing for the potential of much
+richer end-to-end training for complex tasks that require
+such inference procedures.
+Concretely, in this paper we specifically consider the task
+of solving small quadratic programs as individual layers.
+These optimization problems are well-suited to capturing interesting behavior and can be efficiently solved with
+GPUs. Specifically, we consider layers of the form
+1 T
+z Q(zi )z + q(zi )T z
+2
+z
+subject to A(zi )z = b(zi )
+G(zi )z ≤ h(zi )
+
+zi+1 = argmin
+
+(1)
+
+where z is the optimization variable, Q(zi ), q(zi ), A(zi ),
+b(zi ), G(zi ), and h(zi ) are parameters of the optimization
+problem. As the notation suggests, these parameters can
+depend in any differentiable way on the previous layer zi ,
+and which can eventually be optimized just like any other
+weights in a neural network. These layers can be learned
+by taking the gradients of some loss function with respect
+to the parameters. In this paper, we derive the gradients of
+(1) by taking matrix differentials of the KKT conditions of
+the optimization problem at its solution.
+In order to the make the approach practical for larger networks, we develop a custom solver which can simultaneously solve multiple small QPs in batch form. We do so
+by developing a custom primal-dual interior point method
+tailored specifically to dense batch operations on a GPU.
+In total, the solver can solve batches of quadratic programs
+over 100 times faster than existing highly tuned quadratic
+programming solvers such as Gurobi and CPLEX. One crucial algorithmic insight in the solver is that by using a
+specific factorization of the primal-dual interior point update, we can obtain a backward pass over the optimization layer virtually “for free” (i.e., requiring no additional
+factorization once the optimization problem itself has been
+solved). Together, these innovations enable parameterized
+optimization problems to be inserted within the architec-
+
+

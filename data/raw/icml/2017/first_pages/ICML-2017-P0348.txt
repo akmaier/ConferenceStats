@@ -1,0 +1,112 @@
+Gradient Coding:
+Avoiding Stragglers in Distributed Learning
+
+Rashish Tandon 1 Qi Lei 2 Alexandros G. Dimakis 3 Nikos Karampatziakis 4
+
+Abstract
+
+W1
+
+W2
+
+W3
+
+We propose a novel coding theoretic framework
+for mitigating stragglers in distributed learning.
+We show how carefully replicating data blocks
+and coding across gradients can provide tolerance to failures and stragglers for synchronous
+Gradient Descent. We implement our schemes
+in python (using MPI) to run on Amazon EC2,
+and show how we compare against baseline approaches in running time and generalization error.
+
+D1
+
+D2
+
+D3
+
+1. Introduction
+We propose a novel coding theoretic framework for mitigating stragglers in distributed learning. The central idea
+can be seen through the simple example of Figure 1: Consider synchronous Gradient Descent (GD) on three workers (W1 ,W2 ,W3 ). The baseline vanilla system is shown in
+the top figure and operates as follows: The three workers
+have different partitions of the labeled data stored locally
+(D1 ,D2 ,D3 ) and all share the current model. Worker 1 computes the gradient of the model on examples in partition D1 ,
+denoted by g1 . Similarly, Workers 2 and 3 compute g2 and
+g3 . The three gradient vectors are then communicated to a
+central node (called the master/aggregator) A which computes the full gradient by summing these vectors g1 +g2 +g3
+and updates the model with a gradient step. The new model
+is then sent to the workers and the system moves to the next
+round (where the same examples or other labeled examples,
+say D4 ,D5 ,D6 , will be used in the same way).
+The problem is that sometimes worker nodes can be stragglers (Li et al., 2014; Ho et al., 2013; Dean et al., 2012)
+i.e. delay significantly in computing and communicating
+gradient vectors to the master. This is especially pronounced
+for cheaper virtual machines in the cloud. For example on
+1
+
+Department of Computer Science, University of Texas at
+Austin, Austin, TX, USA 2 Institute for Computational Engineering and Sciences, University of Texas at Austin, Austin,
+TX, USA 3 Department of Electrical and Computer Engineering, University of Texas at Austin, Austin, TX, USA
+4
+Microsoft, Seattle, WA, USA. Correspondence to: Rashish Tandon <rashish@cs.utexas.edu>.
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017 by
+the author(s).
+
+g1
+
+g3
+
+g2
+
+A
+g1 + g2 + g3
+
+(a) Naive synchronous gradient descent
+W1
+
+W2
+
+W3
+
+D1
+D2
+
+D2
+D3
+
+D3
+
+g1/2 + g2
+
+g2 - g3
+
+D1
+g1/2 + g3
+
+A
+g1 + g2 + g3 (from any 2)
+
+(b) Gradient coding: The vector
+g1 + g2 + g3 is in the span of any
+two out of the vectors g1 /2 + g2,
+g2 − g3 and g1 /2 + g3 .
+
+Figure 1: The idea of Gradient Coding.
+t2.micro machines on Amazon EC2, as can be seen in
+Figure 2: some machines can be 5× slower in computing
+and communicating gradients compared to typical performance.
+First, we discuss one way to resolve this problem if we
+replicate some data across machines by considering the
+placement in Fig.1 (b) but without coding. As can be seen,
+in Fig. 1 (b) each example is replicated two times using
+a specific placement policy. Each worker is assigned to
+compute two gradients on the two examples they have for
+this round. For example, W1 will compute vectors g1 and
+g2 . Now lets assume that W3 is the straggler. If we use
+control messages, W1 , W2 can notify the master A that they
+are done. Subsequently, if feedback is used, the master
+can ask W1 to send g1 and g2 and W2 to send g3 . These
+feedback control messages can be much smaller than the
+
+

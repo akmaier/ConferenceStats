@@ -1,0 +1,95 @@
+3PC: Three Point Compressors for Communication-Efficient Distributed
+Training and a Better Theory for Lazy Aggregation
+
+Peter Richtárik 1 Igor Sokolov 1 Ilyas Fatkhullin 2 3 Elnur Gasanov 1 Zhize Li 1 Eduard Gorbunov 4
+
+Abstract
+We propose and study a new class of gradient
+communication mechanisms for communicationefficient training—three point compressors
+(3PC)—as well as efficient distributed nonconvex
+optimization algorithms that can take advantage
+of them. Unlike most established approaches,
+which rely on a static compressor choice (e.g.,
+Top-𝐾), our class allows the compressors to
+evolve throughout the training process, with the
+aim of improving the theoretical communication
+complexity and practical efficiency of the underlying methods. We show that our general approach
+can recover the recently proposed state-of-the-art
+error feedback mechanism EF21 (Richtárik
+et al., 2021) and its theoretical properties as a
+special case, but also leads to a number of new
+efficient methods. Notably, our approach allows
+us to improve upon the state of the art in the
+algorithmic and theoretical foundations of the
+lazy aggregation literature (Chen et al., 2018). As
+a by-product that may be of independent interest,
+we provide a new and fundamental link between
+the lazy aggregation and error feedback literature.
+A special feature of our work is that we do not
+require the compressors to be unbiased.
+
+1. Introduction
+It has become apparent in the last decade that, other things
+equal, the practical utility of modern machine learning models grows with their size and with the amount of data points
+used in the training process. This big model and big data
+approach, however, comes with increased demands on the
+
+hardware, algorithms, systems and software involved in the
+training process.
+1.1. Big data and the need for distributed systems
+In order to handle the large volumes of data involved in
+training SOTA models, it is now absolutely necessary to
+rely on (often massively) distributed computing systems
+(Dean et al., 2012; Khirirat et al., 2018; Lin et al., 2018).
+Indeed, due to storage and compute capacity limitations,
+large-enough training data sets can no longer be stored on
+a single machine, and instead need to be distributed across
+and processed by an often large number of parallel workers.
+In particular, in this work we consider distributed supervised
+learning problems of the form
+]︂
+[︂
+𝑛
+∑︀
+min 𝑓 (𝑥) := 𝑛1
+𝑓𝑖 (𝑥) ,
+(1)
+𝑥∈R𝑑
+
+𝑖=1
+
+where 𝑛 is the number of parallel workers/devices/clients,
+𝑥 is a vector representing the 𝑑 parameters of a machine
+learning model (e.g., the weights in a neural network), and
+𝑓𝑖 (𝑥) is the loss of model 𝑥 on the training data stored on
+client 𝑖 ∈ [𝑛] := {1, 2, . . . , 𝑛}.
+In some applications, as in federated learning (FL) (McMahan et al., 2016; Konečný et al., 2016b;a; McMahan et al.,
+2017), the training data is captured in a distributed fashion in the first place, and there are reasons to process it in
+this decentralized fashion as well, as opposed to first moving it to a centralized location, such as a datacenter, and
+subsequently processing it there. Indeed, FL refers to machine learning in the environment where a large collection
+of highly heterogeneous clients (e.g., mobile devices, smart
+home appliances or corporations) tries to collaboratively
+train a model using the diverse data stored on these devices,
+but without compromising the clients’ data privacy.
+
+1
+
+Computer Science, King Abdullah University of Science and
+Technology, Thuwal, Saudi Arabia 2 ETH AI Center, Switzerland.
+3
+ETH Zurich, Switzerland. 4 Moscow Institute of Physics and
+Technology, Dolgoprudny, Russia.. Correspondence to: Peter
+Richtárik <peter.richtarik@kaust.edu.sa>.
+𝑡ℎ
+
+Proceedings of the 39 International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+1.2. Big model and the need for communication
+reduction
+While distributing the data across several workers certainly
+alleviates the per-client storage and compute bottlenecks,
+the training task is obviously not fully decomposed this way.
+Indeed, the 𝑛 clients still need to work together to train the
+
+

@@ -1,0 +1,76 @@
+Matrix Sketching for Secure Collaborative Machine Learning
+Mengjiao Zhang 1 Shusen Wang 1
+
+Abstract
+Collaborative learning allows participants to
+jointly train a model without data sharing. To
+update the model parameters, the central server
+broadcasts model parameters to the clients, and
+the clients send updating directions such as gradients to the server. While data do not leave a
+client device, the communicated gradients and parameters will leak a client’s privacy. Attacks that
+infer clients’ privacy from gradients and parameters have been developed by prior work. Simple defenses such as dropout and differential privacy either fail to defend the attacks or seriously
+hurt test accuracy. We propose a practical defense which we call Double-Blind Collaborative
+Learning (DBCL). The high-level idea is to apply
+random matrix sketching to the parameters (aka
+weights) and re-generate random sketching after
+each iteration. DBCL prevents clients from conducting gradient-based privacy inferences which
+are the most effective attacks. DBCL works because from the attacker’s perspective, sketching
+is effectively random noise that outweighs the
+signal. Notably, DBCL does not much increase
+computation and communication costs and does
+not hurt test accuracy at all.
+
+1. Introduction
+Collaborative learning allows multiple parties to jointly train
+a model using their private data but without sharing the
+data. Collaborative learning is motivated by real-world applications, for example, training a model using but without
+collecting mobile user’s data.
+Distributed stochastic gradient descent (SGD) is perhaps
+the simplest approach to collaborative learning. Specifically, the central server broadcasts model parameters to the
+1
+
+Department of Computer Science, Stevens Institute
+of Technology, Hoboken, NJ 07030. Correspondence to:
+Mengjiao Zhang <mzhang49@stevens.edu>, Shusen Wang
+<shusen.wang@stevens.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+clients, each client uses a batch of local data to compute a
+stochastic gradient, and the server aggregates the stochastic gradients and updates the model parameters. Based on
+distributed SGD, communication-efficient algorithms such
+as federated averaging (FedAvg) (McMahan et al., 2017)
+and FedProx (Sahu et al., 2019) have been developed and
+analyzed (Li et al., 2019b; Stich, 2018; Wang & Joshi, 2018;
+Yu et al., 2019; Zhou & Cong, 2017).
+Collaborative learning seemingly protects clients’ privacy.
+Unfortunately, this has been demonstrated not true by recent
+studies (Hitaj et al., 2017; Melis et al., 2019; Zhu et al.,
+2019). Even if a client’s data do not leave his device, important properties of his data can be disclosed from the model
+parameters and gradients. To infer other clients’ data, the
+attacker needs only to control one client device and access
+the model parameters in every iteration; the attacker does
+not have to take control of the server (Hitaj et al., 2017;
+Melis et al., 2019; Zhu et al., 2019).
+The reason why the attacks work is that model parameters
+and gradients carry important information about the training data (Ateniese et al., 2015; Fredrikson et al., 2015).
+Hitaj et al. (2017) used the jointly learned model as a discriminator for training a generator which generates other
+clients’ data. Melis et al. (2019) used gradient for inferring
+other clients’ data properties. Zhu et al. (2019) used both
+model parameters and gradients for recovering other clients’
+data. Judging from published empirical studies, the gradientbased attacks (Melis et al., 2019; Zhu et al., 2019) are more
+effective than the parameter-based attack (Hitaj et al., 2017).
+Our goal is to defend the gradient-based attacks.
+Simple defenses, e.g., differential privacy (Dwork, 2011)
+and dropout (Srivastava et al., 2014), have been demonstrated not working well by (Hitaj et al., 2017; Melis
+et al., 2019). While differential privacy (Dwork, 2011),
+i.e., adding noise to model parameters or gradients, works
+if the noise is strong, the noise inevitably hurts the accuracy and may even stop the collaborative learning from
+making progress (Hitaj et al., 2017). If the noise is not
+strong enough, clients’ privacy will leak. Dropout training
+(Srivastava et al., 2014) randomly masks a fraction of the
+parameters, making the clients have access to only part of
+the parameters in each iteration. However, knowing part of
+the parameters is sufficient for conducting the attacks.
+
+

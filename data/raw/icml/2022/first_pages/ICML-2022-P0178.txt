@@ -1,0 +1,79 @@
+Context-Aware Drift Detection
+Oliver Cobb 1 Arnaud Van Looveren 1
+
+Abstract
+When monitoring machine learning systems, twosample tests of homogeneity form the foundation
+upon which existing approaches to drift detection
+build. They are used to test for evidence that the
+distribution underlying recent deployment data
+differs from that underlying the historical reference data. Often, however, various factors such as
+time-induced correlation mean that batches of recent deployment data are not expected to form an
+i.i.d. sample from the historical data distribution.
+Instead we may wish to test for differences in the
+distributions conditional on context that is permitted to change. To facilitate this we borrow machinery from the causal inference domain to develop a
+more general drift detection framework built upon
+a foundation of two-sample tests for conditional
+distributional treatment effects. We recommend
+a particular instantiation of the framework based
+on maximum conditional mean discrepancies. We
+then provide an empirical study demonstrating its
+effectiveness for various drift detection problems
+of practical interest, such as detecting drift in the
+distributions underlying subpopulations of data
+in a manner that is insensitive to their respective
+prevalences. The study additionally demonstrates
+applicability to ImageNet-scale vision problems.
+
+1. Introduction
+Machine learning models are designed to operate on unseen
+data sharing the same underlying distribution as a set of
+historical training data. When the distribution changes, the
+data is said to have drifted and models can fail catastrophically (Recht et al., 2019; Engstrom et al., 2019; Hendrycks
+& Dietterich, 2019; Taori et al., 2020; Barbu et al., 2019). It
+is therefore important to have systems in place that detect
+when drift occurs and raise alarms accordingly (Breck et al.,
+2019; Klaise et al., 2020; Paleyes et al., 2020).
+1
+Seldon Technologies. Correspondence to: Oliver Cobb
+<oc@seldon.io>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+Figure 1. Batches of the most recent deployment data may not
+cover all contexts (e.g. day and night) covered by the training
+data. We often do not wish for this partial coverage to cause drift
+detections, but instead to detect other changes not explained by
+the change/narrowing of context. A nighttime deployment batch
+should be permitted to contain only wolves and owls, but a daytime
+deployment batch should not contain any owls.
+
+Given a model of interest, drift can be categorised based
+on whether the change is in the distribution of features, the
+distribution of labels, or the relationship between the two.
+Approaches to drift detection are therefore diverse, with
+some methods focusing on one or more of these categories.
+They invariably, however, share an underlying structure (Lu
+et al., 2018). Available data is repeatedly arranged into a set
+of reference samples, a set of deployment1 samples, and a
+test of equality is performed under the assumption that the
+samples within each set are i.i.d. Methods then vary in the
+notion of equality chosen to be repeatedly tested, which may
+be defined in terms of specific moments, model-dependent
+transformations, or in the most general distributional sense.
+(Gretton et al., 2008; 2012a; Tasche, 2017; Lipton et al.,
+2018; Page, 1954; Gama et al., 2004; Baena-Garcıa et al.,
+2006; Bifet & Gavaldà; Wang & Abraham, 2015; QuioneroCandela et al., 2009; Rabanser et al., 2019; Cobb et al.,
+2022). Each test evaluates a test statistic capturing the extent
+to which the two sets of samples deviate from the chosen
+notion of equality and make a detection if a threshold is
+exceeded. Threshold values are set such that, under the
+assumptions of i.i.d. samples and strict equality, the rate of
+false positives is controlled. However, in practice windows
+of deployment data may stray from these assumptions in
+ways deemed to be permissible.
+1
+Throughout this paper we use “deployment” data to mean the
+unseen data on which a model was designed to operate.
+
+

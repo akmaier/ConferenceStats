@@ -1,0 +1,79 @@
+Online Learned Continual Compression with Adaptive Quantization Modules
+Lucas Caccia 1 2 3 Eugene Belilovsky 2 4 Massimo Caccia 2 4 5 Joelle Pineau 1 2 3
+
+Abstract
+We introduce and study the problem of Online
+Continual Compression, where one attempts to
+simultaneously learn to compress and store a representative dataset from a non i.i.d data stream,
+while only observing each sample once. A naive
+application of auto-encoders in this setting encounters a major challenge: representations derived from earlier encoder states must be usable
+by later decoder states. We show how to use
+discrete auto-encoders to effectively address this
+challenge and introduce Adaptive Quantization
+Modules (AQM) to control variation in the compression ability of the module at any given stage
+of learning. This enables selecting an appropriate
+compression for incoming samples, while taking
+into account overall memory constraints and current progress of the learned compression. Unlike
+previous methods, our approach does not require
+any pretraining, even on challenging datasets. We
+show that using AQM to replace standard episodic
+memory in continual learning settings leads to significant gains on continual learning benchmarks.
+Furthermore we demonstrate this approach with
+larger images, LiDAR, and reinforcement learning agents.
+
+1. Introduction
+Interest in machine learning in recent years has been fueled
+by the plethora of data being generated on a regular basis.
+Effectively storing and using this data is critical for many
+applications, especially those involving continual learning.
+In general, compression techniques can greatly improve
+data storage capacity, and, if done well, reduce the memory
+and compute usage in downstream machine learning tasks
+(Gueguen et al., 2018; Oyallon et al., 2018). Thus, learned
+compression has become a topic of great interest (Theis
+1
+McGill 2 Mila 3 Facebook AI Research 4 University of
+Montreal 5 ElementAI. Correspondence to: Lucas Caccia
+<lucas.page-caccia@mail.mcgill.ca>, Eugene Belilovsky <eugene.belilovsky@umontreal.ca>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+et al., 2017; Ballé et al., 2016; Johnston et al., 2018). Yet
+its application in reducing the size of datasets bound for
+machine learning applications has been limited.
+This work focuses on the following familiar setting: new
+training data arrives continuously for a learning algorithm
+to exploit, however this data might not be iid, and furthermore there is insufficient storage capacity to preserve all
+the data uncompressed. We may want to train classifiers,
+reinforcement learning policies, or other models continuously from this data as it’s being collected, or use samples
+randomly drawn from it at a later point for a downstream
+task. For example, an autonomous vehicle (with bounded
+memory) collects large amounts of high-dimensional training data (video, 3D lidar) in a non-stationary environment
+(e.g. changing weather conditions), and overtime applies an
+ML algorithm to improve its behavior using this data. This
+data might be transferred at a later point for use in downstream learning. Current learned compression algorithms,
+e.g. (Torfason et al., 2018), are not well designed to deal
+with this case, as their convergence speed is too slow to be
+usable in an online setting.
+In the field of continual/lifelong learning (Thrun & Mitchell,
+1995), which has for now largely focused on classification,
+approaches based on storing memories for later use have
+emerged as some of the most effective in online settings
+(Lopez-Paz et al., 2017; Aljundi et al., 2018; Chaudhry
+et al.; 2019; Aljundi et al., 2019). These memories can be
+stored as is, or via a generative model (Shin et al., 2017).
+Then, they can either be used for rehearsal (Chaudhry et al.,
+2019; Aljundi et al., 2019) or for constrained optimization
+(Lopez-Paz et al., 2017; Chaudhry et al.; Aljundi et al.,
+2018). Indeed many continual learning applications would
+be greatly improved with replay approaches if one could
+afford to store all samples. These approaches are however
+inherently limited by the amount of data that can be stored
+Learning a generative model to compress the previous data
+stream thus seems like an appealing idea. However, learning generative models, particularly in the online and nonstationary setting, continues to be challenging, and can
+greatly increase the complexity of the continual learning
+task. Furthermore, such models are susceptible to catastrophic forgetting (Aljundi et al., 2019). An alternate approach is to learn a compressed representation of the data,
+
+

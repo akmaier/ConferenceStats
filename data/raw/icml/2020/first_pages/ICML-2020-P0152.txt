@@ -1,0 +1,80 @@
+On Efficient Constructions of Checkpoints
+
+Yu Chen 1 Zhenming Liu 1 Bin Ren 1 Xin Jin 2
+
+Abstract
+Efficient construction of checkpoints/snapshots
+is a critical tool for training and diagnosing deep
+learning models. In this paper, we propose a lossy
+compression scheme for checkpoint constructions
+(called LC-Checkpoint). LC-Checkpoint simultaneously maximizes the compression rate and
+optimizes the recovery speed, under the assumption that SGD is used to train the model. LCCheckpoint uses quantization and priority promotion to store the most crucial information for SGD
+to recover, and then uses a Huffman coding to
+leverage the non-uniform distribution of the gradient scales. Our extensive experiments show that
+LC-Checkpoint achieves a compression rate up
+to 28× and recovery speedup up to 5.77× over a
+state-of-the-art algorithm (SCAR).
+
+1. Introduction
+Efficient construction of checkpoints (snapshots) has been
+increasingly important to deep learning research. In the
+arms race of developing more accurate models, researchers
+utilize heavier computing infrastructure and develop deeper
+and larger models. Without proper infrastructure support,
+the research process inevitably becomes fragile. For example, distributed computation fails from time to time, leading
+to the excessive need to re-train models (Qiao et al., 2018b).
+Diagnosing deep learning models also evolves to a complex
+procedure partly because that the community has a better
+understanding of deep learning models and produces more
+rules for “debugging” them. Some common errors include
+gradient explosion (Goodfellow et al., 2016), “divide by
+zero” (Ioffe & Szegedy, 2015), and dead activation. This
+calls for the need to construct “breakpoints,” resembling
+those used in debugging computer programs, so that researchers can conveniently jump to the state right before the
+model “crashes” in the training.
+1
+
+William & Mary, Williamsburg, Virginia, USA 2 Johns Hopkins University, Baltimore, Maryland, USA. Correspondence to:
+Yu Chen <ychen39@email.wm.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Producing checkpoints frequently enables failed training
+process to restart with minimum wasted time, and serves
+as breakpoints for debugging models. So far the standard
+practice of constructing checkpoints is primitive. The most
+common practice is to save the model state directly, counting
+on that the backend system is sufficiently robust so that
+this operation does not become a bottleneck (Baylor et al.,
+2017). Attempts of partially storing model states are also
+examined (Qiao et al., 2018b) but these works usually focus
+on recovery speed, instead of directly tackling system issues.
+The most pronounced technical challenge here is that deep
+models are usually large, so producing frequent checkpoints
+creates unmanageable burdens to both I/O and storage, even
+under modern distributed platforms (Abadi et al., 2016; Li
+et al., 2014; Low et al., 2012). Therefore, this leads to our
+question:
+Research Q: How can we compress model checkpoints?
+We specifically aim to design a lossy compressing scheme,
+addressing two criteria simultaneously. First, like standard
+compression problems, we need to maximize the compression rate. Second, the scheme needs to be optimized for the
+downstream application of training. When a model restarts
+from our lossy checkpoints, it needs to efficiently resume to
+the most recent state (e.g., restart from a failed process or
+reach the state preceding the crash).
+Compression of model states is a new technical problem that
+requires addressing cross-cutting constraints from information theory, learning algorithm, and system design. We need
+to leverage statistical patterns encoded in the model state and
+factor in how the model states interact with a learning algorithm (more specifically, stochastic gradient type algorithms
+in the deep learning setting). This means neither standard
+lossy compression algorithms nor recently developed model
+compression algorithms (Han et al., 2015a; Courbariaux
+et al., 2015; Hong et al., 2016; Leng et al., 2018; Lin et al.,
+2016) directly work in our setting. Standard lossy compression algorithms aim to minimize reconstruction error but
+our end goal is to enable a learning algorithm to “quickly
+recover.” Model compression techniques aim to transform
+a (static) model into a simpler one while ensuring the forecasts are not perturbed much whereas in our setting we need
+a reliable coding scheme that functions well throughout the
+
+

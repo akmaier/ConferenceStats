@@ -1,0 +1,79 @@
+Fast Differentiable Sorting and Ranking
+
+Mathieu Blondel 1 Olivier Teboul 1 Quentin Berthet 1 Josip Djolonga 1
+
+Abstract
+The sorting operation is one of the most commonly used building blocks in computer programming. In machine learning, it is often used for
+robust statistics. However, seen as a function,
+it is piecewise linear and as a result includes
+many kinks where it is non-differentiable. More
+problematic is the related ranking operator, often
+used for order statistics and ranking metrics. It
+is a piecewise constant function, meaning that
+its derivatives are null or undefined. While numerous works have proposed differentiable proxies to sorting and ranking, they do not achieve
+the O(n log n) time complexity one would expect
+from sorting and ranking operations. In this paper, we propose the first differentiable sorting and
+ranking operators with O(n log n) time and O(n)
+space complexity. Our proposal in addition enjoys
+exact computation and differentiation. We achieve
+this feat by constructing differentiable operators
+as projections onto the permutahedron, the convex hull of permutations, and using a reduction
+to isotonic optimization. Empirically, we confirm
+that our approach is an order of magnitude faster
+than existing approaches and showcase two novel
+applications: differentiable Spearman’s rank correlation coefficient and least trimmed squares.
+
+1. Introduction
+Modern deep learning architectures are built by composing
+parameterized functional blocks (including loops and conditionals) and are trained end-to-end using gradient backpropagation. This has motivated the term differentiable programming, recently popularized, among others, by LeCun
+(2018). Despite great empirical successes, many operations
+commonly used in computer programming remain poorly
+differentiable or downright pathological, limiting the set of
+1
+
+Google Research, Brain team.
+Correspondence to:
+Mathieu
+Blondel
+<mblondel@google.com>,
+Olivier
+Teboul <oliviert@google.com>, Quentin Berthet <qberthet@google.com>, Josip Djolonga <josipd@google.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+architectures for which a gradient can be computed.
+We focus in this paper on two such operations: sorting and ranking. Sorting returns the given input vector
+with its values re-arranged in monotonic order. It plays a
+key role to handle outliers in robust statistics, as in leastquantile (Rousseeuw, 1984) or trimmed (Rousseeuw &
+Leroy, 2005) regression. As a piecewise linear function,
+however, the sorted vector contains many kinks where it is
+non-differentiable. In addition, when used in composition
+with other functions, sorting often induces non-convexity,
+thus rendering model parameter optimization difficult.
+The ranking operation, on the other hand, outputs the positions, or ranks, of the input values in the sorted vector.
+A workhorse of order statistics (David & Nagaraja, 2004),
+ranks are used in several metrics, including Spearman’s
+rank correlation coefficient (Spearman, 1904), top-k accuracy and normalized discounted cumulative gain (NDCG).
+As piecewise constant functions, ranks are unfortunately
+much more problematic than sorting: their derivatives are
+null or undefined, preventing gradient backpropagation. For
+this reason, a large body of work has studied differentiable
+proxies to ranking. While several works opt to approximate
+ranking metrics directly (Chapelle & Wu, 2010; Adams &
+Zemel, 2011; Lapin et al., 2016; Rolı́nek et al., 2020), others introduce “soft” ranks, which can then be plugged into
+any differentiable loss function. Taylor et al. (2008) use a
+random perturbation technique to compute expected ranks
+in O(n3 ) time, where n is the dimensionality of the vector
+to rank. Qin et al. (2010) propose a simple method based
+on comparing pairwise distances between values, thereby
+taking O(n2 ) time. This method is refined by Grover et al.
+(2019) using unimodal row-stochastic matrices. Lastly, Cuturi et al. (2019) adopt an optimal transport viewpoint of sorting and ranking. Their method is based on differentiating
+through the iterates of the Sinkhorn algorithm (Sinkhorn &
+Knopp, 1967) and costs O(T mn) time, where T is the number of Sinkhorn iterations and m ∈ N is a hyper-parameter
+which trades computational cost and precision (convergence
+to “hard” sort and ranks is only guaranteed if m = n).
+In this paper, we propose the first differentiable sorting and
+ranking operators with O(n log n) time and O(n) memory
+complexity. Our proposals enjoy exact computation and differentiation (i.e., they do not involve differentiating through
+
+

@@ -1,0 +1,115 @@
+Mixed Cross Entropy Loss for Neural Machine Translation
+
+Haoran Li * 1 Wei Lu * 1
+
+Abstract
+In neural machine translation, cross entropy (CE)
+is the standard loss function in two training methods of auto-regressive models, i.e., teacher forcing and scheduled sampling. In this paper, we
+propose mixed cross entropy loss (mixed CE) as
+a substitute for CE in both training approaches.
+In teacher forcing, the model trained with CE
+regards the translation problem as a one-to-one
+mapping process, while in mixed CE this process
+can be relaxed to one-to-many. In scheduled sampling, we show that mixed CE has the potential
+to encourage the training and testing behaviours
+to be similar to each other, more effectively mitigating the exposure bias problem. We demonstrate the superiority of mixed CE over CE on
+several machine translation datasets, WMT’16
+Ro-En, WMT’16 Ru-En, and WMT’14 En-De
+in both teacher forcing and scheduled sampling
+setups. Furthermore, in WMT’14 En-De, we
+also find mixed CE consistently outperforms CE
+on a multi-reference set as well as a challenging paraphrased reference set. We also found the
+model trained with mixed CE is able to provide
+a better probability distribution defined over the
+translation output space. Our code is available at
+https://github.com/haorannlp/mix.
+
+1. Introduction
+Conditional language generation tasks, e.g., machine translation, text summarization, are all text-to-text problems. The
+most popular models to solve these tasks include RNNs (Elman, 1990; Hochreiter & Schmidhuber, 1997; Cho et al.,
+2014), Transformer (Vaswani et al., 2017), etc., which
+are usually arranged in an encoder-decoder architecture
+(Sutskever et al., 2014; Cho et al., 2014). Given a training example (x, y) ∈ D, the encoder first compresses the
+source sequence x = (x1 , ..., xm ) into a vector h and then
+*
+Equal contribution 1 StatNLP Research Group, Singapore University of Technology and Design, Singapore. Correspondence to:
+Wei Lu <luwei@sutd.edu.sg>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Source
+
+Die
+
+Geburtenrate
+
+geht weiter zurück .
+
+Target
+
+The birth rate continues to decline .
+
+one-hot
+
+model
+prediction
+
+ground
+truth
+
+at index:
+
+Other
+Translations
+
+The birth rate continues to drop
+
+.
+
+at index:
+
+The birth rate continues to decrease .
+at index:
+
+Figure 1. Example of machine translation’s one-to-many property.
+“Source” and “Target” belong to the training set while “Other
+Translations”
+denotes other
+plausible
+translations
+which are not
+Die Geburtenrate
+geht weiter
+zurück
+.
+present in the training data.
+The birth rate continues to decline .
+
+the decoder will produce a target sequence ŷ = (ŷ1 , ..., ŷn )
+from h1 . However, due to information loss in the compression process and the limited expressiveness power of the
+model, it can be hard for the decoder to recover a good target sequence ŷ from h alone. To solve this problem, people
+often use teacher forcing (Williams & Zipser, 1989) where
+both h and the gold target y = (y1 , ..., yn ) are fed into
+the decoder during training. Next, the aim is typically to
+minimize
+Pn the cross entropy (CE) loss, which can be written
+as − t=1 log pθ (yt |y<t , x).2 The general idea is that, by
+optimizing the CE, we hope the output probability distribution pθ (·|y<t , x) ∈ R|V | (|V | is the vocabulary size) can
+approximate the target one-hot encoding of yt (a vector with
+only one position being 1, others being 0). In practice, empirical success of various neural machine translation (NMT)
+models trained with CE (Bahdanau et al., 2015; Vaswani
+et al., 2017) has demonstrated CE’s effectiveness.
+However, it is worth noting that NMT is inherently a one-tomany mapping problem where a source sentence has multiple plausible translations. In Fig. 1, suppose we want to
+predict the last word y6 “decline” conditioned on the source
+sentence and the prefix y<6 . Although “decline” is the gold
+target that our model should assign the most probability
+mass to, other synonyms of “decline” such as “drop”, “decrease” are also plausible translations in this context, namely
+the corresponding values of these synonyms in the vector
+1
+With potential reference to x, e.g., through the attention mechanism. We ignore this for brevity in our discussion.
+2
+Here y<t = (y0 , y1 , ..., yt−1 ) is the partial target sequence,
+where y0 is the special start token, and θ denotes model parameters.
+
+

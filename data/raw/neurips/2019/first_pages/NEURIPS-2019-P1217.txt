@@ -1,0 +1,58 @@
+PowerSGD: Practical Low-Rank
+Gradient Compression for Distributed Optimization
+
+Thijs Vogels
+EPFL
+Lausanne, Switzerland
+thijs.vogels@epfl.ch
+
+Sai Praneeth Karimireddy
+EPFL
+Lausanne, Switzerland
+sai.karimrieddy@epfl.ch
+
+Martin Jaggi
+EPFL
+Lausanne, Switzerland
+martin.jaggi@epfl.ch
+
+Abstract
+We study lossy gradient compression methods to alleviate the communication bottleneck in data-parallel distributed optimization. Despite the significant attention
+received, current compression schemes either do not scale well, or fail to achieve
+the target test accuracy. We propose a new low-rank gradient compressor based
+on power iteration that can i) compress gradients rapidly, ii) efficiently aggregate
+the compressed gradients using all-reduce, and iii) achieve test performance on par
+with SGD. The proposed algorithm is the only method evaluated that achieves consistent wall-clock speedups when benchmarked against regular SGD using highly
+optimized off-the-shelf tools for distributed communication. We demonstrate reduced training times for convolutional networks as well as LSTMs on common
+datasets. Our code is available at https://github.com/epfml/powersgd.
+
+1
+
+Introduction
+
+Synchronous data-parallel SGD is the most common method for accelerating training of deep learning
+models (Dean et al., 2012; Iandola et al., 2015; Goyal et al., 2017). Because the gradient vectors
+of such models can be large, the time required to share those gradients across workers limits the
+scalability of deep learning training (Seide et al., 2014; Iandola et al., 2015; Lin et al., 2018).
+Previous work proposes lossy gradient compression as a solution to this issue. Notable examples
+include replacing the coordinates of the gradient with only their sign (Seide et al., 2014; Carlson et al.,
+2015; Bernstein et al., 2018, 2019; Karimireddy et al., 2019), quantizing the individual coordinates
+(Alistarh et al., 2017; Wen et al., 2017), and low-rank approximation of the gradient (Wang et al.,
+2018). While these works demonstrate speedups over full-precision SGD in some settings, we find
+that their speedups vanish with a fast network and highly optimized communication backend, even on
+commodity hardware. Some prior work also suffers from degraded test accuracy compared to SGD.
+We combine three observations to fix these issues: i) Linear compressor operators achieve scalability
+by enabling aggregation using all-reduce. ii) Error feedback ensures convergence with general biased
+compressors. iii) Low-rank updates enable aggressive compression without sacrificing quality.
+First, we explore the properties of various gradient compression schemes for SGD and identify
+which ones are crucial for high scalability. In particular, we note that currently proposed gradient
+compressors are not linear. Their compressed messages cannot be added up hierarchically, unlike raw
+gradients. This prevents current compressed SGD algorithms from aggregating gradients using an
+efficient reduce operation and instead require a gather operation. Current deep learning frameworks
+rely either solely or predominantly on all-reduce, which is key to why regular SGD scales well with
+fast communication hardware (cf. Awan et al., 2018; Panda et al., 2019).
+Secondly, it was recently shown that using error feedback (i.e. storing the difference between the
+computed and compressed gradient, and reinserting it at the next iteration) improves both convergence
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

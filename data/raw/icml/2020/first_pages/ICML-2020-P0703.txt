@@ -1,0 +1,71 @@
+Non-Autoregressive Neural Text-to-Speech
+
+Kainan Peng∗ 1 Wei Ping∗ 1 Zhao Song∗ 1 Kexin Zhao∗ 1
+
+Abstract
+In this work, we propose ParaNet, a nonautoregressive seq2seq model that converts text
+to spectrogram. It is fully convolutional and
+brings 46.7 times speed-up over the lightweight
+Deep Voice 3 at synthesis, while obtaining reasonably good speech quality. ParaNet also produces stable alignment between text and speech
+on the challenging test sentences by iteratively improving the attention in a layer-by-layer manner.
+Furthermore, we build the parallel text-to-speech
+system and test various parallel neural vocoders,
+which can synthesize speech from text through
+a single feed-forward pass. We also explore a
+novel VAE-based approach to train the inverse
+autoregressive flow (IAF) based parallel vocoder
+from scratch, which avoids the need for distillation from a separately trained WaveNet as previous work.
+
+1. Introduction
+Text-to-speech (TTS), also called speech synthesis, has long
+been a vital tool in a variety of applications, such as humancomputer interactions, virtual assistant, and content creation. Traditional TTS systems are based on multi-stage
+hand-engineered pipelines (Taylor, 2009). In recent years,
+deep neural networks based autoregressive models have attained state-of-the-art results, including high-fidelity audio
+synthesis (van den Oord et al., 2016), and much simpler
+seq2seq pipelines (Sotelo et al., 2017; Wang et al., 2017;
+Ping et al., 2018b). In particular, one of the most popular
+neural TTS pipeline (a.k.a. “end-to-end") consists of two
+components (Ping et al., 2018b; Shen et al., 2018): (i) an autoregressive seq2seq model that generates mel spectrogram
+from text, and (ii) an autoregressive neural vocoder (e.g.,
+WaveNet) that synthesizes raw waveform from mel spectro*
+Equal contribution . 1 Baidu Research, 1195 Bordeaux Dr,
+Sunnyvale, CA. Speech samples can be found in: https://
+parallel-neural-tts-demo.github.io/. Correspondence to: Wei Ping <weiping.thu@gmail.com>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+gram. This pipeline requires much less expert knowledge
+and only needs pairs of audio and transcript as training data.
+However, the autoregressive nature of these models makes
+them quite slow at synthesis, because they operate sequentially at a high temporal resolution of waveform samples and
+spectrogram. Most recently, several models are proposed
+for parallel waveform generation (e.g., van den Oord et al.,
+2018; Ping et al., 2018a; Prenger et al., 2019; Kumar et al.,
+2019; Bińkowski et al., 2020; Ping et al., 2020). In the endto-end pipeline, the models (e.g., ClariNet, WaveFlow) still
+rely on autoregressive component to predict spectrogram features (e.g., 100 frames per second). In the linguistic featurebased pipeline, the models (e.g., Parallel WaveNet, GANTTS) are conditioned on aligned linguistic features from
+phoneme duration model and F0 from frequency model,
+which are recurrent or autoregressive models. Both of these
+TTS pipelines can be slow at synthesis on modern hardware
+optimized for parallel execution.
+In this work, we present a fully parallel neural TTS system by proposing a non-autoregressive text-to-spectrogram
+model. Our major contributions are as follows:
+1. We propose ParaNet, a non-autoregressive attentionbased architecture for text-to-speech, which is fully convolutional and converts text to mel spectrogram. It runs
+254.6 times faster than real-time at synthesis on a 1080
+Ti GPU, and brings 46.7 times speed-up over its autoregressive counterpart (Ping et al., 2018b), while obtaining
+reasonably good speech quality using neural vocoders.
+2. ParaNet distills the attention from the autoregressive
+text-to-spectrogram model, and iteratively refines the
+alignment between text and spectrogram in a layer-bylayer manner. It can produce more stable attentions
+than autoregressive Deep Voice 3 (Ping et al., 2018b) on
+the challenging test sentences, because it does not have
+the discrepancy between the teacher-forced training and
+autoregressive inference.
+3. We build the fully parallel neural TTS system by combining ParaNet with parallel neural vocoder, thus it can
+generate speech from text through a single feed-forward
+pass. We investigate several parallel vocoders, including
+the distilled IAF vocoder (Ping et al., 2018a) and WaveGlow (Prenger et al., 2019). To explore the possibility
+of training IAF vocoder without distillation, we also
+
+

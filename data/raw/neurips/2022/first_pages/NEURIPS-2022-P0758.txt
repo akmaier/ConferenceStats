@@ -1,0 +1,74 @@
+Automatic Differentiation of Programs with
+Discrete Randomness
+Gaurav Arya
+Massachusetts Institute of Technology, USA
+aryag@mit.edu
+
+Moritz Schauer
+Chalmers University of Technology, Sweden
+University of Gothenburg, Sweden
+smoritz@chalmers.se
+
+Frank Schäfer
+Massachusetts Institute of Technology, USA
+University of Basel, Switzerland
+franksch@mit.edu
+
+Chris Rackauckas
+Massachusetts Institute of Technology, USA
+Julia Computing Inc., USA
+Pumas-AI Inc., USA
+crackauc@mit.edu
+
+Abstract
+Automatic differentiation (AD), a technique for constructing new programs which
+compute the derivative of an original program, has become ubiquitous throughout
+scientific computing and deep learning due to the improved performance afforded
+by gradient-based optimization. However, AD systems have been restricted to the
+subset of programs that have a continuous dependence on parameters. Programs
+that have discrete stochastic behaviors governed by distribution parameters, such as
+flipping a coin with probability p of being heads, pose a challenge to these systems
+because the connection between the result (heads vs tails) and the parameters (p)
+is fundamentally discrete. In this paper we develop a new reparameterizationbased methodology that allows for generating programs whose expectation is
+the derivative of the expectation of the original program. We showcase how
+this method gives an unbiased and low-variance estimator which is as automated
+as traditional AD mechanisms. We demonstrate unbiased forward-mode AD of
+discrete-time Markov chains, agent-based models such as Conway’s Game of Life,
+and unbiased reverse-mode AD of a particle filter. Our code package is available at
+https://github.com/gaurav-arya/StochasticAD.jl.
+
+1
+
+Introduction
+
+Automatic differentiation (AD) is a technique for taking a mathematical program X(p) and generating
+e
+a new program X(p)
+= dX
+dp for computing the derivative [1, 2]. AD is widely used throughout
+machine learning and scientific computing due to the increased performance of gradient-based
+optimization techniques compared to derivative-free methods [3]. However, if X(p) returns the flip
+of a coin with probability p of receiving a 1 and probability 1 − p of receiving a 0, it is clear that dX
+dp
+is not defined in the classical sense. But when attempting to calibrate the parameter p to data, one
+may wish to fit the model using statistical quantities, e.g. find p such that the average of X(p) is close
+to the average sum of N real-world coin flips. Given this use case, can one automatically construct a
+e
+e
+program X(p)
+that computes the derivative of the statistical quantities, i.e. E[X(p)]
+= dE[X(p)]
+?
+dp
+A naïve solution to this problem would be to use finite differences, i.e.:
+dE[X(p)]
+E[X(p + ε)] − E[X(p)]
+≈
+.
+dp
+ε
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+(1.1)
+
+

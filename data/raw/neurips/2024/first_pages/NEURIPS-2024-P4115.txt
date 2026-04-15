@@ -1,0 +1,50 @@
+S EQUOIA: Scalable and Robust Speculative Decoding
+
+Zhuoming Chen1∗ Avner May2∗ Ruslan Svirschevski3,4∗
+Yuhsun Huang1 Max Ryabinin2 Zhihao Jia1 Beidi Chen1,5
+1
+Carnegie Mellon University 2 Together AI 3 Yandex
+4
+National Research University Higher School of Economics 5 FAIR, Meta
+zhuominc@andrew.cmu.edu, avner@together.ai, ruslansv@gmail.com
+yuhsunh@andrew.cmu.edu, mryab@together.ai, {zhihaoj2,beidic}@andrew.cmu.edu
+
+Abstract
+As the usage of large language models (LLMs) grows, it becomes increasingly
+important to serve them quickly and efficiently. While speculative decoding has
+recently emerged as a promising direction for accelerating LLM serving, existing
+methods are limited in their ability to scale to larger speculation budgets and adapt
+to different hyperparameters. This paper introduces S EQUOIA, a scalable and robust
+algorithm for speculative decoding. To improve scalability, S EQUOIA introduces a
+dynamic programming algorithm to find an optimal tree structure for the speculated
+tokens. To achieve robust speculative decoding, S EQUOIA uses a novel sampling
+and verification method that outperforms prior work across different decoding temperatures. S EQUOIA improves the decoding speed of Llama2-7B, Llama2-13B, and
+Vicuna-33B on an A100 GPU by up to 4.04×, 3.73×, and 2.27×. To serve Llama370B-Instruct on a single L40 GPU through offloading, S EQUOIA reduces the pertoken decoding latency to 0.60 s/token, 9.5× faster than DeepSpeed-Zero-Inference.
+The code is available at https://github.com/Infini-AI-Lab/Sequoia.
+
+1
+
+Introduction
+
+As large language models (LLMs) gain widespread adoption [3, 43, 7], efficiently serving these LLMs
+becomes increasingly important. However, accelerating LLM inference is challenging since generating
+a single new token requires accessing all parameters of the LLM [34]. As a result of this I/O bottleneck,
+the hardware is poorly utilized during generation. This problem is exacerbated in both small-batch
+and offloading-based inference settings, where generating one token takes as much time as processing
+a prompt with hundreds or thousands of tokens on modern GPUs.
+To address this challenge, recent work has introduced speculative decoding to accelerate LLM
+inference while preserving the LLM’s output distribution [24, 5, 28, 40]. These approaches leverage
+one or multiple draft models to predict the LLM’s output; the predictions are organized in a token
+tree, whose nodes represent different sequences of speculated tokens. The correctness of these
+speculated tokens is then verified in parallel through a single forward pass of the LLM. Using a token
+tree—instead of a sequence—can increase the number of tokens accepted by the LLM by providing
+several options for each token position.
+While there are substantial studies on tree-based speculative decoding methods [28, 40], we see in our experiments that they have a couple of limitations. First, we observe that existing token tree construction algorithms perform well for small token trees but are sub-optimal for large tree sizes. For example, SpecInfer constructs a token tree using k independent sequences, a topology that is bounded by the expected
+number of tokens it can accept, regardless of the tree size (Figure 1). Second, we observe that existing
+token tree sampling and verification algorithms are unable to perform well across inference hyperparam∗
+
+Equal contribution
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

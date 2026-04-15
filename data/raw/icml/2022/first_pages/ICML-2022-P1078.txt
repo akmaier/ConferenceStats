@@ -1,0 +1,73 @@
+Detached Error Feedback for Distributed SGD with Random Sparsification
+
+An Xu 1 Heng Huang 1
+
+Abstract
+The communication bottleneck has been a critical
+problem in large-scale distributed deep learning.
+In this work, we study distributed SGD with random block-wise sparsification as the gradient compressor, which is ring-allreduce compatible and
+highly computation-efficient but leads to inferior
+performance. To tackle this important issue, we
+improve the communication-efficient distributed
+SGD from a novel aspect, that is, the trade-off
+between the variance and second moment of the
+gradient. With this motivation, we propose a new
+detached error feedback (DEF) algorithm, which
+shows better convergence bound than error feedback for non-convex problems. We also propose
+DEF-A to accelerate the generalization of DEF at
+the early stages of the training, which shows better
+generalization bounds than DEF. Furthermore, we
+establish the connection between communicationefficient distributed SGD and SGD with iterate
+averaging (SGD-IA) for the first time. Extensive
+deep learning experiments show significant empirical improvement of the proposed methods under
+various settings.
+
+1. Introduction
+Deep learning models are hard to train due to the heavy computation complexity and long training iterations. Therefore,
+distributed deep learning with multiple workers (GPUs) has
+become a prevalent practice to parallelize and accelerate the
+training for large-scale tasks, where the model and dataset
+sizes continue to grow nowadays (Simonyan & Zisserman,
+2014; He et al., 2016; Deng et al., 2009).
+Nevertheless, synchronous distributed training have diffi1
+
+Department of Electrical and Computer Engineering, University of Pittsburgh, Pittsburgh, PA 15213, USA. This work
+was partially supported by NSF IIS 1845666, 1852606, 1838627,
+1837956, 1956002, IIA 2040588. Correspondence to: Heng Huang
+<heng.huang@pitt.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+culty in scaling up the number of workers for large deep
+learning models, as the gradient in each worker to be communicated per iteration is of the same dimension as the
+model size. It is also known as the communication bottleneck. Besides, it incurs imbalanced communication traffic
+in the parameter-server (Li et al., 2014a;b; 2013) architecture, where the server suffers from much larger communication burden than workers. To address the communication
+bottleneck issue, there have been numerous lines of works
+including asynchronous execution (Dean et al., 2012), gradient compression (Bernstein et al., 2018a;b; Wen et al.,
+2017; Alistarh et al., 2017; Aji & Heafield, 2017; Alistarh
+et al., 2018; Strom, 2015; Lin et al., 2018; Gao et al., 2021),
+communication scheduling (George & Gurram, 2020), infrequent communication (Stich, 2018), delayed gradient (Li
+et al., 2018; Zhu et al., 2021), decentralized training (Lian
+et al., 2017; Koloskova et al., 2019; Tang et al., 2018; Assran et al., 2019; Koloskova et al., 2019), model parallelism
+(Huang et al., 2019; Xu et al., 2020), etc.
+In this work, we focus on synchronous distributed SGD with
+gradient compression, or more specifically, random blockwise gradient sparsification (RBGS) (Vogels et al., 2019; Xie
+et al., 2020). The most popular gradient sparsifier is probably the Top-K gradient sparsification (Alistarh et al., 2018;
+Lin et al., 2018), where each worker selects the largest K
+gradient components according to the absolute value as the
+sparsified gradient. However, Top-K has several drawbacks:
+1) it requires extra communication overheads to communicate the gradient indices, 2) it is applied in parameter-server
+architecture but not ring-allreduce compatible, and most
+of all, 3) its computation overheads O(K log2 d) for model
+θ ∈ Rd may even outweigh its communication benefits
+(Song et al., 2021; Xie et al., 2020; Sahu et al., 2021) as
+it is efficient only for a small K for optimized implementations on GPU (Shanbhag et al., 2018). While in RBGS,
+we randomly sample a block of gradient as the sparsified
+gradient for communication among workers. To ensure the
+consistency of the sampling process, each worker will be
+pre-assigned the same random seed. In comparison to TopK, RBGS is highly computation-efficient (O(1)) as we only
+need to uniformly and randomly sample one starting index
+of the gradient block. RBGS is also ring-allreduce compatible. However, RBGS results in inferior model performance
+in that its sparsified gradient usually does not include as
+
+

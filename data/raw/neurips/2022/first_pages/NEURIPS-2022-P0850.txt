@@ -1,0 +1,57 @@
+Spatial Mixture-of-Experts
+Nikoli Dryden
+ETH Zürich
+ndryden@ethz.ch
+
+Torsten Hoefler
+ETH Zürich
+htor@inf.ethz.ch
+
+Abstract
+Many data have an underlying dependence on spatial location; it may be weather
+on the Earth, a simulation on a mesh, or a registered image. Yet this feature
+is rarely taken advantage of, and violates common assumptions made by many
+neural network layers, such as translation equivariance. Further, many works that
+do incorporate locality fail to capture fine-grained structure. To address this, we
+introduce the Spatial Mixture-of-Experts (SM O E) layer, a sparsely-gated layer that
+learns spatial structure in the input domain and routes experts at a fine-grained
+level to utilize it. We also develop new techniques to train SM O Es, including a
+self-supervised routing loss and damping expert errors. Finally, we show strong
+results for SM O Es on numerous tasks, and set new state-of-the-art results for
+medium-range weather prediction and post-processing ensemble weather forecasts.
+
+1
+
+Introduction
+
+Many datasets exhibit an underlying, location-based structure, where the value at a point depends
+on where that point is. For example, weather predictions [78] depend on their location on Earth;
+many scientific simulations are parameterized on an underlying mesh [9]; data (e.g., faces) may be
+specifically aligned [91]; or it may approximately hold, as in natural images with centered objects.
+Further, tasks on such data are often dense regression tasks, such as predicting weather several days in
+the future. Numerous architectures have been successfully applied to such tasks. Convolutional neural
+networks (CNNs) [80] and transformers [74] show promise for medium-range weather prediction.
+Locally-connected networks (LCNs), which use independent, rather than shared, filters at each
+point, have been applied to weather post-processing [38], face recognition [46, 77, 91], and other
+tasks [18, 71], specifically to learn local features. Low-rank local connectivity (LRLCN) [30] relaxes
+the translation equivariance of CNNs while requiring fewer parameters than LCNs. Other approaches,
+such as CoordConv [65], add an additional inductive bias by providing explicit input coordinates.
+However, for tasks on data with location-based structure, prior approaches suffer from various
+limitations. Convolution assumes that data is translation equivariant, which does not hold for such
+tasks [46, 91]. Approaches like LCNs require many parameters. Many architectures have been
+designed for classification tasks and fail to perform well on regression because they opererate at too
+coarse granularity and are unable to capture key details. This limits their applicability to important
+tasks, such as medium-range weather prediction or climate simulations. Indeed, on a simple heat
+diffusion task with location-dependent diffusivities (see §3.1), many approaches do not learn the
+location dependence at all and instead converge to an “average” diffusivity.
+To address this, we introduce a novel neural network layer, the Spatial Mixture-of-Experts (SM O E)
+layer (§2). An SM O E uses a learned gating function to sparsely select and route from a shared set of
+experts to each spatial location (e.g., pixel) in an input sample. This enables experts to specialize to
+the unique characteristics of different “regions” within the data and easy interpretability by analyzing
+the gate. SM O Es require the assumption that all samples in the dataset have a similar underlying
+spatial structure, but this often holds (at least approximately) for many datasets, such as weather,
+where each example is on the same latitude/longitude grid. For the SM O E gating function, we
+introduce tensor routing, a simple and cheap routing function that effectively learns this spatial
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+

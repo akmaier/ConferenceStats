@@ -1,0 +1,95 @@
+Normalizing Flows on Tori and Spheres
+
+Danilo Jimenez Rezende * 1 George Papamakarios * 1 Sébastien Racanière * 1 Michael S. Albergo 2
+Gurtej Kanwar 3 Phiala E. Shanahan 3 Kyle Cranmer 2
+
+Abstract
+
+A normalizing flow implements two operations: sampling
+via Equation (1), and evaluating the density via Equation (2).
+These operations have distinct computational requirements:
+generating samples and evaluating their density requires
+only f and its Jacobian determinant, whereas evaluating
+the density of arbitrary datapoints requires only f −1 and its
+Jacobian determinant. Thus, the intended usage of the flow
+dictates whether f , f −1 or both must have efficient implementations. For an overview of various implementations
+and associated trade-offs, see (Papamakarios et al., 2019).
+
+Normalizing flows are a powerful tool for building expressive distributions in high dimensions.
+So far, most of the literature has concentrated on
+learning flows on Euclidean spaces. Some problems however, such as those involving angles, are
+defined on spaces with more complex geometries,
+such as tori or spheres. In this paper, we propose
+and compare expressive and numerically stable
+flows on such spaces. Our flows are built recursively on the dimension of the space, starting from
+flows on circles, closed intervals or spheres.
+
+1. Introduction
+Normalizing flows are a flexible way of defining complex
+distributions on high-dimensional data. A normalizing flow
+maps samples from a base distribution π(u) to samples from
+a target distribution p(x) via a transformation f as follows:
+x = f (u) where
+
+u ∼ π(u).
+
+(1)
+
+The transformation f is restricted to be a diffeomorphism:
+it must be invertible and both f and its inverse f −1 must
+be differentiable. This restriction allows us to calculate the
+target density p(x) via a change of variables:
+ −1 
+
+∂f
+−1
+p(x) = π f (x) det
+.
+(2)
+∂x
+In practice, π(u) is often taken to be a simple density that
+can be easily evaluated and sampled from, and either f or
+its inverse f −1 are implemented via neural networks such
+that the Jacobian determinant is efficient to compute.
+*
+
+1
+
+2
+
+Equal contribution
+DeepMind, London, U.K. New
+York University, New York, U.S.A. 3 Center for Theoretical Physics, Massachusetts Institute of Technology, Cambridge, MA 02139, U.S.A. Correspondence to: Danilo
+Jimenez Rezende <danilor@google.com>, George Papamakarios <gpapamak@google.com>, Sébastien Racanière <sracaniere@google.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+In most existing implementations of normalizing flows, both
+u and x are defined to live in the Euclidean space RD ,
+where D is determined by the data dimensionality. However,
+this Euclidean formulation is not always suitable, as some
+datasets are defined on spaces with non-Euclidean geometry.
+For example, if x represents an angle, its ‘natural habitat’
+is the 1-dimensional circle; if x represents the location of
+a particle in a box with periodic boundary conditions, x is
+naturally defined on the 3-dimensional torus.
+The need for probabilistic modelling of non-Euclidean data
+often arises in applications where the data is a set of angles,
+axes or directions (Mardia & Jupp, 2009). Such applications
+include protein-structure prediction in molecular biology
+(Hamelryck et al., 2006; Mardia et al., 2007; Boomsma et al.,
+2008; Shapovalov & Dunbrack Jr, 2011), rock-formation
+analysis in geology (Peel et al., 2001), and path navigation and motion estimation in robotics (Feiten et al., 2013;
+Senanayake & Ramos, 2018). Non-Euclidean spaces have
+also been explored in machine learning, and specifically
+generative modelling, as latent spaces of variational autoencoders (Davidson et al., 2018; Falorsi et al., 2018; Wang &
+Wang, 2019; Mathieu et al., 2019; Wang et al., 2019).
+A more general formulation of normalizing flows that is
+suitable for non-Euclidean data is to take u ∈ M and
+x ∈ N , where M and N are differentiable manifolds and
+f : M → N is a diffeomorphism between them. A difficulty with this formulation is that M and N are diffeomorphic by definition, so they must have the same topological
+properties (Kobayashi & Nomizu, 1963). To circumvent this
+restriction, Gemici et al. (2016) first project M to RD , apply
+the usual flows there, and then project RD back to N . However, a naive application of this approach can be problematic
+
+

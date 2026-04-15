@@ -1,0 +1,83 @@
+Evaluating the Adversarial Robustness of Adaptive Test-time Defenses
+
+Francesco Croce * 1 Sven Gowal * 2 Thomas Brunner * 3 Evan Shelhamer * 2 Matthias Hein 1 Taylan Cemgil 2
+
+Abstract
+Adaptive defenses, which optimize at test time,
+promise to improve adversarial robustness. We
+categorize such adaptive test-time defenses, explain their potential benefits and drawbacks,
+and evaluate a representative variety of the latest adaptive defenses for image classification.
+Unfortunately, none significantly improve upon
+static defenses when subjected to our careful case
+study evaluation. Some even weaken the underlying static model while simultaneously increasing inference computation. While these results
+are disappointing, we still believe that adaptive
+test-time defenses are a promising avenue of research and, as such, we provide recommendations for their thorough evaluation. We extend
+the checklist of Carlini et al. (2019) by providing
+concrete steps specific to adaptive defenses.
+
+1. Introduction
+Despite the successes of deep learning (Goodfellow et al.,
+2016), it is well-known that deep networks are not intrinsically robust. In particular, the addition of small but
+carefully chosen `p -norm bounded deviations to the input, called adversarial perturbations, can cause a deep network to make incorrect predictions with high confidence
+(Carlini & Wagner, 2017a;b; Goodfellow et al., 2015; Kurakin et al., 2016; Szegedy et al., 2014; Biggio et al.,
+2013). Starting with Biggio et al. (2013) and Szegedy et al.
+(2014), there has been a lot of work on understanding and
+generating adversarial perturbations (Carlini & Wagner,
+2017b; Athalye & Sutskever, 2018; Uesato et al., 2018),
+and on building models that are robust to such perturbations (Goodfellow et al., 2015; Papernot et al., 2016; Madry
+*
+Equal contribution 1 University of Tübingen, Germany
+DeepMind, London, United Kingdom 3 Everyday Robots,
+Munich, Germany.
+Correspondence to: Francesco Croce
+<francesco.croce@uni-tuebingen.de>, Sven Gowal, Evan Shelhamer <{sgowal,shelhamer}@deepmind.com>, Thomas Brunner
+<tbrunner@everydayrobots.com>.
+2
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+et al., 2018; Kannan et al., 2018; Zhang et al., 2019; Rice
+et al., 2020; Gowal et al., 2020; 2021).
+A model f robust to `p -norm bounded perturbations aims
+to minimize the adversarial risk (Madry et al., 2018)
+"
+#
+E(x,y)∼D
+
+max
+δ∈{δ:kδkp <}
+
+L(f (x + δ), y)
+
+(1)
+
+where D is a data distribution over pairs of examples x and
+corresponding labels y, L(z, y) is a suitable loss function
+(such as the 0-1 loss for classification), and  is a maximal
+norm which defines the set of allowed perturbations for a
+given example x. As such, finding the worst-case perturbation (or optimal adversarial perturbation) δ ? is key for both
+training and testing models. Finding sub-optimal δ̂ with
+L(f (x + δ̂), y) ≤ L(f (x + δ ? ), y) estimates lower bounds
+on the true adversarial risk (or in the context of a classification task, upper bounds on the true robust accuracy), which
+may give a false sense of security. Hence, it is practically
+important to optimally solve the problem in Eq. 1.
+The difficulty of solving this maximization problem close
+to optimality is highlighted by Uesato et al. (2018); Athalye et al. (2018); Tramèr et al. (2020), in which a number of
+published defenses are easily broken by adaptive adversarial attacks that are tuned to the defenses. This reversal highlights the importance of understanding the limitations of
+different robust training and testing methods (Pintor et al.,
+2021). Standardizing evaluation allows for the systematic
+tracking of real progress on adversarial robustness. However, to guarantee that standardized evaluations are accurate, defenses must adhere to some practical restrictions.
+RobustBench (Croce et al., 2021), for example, rules
+out (i) models which have zero gradients with respect to the
+input (Buckman et al., 2018; Guo et al., 2018), (ii) randomized models (Yang et al., 2019; Pang et al., 2020), and (iii)
+models that optimize during inference (Samangouei et al.,
+2018; Li et al., 2019; Schott et al., 2019). These restrictions
+may unnecessarily limit the development of robust models and, as a consequence, several researchers have offered
+general recommendations on how to evaluate adversarial
+defenses (Carlini et al., 2019). However, the evaluation of
+each new defense raises non-trivial choices.
+In this work, we focus on adaptive test-time defenses
+that apply iterative optimization during inference, which
+
+

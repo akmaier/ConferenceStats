@@ -1,0 +1,166 @@
+CateKV: On Sequential Consistency for Long-Context LLM Inference
+Acceleration
+Haoyun Jiang 1 2 Haolin Li 3 Jianwei Zhang 2 Fei Huang 2 Qiang Hu 1 Minmin Sun 2 Shuai Xiao 2 Yong Li 2
+Junyang Lin 2 Jiangchao Yao 1
+
+Abstract
+
+For consistent heads
+
+For all heads
+
+Pre-filling
+
+Pre-filling
+
+Large language models (LLMs) have demonstrated strong capabilities in handling longcontext tasks, but processing such long contexts
+remains challenging due to the substantial memory requirements and inference latency. In this
+work, we discover that certain attention heads exhibit sequential consistency in their attention patterns, which can be persistently identified using a
+coefficient-of-variation-based algorithm. Inspired
+by this observation, we propose CateKV, a hybrid KV cache method that retains only critical
+token information for consistent heads, thereby
+reducing KV cache size and computational overhead, while preserving the majority of KV pairs
+in adaptive heads to ensure high accuracy. We
+show the unique characteristics of our algorithm
+and its extension with existing acceleration methods. Comprehensive evaluations on long-context
+benchmarks show that, while maintaining accuracy comparable to full attention, CateKV reduces
+memory usage by up to 2.72× and accelerates
+decoding by 2.18× in single-sample inputs, and
+boosts throughput by 3.96× in batch scenarios.
+
+0.2
+
+0.6
+
+0.1
+
+0.3
+
+0.9
+
+0.2
+
+0.2
+
+0.6
+
+0.1
+
+Evict KV pairs
+
+Decoding
+
+0.2
+
+Query
+
+(a) KV Eviction Algorithm
+Decoding
+
+0.9
+
+Only retain
+critical KV pairs
+
+Decoding
+KV cache
+
+0.3
+
+Query
+
+KV cache
+
+For all heads
+
+For adaptive heads
+Pre-filling
+
+KV cache
+
+Query
+
+0.2
+
+Query
+
+KV cache
+
+(b) KV Retrieval Algorithm
+Context window
+
+Observation window
+
+Evicted KV pairs
+
+KV pairs for attention
+
+0.6
+
+Decoding
+
+0.1
+
+0.3
+
+0.9
+
+0.2
+
+Retain most KV
+pairs
+
+KV cache
+
+Query
+
+(c) Ours
+
+Figure 1: Comparison of KV eviction, KV retrieval, and our
+method. CateKV employs a hybrid KV cache method to
+reduce memory usage while maintaining high accuracy.
+standing (Bairi et al., 2024; Jimenez et al., 2023). However,
+as context lengths grow, the autoregressive nature of the
+mainstream LLM paradigm often leads to increased computational costs, memory consumption, and thus the runtime,
+since we have to store and retrieve all key-value (KV) caches.
+For example, using the Llama-3-8B-Instruct-262k (Gradient,
+2024b) model with FlashAttention, extending the context
+from 1K to 1M tokens increases inference latency by over
+3000 times (Jiang et al., 2024). Therefore, accelerating LLM
+inference in long contexts is both essential and imperative.
+
+1. Introduction
+With rapid development of large language models (LLMs),
+many generalist models support context windows of 128K
+tokens or more (Achiam et al., 2023; Dubey et al., 2024;
+Bai et al., 2023a; GLM et al., 2024b; Team et al., 2023;
+Abdin et al., 2024), enabling to effectively perform tasks
+like long-document question answering (Caciularu et al.,
+2023; Wang et al., 2024), information retrieval (Zhang et al.,
+2024a; Zhu et al., 2023), and repository-level code under-
+
+Existing methods for inference acceleration of LLMs under
+long contexts can be categorized into two types: KV cache
+eviction and KV cache retrieval strategies. KV eviction
+strategies reduce the size of the KV cache by systematically
+discarding KV pairs based on predefined policies (Xiao
+et al., 2023; Zhang et al., 2023; Li et al., 2024; Cai et al.,
+2024). However, this usually suffers from significant accuracy loss, as the removal of essential information without
+comprehensive contextual understanding adversely affects
+task performance. In contrast, KV retrieval methods maintain accuracy by preserving all KV pairs in the cache and
+
+1
+
+CMIC, Shanghai Jiao Tong University 2 Alibaba Group
+Fudan University.
+Correspondence to: Jiangchao Yao
+<sunarker@sjtu.edu.cn>, Shuai Xiao <shuai.xsh@gmail.com>.
+3
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

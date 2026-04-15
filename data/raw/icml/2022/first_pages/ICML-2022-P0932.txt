@@ -1,0 +1,89 @@
+Algorithms for the Communication of Samples
+
+Lucas Theis 1 Noureldin Yosri 2
+
+Abstract
+
+noisy channel with as few errors as possible, reverse channel coding attempts to do the opposite, namely to simulate
+a noisy channel over a digital channel. This problem has
+therefore also been referred to as “channel simulation” (e.g.,
+Cuff, 2008) and is closely related to “relative entropy coding”
+(Flamich et al., 2020).
+
+The efficient communication of noisy data has
+applications in several areas of machine learning, such as neural compression or differential
+privacy, and is also known as reverse channel coding or the channel simulation problem. Here we
+propose two new coding schemes with practical
+advantages over existing approaches. First, we
+introduce ordered random coding (ORC) which
+uses a simple trick to reduce the coding cost of
+previous approaches. This scheme further illuminates a connection between schemes based on
+importance sampling and the so-called Poisson
+functional representation. Second, we describe a
+hybrid coding scheme which uses dithered quantization to more efficiently communicate samples
+from distributions with bounded support.
+
+The reverse channel coding problem occurs in many applications. In neural compression, differentiable channels enable
+gradient-based methods to optimize encoders but these channels are necessarily noisy if we want to limit their capacity.
+For example, it is common to approximate quantization with
+uniform noise when training neural networks for lossy compression (Ballé et al., 2017). Reverse channel coding allows
+us to implement such noisy channels at test time (Agustsson
+& Theis, 2020) and to use arbitrary distributions in place of
+uniform noise (Havasi et al., 2019).
+
+1. Introduction
+Consider a problem where a sender has information x and
+wants to communicate a noisy version of it over a digital
+channel,
+Z ∼ x + U.
+
+(1)
+
+The sender does not care which value the noise U takes as
+long as it follows a given distribution. For example, it may
+be desired that the noise is a fair sample from a Gaussian
+distribution. Can we exploit the sender’s indifference to the
+exact value of the noise to save bits in the communication?
+More generally, we may want to send a sample from a given
+distribution,
+Z ∼ qx .
+
+(2)
+
+How can we communicate such a sample most efficiently?
+This is the problem of reverse channel coding. While channel coding tries to communicate digital information over a
+1
+Google, London, UK 2 Google, Dublin, Ireland. Correspondence to: Lucas Theis <theis@google.com>.
+
+Proceedings of the 39th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+In differential privacy, most mechanisms seek to limit the
+amount of sensitive information revealed to another party
+by adding noise to the data (Dwork et al., 2006). Efficiently
+communicating such private information is an active area of
+research (e.g., Chen et al., 2020; Shah et al., 2022) and the
+goal of reverse channel coding.
+Quantum teleportation can be viewed as another instance
+of reverse channel coding where classical bits are used to
+communicate stochastic information in the form of a qubit.
+Some of the earliest results on reverse channel coding were
+obtained in quantum mechanics (Bennett & Shor, 2002).
+The naive approach to our problem would be to let the
+sender generate a sample and then to encode this noisy data.
+If the data or the noise stems from a continuous distribution, lossless coding is impossible as it would require an
+infinite number of bits. On the other hand, lossy coding (by
+first quantizing) leads to further corruption of the data and
+still wastes bits on encoding the remaining noise. In contrast, efficient reverse channel coding techniques are able to
+communicate such information with a coding cost which is
+close to the mutual information between the data X and the
+sample Z (e.g., Li & El Gamal, 2018),
+I[X, Z] = h[Z] − h[Z | X] = E[DKL [qX k p]],
+
+(3)
+
+where h is the differential entropy and p is the marginal
+distribution of Z. Unlike the naive approach, the coding
+cost actually decreases as we introduce more noise, that is,
+
+

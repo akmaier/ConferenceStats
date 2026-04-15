@@ -1,0 +1,81 @@
+Defending Against Saddle Point Attack in Byzantine-Robust Distributed
+Learning
+
+Dong Yin 1 Yudong Chen 2 Kannan Ramchandran 1 Peter Bartlett 1 3
+
+Abstract
+We study robust distributed learning that involves
+minimizing a non-convex loss function with saddle points. We consider the Byzantine setting
+where some worker machines have abnormal or
+even arbitrary and adversarial behavior, and in
+this setting, the Byzantine machines may create
+fake local minima near a saddle point that is far
+away from any true local minimum, even when
+robust gradient estimators are used. We develop
+ByzantinePGD, a robust first-order algorithm that
+can provably escape saddle points and fake local
+minima, and converge to an approximate true local minimizer with low iteration complexity. As a
+by-product, we give a simpler algorithm and analysis for escaping saddle points in the usual nonByzantine setting. We further discuss three robust
+gradient estimators that can be used in ByzantinePGD, including median, trimmed mean, and
+iterative filtering. We characterize their performance in concrete statistical settings, and argue
+for their near-optimality in low and high dimensional regimes.
+
+1. Introduction
+Distributed computing becomes increasingly important in
+modern data-intensive applications. In many applications,
+large-scale datasets are distributed over multiple machines
+for parallel processing in order to speed up computation. In
+other settings, the data sources are naturally distributed, and
+for privacy and efficiency considerations, the data are not
+transmitted to a central machine. An example is the recently
+proposed Federated Learning paradigm (McMahan & Ramage, 2017; Konečnỳ et al., 2016; 2015), in which the data
+1
+
+Department of Electrical Engineering and Computer Sciences,
+UC Berkeley, Berkeley, CA, USA 2 School of Operations Research
+and Information Engineering, Cornell University, Ithaca, NY, USA
+3
+Department of Statistics, UC Berkeley, Berkeley, CA, USA. Correspondence to: Dong Yin <dongyin@eecs.berkeley.edu>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+are stored and processed locally in end users’ cellphones
+and personal computers.
+In a standard worker-server distributed computing framework, a single master machine is in charge of maintaining
+and updating the parameter of interest, and a set of worker
+machines store the data, perform local computation and
+communicate with the master. In this setting, messages
+received from worker machines are prone to errors due to
+data corruption, hardware/software malfunction, and communication delay and failure. These problems are only
+exacerbated in a decentralized distributed architecture such
+as Federated Learning, where some machines may be subjected to malicious and coordinated attack and manipulation.
+A well-established framework for studying such scenarios is
+the Byzantine setting (Lamport et al., 1982), where a subset
+of machines behave completely arbitrarily—even in a way
+that depends on the algorithm used and the data on the other
+machines—thereby capturing the unpredictable nature of
+the errors. Developing distributed algorithms that are robust
+in the Byzantine setting has become increasingly critical.
+In this paper we focus on robust distributed optimization
+for statistical learning problems. Here the data points are
+generated from some unknown distribution D and stored locally in m worker machines, each storing n data points; the
+goal is to minimize a population loss function F : W → R
+defined as an expectation over D, where W ⊆ Rd is the
+parameter space. We assume that α ∈ (0, 1/2) fraction of
+the worker machines are Byzantine; that is, their behavior is
+arbitrary. This Byzantine-robust distributed learning problem has attracted attention in a recent line of work (Alistarh
+et al., 2018; Blanchard et al., 2017; Chen et al., 2017; Feng
+et al., 2014; Su & Vaidya, 2016a;b; Yin et al., 2018a). This
+body of work develops robust algorithms that are guaranteed
+to output an approximate minimizer of F when it is convex,
+or an approximate stationary point in the non-convex case.
+However, fitting complicated machine learning models often
+requires finding a local minimum of non-convex functions,
+as exemplified by training deep neural networks and other
+high-capacity learning architectures (Soudry & Carmon,
+2016; Ge et al., 2016; 2017). It is well-known that many
+of the stationary points of these problems are in fact saddle
+points and far away from any local minimum (Kawaguchi,
+
+

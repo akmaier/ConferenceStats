@@ -1,0 +1,76 @@
+Semi-Implicit Variational Inference
+Mingzhang Yin 1 Mingyuan Zhou 2
+
+Abstract
+Semi-implicit variational inference (SIVI) is introduced to expand the commonly used analytic
+variational distribution family, by mixing the variational parameter with a flexible distribution. This
+mixing distribution can assume any density function, explicit or not, as long as independent random samples can be generated via reparameterization. Not only does SIVI expand the variational
+family to incorporate highly flexible variational
+distributions, including implicit ones that have no
+analytic density functions, but also sandwiches
+the evidence lower bound (ELBO) between a
+lower bound and an upper bound, and further derives an asymptotically exact surrogate ELBO that
+is amenable to optimization via stochastic gradient ascent. With a substantially expanded variational family and a novel optimization algorithm,
+SIVI is shown to closely match the accuracy of
+MCMC in inferring the posterior in a variety of
+Bayesian inference tasks.
+
+1. Introduction
+Variational inference (VI) is an optimization based method
+that is widely used for approximate Bayesian inference. It
+introduces variational distribution Q over the latent variables to approximate the posterior (Jordan et al., 1999),
+and its stochastic version is scalable to big data (Hoffman
+et al., 2013). VI updates the parameters of Q to move it
+closer to the posterior in each iteration, where the closeness is in general measured by the Kullback–Leibler (KL)
+divergence from the posterior to Q, minimizing which is
+shown to be the same as maximizing the evidence lower
+bound (ELBO) (Jordan et al., 1999). To make it simple to
+climb the ELBO to a local optimum, one often takes the
+1
+
+Department of Statistics and Data Sciences, 2 Department
+of IROM, McCombs School of Business, The University of
+Texas at Austin, Austin TX 78712, USA. Correspondence
+to: Mingzhang Yin <mzyin@utexas.edu>, Mingyuan Zhou
+<mingyuan.zhou@mccombs.utexas.edu>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+mean-field assumption that Q is factorized over the latent
+variables. The optimization problem is further simplified if
+each latent variable’s distribution is in the same exponential family as its prior, which allows exploiting conditional
+conjugacy to derive closed-form coordinate-ascent update
+equations (Bishop & Tipping, 2000; Blei et al., 2017).
+Despite its popularity, VI has a well-known issue in underestimating the variance of the posterior, which is often
+attributed to the mismatch between the representation power
+of the variational family that Q is restricted to and the complexity of the posterior, and the use of KL divergence, which
+is asymmetric, to measure how different Q is from the posterior. This issue is often further amplified in mean-field VI
+(MFVI), due to the factorized assumption on Q that ignores
+the dependencies between different factorization components (Wainwright et al., 2008; Blei et al., 2017). While
+there exists a variety of methods that add some structure
+back to Q to partially restore the dependencies (Saul & Jordan, 1996; Jaakkola & Jordan, 1998; Hoffman & Blei, 2015;
+Giordano et al., 2015; Tran et al., 2015; 2016; Han et al.,
+2016; Ranganath et al., 2016; Maaløe et al., 2016; Gregor
+et al., 2015), it is still necessary for Q to have an analytic
+probability density function (PDF).
+To further expand the variational family that Q belongs
+to, there has been significant recent interest in defining Q
+with an implicit model, which makes the PDF of Q become
+intractable (Huszár, 2017; Mohamed & Lakshminarayanan,
+2016; Tran et al., 2017; Li & Turner, 2017; Mescheder et al.,
+2017; Shi et al., 2017). While using an implicit model
+could make Q more flexible, it makes it no longer possible
+to directly computing the log density ratio, as required for
+evaluating the ELBO. Thus, one often resorts to density ratio
+estimation, which, however, not only adds an additional
+level of complexity into each iteration of the optimization,
+but also is known to be a very difficult problem, especially
+in high-dimensional settings (Sugiyama et al., 2012).
+To well characterize the posterior while maintaining simple
+optimization, we introduce semi-implicit VI (SIVI) that imposes a mixing distribution on the parameters of the original
+Q to expand the variational family with a semi-implicit hierarchical construction. The meaning of “semi-implicit” is
+twofold: 1) the original Q distribution is required to have
+an analytic PDF, but its mixing distribution is not subject to
+
+

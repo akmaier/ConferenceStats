@@ -1,0 +1,74 @@
+Bayesian Deep Learning via Subnetwork Inference
+Erik Daxberger 1 2 Eric Nalisnick * 3 James Urquhart Allingham * 1 Javier Antorán * 1
+José Miguel Hernández-Lobato 1 4 5
+
+Abstract
+The Bayesian paradigm has the potential to solve
+core issues of deep neural networks such as poor
+calibration and data inefficiency. Alas, scaling
+Bayesian inference to large weight spaces often
+requires restrictive approximations. In this work,
+we show that it suffices to perform inference over
+a small subset of model weights in order to obtain
+accurate predictive posteriors. The other weights
+are kept as point estimates. This subnetwork inference framework enables us to use expressive, otherwise intractable, posterior approximations over
+such subsets. In particular, we implement subnetwork linearized Laplace as a simple, scalable
+Bayesian deep learning method: We first obtain a
+MAP estimate of all weights and then infer a fullcovariance Gaussian posterior over a subnetwork
+using the linearized Laplace approximation. We
+propose a subnetwork selection strategy that aims
+to maximally preserve the model’s predictive uncertainty. Empirically, our approach compares
+favorably to ensembles and less expressive posterior approximations over full networks.
+
+1. Introduction
+A critical shortcoming of deep neural networks (NNs) is
+that they tend to be poorly calibrated and overconfident
+in their predictions, especially when there is a shift between the train and test data distributions (Nguyen et al.,
+2015; Guo et al., 2017). To reliably inform decision making, NNs need to robustly quantify the uncertainty in their
+predictions (Bhatt et al., 2020). This is especially important for safety-critical applications such as healthcare or
+autonomous driving (Amodei et al., 2016).
+Bayesian modeling (Bishop, 2006; Ghahramani, 2015)
+*
+
+Equal contribution 1 University of Cambridge 2 Max Planck Institute for Intelligent Systems, Tübingen 3 University of Amsterdam
+4
+Microsoft Research 5 The Alan Turing Institute. Correspondence
+to: Erik Daxberger <ead54@cam.ac.uk>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+presents a principled way to capture uncertainty via the
+posterior distribution over model parameters. Unfortunately,
+exact posterior inference is intractable in NNs. Despite
+recent successes in the field of Bayesian deep learning (Osawa et al., 2019; Maddox et al., 2019; Dusenberry et al.,
+2020), existing methods invoke unrealistic assumptions to
+scale to NNs with large numbers of weights. This severely
+limits the expressiveness of the inferred posterior and thus
+deteriorates the quality of the induced uncertainty estimates
+(Ovadia et al., 2019; Fort et al., 2019; Foong et al., 2019a).
+Perhaps these unrealistic inference approximations can be
+avoided. Due to the heavy overparameterization of NNs,
+their accuracy is well-preserved by a small subnetwork
+(Cheng et al., 2017). Moreover, doing inference over a
+low-dimensional subspace of the weights can result in accurate uncertainty quantification (Izmailov et al., 2019). This
+prompts the following question: Can a full NN’s model uncertainty be well-preserved by a small subnetwork? In this
+work we demonstrate that the posterior predictive distribution of a full network can be well represented by that of a
+subnetwork. In particular, our contributions are as follows:
+1. We propose subnetwork inference, a general framework
+for scalable Bayesian deep learning in which inference
+is performed over only a small subset of the NN weights,
+while all other weights are kept deterministic. This allows us to use expressive posterior approximations that
+are typically intractable in large NNs. We present a concrete instantiation of this framework that first fits a MAP
+estimate of the full NN, and then uses the linearized
+Laplace approximation to infer a full-covariance Gaussian posterior over a subnetwork (illustrated in Fig. 1).
+2. We derive a subnetwork selection strategy based on the
+Wasserstein distance between the approximate posterior
+for the full network and the approximate posterior for
+the subnetwork. For scalability, we employ a diagonal
+approximation during subnetwork selection. Selecting a
+small subnetwork then allows us to infer weight covariances. Empirically, we find that making approximations
+during subnetwork selection is much less harmful to the
+posterior predictive than making them during inference.
+3. We empirically evaluate our method on a range of bench-
+
+

@@ -1,0 +1,91 @@
+PipeOffload: Improving Scalability of Pipeline Parallelism
+with Memory Optimization
+
+Xinyi Wan * 1 2 Penghui Qi * 1 2 Guangxing Huang 1 Min Lin 1 Jialin Li 2
+
+Abstract
+
+remains constrained by the activation memory. Increasing
+the number of PP stages reduces layers per device but necessitates more in-flight microbatches to minimize pipeline
+bubbles. This trade-off leaves overall activation memory
+demands unchanged.
+
+Pipeline parallelism (PP) is widely used for training large language models (LLMs), yet its scalability is often constrained by high activation memory consumption as the number of in-flight microbatches grows with the degree of PP. In this paper,
+we focus on addressing this challenge by leveraging the under-explored memory offload strategy
+in PP. With empirical study, we discover that in
+the majority of standard configurations, at least
+half, and potentially all, of the activations can be
+offloaded with negligible overhead. In the cases
+where full overload is not possible, we introduce
+a novel selective offload strategy that decreases
+peak activation memory in a better-than-linear
+manner. Furthermore, we integrate memory offload with other techniques to jointly consider
+overall throughput and memory limitation. Our
+experiments proves that the per-device activation
+memory effectively reduces with the total number
+of stages, making PP a stronger alternative than
+TP, offering up to a 19% acceleration with even
+lower memory consumption. The implementation
+is open-sourced at this url.
+
+In this work, we address this memory limitation of PP by
+offloading memory to the host. While memory offload is
+widely adopted in data parallelism (DP) (Goyal et al., 2017;
+Ren et al., 2021), its potential in PP remains largely unexplored. PP is particularly suited for memory offload because
+the gap between the forward pass and the backward pass creates a natural window for offloading and reloading activation
+memory without interfering with other computations. This
+contrasts sharply with activation rematerialization (Chen
+et al., 2016) which introduces significant recomputation
+overhead. Memory offload, when properly scheduled and
+overlapped with other computation, can be a free lunch.
+Formally, for a single transformer layer, if we define To as
+the round-trip time for its activation memory to be moved
+from device to host (D2H) and then host to device (H2D),
+Tc as the time for its total forward and backward compute,
+then the ratio between them, denoted as k = To /Tc , is an
+important indicator on the proportion of the activation memory that can be offloaded without introducing significant
+efficiency drawbacks. Full activation memory offload is
+possible if k ≤ 1, as the offload operations can be fully
+overlapped by compute. Without considering the trivial layers which can be recomputed with negligible overhead (e.g.
+Dropout, GeLU, LayerNorm), we can estimate the offload
+cost for the rest of the layers and subsequently estimate k.
+With sequence length (s), hidden size (h), PCI-E duplex
+bandwidth (Bo ) and GPU compute bandwidth (Bc ), k is
+computed as: (Narayanan et al., 2021; Korthikanti et al.,
+2023)
+To
+10
+Bc
+k=
+=
+∗
+(1)
+Tc
+3(6h + s) Bo
+
+1. Introduction
+As modern large transformer models (Vaswani et al., 2017)
+scale towards trillions of parameters, model parallelism becomes essential for distributing model parameters across
+multiple devices. Compared to ZeRO (Rajbhandari et al.,
+2020) and tensor parallelism (Shoeybi et al., 2019), pipeline
+parallel (PP) (Huang et al., 2019; Harlap et al., 2018) has
+a lower communication volume and a higher arithmetic intensity. However, while PP shards layers across devices
+to reduce parameter memory requirements, its scalability
+*
+
+Equal contribution 1 Sea AI Lab 2 National University of Singapore. Correspondence to: Min Lin <linmin@sea.com>, Jialin Li
+<lijl@comp.nus.edu.sg>.
+
+Note that the value of k decreases as model size or sequence
+length increases. Figure 1 (left) demonstrates that the value
+of k is surprisingly small under typical hidden dimension
+and sequence size settings, indicating that a significant portion of activation memory can be offloaded. We observe
+that k ≤ 1 when the hidden dimension exceeds 8k or the
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

@@ -1,0 +1,95 @@
+D OUBLE S QUEEZE: Parallel Stochastic Gradient Descent with Double-pass
+Error-Compensated Compression
+
+Hanlin Tang 1 Xiangru Lian 1 Chen Yu 1 Tong Zhang 2 Ji Liu 3 1
+
+Abstract
+A standard approach in large scale machine learning is distributed stochastic gradient training,
+which requires the computation of aggregated
+stochastic gradients over multiple nodes on a network. Communication is a major bottleneck in
+such applications, and in recent years, compressed
+stochastic gradient methods such as QSGD (quantized SGD) and sparse SGD have been proposed
+to reduce communication. It was also shown
+that error compensation can be combined with
+compression to achieve better convergence in
+a scheme that each node compresses its local
+stochastic gradient and broadcast the result to all
+other nodes over the network in a single pass.
+However, such a single pass broadcast approach
+is not realistic in many practical implementations.
+For example, under the popular parameter-server
+model for distributed learning, the worker nodes
+need to send the compressed local gradients to
+the parameter server, which performs the aggregation. The parameter server has to compress
+the aggregated stochastic gradient again before
+sending it back to the worker nodes. In this work,
+we provide a detailed analysis on this two-pass
+communication model, with error-compensated
+compression both on the worker nodes and on
+the parameter server. We show that the errorcompensated stochastic gradient algorithm admits
+three very nice properties: 1) it is compatible with
+an arbitrary compression technique; 2) it admits
+an improved convergence rate than the non errorcompensated stochastic gradient methods such
+as QSGD and sparse SGD; 3) it admits linear
+speedup with respect to the number of workers.
+An empirical study is also conducted to validate
+our theoretical results.
+1
+
+University of Rochester 2 Hong Kong University of Science
+and Technology 3 Seattle AI Lab, FeDA Lab, Kwai Inc. Correspondence to: Hanlin Tang <htang14@ur.rochester.edu>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+1. Introduction
+Large scale distributed machine learning on big data sets
+are important for many modern applications (Abadi et al.,
+2016a; Seide & Agarwal, 2016), and there are many methods being studied to improve the performance of distributed
+learning, such as communication efficient learning (Alistarh et al., 2017; Bernstein et al., 2018a; Seide et al., 2014),
+decentralized learning (He et al., 2018b; Lian et al., 2017),
+and asynchronous learning (Agarwal & Duchi, 2011; Lian
+et al., 2015; Recht et al., 2011). All these methods have
+been proved to be quite efficient in accelerating distributed
+learning under different seneario.
+A widely used framework in distributed learning is data parallelism, where we assume that data are distributed over multiple nodes on a network, with a shared model that needs to
+be jointly optimized. Mathematically, the underlying problem can be posed as the following distributed optimization
+problem:
+n
+
+min
+x
+
+f (x) =
+
+1X
+Eζ∼Di F (x; ζ),
+n i=1
+
+(1)
+
+where n is the number of workers, Di is the local data
+distribution for worker i (in other words, we do not assume
+that all nodes can access the same data set), and F (x; ζ) is
+the local loss function of model x given data ζ for worker i.
+A standard synchronized approach for solving (1) is parallel
+SGD (stochastic gradient descent) (Bottou & Bottou, 2010),
+where each worker i draws ζ (i) from Di , and compute the
+local stochastic gradient with respect to the shared parameter
+x:
+g (i) = ∇F (x; ζ (i) ),
+The local gradients are sent over the network, where the
+aggregated SGD is computed as:
+n
+
+g=
+
+1 X (i)
+g ,
+n i=1
+
+and the result are sent back to each local node.
+The high communication cost is a main bottleneck for large
+scale distributed training. In order to alleviate this cost,
+
+

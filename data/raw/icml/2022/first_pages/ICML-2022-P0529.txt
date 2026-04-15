@@ -1,0 +1,91 @@
+Co-training Improves Prompt-based Learning for Large Language Models
+
+Hunter Lang 1 Monica Agrawal 1 Yoon Kim 1 David Sontag 1
+
+Abstract
+We demonstrate that co-training (Blum &
+Mitchell, 1998) can improve the performance of
+prompt-based learning by using unlabeled data.
+While prompting has emerged as a promising
+paradigm for few-shot and zero-shot learning, it
+is often brittle and requires much larger models
+compared to the standard supervised setup. We
+find that co-training makes it possible to improve
+the original prompt model and at the same time
+learn a smaller, downstream task-specific model.
+In the case where we only have partial access to
+a prompt model (e.g., output probabilities from
+GPT-3 (Brown et al., 2020)) we learn a calibration model over the prompt outputs. When we
+have full access to the prompt model’s gradients
+but full finetuning remains prohibitively expensive (e.g., T0 (Sanh et al., 2022)), we learn a set
+of soft prompt continuous vectors to iteratively
+update the prompt model. We find that models
+trained in this manner can significantly improve
+performance on challenging datasets where there
+is currently a large gap between prompt-based
+learning and fully-supervised models.
+
+1. Introduction
+Prompt-based learning, in which a pretrained language
+model is adapted to various tasks by priming on natural
+language prompts, has emerged as a promising framework
+for few-shot and zero-shot learning (Brown et al., 2020; Liu
+et al., 2021a; Wei et al., 2021; Sanh et al., 2022). While
+intriguing, these methods can be sensitive to trivial cosmetic
+artifacts, including variations in prompt wording and the
+ordering of examples (Lu et al., 2021; Zhao et al., 2021;
+Kumar & Talukdar, 2021). Further, the models used in
+prompt-based learning (e.g., GPT-3, T0) are much larger
+than those typically used for standard fine-tuning. These factors make prompt-based learning difficult to use in practice.
+Given a small amount of labeled data, one could evaluate
+1
+
+MIT CSAIL. Correspondence to: <hjl@mit.edu>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+the performance of each prompt and re-calibrate the prompt
+outputs to improve performance. However, (i) this reliance
+on labeled data goes against the goal of few-shot learning,
+and (ii) even with oracle calibration, some prompts have
+sub-par accuracy. Recently, to address issue (i), Zhao et al.
+(2021) developed a data-free calibration method that can
+dramatically improve the accuracy of few-shot prompts for
+GPT-3. We build on their work by showing how to use
+unlabeled data to further improve performance.
+To leverage unlabeled data, we use co-training (Blum &
+Mitchell, 1998), which operates on two views of each data
+point X: ϕ0 (X) and ϕ1 (X). For example, in a clinical
+diagnosis system, ϕ0 (X) could be laboratory test results
+and ϕ1 (X) an X-ray image. A pair of models (h0 and h1
+respectively) takes turns labeling a large unlabeled training
+set, and each model is trained on the confident pseudo-labels
+from the other. Model h0 only uses ϕ0 (X), and model h1
+uses ϕ1 (X). By using complementary information in the
+views ϕ0 , ϕ1 and the different inductive biases from models
+h0 , h1 , co-training allows each model to learn from the
+other without labeled data. The initial signal to start the
+co-training process is provided by a “guess” at a model h0 .
+To combine co-training and prompt-based learning, we use
+outputs from a large prompt-based model as ϕ0 (X) and the
+pre-trained representation from a much smaller language
+model (e.g., DeBERTa (He et al., 2021)) as ϕ1 (X). We
+specify the models h0 and h1 based on whether we have
+partial access to the prompt model (querying GPT-3) or full
+access (locally training T0).
+In partial access, we only have access to the large model’s
+output probabilities. In this case, we use unlabeled data to
+learn a model h0 that both calibrates individual prompts and
+ensembles multiple prompts. We refer to this as the label
+model. We use Calibrate-Before-Use (Zhao et al., 2021) to
+initialize the calibration parameters of this model for each
+prompt, and we initialize the ensembling parameters to approximate majority vote. We then refine this initial guess for
+h0 with co-training. We use the pre-trained representation
+from DeBERTa (He et al., 2021) for ϕ1 (X) and train the last
+few layers of that model as h1 . The only labeled data used
+is the set of k examples used in the input prompts. Figure 1
+(left) shows the co-training process for partial access.
+We also study a full access setting using T0 (Sanh et al.,
+
+

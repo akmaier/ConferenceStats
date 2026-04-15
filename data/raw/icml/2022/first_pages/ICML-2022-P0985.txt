@@ -1,0 +1,88 @@
+Fast Lossless Neural Compression with Integer-Only Discrete Flows
+
+Siyu Wang 1 Jianfei Chen 1 Chongxuan Li 2 Jun Zhu 1 Bo Zhang 1
+
+Abstract
+
+codecs (Huffman, 1952; Duda, 2009; 2013) have been developed, and they have achieved nearly optimal code length
+given known data distribution. However, the data distribution is generally unknown in practice.
+
+By applying entropy codecs with learned data distributions, neural compressors have significantly
+outperformed traditional codecs in terms of compression ratio. However, the high inference latency of neural networks hinders the deployment
+of neural compressors in practical applications.
+In this work, we propose Integer-only Discrete
+Flows (IODF), an efficient neural compressor
+with integer-only arithmetic. Our work is built
+upon integer discrete flows, which consists of invertible transformations between discrete random
+variables. We propose efficient invertible transformations with integer-only arithmetic based on
+8-bit quantization. Our invertible transformation
+is equipped with learnable binary gates to remove
+redundant filters during inference. We deploy
+IODF with TensorRT on GPUs, achieving 10× inference speedup compared to the fastest existing
+neural compressors, while retaining the high compression rates on ImageNet32 and ImageNet64.
+
+latency (ms/sample)
+
+102
+
+inference
+rANS
+
+1
+IDF
+
+IODF
+
+100
+LBB iVPF iFlow IDF IODF
+
+1. Introduction
+As a growing amount of data is produced every day, efficient
+lossless compression is of significance in storing and transmitting them. Shannon’s source coding theorem (Shannon,
+1948) states that the average code length needed to encode
+data is lower bounded by entropy of its distribution:
+Ex∼pD [|c(x)|] ≥ Ex∼pD [− log pD (x)],
+
+101
+
+3
+
+(1)
+
+where |c(x)| is the code length and pD is the data distribution. Based on the insight that the optimal code length for
+a single symbol x is − log pD (x), many efficient entropy
+1
+Dept. of Comp. Sci. & Tech., BNRist Center, Tsinghua-Bosch
+Joint ML Center, Tsinghua University; Peng Cheng Laboratory
+2
+Gaoling School of AI, Renmin University of China; Beijing Key
+Lab of Big Data Management & Analysis Methods, Beijing, China.
+Correspondence to: Jianfei Chen <jianfeic@tsinghua.edu.cn>,
+Jun Zhu <dcszj@tsinghua.edu.cn>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+Figure 1. Encoding latency of different neural compressors measured by milliseconds per sample. Statistics of LBB, iVPF, and
+iFlow are directly picked from (Zhang et al., 2021c;b). The inner
+figure shows inference and entropy coding latency of IDF and
+IODF separately. For IDF, inference is the time bottleneck in
+the encoding process. IODF significantly improves the inference
+speed, making it comparable to entropy coding.
+
+In the machine learning community, various likelihoodbased generative models have been developed, including
+normalizing flows (Dinh et al. (2017); Ho et al. (2019a);
+Chen et al. (2020b); Lu et al. (2021), NFs), variational
+auto-encoders (Kingma & Welling (2013); Rezende et al.
+(2014), VAEs), auto-regressive models (Domke et al. (2008);
+Larochelle & Murray (2011); Salimans et al. (2017), ARMs),
+and diffusion models (Sohl-Dickstein et al. (2015); Ho et al.
+(2020); Song et al. (2021), DPMs). These deep generative
+models (DGMs) are powerful density estimators. With a
+model distribution close enough to the data distribution,
+many efficient lossless neural compressors have been explored (Hoogeboom et al., 2019; van den Berg et al., 2020;
+Ho et al., 2019b; Townsend et al., 2019a; Kingma et al.,
+2021). Neural compressors have achieved superior compression ratios on standard datasets than traditional lossless
+compression methods, such as JPEG2000 (Group et al.,
+
+

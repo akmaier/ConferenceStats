@@ -1,0 +1,81 @@
+AdaDecode: Accelerating LLM Decoding with Adaptive Layer Parallelism
+
+Zhepei Wei 1 Wei-Lin Chen 1 Xinyu Zhu 1 Yu Meng 1
+
+Abstract
+
+preserving output parity. Experiments across diverse generation tasks shows that AdaDecode consistently achieves superior decoding throughput
+compared to baselines with up to 1.73×speedup,
+while guaranteeing output parity with standard
+autoregressive decoding.1
+
+Large language models (LLMs) are increasingly
+used for long-content generation (e.g., long Chainof-Thought reasoning) where decoding efficiency
+becomes a critical bottleneck: Autoregressive decoding is inherently limited by its sequential token generation process, where each token must
+be generated before the next can be processed.
+This sequential dependency restricts the ability
+to fully leverage modern hardware’s parallel processing capabilities. Existing methods like speculative decoding and layer skipping offer potential
+speedups but have notable drawbacks: speculative
+decoding relies on an auxiliary “drafter” model,
+which can be challenging to acquire and increases
+memory overhead, while layer skipping may introduce discrepancies in the generated outputs
+due to the missing key-value cache at skipped
+layers. In this work, we propose AdaDecode,
+which accelerates LLM decoding without requiring auxiliary models or changes to the original
+model parameters, while ensuring output consistency. AdaDecode leverages the insight that many
+tokens—particularly simple or highly-predictable
+ones—can accurately be generated at intermediate
+layers, as further layers often do not significantly
+alter predictions once the model reaches a certain confidence. By adaptively generating tokens
+at intermediate layers when confidence is high,
+AdaDecode enables the next token’s computation
+to begin immediately. The remaining layer computations for early-predicted tokens are deferred
+and executed in parallel with subsequent tokens
+when needed, maximizing hardware utilization
+and reducing decoding latency. A final verification step ensures that early predictions match
+the results of standard autoregressive decoding,
+
+1. Introduction
+The autoregressive decoding process in large language models (LLMs) is increasingly becoming a critical efficiency
+bottleneck for text generation (Khoshnoodi et al., 2024). As
+each token generation depends on previously generated ones,
+the inherently sequential nature of this process severely limits parallelization capabilities on modern hardware (Miao
+et al., 2023a). This challenge is becoming more pressing
+due to two recent key trends. Firstly, LLMs continue to
+grow exponentially in size (Kaplan et al., 2020; Hoffmann
+et al., 2022; DeepSeek, 2024), with billions or even trillions
+of parameters (Achiam et al., 2023; Zeng et al., 2023; Dubey
+et al., 2024; Jiang et al., 2024; Anthropic, 2024), resulting in
+substantially more time-consuming and resource-intensive
+computations at each step of token generation. Secondly,
+model-generated outputs are becoming progressively longer,
+driven by emerging applications such as long-form content
+creation (Pham et al., 2024; Bai et al., 2024) and long chainof-thought (CoT) reasoning (OpenAI, 2024; Snell et al.,
+2024; Brown et al., 2024; Guan et al., 2025; Kimi et al.,
+2025; DeepSeek et al., 2025), which require massive inference steps (Huang et al., 2025). The confluence of these
+factors leads to significant latency in text generation, amplifying the urgent need for more efficient decoding methods.
+To accelerate autoregressive decoding, two primary approaches have emerged: speculative decoding and layer
+skipping, as illustrated in Figure 1. Speculative decoding (Leviathan et al., 2023; Chen et al., 2023; Liu et al.,
+2023; Miao et al., 2023b; He et al., 2024; Huang et al., 2024;
+Li et al., 2024a;b; Du et al., 2024) employs a lightweight
+secondary model, called the “drafter”, to generate candidate
+tokens at lower latency, which are then verified in parallel by the larger main model. However, the reliance on a
+
+1
+University of Virginia.
+Correspondence to:
+Zhepei Wei <zhepei.wei@virginia.edu>, Wei-Lin Chen
+<wlchen@virginia.edu>, Xinyu Zhu <xinyuzhu@virginia.edu>,
+Yu Meng <yumeng5@virginia.edu>.
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+Code and artifacts are available at https://github.
+com/weizhepei/AdaDecode.
+
+1
+
+

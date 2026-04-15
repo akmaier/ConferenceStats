@@ -1,0 +1,81 @@
+LookupFFN: Making Transformers Compute-lite for CPU inference
+
+Zhanpeng Zeng 1 Michael Davies 1 Pranav Pulijala 1 Karthikeyan Sankaralingam 1 2 Vikas Singh 1
+
+Abstract
+
+Intel; Nassif et al., 2022; AMD; Bhat) and academic efforts (Liu et al., 2019b; Mittal et al., 2022; Nori et al., 2021;
+Zhang et al., 2019). Some of the technical and business motivations include latency, security, privacy and the fact that
+modern data-intensive workloads have AI tasks embedded in
+a pipeline of non-AI tasks. Further, CPUs are a generic platform common across servers and clients faithfully serving
+the compute needs of businesses, which makes it attractive.
+And finally – it comes down to the cost of running the full
+workload. Unfortunately, CPU chips lack the computational
+intensity of raw-FLOPS compared to GPUs. On the positive
+side, CPUs provide tremendously large caches in the range
+of 128MB to 192MB, and even larger (Burd et al., 2022),
+which is currently under-utilized. Furthermore, such caches
+made out of SRAMs are more than an order of magnitude
+more energy efficient to access compared to DRAMs (DDR,
+GDDR, or HBM) (Jouppi et al., 2021; Horowitz, 2014),
+while providing 4× access bandwidth increase 1 . In this
+context, this paper revisits one of the fundamental building
+blocks of modern deep-learning: the Feed Forward Network
+(FFN), to examine algorithmic reformulations to make it
+FLOP-lite and CPU friendly.
+
+While GPU clusters are the de facto choice for
+training large deep neural network (DNN) models
+today, several reasons including ease of workflow, security and cost have led to efforts investigating whether CPUs may be viable for inference in routine use in many sectors of the industry. But the imbalance between the compute
+capabilities of GPUs and CPUs is huge. Motivated by these considerations, we study a module which is a workhorse within modern DNN
+architectures, GEMM based Feed Forward Networks (FFNs), and assess the extent to which it
+can be made compute- (or FLOP-) lite. Specifically, we propose an alternative formulation (we
+call it LookupFFN) to GEMM based FFNs inspired by the recent studies of using Locality Sensitive Hashing (LSH) to approximate FFNs. Our
+formulation recasts most essential operations as a
+memory look-up, leveraging the trade-off between
+the two resources on any platform: compute and
+memory (since CPUs offer it in abundance). For
+RoBERTa language model pretraining, our formulation achieves similar performance compared to
+GEMM based FFNs, while dramatically reducing the required FLOP. Our development is complemented with a detailed hardware profiling of
+strategies that will maximize efficiency – not just
+on contemporary hardware but on products that
+will be offered in the near/medium term future.
+Code is avaiable at https://github.com/
+mlpen/LookupFFN.
+
+FFNs are essential components in almost all deep neural
+networks, such as convolutional networks (Howard et al.,
+2017) or Transformers (Vaswani et al., 2017). They heavily
+rely on General Matrix Multiply (GEMM), which is extremely compute intensive, especially for large scale models
+common in the community today. Many alternatives (Chen
+et al., 2020; 2021; Fedus et al., 2022; Zhang et al., 2018;
+Moczulski et al., 2016) have been proposed to reduce the
+FLOP needs of FFNs. In the context of inference, one may
+use generic pruning/quantization techniques (Dong & Yang,
+2019; Lee et al., 2019; Jacob et al., 2018; Zafrir et al., 2019;
+Kim et al., 2021), after training has concluded. This strategy
+is typically agnostic of specific modules in the architecture,
+and is applied to the entire model. Notice that if modulespecific FLOP reduction is accomplished somehow, the full
+model will still benefit from a scheme like pruning, prior to
+deployment. Since such an idea would complement any reformulation of FFNs, it is more meaningful to instead focus
+the discussion on existing ideas that targets FLOP reduction
+further upstream.
+
+1. Introduction
+CPU-based inference in the data-center is growing in importance as evidenced by recent server chip announcements
+from IBM, Intel, AMD and ARM (Lichtenau et al., 2022;
+1
+University of Wisconsin, Madison, USA 2 NVIDIA Research.
+Correspondence to: Zhanpeng Zeng <zzeng38@wisc.edu>.
+
+Proceedings of the 40 th International Conference on Machine
+Learning, Honolulu, Hawaii, USA. PMLR 202, 2023. Copyright
+2023 by the author(s).
+
+1
+AMD Zen2 for example, allows 64 bytes per cycle into each
+core: with 32 cores running 3.2 GHz that amounts to 6 TB/sec.
+
+1
+
+

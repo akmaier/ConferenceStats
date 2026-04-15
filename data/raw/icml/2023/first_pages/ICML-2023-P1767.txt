@@ -1,0 +1,80 @@
+Rockmate: an Efficient, Fast, Automatic and Generic Tool
+for Re-materialization in PyTorch
+
+Xunyi Zhao * 1 Théotime Le Hellard * 2 Lionel Eyraud-Dubois 1 Julia Gusak 1 Olivier Beaumont 1
+
+Abstract
+
+time. Indeed, training is usually performed on computing resources such as GPUs or TPUs, on which memory is limited.
+Therefore, different approaches have been proposed.
+
+We propose Rockmate to control the memory requirements when training PyTorch DNN models.
+Rockmate is an automatic tool that starts from the
+model code and generates an equivalent model,
+using a predefined amount of memory for activations, at the cost of a few re-computations. Rockmate automatically detects the structure of computational and data dependencies and rewrites the
+initial model as a sequence of complex blocks.
+We show that such a structure is widespread and
+can be found in many models in the literature
+(Transformer based models, ResNet, RegNets,...).
+This structure allows us to solve the problem in
+a fast and efficient way, using an adaptation of
+Checkmate (too slow on the whole model but
+general) at the level of individual blocks and an
+adaptation of Rotor (fast but limited to sequential
+models) at the level of the sequence itself. We
+show through experiments on many models that
+Rockmate is as fast as Rotor and as efficient as
+Checkmate, and that it allows in many cases to
+obtain a significantly lower memory consumption
+for activations (by a factor of 2 to 5) for a rather
+negligible overhead (of the order of 10% to 20%).
+Rockmate is open source and available at https:
+//github.com/topal-team/rockmate.
+
+The first category of solutions consists in relying on parallelism. Data parallelism allows to distribute the memory
+related to the activations, at the cost of exchanging the network weights between the different resources using collective communications such as MPI AllReduce which can
+be expensive for networks such as those of the GPT2 class.
+On the contrary, model parallelism allows to distribute the
+weights of the network, at the cost of the communication
+of activations and memory overheads in case it is used in a
+pipelined way, and its scalability is limited by nature.
+The second category of solutions is purely sequential. Offloading makes it possible to move some activations computed during the forward phase from the memory of the
+accelerator (GPU or TPU) to the memory of the CPU,
+and then to prefetch them back at the appropriate moment
+into the memory of the GPU during the backward phase.
+This solution therefore consumes bandwidth on the PCI-e
+bus between the CPU and the accelerator, which is also
+used to load training data. Another solution, called rematerialization, consists in deleting from accelerator memory some activations computed during the forward phase
+and then recomputing them during the backward phase. This
+approach does not consume communication resources, but
+it does induce a computational overhead.
+In the present paper, we focus on the latter re-materialization
+approach on a single GPU or TPU, which is sufficient in
+practice for the size of the networks we consider in the experiments and which can be trivially combined with data
+parallelism to accelerate training. In this framework, for a
+given memory constraint, the optimization problem consists in finding a sequence of computing, forgetting and
+recomputing actions which allows to perform the training for given inputs and batch sizes, while fulfilling the
+memory constraint and minimizing the computational
+overhead.
+
+1. Introduction
+In recent years, very large networks have emerged. These
+networks induce huge memory requirements both because
+of the number of parameters and the size of the activations
+that must be kept in memory to perform back-propagation.
+Memory issues for training have been identified for a long
+*
+Equal contribution 1 Inria Center at the University of Bordeaux
+École Normale Supérieure, PSL University, Paris. Correspondence to: Xunyi Zhao <xunyi.zhao@inria.fr>, Lionel EyraudDubois <lionel.eyraud-dubois@inria.fr>.
+2
+
+To find the optimal sequence, different approaches have
+been proposed. In the first approach, like in Rotor (Beaumont et al., 2019b), it is assumed that the dependencies
+
+Proceedings of the 40 th International Conference on Machine
+Learning, Honolulu, Hawaii, USA. PMLR 202, 2023. Copyright
+2023 by the author(s).
+
+1
+
+

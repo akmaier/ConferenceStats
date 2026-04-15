@@ -1,0 +1,74 @@
+Missing Data Imputation using Optimal Transport
+Boris Muzellec 1 Julie Josse 2 3 * Claire Boyer 4 Marco Cuturi 5 1
+
+Abstract
+Missing data is a crucial issue when applying machine learning algorithms to real-world datasets.
+Starting from the simple assumption that two
+batches extracted randomly from the same dataset
+should share the same distribution, we leverage
+optimal transport distances to quantify that criterion and turn it into a loss function to impute missing data values. We propose practical methods to
+minimize these losses using end-to-end learning,
+that can exploit or not parametric assumptions
+on the underlying distributions of values. We
+evaluate our methods on datasets from the UCI
+repository, in MCAR, MAR and MNAR settings.
+These experiments show that OT-based methods
+match or out-perform state-of-the-art imputation
+methods, even for high percentages of missing
+values.
+
+1. Introduction
+Data collection is usually a messy process, resulting in
+datasets that have many missing values. This has been an
+issue for as long as data scientists have prepared, curated
+and obtained data, and is all the more inevitable given the
+vast amounts of data currently collected. The literature on
+the subject is therefore abundant (Little & Rubin, 2002;
+van Buuren, 2018): a recent survey indicates that there are
+more than 150 implementations available to handle missing data (Mayer et al., 2019). These methods differ on the
+objectives of their analysis (estimation of parameters and
+their variance, matrix completion, prediction), the nature of
+the variables considered (categorical, mixed, etc.), the assumptions about the data, and the missing data mechanisms.
+Imputation methods, which consist in filling missing entries
+This research was done while JJ was a visiting researcher at
+Google Brain Paris. 1 CREST-ENSAE, IP Paris, Palaiseau, France
+2
+XPOP, INRIA Saclay, France 3 CMAP, UMR7641, École Polytechnique, IP Paris, Palaiseau, France 4 LPSM, Sorbonne Université, ENS Paris, France 5 Google Brain, Paris, France. Correspondence to: Boris Muzellec <boris.muzellec@ensae.fr>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+with plausible values, are very appealing as they allow to
+both get a guess for the missing entries as well as to perform (with care) downstream machine learning methods on
+the completed data. Efficient methods include, among others, methods based on low-rank assumptions (Hastie et al.,
+2015), iterative random forests (Stekhoven & Buhlmann,
+2011) and imputation using variational autoencoders (Mattei
+& Frellsen, 2019; Ivanov et al., 2019). A desirable property for imputation methods is that they should preserve the
+joint and marginal distributions of the data. Non-parametric
+Bayesian strategies (Murray & Reiter, 2016) or recent approaches based on generative adversarial networks (Yoon
+et al., 2018) are attempts in this direction. However, they
+can be quite cumbersome to implement in practice.
+We argue in this work that the optimal transport (OT) toolbox constitutes a natural, sound and straightforward alternative. Indeed, optimal transport provides geometrically
+meaningful distances to compare discrete distributions, and
+therefore data. Furthermore, thanks to recent computational
+advances grounded on regularization (Cuturi, 2013), OTbased divergences can be computed in a scalable and differentiable way (Peyré et al., 2019). Those advances have
+allowed to successfully use OT as a loss function in many
+applications, including multi-label classification (Frogner
+et al., 2015), inference of pathways (Schiebinger et al., 2019)
+and generative modeling (Arjovsky et al., 2017; Genevay
+et al., 2018; Salimans et al., 2018). Considering the similarities between generative modeling and missing data imputation, it is therefore quite natural to use OT as a loss for the
+latter.
+Contributions. This paper presents two main contributions.
+First, we leverage OT to define a loss function for missing
+value imputation. This loss function is the mathematical
+translation of the simple intuition that two random batches
+from the same dataset should follow the same distribution.
+Next, we provide algorithms for imputing missing values
+according to this loss. Two types of algorithms are presented, the first (i) being non-parametric, and the second (ii)
+defining a class of parametric models. The non-parametric
+algorithm (i) enjoys the most degrees of freedom, and can
+therefore output imputations which respect the global shape
+of the data while taking into account its local features. The
+parametric algorithm (ii) is trained in a round-robin fashion
+similar to iterative conditional imputation techniques, as
+
+

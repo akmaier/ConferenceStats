@@ -1,0 +1,72 @@
+Decoupling Representation Learning from Reinforcement Learning
+
+Adam Stooke 1 Kimin Lee 1 Pieter Abbeel 1 Michael Laskin 1
+
+Abstract
+In an effort to overcome limitations of rewarddriven feature learning in deep reinforcement
+learning (RL) from images, we propose decoupling representation learning from policy learning. To this end, we introduce a new unsupervised
+learning (UL) task, called Augmented Temporal
+Contrast (ATC), which trains a convolutional encoder to associate pairs of observations separated
+by a short time difference, under image augmentations and using a contrastive loss. In online RL
+experiments, we show that training the encoder
+exclusively using ATC matches or outperforms
+end-to-end RL in most environments. Additionally, we benchmark several leading UL algorithms
+by pre-training encoders on expert demonstrations and using them, with weights frozen, in RL
+agents; we find that agents using ATC-trained encoders outperform all others. We also train multitask encoders on data from multiple environments
+and show generalization to different downstream
+RL tasks. Finally, we ablate components of ATC,
+and introduce a new data augmentation to enable replay of (compressed) latent images from
+pre-trained encoders when RL requires augmentation. Our experiments span visually diverse
+RL benchmarks in DeepMind Control, DeepMind
+Lab, and Atari, and our complete code is available at https://github.com/astooke/
+rlpyt/tree/master/rlpyt/ul.
+
+1. Introduction
+Ever since the first fully-learned approach succeeded at
+playing Atari games from screen images (Mnih et al., 2015),
+standard practice in deep reinforcement learning (RL) has
+been to learn visual features and a control policy jointly,
+end-to-end. Several such deep RL algorithms have matured
+(Hessel et al., 2018; Schulman et al., 2017; Mnih et al., 2016;
+1
+University of California, Berkeley. Correspondence to:
+Adam Stooke <adam.stooke@berkeley.edu>, Michael Laskin
+<mlaskin@berkeley.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Haarnoja et al., 2018) and have been successfully applied
+to domains ranging from real-world (Levine et al., 2016;
+Kalashnikov et al., 2018) and simulated robotics (Lee et al.,
+2019; Laskin et al., 2020a; Hafner et al., 2020) to sophisticated video games (Berner et al., 2019; Jaderberg et al.,
+2019), and even high-fidelity driving simulators (Dosovitskiy et al., 2017). While the simplicity of end-to-end methods is appealing, relying on the reward function to learn
+visual features can be severely limiting. For example, it
+leaves features difficult to acquire under sparse rewards, and
+it can narrow their utility to a single task. Although our
+intent is broader than to focus on either sparse-reward or
+multi-task settings, they arise naturally in our studies. We
+investigate how to learn visual representations which are
+agnostic to rewards, without degrading the control policy.
+A number of recent works have significantly improved RL
+performance by introducing auxiliary losses, which are unsupervised tasks that provide feature-learning signal to the
+convolution neural network (CNN) encoder, additionally
+to the RL loss (Jaderberg et al., 2017; van den Oord et al.,
+2018; Laskin et al., 2020b; Guo et al., 2020; Schwarzer
+et al., 2020). Meanwhile, in the field of computer vision,
+recent efforts in unsupervised and self-supervised learning
+(Chen et al., 2020; Grill et al., 2020; He et al., 2019) have
+demonstrated that powerful feature extractors can be learned
+without labels, as evidenced by their usefulness for downstream tasks such as ImageNet classification. Together,
+these advances suggest that visual features for RL could
+possibly be learned entirely without rewards, which would
+grant greater flexibility to improve overall learning performance. To our knowledge, however, no single unsupervised
+learning (UL) task has been shown adequate for this purpose
+in general vision-based environments.
+In this paper, we demonstrate the first decoupling of representation learning from reinforcement learning that performs as well as or better than end-to-end RL. We update
+the encoder weights using only UL and train a control policy
+independently, on the (compressed) latent images. This capability stands in contrast to previous state-of-the-art methods, which have trained the UL and RL objectives jointly,
+or (Laskin et al., 2020b), which observed diminished performance with decoupled encoders.
+Our main enabling contribution is a new unsupervised task
+
+

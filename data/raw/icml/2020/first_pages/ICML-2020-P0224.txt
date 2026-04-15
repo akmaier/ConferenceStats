@@ -1,0 +1,77 @@
+Combining Differentiable PDE Solvers and
+Graph Neural Networks for Fluid Flow Prediction
+
+Filipe de Avila Belbute-Peres 1 † Thomas D. Economon 2 † J. Zico Kolter 1 3
+
+Abstract
+Solving large complex partial differential equations (PDEs), such as those that arise in computational ﬂuid dynamics (CFD), is a computationally expensive process. This has motivated
+the use of deep learning approaches to approximate the PDE solutions, yet the simulation results predicted from these approaches typically
+do not generalize well to truly novel scenarios.
+In this work, we develop a hybrid (graph) neural
+network that combines a traditional graph convolutional network with an embedded differentiable
+ﬂuid dynamics simulator inside the network itself.
+By combining an actual CFD simulator (run on
+a much coarser resolution representation of the
+problem) with the graph network, we show that
+we can both generalize well to new situations and
+beneﬁt from the substantial speedup of neural network CFD predictions, while also substantially
+outperforming the coarse CFD simulation alone.
+
+1. Introduction
+In recent years, the many empirical successes of deep learning have motivated scientists to explore its application in
+other areas, such as predicting the evolution of physical
+systems. In this context, several recent papers have explored
+the application of deep models to approximate the solutions
+to partial differential equations (PDEs), particularly in the
+context of simulating ﬂuid dynamics (Afshar et al., 2019;
+Guo et al., 2016; Wiewel et al., 2018; Um et al., 2017). The
+behavior of ﬂuids is a well-studied problem in the physical
+sciences, and predicting their dynamics involves solving the
+nonlinear Navier-Stokes PDEs. In order to perform compu†
+
+Work partly done while at Bosch LLC.
+School of Computer Science, Carnegie Mellon University,
+Pittsburgh, PA 2 SU2 Foundation 3 Bosch Center for AI, Pittsburgh, PA. Correspondence to: Filipe de Avila Belbute-Peres
+<ﬁliped@cs.cmu.edu>.
+
+1
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+tational ﬂuid dynamics (CFD) simulations, these equations
+must be solved numerically. One of the primary bottlenecks in more accurate and advanced CFD simulation is
+speciﬁcally the time it takes to run these models. It is not uncommon for a single simulation to take many days to weeks
+on massive supercomputing infrastructure. Especially for
+the cases where fast iteration time is desired, for example
+when iterating over different aerodynamic design prototypes
+for a structure, then faster, learning-based surrogate models
+have spawned a great deal of interest. However, despite the
+recent enthusiasm for this area, most deep learning models
+cannot capture the full complexity of the underlying equations, and, as we demonstrate in this work, can quickly start
+to produce poor results when testing on settings well outside
+the domain of their training data.
+In this paper, we explore a hybrid approach that combines
+the beneﬁts of (graph) neural networks for fast predictions,
+with the physical realism of an industry-grade CFD simulator. Our system has two main components. First, we construct a graph convolution network (Kipf & Welling, 2016)
+(GCN), which operates directly upon the non-uniform mesh
+used in typical CFD simulation tasks. This use of GCNs is
+crucial because all realistic CFD solvers operate on these
+unstructured meshes rather than directly on the regular grid
+used by most prior work, which has typically used convolutional networks to approximate CFD simulations. Second,
+and more fundamentally, we embed a (differentiable) CFD
+solver, operating on a much coarser resolution, directly
+into the GCN itself. Although typically treated as blackboxes, modern CFD simulators are themselves perfectly
+well-suited to act as (costly) “layers” in a deep network.
+Using well-studied adjoint methods, modern solvers can
+compute gradients of the output quantities of a simulation
+with respect to the input mesh. This allows us to integrate a
+fast CFD simulation (made fast because it is operating on a
+much smaller mesh) into the network itself, and allows us to
+jointly train the GCN and the mesh input into the simulation
+engine, all in an end-to-end fashion.
+We demonstrate that this combined approach performs substantially better than the coarse CFD simulation alone (i.e.,
+the network is able to provide higher ﬁdelity results than
+simply running a faster simulation to begin with), and gen-
+
+

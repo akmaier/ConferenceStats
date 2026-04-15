@@ -1,0 +1,57 @@
+Pipeline Parallelism with Controllable Memory
+
+Penghui Qi∗ 12 , Xinyi Wan∗ 1 , Nyamdavaa Amar† 2 , Min Lin1
+1
+Sea AI Lab 2 National University of Singapore
+{qiph,wanxy,linmin}@sea.com amara@u.nus.edu
+
+Abstract
+Pipeline parallelism has been widely explored, but most existing schedules lack
+a systematic methodology. In this paper, we propose a framework to decompose
+pipeline schedules as repeating a building block, and show that the lifespan of
+the building block decides the peak activation memory of the pipeline schedule.
+Guided by the observations, we find that almost all existing pipeline schedules, to
+the best of our knowledge, are memory inefficient. To address this, we introduce a
+family of memory efficient building blocks with controllable activation memory,
+which can reduce the peak activation memory to 1/2 of 1F1B without sacrificing
+efficiency, and even to 1/3 with comparable throughput. We can also achieve almost
+zero pipeline bubbles while maintaining the same activation memory as 1F1B. Our
+evaluations demonstrate that in pure pipeline parallelism settings, our methods
+outperform 1F1B by from 7% to 55% in terms of throughput. When employing
+a grid search over hybrid parallelism hyperparameters in practical scenarios, our
+methods demonstrate a 16% throughput improvement over the 1F1B baseline for
+large language models. The implementation is open-sourced at this url.
+
+1
+
+Introduction
+
+Distributed model training has attracted a lot of attention in recent years, especially after the boom
+of large language models [Brown et al., 2020]. As the model size becomes larger and larger, data
+parallelism (DP) [Goyal et al., 2017] is no longer capable to hold all the parameters in a single device.
+Under this background, model parallelism [Harlap et al., 2018, Huang et al., 2019, Shoeybi et al.,
+2019, Zheng et al., 2022] is proposed to partition parameters into a set of devices to address the
+memory constraint. Tensor parallelism (TP) [Shoeybi et al., 2019] is a commonly used model parallel
+strategy, which partitions weight parameters into several devices and performs matrix multiplication
+separately. A well-known shortcoming of TP is that, it requires a lot of communication volume,
+which makes it inefficient when bandwidth becomes the bottleneck Narayanan et al. [2021]. In
+such situations, pipeline parallelism [Harlap et al., 2018, Huang et al., 2019], which is another
+model parallel strategy, shows its advantage in low communication cost. The core idea of pipeline
+parallelism is to split the entire model into several stages, which can be processed by several devices
+in a streaming way. In a typical large-scale training scenarios such as Narayanan et al. [2021], TP is
+generally used within one compute node, and PP is used to scale up across nodes.
+Although PP has been widely adopted and developed, it suffers from two prominent disadvantages:
+pipeline bubbles and large activation memory. To eliminate pipeline bubbles, one line of work
+focuses on asynchronous PP [Gaunt et al., 2017, Yang et al., 2021], which is theoretically bubble
+free. However, it sacrifices the exact optimization semantics and may result in lower convergence
+performance [Lian et al., 2018, Tang et al., 2020]. A parallel line of works revolve around synchronous
+PP, focusing on reducing pipeline bubbles and/or activation memory. GPipe [Huang et al., 2019] is
+∗
+†
+
+Equal Contributors.
+Work was done during an internship at Sea AI Lab.
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

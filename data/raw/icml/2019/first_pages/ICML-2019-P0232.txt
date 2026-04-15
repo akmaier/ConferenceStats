@@ -1,0 +1,80 @@
+Estimating Information Flow in Deep Neural Networks
+
+Ziv Goldfeld 1 2 Ewout van den Berg 2 3 Kristjan Greenewald 2 3 Igor Melnyk 2 3 Nam Nguyen 2 3
+Brian Kingsbury 2 3 Yury Polyanskiy 1 2
+
+Abstract
+We study the estimation of the mutual information
+I(X; T` ) between the input X to a deep neural
+network (DNN) and the output vector T` of its
+`th hidden layer (an “internal representation”).
+Focusing on feedforward networks with fixed
+weights and noisy internal representations, we
+develop a rigorous framework for accurate estimation of I(X; T` ). By relating I(X; T` ) to information transmission over additive white Gaussian
+noise channels, we reveal that compression, i.e.
+reduction in I(X; T` ) over the course of training, is driven by progressive geometric clustering
+of the representations of samples from the same
+class. Experimental results verify this connection.
+Finally, we shift focus to purely deterministic
+DNNs, where I(X; T` ) is provably vacuous, and
+show that nevertheless, these models also cluster
+inputs belonging to the same class. The binningbased approximation of I(X; T` ) employed in
+past works to measure compression is identified as
+a measure of clustering, thus clarifying that these
+experiments were in fact tracking the same clustering phenomenon. Leveraging the clustering
+perspective, we provide new evidence that compression and generalization may not be causally
+related and discuss potential future research ideas.
+
+1. Introduction
+Measuring the mutual information I(X; T` ) between the
+input feature X to a deep neural network (DNN) and the
+output T` of its `th layer has long been a topic of research,
+with applications to unsupervised feature learning (Linsker,
+1988; van den Oord et al., 2018; Hjelm et al., 2019) and
+deep learning analysis (Shwartz-Ziv & Tishby, 2017; Saxe
+1
+
+Massachusetts Institute of Technology 2 MIT-IBM Watson
+AI Lab 3 IBM Research. Correspondence to: Ziv Goldfeld
+<zivg@mit.edu>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+et al., 2018; Achille & Soatto, 2018). Mutual information is
+an appealing measure due to its invariance to smooth, invertible transformations and the fact that it has meaningful units
+(bits or nats). But, these benefits come at a price: mutual
+information is often impossible to compute analytically, and
+its estimation from samples is difficult (Paninski, 2003). A
+variety of entropy, and thereby mutual information, estimators have been developed over the years, including k-nearest
+neighbors (kNN) (Kozachenko & Leonenko, 1987; Kraskov
+et al., 2004), kernel density (Kandasamy et al., 2015; Han
+et al., 2017), and trainable neural estimators (Belghazi et al.,
+2018). However, most previous information-theoretic studies of deep learning (Shwartz-Ziv & Tishby, 2017; Saxe
+et al., 2018) approximate the mutual information by discretizing neurons’ outputs, an operation called ‘binning’.
+The binning-based approach is attractive because of its computational efficiency when the number of bins is not too
+large; however, even mildly coarse discretizations can yield
+inaccurate estimates.1 This fact is illustrated by the empirical mutual information plots from (Shwartz-Ziv & Tishby,
+2017; Saxe et al., 2018) where the compression phenomenon
+of the Information Bottleneck theory, i.e., a long-term decrease of I(X; T` ) during DNN training, was studied. Both
+works plotted the binned mutual information I X; Bin(T` )
+for deterministic DNNs (networks that deterministically
+map inputs to hidden representations) with Bin(T` ) being a
+per-neuron discretization of T` . But, in deterministic DNNs
+with strictly monotone nonlinearities (e.g., tanh or sigmoid)
+the true mutual information I(X; T` ) is provably either infinite (continuous X) or a constant(discrete X). Therefore,
+the fluctuations of I X; Bin(T` ) observed during DNN
+training by (Shwartz-Ziv & Tishby, 2017; Saxe et al., 2018)
+must be due to estimation errors rather than changes in mutual information. Indeed, Fig. 1 illustrates how
+ larger bin
+sizes can easily cause errors in I X; Bin(T` ) trajectories.
+The degeneracy of I(X; T` ) in deterministic DNNs is a consequence of T` being a deterministic function of X. If the
+DNN has continuous nonlinearities and PX is continuous,
+then so is T` , and thus I(X; T` ) = ∞ (cf. Theorem 2.4
+of Polyanskiy & Wu (2012–2017)). When PX is discrete
+1
+
+The binning-based proxy approaches the true value when the
+bin sizes are shrunk to zero by definition (Cover & Thomas, 2006).
+
+

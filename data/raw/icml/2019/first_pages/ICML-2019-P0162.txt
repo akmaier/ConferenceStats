@@ -1,0 +1,83 @@
+Approximated Oracle Filter Pruning for Destructive CNN Width Optimization
+
+Xiaohan Ding 1 Guiguang Ding 1 Yuchen Guo 1 Jungong Han 2 Chenggang Yan 3
+
+Abstract
+It is not easy to design and run Convolutional Neural Networks (CNNs) due to: 1) finding the optimal number of filters (i.e., the width) at each layer
+is tricky, given an architecture; and 2) the computational intensity of CNNs impedes the deployment on computationally limited devices. Oracle
+Pruning is designed to remove the unimportant
+filters from a well-trained CNN, which estimates
+the filters’ importance by ablating them in turn
+and evaluating the model, thus delivers high accuracy but suffers from intolerable time complexity,
+and requires a given resulting width but cannot
+automatically find it. To address these problems,
+we propose Approximated Oracle Filter Pruning
+(AOFP), which keeps searching for the least important filters in a binary search manner, makes
+pruning attempts by masking out filters randomly,
+accumulates the resulting errors, and finetunes
+the model via a multi-path framework. As AOFP
+enables simultaneous pruning on multiple layers,
+we can prune an existing very deep CNN with
+acceptable time cost, negligible accuracy drop,
+and no heuristic knowledge, or re-design a model
+which exerts higher accuracy and faster inference.
+
+1. Introduction
+Convolutional Neural Networks (CNNs) have become an
+important tool for many real-world applications and related
+research areas (Collobert & Weston, 2008; LeCun et al.,
+1990a; 1995). Nowadays, designing a CNN usually means
+a tiring exploration in a vast design space, which usually
+1
+Beijing National Research Center for Information Science
+and Technology (BNRist); School of Software, Tsinghua University, Beijing, China. Email: dxh17@mails.tsinghua.edu.cn.
+2
+WMG Data Science, University of Warwick, Coventry, United
+Kingdom 3 InstituteofInformationandControl, Hangzhou Dianzi
+University, Hangzhou, China. Correspondence to: Yuchen
+Guo <yuchen.w.guo@gmail.com>, Jungong Han <jungonghan77@gmail.com>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+includes the usage of non-linearities (ReLU, sigmoid or
+none), downsampling (max / average pooling or stride-2
+convolution), shortcut connections (He et al., 2016), etc.
+With so many hyper-parameters in consideration, we still
+have to make a hard decision every time we use a convolutional layer: the number of filters, i.e., the width of the
+layer. Since an unnecessarily wide conv layer usually leads
+to meaningless parameters, heavy computational burdens,
+and overfitting, we wish to set a proper width for each layer,
+which is inherently tricky. In modern CNN architectures,
+some practical guidelines on the number of filters are followed. Taking VGG (Simonyan & Zisserman, 2014) for
+example, when the feature maps are spatially downsampled
+by 2×, the number of filters becomes 2×, so that the computational burdens of each layer are kept roughly the same.
+Apparently, such guidelines leave much room to improve
+on the layer width for better accuracy and efficiency.
+In this paper, destructive CNN width optimization refers to
+the process which takes a well-trained tidy CNN as input
+and produces an optimized one where some useless filters
+are removed. In this context, our method can be categorized
+into filter pruning, a.k.a. channel pruning (He et al., 2017)
+or network slimming (Liu et al., 2017), a family of CNN
+compression techniques, which features three strengths. 1)
+Universality: filter pruning can handle any kinds of CNNs,
+making no assumptions on the application field, the network
+architecture or the deployment platform. 2) Effectiveness:
+filter pruning effectively reduces the floating-point operations (FLOPs) of the network, which serve as the main
+criterion of computational burdens. When a filter is pruned,
+its output channel and the corresponding input channels
+of the following layer are removed. That is, when several
+conv layers stacked together are pruned respectively, the
+total FLOPs are reduced quadratically. 3) Orthogonality:
+filter pruning simply produces a thinner network with no
+customized structure or extra operation, which is orthogonal
+to other model compression and acceleration techniques.
+A common paradigm of filter pruning is to evaluate the importance of filters by some means (Polyak & Wolf, 2015; Hu
+et al., 2016; Li et al., 2016; Molchanov et al., 2016; AbbasiAsl & Yu, 2017; Anwar et al., 2017; Yu et al., 2018), such
+that the accuracy is not damaged severely by the removal of
+the less important filters and can be recovered by finetuning.
+Apparently, the quality of the filter importance evaluation
+
+

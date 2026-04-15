@@ -1,0 +1,74 @@
+FetchSGD: Communication-Efficient Federated Learning with Sketching
+
+Daniel Rothchild∗ 1 Ashwinee Panda∗ 1 Enayat Ullah 2 Nikita Ivkin 3 Ion Stoica 1 Vladimir Braverman 2
+Joseph Gonzalez 1 Raman Arora 2
+
+Abstract
+Existing approaches to federated learning suffer from a communication bottleneck as well as
+convergence issues due to sparse client participation. In this paper we introduce a novel algorithm,
+called FetchSGD, to overcome these challenges.
+FetchSGD compresses model updates using a
+Count Sketch, and then takes advantage of the
+mergeability of sketches to combine model updates from many workers. A key insight in the
+design of FetchSGD is that, because the Count
+Sketch is linear, momentum and error accumulation can both be carried out within the sketch.
+This allows the algorithm to move momentum
+and error accumulation from clients to the central
+aggregator, overcoming the challenges of sparse
+client participation while still achieving high compression rates and good convergence. We prove
+that FetchSGD has favorable convergence guarantees, and we demonstrate its empirical effectiveness by training two residual networks and a
+transformer model.
+
+1. Introduction
+Federated learning has recently emerged as an important setting for training machine learning models. In the federated
+setting, training data is distributed across a large number
+of edge devices, such as consumer smartphones, personal
+computers, or smart home devices. These devices have
+data that is useful for training a variety of models – for text
+prediction, speech modeling, facial recognition, document
+identification, and other tasks (Shi et al., 2016; Brisimi et al.,
+2018; Leroy et al., 2019; Tomlinson et al., 2009). However,
+data privacy, liability, or regulatory concerns may make it
+difficult to move this data to the cloud for training (EU,
+* Equal contribution
+1 University of California, Berkeley, California, USA 2 Johns Hopkins University, Baltimore,
+Maryland 3 Amazon. Correspondence to: Daniel Rothchild
+<drothchild@berkeley.edu>.
+
+Proceedings of the 37th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+2018). Even without these concerns, training machine learning models in the cloud can be expensive, and an effective
+way to train the same models on the edge has the potential
+to eliminate this expense.
+When training machine learning models in the federated
+setting, participating clients do not send their local data to
+a central server; instead, a central aggregator coordinates
+an optimization procedure among the clients. At each iteration of this procedure, clients compute gradient-based
+updates to the current model using their local data, and they
+communicate only these updates to a central aggregator.
+A number of challenges arise when training models in the
+federated setting. Active areas of research in federated learning include solving systems challenges, such as handling
+stragglers and unreliable network connections (Bonawitz
+et al., 2016; Wang et al., 2019), tolerating adversaries (Bagdasaryan et al., 2018; Bhagoji et al., 2018), and ensuring
+privacy of user data (Geyer et al., 2017; Hardy et al., 2017).
+In this work we address a different challenge, namely that of
+training high-quality models under the constraints imposed
+by the federated setting.
+There are three main constraints unique to the federated setting that make training high-quality models difficult. First,
+communication-efficiency is a necessity when training on
+the edge (Li et al., 2018), since clients typically connect to
+the central aggregator over slow connections (∼ 1Mbps)
+(Lee et al., 2010). Second, clients must be stateless, since
+it is often the case that no client participates more than once
+during all of training (Kairouz et al., 2019). Third, the data
+collected across clients is typically not independent and
+identically distributed. For example, when training a nextword prediction model on the typing data of smartphone
+users, clients located in geographically distinct regions generate data from different distributions, but enough commonality exists between the distributions that we may still want
+to train a single model (Hard et al., 2018; Yang et al., 2018).
+In this paper, we propose a new optimization algorithm for
+federated learning, called FetchSGD, that can train highquality models under all three of these constraints. The crux
+of the algorithm is simple: at each round, clients compute
+a gradient based on their local data, then compress the gradient using a data structure called a Count Sketch before
+
+

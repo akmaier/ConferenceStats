@@ -1,0 +1,86 @@
+Towards End-to-End Prosody Transfer
+for Expressive Speech Synthesis with Tacotron
+
+RJ Skerry-Ryan 1 Eric Battenberg 1 Ying Xiao 1 Yuxuan Wang 1 Daisy Stanton 1 Joel Shor 1 Ron J. Weiss 1
+Rob Clark 1 Rif A. Saurous 1
+
+Abstract
+We present an extension to the Tacotron speech
+synthesis architecture that learns a latent embedding space of prosody, derived from a reference
+acoustic representation containing the desired
+prosody. We show that conditioning Tacotron
+on this learned embedding space results in synthesized audio that matches the prosody of the
+reference signal with fine time detail even when
+the reference and synthesis speakers are different.
+Additionally, we show that a reference prosody
+embedding can be used to synthesize text that
+is different from that of the reference utterance.
+We define several quantitative and subjective metrics for evaluating prosody transfer, and report
+results with accompanying audio samples from
+single-speaker and 44-speaker Tacotron models
+on a prosody transfer task.
+
+1. Introduction
+In order to produce realistic speech, a text-to-speech (TTS)
+system must implicitly or explicitly impute many factors that
+are not provided by simple text input. Such factors include
+the intonation, stress, rhythm and style of the speech, and
+are collectively referred to as prosody.
+Speech synthesis via text-to-speech is a challenging underdetermined problem, since the meaning expressed by an
+utterance is inherently underspecified by the text. For example, the simple statement “The cat sat on the mat.” can be
+spoken many different ways. If the statement is the answer
+to the question “Where did the cat sit?” the speaker might
+stress the word “mat” to indicate that it is the answer to
+the question. To express uncertainty in their knowledge,
+the speaker may decide to intone the response with a rising
+pitch. The question, “Would you like an apple or an orange?”
+1
+
+Google, Inc..
+Correspondence to:
+<rjryan@google.com>.
+
+RJ Skerry-Ryan
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+can also be spoken in multiple ways, indicating information
+about the set of objects that exist. If there are only two possible options, the intonation of the final option (“orange”) will
+have a declining pitch. If there are a variety of options of
+which apple and orange are just two examples, both options
+are typically intoned with a rising pitch. The intonation of
+these sentences carries meaning about the environment or
+context of the question which is unspecified by the text, and
+in general, there are any number of such nuances present in
+speech that convey information beyond the textual content.
+In order to avoid the challenging problem of schematizing
+and labeling prosody, we seek methods of modeling prosody
+that do not require explicit annotations, and present an architecture for learning a latent prosody representation by
+extracting it from the ground truth speech audio. Accordingly, we use a “subtractive” definition of prosody:
+Definition. Prosody is the variation in speech signals that
+remains after accounting for variation due to phonetics,
+speaker identity, and channel effects (i.e. the recording
+environment).
+This view of prosody is compatible with interpretations of
+prosody from previous works (Wagner & Watson, 2010;
+Ladd, 2008).
+One natural problem that arises from this formulation is
+sampling – that is, the challenge of generating diverse and
+interesting prosody and output speech even for identical
+phonetics, speaker identities, and channel effects. In this
+paper, we tackle the more basic problem of constructing a
+space that represents prosody. We propose one possible construction of a prosody latent space, and show that we capture
+meaningful variation in speech by demonstrating transfer
+in this space (i.e., using a latent representation to make one
+utterance sound like another): this roughly corresponds to a
+“say it like this” task.
+The recently proposed Tacotron speech synthesis system
+(Wang et al., 2017a) computes its output directly from
+graphemes or phonemes, and its prosody model is implicit,
+learned from the statistics of the training data alone. It
+learns, for example, that an English sentence ending in a
+question mark likely has a rising pitch if the question has a
+
+

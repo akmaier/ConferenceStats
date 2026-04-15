@@ -1,0 +1,110 @@
+TokenSwift: Lossless Acceleration of Ultra Long Sequence Generation
+
+Tong Wu * 1 Junzhe Shen * 1 2 Zixia Jia 1 Yuxuan Wang 1 Zilong Zheng 1
+
+Abstract
+Generated Tokens
+
+Generating ultra-long sequences with large language models (LLMs) has become increasingly
+crucial but remains a highly time-intensive task,
+particularly for sequences up to 100K tokens.
+While traditional speculative decoding methods
+exist, simply extending their generation limits
+fails to accelerate the process and can be detrimental. Through an in-depth analysis, we identify three major challenges hindering efficient
+generation: frequent model reloading, dynamic
+key-value (KV) management and repetitive generation. To address these issues, we introduce
+T OKEN S WIFT, a novel framework designed to
+substantially accelerate the generation process of
+ultra-long sequences while maintaining the target model’s inherent quality. Experimental results
+demonstrate that T OKEN S WIFT achieves over 3ˆ
+speedup across models of varying scales (1.5B,
+7B, 8B, 14B) and architectures (MHA, GQA).
+This acceleration translates to hours of time savings for ultra-long sequence generation, establishing T OKEN S WIFT as a scalable and effective solution at unprecedented lengths.
+
+100000
+
+AR
+TokenSwift
+
+80000
+
+Fast Generation
+(TokenSwift)
+
+TokenSwift 100K tokens
+Time: 90 min
+
+AR 100K tokens
+Time: 4.9 hours
+Slow Generation
+(AR)
+
+60000
+40000
+20000
+0
+
+0
+
+50
+
+100
+
+150
+Time (minutes)
+
+200
+
+250
+
+300
+
+Figure 1. Comparison of the time taken to generate 100K tokens
+using autoregressive (AR) and T OKEN S WIFT with prefix length of
+4096 on LLaMA3.1-8b. As seen, T OKEN S WIFT accelerates the
+AR process from nearly 5 hours to just 90 minutes.
+
+However, a critical challenge impeding the practical deployment of such applications is the extensive time required
+to produce ultra-long sequences. For instance, generating
+100K tokens with LLaMA3.1-8B can take approximately
+five hours (Figure 1), a duration that is impractically long
+for the development of sophisticated applications, let alone
+recent gigantic models such as LLaMA3.1-405B (AI@Meta,
+2024) and DeepSeek-671B (Liu et al., 2024a). Addressing
+this bottleneck is essential for harnessing the full potential
+of LLMs in real-world scenarios.
+
+*
+Equal contribution 1 State Key Laboratory of General Artificial Intelligence, BIGAI, Beijing, China 2 LUMIA Lab, Shanghai Jiao Tong University. Correspondence to: Zilong Zheng
+<zlzheng@bigai.ai>.
+
+A straightforward solution is to take advantage of recent success in speculative decoding (SD) (Leviathan et al., 2023;
+Chen et al., 2023), which employs a draft-then-verify strategy to expedite generation while preserving lossless accuracy; see Appendix A and Section 5.1 for detailed background and relevant literature. However, these methods are
+generally tailored for generating short sequences, e.g., TriForce (Sun et al., 2024a) and MagicDec (Chen et al., 2024a)
+are limited to generating 256 and 64 tokens, respectively.
+Directly extending their generation length to 100K tokens
+would inevitably encounter failures due to KV cache budget
+constraints. Furthermore, even when applied to optimized
+KV cache architectures such as Group Query Attention
+(GQA), these methods yield only marginal acceleration
+gains for short-sequence generation, as evidenced in Tables 1 and 3. This observation leads to a pivotal research
+question:
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+Is it possible to achieve model-agnostic lossless accelerations, akin to those seen in short-sequence SDs, for generating ultra-long sequences, with minimal training overhead?
+
+1. Introduction
+Recent advances in large language models (LLMs), amplified by their long context capacities (Wu et al., 2024;
+Ding et al., 2024), have demonstrated remarkable proficiency in intricate reasoning (Jaech et al., 2024; Guo et al.,
+2025), agentic thinking (Shinn et al., 2023; Yao et al., 2023;
+Li et al., 2024a), and creative writing (Wang et al., 2023;
+Mikhaylovskiy, 2023), etc. These advancements necessitate
+the ability to generate lengthy sequences, e.g., o1-like (Jaech
+et al., 2024) reasoning tends to generate protracted chainof-thought trajectories before reaching final conclusions.
+
+1
+
+

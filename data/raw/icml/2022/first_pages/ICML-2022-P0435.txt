@@ -1,0 +1,79 @@
+Surrogate Likelihoods for Variational Annealed Importance Sampling
+
+Martin Jankowiak 1 Du Phan 2
+
+Abstract
+Variational inference is a powerful paradigm for
+approximate Bayesian inference with a number
+of appealing properties, including support for
+model learning and data subsampling. By contrast
+MCMC methods like Hamiltonian Monte Carlo
+do not share these properties but remain attractive
+since, contrary to parametric methods, MCMC
+is asymptotically unbiased. For these reasons researchers have sought to combine the strengths of
+both classes of algorithms, with recent approaches
+coming closer to realizing this vision in practice.
+However, supporting data subsampling in these
+hybrid methods can be a challenge, a shortcoming
+that we address by introducing a surrogate likelihood that can be learned jointly with other variational parameters. We argue theoretically that
+the resulting algorithm allows an intuitive tradeoff between inference fidelity and computational
+cost. In an extensive empirical comparison we
+show that our method performs well in practice
+and that it is well-suited for black-box inference
+in probabilistic programming frameworks.
+
+1. Introduction
+Bayesian modeling and inference is a powerful approach
+to making sense of complex datasets. This is especially
+the case in scientific applications, where accounting for
+prior knowledge and uncertainty is essential. For motivating examples we need only look to recent efforts to study
+COVID-19, including e.g. epidemiological models that incorporate mobility data (Miller et al., 2020; Monod et al.,
+2021) or link differentiable transmissibility of SARS-CoV-2
+lineages to viral mutations (Obermeyer et al., 2022).
+Unfortunately for many application areas the broader use
+of Bayesian models is hampered by the difficulty of for1
+
+Broad Institute, Cambridge, MA, USA 2 Google Research,
+Cambridge, MA, USA. Correspondence to: Martin Jankowiak
+<mjankowi@broadinstitute.org>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+mulating scalable inference algorithms. One regime that
+has proven particularly challenging is the large data regime.
+This is essentially because powerful MCMC methods like
+Hamiltonian Monte Carlo (HMC) (Duane et al., 1987; Neal
+et al., 2011) are, at least on the face of it, incompatible with
+data subsampling (i.e. mini-batching) (Betancourt, 2015).
+While considerable effort has gone into developing MCMC
+methods that accommodate data subsampling,1 developing
+generic MCMC methods that yield high fidelity posterior
+approximations while scaling to very large datasets remains
+challenging.
+For this reason, among others, recent years have seen extensive development of approximate inference methods based
+on variational inference (Jordan et al., 1999; Blei et al.,
+2017). Besides ‘automatic’ support for data subsampling
+(Hoffman et al., 2013; Ranganath et al., 2014), at least for
+suitable model classes, variational inference has several additional favorable properties, including support for amortization (Dayan et al., 1995), log evidence estimates, and model
+learning, motivating researchers to combine the strengths
+of MCMC and variational inference (Salimans et al., 2015;
+Hoffman, 2017; Caterini et al., 2018; Ruiz & Titsias, 2019).
+Recent work from Geffner & Domke (2021) and Zhang et al.
+(2021) offers a particularly elegant formulation of a variational inference method that leverages (unadjusted) HMC as
+well as annealed importance sampling (AIS) (Neal, 2001).
+Although these are fundamentally variational methods, since
+they make use of HMC, which does not itself readily accommodate data subsampling, these methods likewise do
+not automatically inherit support for data subsampling. This
+is unfortunate because these methods do automatically inherit many of the other nice features of variational inference,
+including support for amortization and model learning.
+In this work we set out to extend the approach in Geffner &
+Domke (2021) and Zhang et al. (2021) to support data subsampling, thus making it applicable to the large data regime.
+Our basic strategy is simple and revolves around introducing a surrogate log likelihood that is cheap to evaluate. The
+surrogate log likelihood is used to guide HMC dynamics, resulting in a flexible variational distribution that is implicitly
+defined via the gradient of the surrogate log likelihood. The
+1
+
+See e.g. Dang et al. (2019) and Zhang et al. (2020) for recent
+work.
+
+

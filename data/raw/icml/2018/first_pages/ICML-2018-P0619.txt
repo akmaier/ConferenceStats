@@ -1,0 +1,101 @@
+Stochastic Variance-Reduced Hamilton Monte Carlo Methods
+Difan Zou * 1 Pan Xu * 1 Quanquan Gu 1
+
+Abstract
+We propose a fast stochastic Hamilton Monte
+Carlo (HMC) method, for sampling from a
+smooth and strongly log-concave distribution.
+At the core of our proposed method is a variance reduction technique inspired by the recent
+advance in stochastic optimization. We show
+that, to achieve ✏ accuracy in 2-Wasserstein dise n + 2 d1/2 /✏ +
+tance, our algorithm achieves O
+4/3 1/3 2/3 2/3
+ d n /✏
+gradient complexity (i.e.,
+number of component gradient evaluations),
+which outperforms the state-of-the-art HMC and
+stochastic gradient HMC methods in a wide
+regime. We also extend our algorithm for sampling from smooth and general log-concave distributions, and prove the corresponding gradient
+complexity as well. Experiments on both synthetic and real data demonstrate the superior performance of our algorithm.
+
+1. Introduction
+Past decades have witnessed increasing attention of Markov
+Chain Monte Carlo (MCMC) methods in modern machine
+learning problems (Andrieu et al., 2003). An important
+family of Markov Chain Monte Carlo algorithms, called
+Langevin Monte Carlo method (Neal et al., 2011), is proposed based on Langevin dynamics (Parisi, 1981). Langevin
+dynamics was used for modeling of the dynamics of molecular systems, and can be described by the following Itô’s
+stochastic differential equation (SDE) (Øksendal, 2003),
+p
+dXt = rf (Xt )dt + 2 dBt ,
+(1.1)
+
+where Xt is a d-dimensional stochastic process, t 0 denotes the time index, > 0 is the temperature parameter,
+and Bt is the standard d-dimensional Brownian motion.
+Under certain assumptions on the drift coefficient rf , Chiang et al. (1987) showed that the distribution of Xt in (1.1)
+*
+
+Equal contribution 1 Department of Computer Science, University of California, Los Angeles, CA 90095, USA. Correspondence
+to: Quanquan Gu <qgu@cs.ucla.edu>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+converges to its stationary distribution, a.k.a., the Gibbs
+measure ⇡ / exp( f (x)). Note that ⇡ is smooth and
+log-concave (resp. strongly log-concave) if f is smooth and
+convex (resp. strongly convex). A typical way to sample
+from density ⇡ is applying Euler-Maruyama discretization
+scheme (Kloeden & Platen, 1992) to (1.1), which yields
+Xk+1 = Xk
+
+rf (Xk )⌘ +
+
+p
+
+2⌘ · ✏k ,
+
+(1.2)
+
+where ✏k ⇠ N (0, Id⇥d ) is a standard Gaussian random vector, Id⇥d is a d ⇥ d identity matrix, and ⌘ > 0 is the step
+size. (1.2) is often referred to as the Langevin Monte Carlo
+(LMC) method. In total variation (TV) distance, LMC has
+been proved to be able to produce approximate sampling of
+density ⇡ / e f / under arbitrary precision requirement
+in Dalalyan (2014); Durmus & Moulines (2016b), with properly chosen step size. The non-asymptotic convergence of
+LMC has also been studied in Dalalyan (2017); Dalalyan &
+Karagulyan (2017); Durmus et al. (2017), which shows that
+the LMC algorithm can achieve ✏-precision in 2-Wasserstein
+e 2 d/✏2 ) iterations if f is L-smooth and µdistance after O(
+strongly convex, where  = L/µ is the condition number.
+In order to accelerate the convergence of Langevin dynamics
+(1.1) and improve its mixing time to the unique stationary
+distribution, Hamiltonian dynamics (Duane et al., 1987;
+Neal et al., 2011) was proposed, which is also known as
+underdampled Langevin dynamics and is defined by the
+following system of SDEs
+dVt =
+
+Vt dt
+
+dXt = Vt dt,
+
+urf (Xt )dt +
+
+p
+
+2 udBt ,
+
+(1.3)
+
+where > 0 is the friction parameter, u denotes the inverse mass, Xt , Vt 2 Rd are the position and velocity
+of the continuous-time dynamics respectively, and Bt is
+the Brownian motion. Let Wt = (Xt> , Vt> )> , under
+mild assumptions on the drift coefficient rf (x), the distribution of Wt converges to an unique invariant distribu2
+tion ⇡w / e f (x) kvk2 /(2u) (Neal et al., 2011), whose
+marginal distribution on Xt , denoted by ⇡, is proportional
+to e f (x) . Similar to the numerical approximation of the
+Langevin dynamics in (1.2), one can also apply the same
+Euler-Maruyama discretization scheme to Hamiltonian dynamics in (1.3), which gives rise to Hamiltonian Monte
+
+

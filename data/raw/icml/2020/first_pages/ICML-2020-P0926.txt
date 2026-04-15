@@ -1,0 +1,85 @@
+Optimizing Data Usage via Differentiable Rewards
+
+Xinyi Wang * 1 Hieu Pham * 1 2 Paul Michel 1 Antonios Anastasopoulos 1 Jaime Carbonell 1 Graham Neubig 1
+
+Abstract
+To acquire a new skill, humans learn better and
+faster if a tutor informs them of how much attention they should pay to particular content or practice problems based on their current knowledge
+level. Similarly, a machine learning model could
+potentially be trained better if data is presented in
+a way that adapts to its current learning state. In
+this paper, we examine the problem of training an
+adaptive scorer that weights data instances to maximally benefit learning. Training such as scorer
+efficiently is a challenging problem; in order to
+precisely quantify the effect of a data instance on
+the final model, a naive approach would require
+completing the entire training process and observing final performance. We propose an efficient
+alternative – Differentiable Data Selection (DDS)
+– that formulates a scorer as a learnable function
+of the training data that can be efficiently updated
+along with the main model being trained. Specifically, DDS updates the scorer with an intuitive
+reward signal: it should up-weigh the data that has
+a similar gradient with a development set upon
+which we would finally like to perform well. Without significant computing overhead, DDS delivers consistent improvements over several strong
+baselines on two very different tasks of machine
+translation and image classification.1
+
+1. Introduction
+While deep learning models are remarkably good at fitting
+large data sets, their performance is also highly sensitive to
+the structure and domain of their training data. Training on
+out-of-domain data can lead to worse model performance,
+while using more relevant data can assist transfer learning.
+*
+
+Equal contribution 1 Language Technology Institute, Carnegie
+Mellon University, Pittsburgh, PA 15213, USA 2 Google Research,
+Brain Team, Mountain View, CA 94043, USA. Correspondence to:
+Xinyi Wang, Hieu Pham <{xinyiw1,hyhieu}@cs.cmu.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+1
+Code will be released soon.
+
+Previous work has attempted to create strategies to handle
+this sensitivity by selecting subsets of the data to train the
+model on (Jiang & Zhai, 2007; Wang et al.; Axelrod et al.,
+2011; Moore & Lewis, 2010), providing different weights
+for each example (Sivasankaran et al., 2017; Ren et al.,
+2018), or changing the presentation order of data (Bengio
+et al., 2009; Kumar et al., 2019).
+However, there are several challenges with existing work on
+better strategies for data usage. Most data filtering critera
+or training curriculum rely on domain-specific knowledge
+and hand-designed heuristics, which can be sub-optimal. To
+avoid hand-designed heuristics, several works propose to
+optimize a parameterized neural network to learn the data
+usage schedule, but most of them are tailored to specific use
+cases, such as handling noisy data for classification (Jiang
+et al., 2018), learning a curriculum learning strategy for
+specific tasks (Kumar et al., 2019; Tsvetkov et al., 2016),
+and actively selecting data for annotation (Fang et al., 2017;
+Wu et al., 2018). Fan et al. (2018b) proposes a more general teacher-student framework that first trains a “teacher
+network” to select data that directly optimizes development
+set accuracy over multiple training runs. However, because
+running multiple runs of training simply to learn this teacher
+network entails an n-fold increase in training time for n
+runs, this is infeasible in many practical settings. In addition, in preliminary experiments we also found the single
+reward signal provided by dev set accuracy at the end of
+training to be noisy, to the extent that we were not able to
+achieve results competitive with simpler heuristic training
+methods.
+In this paper, we propose an alternative: a general Reinforcement Learning (RL) framework for optimizing training
+data usage by training a scorer network that minimizes the
+model loss on the development set. We formulate the scorer
+network as a function of the current training examples, and
+update the scorer along with the main model being trained.
+Thus, our method requires no heuristics and is generalizable to various tasks. To make the scorer adaptive, we train
+it using frequent and efficient updates towards a reward
+function inspired by recent work on learning from auxiliary
+tasks (Du et al., 2018; Liu et al., 2019b), which uses the
+similarity between two gradients as a measure of task relevance. We propose to use the gradient alignment between
+the training examples and the dev set as a reward signal for a
+
+

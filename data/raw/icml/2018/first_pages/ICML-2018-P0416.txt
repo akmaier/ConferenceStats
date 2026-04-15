@@ -1,0 +1,99 @@
+Time Limits in Reinforcement Learning
+
+Fabio Pardo 1 Arash Tavakoli 1 Vitaly Levdik 1 Petar Kormushev 1
+
+Abstract
+In reinforcement learning, it is common to let an
+agent interact for a fixed amount of time with its
+environment before resetting it and repeating the
+process in a series of episodes. The task that the
+agent has to learn can either be to maximize its
+performance over (i) that fixed period, or (ii) an
+indefinite period where time limits are only used
+during training to diversify experience. In this
+paper, we provide a formal account for how time
+limits could effectively be handled in each of the
+two cases and explain why not doing so can cause
+state-aliasing and invalidation of experience replay, leading to suboptimal policies and training
+instability. In case (i), we argue that the terminations due to time limits are in fact part of the
+environment, and thus a notion of the remaining
+time should be included as part of the agent’s input to avoid violation of the Markov property. In
+case (ii), the time limits are not part of the environment and are only used to facilitate learning.
+We argue that this insight should be incorporated
+by bootstrapping from the value of the state at
+the end of each partial episode. For both cases,
+we illustrate empirically the significance of our
+considerations in improving the performance and
+stability of existing reinforcement learning algorithms, showing state-of-the-art results on several
+control tasks.
+
+1. Introduction
+The reinforcement learning framework (Kaelbling et al.,
+1996; Sutton & Barto, 1998; Szepesvari, 2010) considers a
+sequential interaction between an agent and its environment.
+At every time step t, the agent receives a representation St of
+the environment’s state, selects an action At that is executed
+1
+Robot Intelligence Lab, Imperial College London, UK.
+Correspondence to: Fabio Pardo, Arash Tavakoli, Vitaly Levdik,
+Petar Kormushev <f.pardo, a.tavakoli, v.levdik, p.kormushev
+@imperial.ac.uk>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+in the environment which in turn provides a representation St+1 of the successor state and a reward signal Rt+1 .
+An individual reward received by the agent does not directly
+indicate the quality of its latest action as some rewards may
+be the consequence of a series of actions taken in the past.
+Thus, the goal of the agent is to maximize the discounted
+sum of future rewards, also known as the return:
+Gt = Rt+1 +γRt+2 +γ 2 Rt+3 +... =
+
+∞
+X
+
+γ k−1 Rt+k (1)
+
+k=1
+
+A discount factor 0 ≤ γ < 1 is necessary to exponentially
+decay the future rewards ensuring bounded returns. While
+the series is infinite, it is common to use this expression
+even in the case of possible terminations, such as timeouts,
+by considering them to be the entering of an absorbing
+state that transitions only to itself and generates zero rewards thereafter. However, when the maximum length of an
+episode is fixed, it is easier to rewrite the expression above
+by explicitly including the time limit T :
+Gt:T = Rt+1 + ... + γ T −t−1 RT =
+
+T
+−t
+X
+
+γ k−1 Rt+k (2)
+
+k=1
+
+Optimizing for the expectation of the return specified in
+Equation 2 is suitable for naturally time-limited tasks where
+the agent has to maximize its expected return only over
+a fixed episode length. In this case, since the return is
+bounded, a discount factor of γ = 1 can be used. However,
+in practice it is still common to keep γ smaller than 1 in
+order to give more priority to short-term rewards. Under
+this optimality model, the objective of the agent does not go
+beyond the time limit. Therefore, such an agent could for
+example learn to take more risky actions leading to higher
+expected returns as approaching the time limit. In Section 2,
+we study this case and illustrate that due to the time limit
+terminations, the remaining time is an inherent part of the
+environment’s state and is essential to its Markov property
+(Sutton & Barto, 1998). Therefore, we argue for the inclusion of a notion of the remaining time in the agent’s input,
+an approach that we refer to as time-awareness (TA). We
+describe various scenarios where lacking a notion of the remaining time can lead to suboptimal policies and instability,
+and demonstrate significant performance improvements for
+agents with time-awareness.
+
+

@@ -1,0 +1,116 @@
+Online Speculative Decoding
+
+Xiaoxuan Liu 1 Lanxiang Hu 2 Peter Bailis 3 Alvin Cheung 1 Zhijie Deng 4 Ion Stoica 1 Hao Zhang 2
+Resume from t3_correct to generate subsequent tokens
+
+Abstract
+
+t1
+
+Speculative decoding is a pivotal technique to accelerate the inference of large language models
+(LLMs) by employing a smaller draft model to
+predict the target model’s outputs. However, its efficacy can be limited due to the low predictive accuracy of the draft model, particularly when faced
+with diverse text inputs and a significant capability gap between the draft and target models. We
+introduce online speculative decoding to address
+this challenge. The main idea is to continuously
+update the (multiple) draft model(s) on observed
+user query data. Adapting to query distribution
+mitigates the shifts between the training distribution of the draft model and the query distribution,
+enabling the draft model to more accurately predict the target model’s outputs. We develop a prototype of online speculative decoding based on
+knowledge distillation and evaluate it using both
+synthetic and real query data. The results show
+a substantial increase in the token acceptance
+rate by 0.1 to 0.65, bringing 1.42× to 2.17× latency reduction. Our code is available at https:
+//github.com/LiuXiaoxuanPKU/OSD.
+
+Prompt
+
+Draft Model
+(student)
+
+t2
+
+t3
+
+Proposal token
+probability distribution
+
+Update Model when
+size(Buffer) > Threshold_size or
+elapsed time > Threshold_time
+Distance metric: KL/Reverse KL/ JSD
+
+t1
+
+Target Model
+(teacher)
+
+t2
+
+t3_correct
+
+Verification
+
+Buffer
+
+(
+,
+)
+t3
+t3_correct
+(Draft, target) probability distribution
+…………
+
+Figure 1. Overview of online speculative decoding (OSD) framework: For each prompt, the draft model suggests multiple tokens
+and the target model performs the verification. If the student proposes incorrect tokens, both the draft and target distributions are
+stored in a buffer. Once the buffer exceeds a size limit or is too
+old, the draft model is updated by calculating the loss between the
+draft and target distributions using various distance metrics.
+
+token of the response. An emerging solution to reduce the
+latency is speculative decoding (Leviathan et al., 2023)—it
+employs a small draft model to speculate multiple output
+tokens of the target (large) model, and then lets the target
+LLM verify these speculations in parallel. If the verification
+of a token fails, the large model must recompute from that
+point. Therefore, the performance of speculative decoding
+largely depends on the speculation accuracy of the draft
+model (also known as the token acceptance rate). In the
+presence of diverse text inputs, the accuracy of the speculations is often not very high, due to the capability gap
+between the draft and target models. Employing a larger,
+more accurate draft model, however, defeats the purpose of
+speculative decoding as it will increase latency.
+
+1. Introduction
+Large language models (LLMs) such as GPT-4 (OpenAI,
+2023) and LLaMA (Touvron et al., 2023a;b) are rapidly reinventing today’s applications. Many companies are racing to
+deploy LLMs in online services, such as search, chatbots,
+and virtual assistants. Since most of these services demand
+low latency, optimizing LLM serving latency directly translates into better quality of service and cost reduction.
+
+To address this challenge, we introduce a novel method,
+online speculative decoding (OSD), to periodically finetune
+the draft model based on the corrections of the target model.
+OSD aims to reduce query latency while preserving the
+compact size of the draft model.
+First, OSD employs knowledge distillation within speculative decoding to enhance the alignment between the draft
+and target models. Speculative decoding involves the draft
+model proposing potential tokens with their respective probability distributions. The target model then assesses these
+suggestions, correcting discrepancies to ensure that the outputs remain consistent with those produced without the draft
+model. This correction mechanism serves as an effective
+way for the draft model to assimilate and learn from this
+enriched information. Compared to conventional label finetuning, knowledge distillation offers a significant advantage
+
+The latency of today’s LLM service is unfortunately very
+high, primarily because serving a user query requires multiple serial evaluations of the LLM, each generating only one
+1
+
+UC Berkeley 2 UCSD 3 Google Inc. 4 SJTU. Correspondence
+to: Hao, Zhang <haozhang@ucsd.edu>, Zhijie, Deng <zhijied@sjtu.edu.cn>.
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

@@ -1,0 +1,93 @@
+Fast Inference with Kronecker-Sparse Matrices
+
+Antoine Gonon * 1 2 Léon Zheng * 1 3 4 Pascal Carrivain * 1 Quoc-Tung Le 1 5
+
+Abstract
+
+2022a;b). Among the many structures explored, the Butterfly/Monarch family has gained traction in both vision and
+language models (Dao et al., 2019; 2022b; Fu et al., 2023).
+Its building blocks are matrices whose support is a Kronecker product of identities and all-ones blocks. We call
+them Kronecker-sparse (KS) matrices (Definition 2.1),
+and denote by (a, b, c, d) the pattern of a KS matrix K with
+support Ia ⊗1b×c ⊗Id , where ⊗ is the Kronecker product,
+In is the n×n identity matrix, and 1b×c is matrix of size
+b × c full of ones. Factorizing a dense matrix W into KS
+matrices K1 · · · KL can reduce inference cost, as the sequential matrix-vector multiplications x 7→ K1 · · · KL x
+can be more efficient than computing the dense multiplication x 7→ Wx. The canonical example is the fast Fourier
+transform (FFT): the N × N discrete Fourier transform
+(DFT) matrix can be factored into L = log2 (N ) KS factors
+of size N ×N , with at most O(N ) nonzero entries per factor
+(Dao et al., 2019). This reduces the overall cost of computing the DFT from O(N 2 ) (via naive multiplication with
+the original matrix W) to O(N log2 N ) (through sequential
+multiplication with the KS factors Kℓ ); see Figure 1.
+
+Kronecker-sparse (KS) matrices—whose supports
+are Kronecker products of identity and all-ones
+blocks—underpin the structure of Butterfly and
+Monarch matrices and offer the promise of more
+efficient models. However, existing GPU kernels for KS matrix multiplication suffer from
+high data movement costs, with up to 50 % of
+time spent on memory-bound tensor permutations. We propose a fused, output-stationary
+GPU kernel that eliminates these overheads, reducing global memory traffic threefold. Across
+600 KS patterns, our kernel achieves in FP32 a
+median speedup of ×1.4 and lowers energy consumption by 15 %. A simple heuristic based
+on KS pattern parameters predicts when our
+method outperforms existing ones. We release
+all code1 at github.com/PascalCarrivain/ksmm, including a PyTorch-compatible KSLinear layer,
+and demonstrate in FP32 end-to-end latency reductions of up to 22 % in ViT-S/16 and 16 % in
+GPT-2 medium.
+
+×
+
+W=
+
+1. Introduction
+Matrix multiplications dominate the time and energy budgets of modern-day networks involving large linear layers.
+For instance, a single forward of a Vision Transformer (ViTH/14) spends ∼60 % of its runtime in linear layers (Appendix E.7). Using structured sparse factors in place of
+dense weights—either learned from scratch or introduced
+after training—offers a compelling way to reduce memory usage and inference FLOPs (Dao et al., 2019; 2020;
+
+K1
+
+×
+K2
+
+×
+K3
+
+K4
+
+Figure 1. FFT as a fast Kronecker-sparse transform. The
+dense DFT matrix W can be factored as W = K1 · · · KL (up
+to a column permutation), where each KS factor Kℓ has support I2ℓ−1 ⊗ 12×2 ⊗ I2L−ℓ . This factorization underlies the
+O(N log N ) efficiency of the FFT algorithm.
+
+*
+
+Equal contribution 1 ENS de Lyon, CNRS, Inria, Université
+Claude Bernard Lyon 1, LIP, UMR 5668, 69342, Lyon cedex
+07, France 2 Institute of Mathematics, EPFL, Lausanne, Switzerland 3 valeo.ai, Paris, France 4 Huawei Lagrange Mathematics and
+Computing Research Center, Paris, France 5 Toulouse School of
+Economics, Toulouse, France. Correspondence to: Antoine Gonon
+<antoine.gonon@epfl.ch>.
+
+Scope of This Work: Focus on Inference. This work focuses on efficiently computing Y = XK⊤ , where K ∈
+RM ×N is a fixed Kronecker-sparse matrix and X ∈ RB×N
+is a dense matrix representing a batch of inputs. We assume
+K can be fully preprocessed offline, but inputs and outputs
+must follow a fixed, dense layout—PyTorch’s default in
+our case—which cannot be altered. This reflects standard
+inference scenarios, where models are already trained and
+deployed, and data arrives in a prescribed format. Optimizing this phase is essential, as inference accounts for over
+90 % of large-scale ML costs (HPCwire, 2019; Barr, 2019).
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+1
+Also integrated into the signal-processing oriented package
+lazylinop (Appendix D.1).
+
+1
+
+

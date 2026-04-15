@@ -1,0 +1,97 @@
+FormulaZero: Distributionally Robust Online Adaptation via
+Offline Population Synthesis
+Aman Sinha * 1 Matthew O’Kelly * 2 Hongrui Zheng * 2 Rahul Mangharam 2 John Duchi 1 Russ Tedrake 3
+
+Abstract
+Balancing performance and safety is crucial to
+deploying autonomous vehicles in multi-agent environments. In particular, autonomous racing is a
+domain that penalizes safe but conservative policies, highlighting the need for robust, adaptive
+strategies. Current approaches either make simplifying assumptions about other agents or lack
+robust mechanisms for online adaptation. This
+work makes algorithmic contributions to both
+challenges. First, to generate a realistic, diverse
+set of opponents, we develop a novel method
+for self-play based on replica-exchange Markov
+chain Monte Carlo. Second, we propose a distributionally robust bandit optimization procedure
+that adaptively adjusts risk aversion relative to
+uncertainty in beliefs about opponents’ behaviors.
+We rigorously quantify the tradeoffs in performance and robustness when approximating these
+computations in real-time motion-planning, and
+we demonstrate our methods experimentally on
+autonomous vehicles that achieve scaled speeds
+comparable to Formula One racecars.
+
+1. Introduction
+Current autonomous vehicle (AV) technology still struggles
+in competitive multi-agent scenarios, such as merging onto
+a highway, where both maximizing performance (negotiating the merge without delay or hesitation) and maintaining
+safety (avoiding a crash) are important. The strategic implications of this tradeoff are magnified in racing. During
+the 2019 Formula One season, the race-winner achieved the
+fastest lap in only 33% of events (Federation Internationale
+*
+
+1
+Equal contribution
+Stanford University,
+Stan2
+ford, CA, USA University of Pennsylvania, Philadelphia, PA, USA 3 Massachusetts Institute of Technology,
+Cambridge, Massachusetts, USA. Correspondence to:
+Aman Sinha <amans@stanford.edu>, Matthew O’Kelly
+<mokelly@seas.upenn.edu>,
+Hongrui
+Zheng
+<hongruiz@seas.upenn.edu>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+de l’Automobile, 2019). Empirically, the weak correlation
+between achieving the fastest lap-time and winning suggests
+that consistent and robust performance is critical to success.
+In this paper, we investigate this intuition in the setting of
+autonomous racing (AR). In AR, an AV must lap a racetrack in the presence of other agents deploying unknown
+policies. The agent wins if it completes the race faster than
+its opponents; a crash automatically results in a loss.
+AR is a competitive multi-agent game, a general setting
+challenging for a number of reasons, especially in robotics
+applications. First, failures are expensive and dangerous,
+so learning-based approaches must avoid such behavior or
+rely on simulation while training. Second, the agents only
+partially observe their opponent’s state, and these observations do not uniquely determine the opponent’s behavior.
+Finally, the agents must make decisions online; the opponent’s strategy is a tightly-held secret and cannot be obtained
+by collecting data before the competition.
+Problem: We frame the AR challenge in the context of
+robust reinforcement learning. We analyze the system as
+a partially-observed Markov decision process (POMDP)
+(S, A, Psa , O, r, ), with state space S, action space A,
+state-action transition probabilities Psa , observation space
+O, rewards r : O ! R, and discount factor . Furthermore,
+we capture uncertainty in behaviors of other agents through
+an ambiguity1 set P for the state-action transitions. Then
+the AV’s objective is
+X
+t
+maximize inf
+E[r(o(t))].
+(1)
+Psa 2P
+
+t
+
+The obvious price of robustness (Bertsimas & Sim, 2004)
+is that a larger ambiguity set ensures a greater degree of
+safety while sacrificing performance against a particular
+opponent. If we knew the opponent’s behavior, we would
+need no ambiguity set; equivalently, the ambiguity set would
+shrink to the nominal state-action transition distribution.
+Our goal is to automatically trade between performance
+and robustness as we play against opponents, which breaks
+down into two challenges: parametrizing the ambiguity set
+to allow tractable inference and computing the robust cost
+efficiently online.
+1
+
+Ambiguity is a synonym for uncertainty (Gilboa & Marinacci,
+2016). Formal descriptions in this paper use the term ambiguity.
+
+

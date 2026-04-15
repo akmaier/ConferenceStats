@@ -1,0 +1,57 @@
+SpecExec: Massively Parallel Speculative Decoding
+for Interactive LLM Inference on Consumer Devices
+Ruslan Svirschevski∗†♡ Avner May∗♣ Zhuoming Chen∗‡
+Beidi Chen‡♢ Zhihao Jia‡ Max Ryabinin♣
+† Yandex ♡ HSE University ♣ Together AI ‡ Carnegie Mellon University ♢ Meta AI
+ruslansv@gmail.com, avner@together.ai, zhuominc@andrew.cmu.edu,
+{zhihaoj2,beidic}@andrew.cmu.edu, mryab@together.ai
+
+Abstract
+As large language models gain widespread adoption, running them efficiently
+becomes a crucial task. Recent works on LLM inference use speculative decoding
+to achieve extreme speedups. However, most of these works implicitly design their
+algorithms for high-end datacenter hardware. In this work, we ask the opposite
+question: how fast can we run LLMs on consumer machines? Consumer GPUs can
+no longer fit the largest available models and must offload them to RAM or SSD.
+With parameter offloading, hundreds or thousands of tokens can be processed in
+batches within the same time as just one token, making it a natural fit for speculative
+decoding. We propose S PEC E XEC (Speculative Execution), a simple parallel
+decoding method that can generate up to 20 tokens per target model iteration for
+popular LLM families. SpecExec takes the most probable continuations from the
+draft model to build a “cache” tree for the target model, which then gets validated
+in a single pass. Using SpecExec, we demonstrate inference of 50B+ parameter
+LLMs on consumer GPUs with RAM offloading at 4–6 tokens per second with
+4-bit quantization or 2–3 tokens per second with 16-bit weights. 1
+
+1
+
+Introduction
+
+Open-access large language models (LLMs), such as Llama [Touvron et al., 2023] and Mistral [Jiang
+et al., 2023], have become increasingly capable in the past years, and their adoption has grown
+dramatically. Although these models are openly available, users who are interested in running these
+models on consumer-grade GPUs (for example, due to privacy or cost reasons) face significant
+challenges. Many open-access LLMs are too large to fit on consumer GPUs, which necessitates
+offloading them onto CPU RAM to perform inference. Given the limited memory bandwidth between
+the CPU and the GPU, as well as the fact that all model parameters must be transferred to the GPU
+for the LLM to generate each new token, offloading is extremely slow and bandwidth-bound. For
+example, generating a single token using Llama 2-70B in 16 bit with offloading on an RTX 3090
+GPU takes at least 4.5 seconds2 .
+A recent line of work that aims to speed up LLM inference is speculative decoding [Leviathan et al.,
+2023, Chen et al., 2023a], which uses a small draft model to predict the next tokens and a larger
+target model to verify which of those tokens to accept in parallel. Although speculative decoding
+is a promising direction, the speedups that existing methods can attain in the offloading setting are
+relatively modest. While studying existing approaches [Leviathan et al., 2023, Miao et al., 2023,
+Sun et al., 2023], we discovered that these methods do not scale well with the draft model token
+budget. In particular, as shown in Figure 1 (left), the number of tokens accepted by the target model is
+∗
+
+Equal contribution.
+The code is available at github.com/yandex-research/specexec.
+2
+Assuming PCIe-4.0 and at least 140GB of DDR5 RAM with an efficient offloading implementation.
+1
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

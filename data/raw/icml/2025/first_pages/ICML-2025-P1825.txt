@@ -1,0 +1,84 @@
+Matryoshka Quantization
+
+Pranav Nair * 1 Puranjay Datta * 1 Jeff Dean 1 2 Prateek Jain 1 Aditya Kusupati 1
+
+Abstract
+
+Achiam et al., 2023) in a large number of scenarios. Due
+to auto-regressive nature of LLMs, decode latency tends to
+dominate inference cost. Decode latency itself is dominated
+by communication cost of transferring model weights from
+high-bandwidth memory (HBM) to the SRAM or due to
+transferring weights/activations in a distributed cluster.
+
+Quantizing model weights is critical for reducing
+the communication and inference costs of large
+models. However, quantizing models – especially
+to low precisions like int4 or int2 – requires a
+trade-off in model quality; int2, in particular, is
+known to severely degrade model quality. Consequently, practitioners are often forced to maintain
+multiple models with different quantization levels or serve a single model that best satisfies the
+quality-latency trade-off. On the other hand, integer data types, such as int8, inherently possess
+a nested (Matryoshka) structure where smaller
+bit-width integers, like int4 or int2, are nested
+within the most significant bits. Leveraging this
+insight, in this paper, we propose Matryoshka
+Quantization (MatQuant), a novel multi-scale
+quantization technique that alleviates the aforementioned challenge. This technique allows us to
+train and maintain a single quantized model but
+serve it with the precision demanded by the deployment. Furthermore, leveraging MatQuant’s
+co-training and co-distillation, int2 precision models extracted by MatQuant outperform standard
+int2 quantization by up to 4% and 7% with OmniQuant and QAT as base algorithms respectively.
+Finally, we demonstrate that by using an extra bit
+to represent outliers, a model with an effective
+precision of 2.05-bit improves further by 6% with
+OmniQuant as the base algorithm.
+
+Quantizing weights and/or activations can significantly reduce the overall communication load and is, therefore,
+one of the most popular techniques for reducing inference
+costs (Dettmers et al., 2022). While floating-point representations are standard for training, integer data types such as
+int8, int4, and int2 are appealing alternatives for inference.
+However, current methods for quantizing to these varying
+integer precisions typically treat each target precision as an
+independent optimization problem, leading to a collection
+of distinct models rather than a single, versatile one. Furthermore, quantizing to extremely low precisions like int2
+is known to be highly inaccurate. In this work, we pose the
+question of whether both of the above challenges can be
+addressed; that is, can we train a single model from which
+we can extract multiple accurate lower-precision models?
+We answer this question in the affirmative by introducing
+Matryoshka Quantization (MatQuant), a novel multi-scale
+training method that leverages the inherent nested (Matryoshka) structure (Kusupati et al., 2022) within integer
+data types (Figure 1a). Specifically, slicing the most significant bits (MSBs) of an int8-quantized weight can directly
+yield an int4 or int2 model. Existing quantization techniques
+often neglect this structure, which limits the potential for
+multi-scale adaptable models operating at various bit-widths
+with optimal performance.
+Instead, MatQuant simultaneously optimizes model
+weights across multiple precision levels (e.g., int8, int4,
+int2). At a high level, we represent each model parameter at different precision levels using shared MSBs, and
+then jointly optimize the loss for each precision level. This
+allows us to develop a single quantized model that can
+effectively operate at any of the chosen bit-widths, offering a spectrum of accuracy-vs-cost options. MatQuant is
+a general-purpose technique, applicable to most learningbased quantization methods, such as Quantization Aware
+Training (QAT) (Jacob et al., 2018) and OmniQuant (Shao
+et al., 2023).
+
+1. Introduction
+Due to their impressive performance, there is a strong push
+to deploy deep learning models, particularly large language
+models (LLMs) (G Team et al., 2024; Dubey et al., 2024;
+*
+
+Equal contribution 1 Google DeepMind 2 Google Research.
+Correspondence to: Pranav Nair <pranavajitnair@google.com>,
+Puranjay Datta <puranjaydatta@google.com>, Jeff Dean
+<jeff@google.com>, Prateek Jain <prajain@google.com>,
+Aditya Kusupati <kusupati@google.com>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

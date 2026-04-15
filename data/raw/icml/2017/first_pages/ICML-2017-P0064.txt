@@ -1,0 +1,66 @@
+Deep Tensor Convolution on Multicores
+
+David Budden 1 Alexander Matveev 1 Shibani Santurkar 1 Shraman Ray Chaudhuri 1 Nir Shavit 1
+
+Abstract
+Deep convolutional neural networks (ConvNets)
+of 3-dimensional kernels allow joint modeling of
+spatiotemporal features. These networks have
+improved performance of video and volumetric
+image analysis, but have been limited in size due
+to the low memory ceiling of GPU hardware. Existing CPU implementations overcome this constraint but are impractically slow. Here we extend and optimize the faster Winograd-class of
+convolutional algorithms to the N -dimensional
+case and specifically for CPU hardware. First,
+we remove the need to manually hand-craft algorithms by exploiting the relaxed constraints
+and cheap sparse access of CPU memory. Second, we maximize CPU utilization and multicore scalability by transforming data matrices to
+be cache-aware, integer multiples of AVX vector
+widths. Treating 2D ConvNets as a special case,
+we demonstrate a 5 to 25-fold improvement in
+throughput compared to previous state-of-the-art.
+
+1. Introduction
+Although convolutional neural networks (ConvNets) have
+been successfully applied to solve non-trivial image processing problems since the 1990s (LeCun et al., 1989;
+2012), their adoption as a de facto standard for image classification (Russakovsky et al., 2015) and segmentation (Long et al., 2015) is due largely to recent
+breakthroughs in network architecture. Beginning with
+AlexNet in 2012 (Krizhevsky et al., 2012), the annual ImageNet classification challenge (ILSVRC) has been dominated by progressively deeper networks with smaller kernels (Szegedy et al., 2015; Simonyan & Zisserman, 2014b).
+Recent solutions to the issues of vanishing and exploding
+gradients (Glorot & Bengio, 2010) have allowed these networks to extend even deeper, with the ILSVRC15 winner
+(ResNet (He et al., 2016)) being 8-fold deeper than VGG.
+1
+Massachusetts Institute of Technology. Correspondence to:
+David Budden <budden@csail.mit.edu>.
+
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+It is easy to see why the “deeper is better” trend has led to
+better performing ConvNets. Constructing even a modest
+7 x 7 receptive field with stacked k = 3 kernels requires
+45% fewer parameters than a single kernel of size k = 7.
+Intuitively it also captures a richer set of features due to additional non-linearity. Recent studies have begun to formalize the expressive power of deep versus shallow networks,
+finding that classification boundaries acquire local curvature and expressivity as an exponential function of network
+depth but not breadth (Poole et al., 2016). The only obvious
+trade-off to this performance is the extra memory necessary
+to store the intermediate activations in deeper networks.
+Motivated by the success of these models in image processing tasks, researchers have begun to investigate ConvNet applications in the video processing domain. Example applications include video classification (Karpathy
+et al., 2014), segmentation (Couprie et al., 2013) and denoising (Shi et al., 2016b). An important observation
+that has emerged from these studies is the importance of
+3D convolutional primitives for modelling joint spatiotemporal features; the naı̈ve application of traditional 2D
+ConvNets frame-by-frame does not capture motion continuity or other rich temporal correlations (Ledig et al.,
+2016; Tran et al., 2015). It is thus unsurprising that simple
+3D ConvNets have yielded state-of-the-art performance on
+video classification benchmarks (Tran et al., 2015) and volumetric image segmentation, e.g. tracing neurons between
+electron microscopy samples (Lee et al., 2015).
+Given the early success and conceptual simplicity of 3D
+ConvNets, it is interesting to note that many popular deep
+learning libraries (e.g. Caffe (Jia et al., 2014)) do not provide native support. One simple explanation is that these
+libraries are optimized for execution on GPUs, and higherorder convolutions require prohibitively large volumes of
+data with respect to the 16 GB ceiling of today’s most advanced GPU hardware. These limitations are clear in previous studies, which either (a) limit the network size (Tran
+et al., 2015), (b) down-sample images to lower resolution (Ji et al., 2013), or (c) include 3D primitives for only a
+subset of network layers (Lee et al., 2015).
+There are many potential options for circumventing the issue of ConvNet memory usage. The first is to split the
+network across multiple GPUs, which requires the careful
+
+

@@ -1,0 +1,74 @@
+End-to-End Learning for Structured Prediction Energy Networks
+David Belanger 1 Bishan Yang 2 Andrew McCallum 1
+
+Abstract
+Structured Prediction Energy Networks (SPENs)
+are a simple, yet expressive family of structured prediction models (Belanger & McCallum, 2016). An energy function over candidate
+structured outputs is given by a deep network,
+and predictions are formed by gradient-based
+optimization. This paper presents end-to-end
+learning for SPENs, where the energy function
+is discriminatively trained by back-propagating
+through gradient-based prediction. In our experience, the approach is substantially more accurate than the structured SVM method of Belanger & McCallum (2016), as it allows us to
+use more sophisticated non-convex energies. We
+provide a collection of techniques for improving
+the speed, accuracy, and memory requirements
+of end-to-end SPENs, and demonstrate the power
+of our method on 7-Scenes image denoising and
+CoNLL-2005 semantic role labeling tasks. In
+both, inexact minimization of non-convex SPEN
+energies is superior to baseline methods that use
+simplistic energy functions that can be minimized exactly.
+
+1. Introduction
+In a variety of application domains, given an input x we
+seek to predict a structured output y. For example, given
+a noisy image, we predict a clean version of it, or given
+a sentence we predict its semantic structure. Often, it is
+insufficient to employ a feed-forward predictor y = F (x),
+since this may have prohibitive sample complexity, fail to
+model global interactions among outputs, or fail to enforce
+hard output constraints. Instead, it can be advantageous to
+define the prediction function implicitly in terms of energy
+1
+
+University of Massachusetts, Amherst 2 Carnegie Mellon University. Correspondence to: David Belanger <belanger@cs.umass.edu>.
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+minimization (LeCun et al., 2006):
+ŷ = arg miny Ex (y),
+
+(1)
+
+where Ex (·) depends on x and learned parameters.
+This approach includes factor graphs (Kschischang et al.,
+2001), e.g., conditional random fields (CRFs) (Lafferty et al., 2001), and many recurrent neural networks
+(Sec. 2.1). Output constraints can be enforced using
+constrained optimization. Compared to feed-forward approaches, energy-based approaches often provide better opportunities to inject prior knowledge about likely outputs
+and often have more parsimonious models. On the other
+hand, energy-based prediction requires non-trivial search in
+the exponentially-large space of outputs, and search techniques often need to be designed on a case-by-case basis.
+Structured prediction energy networks (SPENs) (Belanger
+& McCallum, 2016) help reduce these concerns. They
+can capture high-arity interactions among components of
+y that would lead to intractable factor graphs and provide
+a mechanism for automatic structure learning. This is accomplished by expressing the energy function in Eq. (1)
+as a deep architecture and forming predictions by approximately optimizing y using gradient descent.
+While providing the expressivity and generality of deep
+networks, SPENs also maintain the useful semantics of energy functions: domain experts can design architectures to
+capture known properties of the data, energy functions can
+be combined additively, and we can perform constrained
+optimization over y. Most importantly, SPENs provide
+for black-box interaction with the energy, via forward and
+back-propagation. This allows practitioners to explore a
+wide variety of models without the need to hand-design
+corresponding prediction methods.
+Belanger & McCallum (2016) train SPENs using a structured SVM (SSVM) loss (Taskar et al., 2004; Tsochantaridis et al., 2004) and achieve competitive performance
+on simple multi-label classification tasks. Unfortunately,
+we have found it difficult to extend their method to more
+complex domains. SSVMs are unreliable when exact energy minimization is intractable, as loss-augmented inference may fail to discover margin violations (Sec. 2.3).
+In response, we present end-to-end training of SPENs,
+
+

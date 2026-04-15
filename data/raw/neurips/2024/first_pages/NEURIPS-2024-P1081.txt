@@ -1,0 +1,59 @@
+Accelerating Blockwise Parallel Language Models
+with Draft Refinement
+Taehyeon Kim1∗ Ananda Theertha Suresh2 Kishore Papineni2
+Sanjiv Kumar2 Adrian Benton2
+1
+KAIST AI 2 Google Research
+
+Michael Riley2
+
+Abstract
+Autoregressive language models have achieved remarkable advancements, yet their
+potential is often limited by the slow inference speeds associated with sequential
+token generation. Blockwise parallel decoding (BPD) was proposed by Stern et
+al. [42] as a method to improve inference speed of language models by simultaneously predicting multiple future tokens, termed block drafts, which are subsequently
+verified by the autoregressive model. This paper advances the understanding and
+improvement of block drafts in two ways. First, we analyze token distributions
+generated across multiple prediction heads. Second, leveraging these insights,
+we propose algorithms to improve BPD inference speed by refining the block
+drafts using task-independent n-gram and neural language models as lightweight
+rescorers. Experiments demonstrate that by refining block drafts of open-sourced
+Vicuna and Medusa LLMs, the mean accepted token length are increased by 5-25%
+relative. This results in over a 3x speedup in wall clock time compared to standard
+autoregressive decoding in open-source 7B and 13B LLMs.
+
+1
+
+Introduction
+
+The landscape of natural language processing has been profoundly reshaped by recent advances in
+autoregressive language models [3, 48, 34, 37, 47]. These models have shown remarkable proficiency
+across a range of text generation tasks, including applications like question answering [38] and
+summarization [17]. However, a significant obstacle to their wider application is high inference
+latency, particularly for extremely deep models with hundreds of billions of parameters [18, 35, 7].
+This latency, intrinsic to decoding with autoregressive language models (LMs), imposes considerable
+computational burdens and limits real-time deployment.
+In response to these challenges, the field has seen a shift towards decoding methods aimed at reducing
+the inference latency in large language models (LLMs). One promising development is the concept of
+blockwise parallel decoding (BPD) [42, 31, 4]. Unlike autoregressive decoding, which generates one
+token at a time, blockwise parallel LMs are outfitted with a set of prediction heads that propose and
+verify a draft, a block of subsequent tokens, in parallel. While BPD offers one solution to accelerated
+text generation, it also poses a challenge in ensuring that the proposed drafts are fluent and natural.
+BPD inference speed depends both on the time it takes to generate a block draft and verification of
+the draft’s agreement with the original LM’s output (referred to as base LM from here on) (Figure 1a).
+Unlike standard autoregressive LMs that generate tokens sequentially — ensuring consistency with
+all preceding tokens (e.g., ‘Messi’ following ‘Lionel’) — BPD employs a non-autoregressive drafting
+strategy. Here, blockwise parallel LMs simultaneously predict multiple token drafts (e.g., ‘Lionel’
+and ‘Ronaldo’), each position produced independently. The primary challenge in BPD drafting is
+ensuring that these concurrently-generated tokens are consistent with each other. An effective block
+drafter should prefer coherent sequences, such as ‘Lionel Messi’ over less coherent combinations like
+∗
+
+Work done while at Google Research as a student researcher.
+hyeon610@gmail.com> and <adbenton@google.com>.
+
+Corresponding authors: <kimtae-
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

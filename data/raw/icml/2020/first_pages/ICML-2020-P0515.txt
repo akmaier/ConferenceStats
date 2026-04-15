@@ -1,0 +1,76 @@
+Controlling Overestimation Bias with Truncated Mixture of Continuous
+Distributional Quantile Critics
+
+Arsenii Kuznetsov 1 Pavel Shvechikov 1 2 Alexander Grishin 1 3 Dmitry Vetrov 1 3
+
+Abstract
+The overestimation bias is one of the major impediments to accurate off-policy learning. This
+paper investigates a novel way to alleviate the
+overestimation bias in a continuous control setting. Our method—Truncated Quantile Critics,
+TQC,—blends three ideas: distributional representation of a critic, truncation of critics prediction, and ensembling of multiple critics. Distributional representation and truncation allow for arbitrary granular overestimation control, while ensembling provides additional score improvements.
+TQC outperforms the current state of the art on all
+environments from the continuous control benchmark suite, demonstrating 25% improvement on
+the most challenging Humanoid environment.
+
+1. Introduction
+Sample efficient off-policy reinforcement learning demands
+accurate approximation of the Q-function. Quality of approximation is key for stability and performance, since it is
+the cornerstone for temporal difference target computation,
+and action selection in value-based methods (Mnih et al.,
+2013), or policy optimization in continuous actor-critic settings (Haarnoja et al., 2018a; Fujimoto et al., 2018b).
+In continuous domains, policy optimization relies on gradients of the Q-function approximation, sensing and exploiting erroneous positive biases. Recently, Fujimoto et al.
+(2018b) significantly improved the performance of a continuous policy by introducing a novel way to alleviate the
+overestimation bias (Thrun & Schwartz, 1993). We continue this line of research and propose an alternative highly
+competitive method for controlling overestimation bias.
+1
+
+Samsung AI center, Moscow, Russia 2 National Research University Higher School of Economics, Moscow, Russia 3 SamsungHSE Laboratory, National Research University Higher School
+of Economics, Moscow, Russia. Correspondence to: Arsenii
+Kuznetsov <brickerino@gmail.com>.
+th
+
+Proceedings of the 37 International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Thrun & Schwartz (1993) elucidate the overestimation as
+a consequence of Jensen’s inequality: the maximum of the
+Q-function over actions is not greater than the expected
+maximum of noisy (approximate) Q-function. Specifically,
+for any action-dependent random noise U (a) such that
+∀a EU [ U (a) ] = 0,
+max Q(s, a) = max EU [ Q(s, a) + U (a) ]
+a
+a
+h
+i
+≤ EU max{Q(s, a) + U (a)} .
+
+(1)
+
+a
+
+In practice, the noise U (a) may arise for various reasons and
+from various sources, such as spontaneous errors in function approximation, Q-function invalidation due to ongoing
+policy optimization, stochasticity of environment, etc. Offpolicy algorithms grounded in temporal difference learning
+are especially sensitive to approximation errors since errors are propagated backward through episodic time and
+accumulate over the learning process.
+The de facto standard for alleviating overestimations in discrete control is the double estimator (Van Hasselt, 2010;
+2013). However, Fujimoto et al. (2018b) argue that for
+continuous control this estimator may still overestimate in
+highly variable state-action space regions, and propose to
+promote underestimation by taking the minimum over two
+separate approximators. These approximators constitute
+naturally an ensemble, the size of which controls the intensity of underestimation: more approximators correspond to
+more severe underestimation (Lan et al., 2020). We argue,
+that this approach, while very successful in practice, has a
+few shortcomings:
+• The overestimation control is coarse: it is impossible to take the minimum over a fractional number of
+approximators (see Section 4.1).
+• The aggregation with min is wasteful: it ignores all estimates except the minimal one, diminishing the power
+of the ensemble of approximators.
+We address these shortcomings with a novel method called
+Truncated Quantile Critics (TQC). In the design of TQC, we
+draw on three ideas: distributional representation of a critic,
+truncation of approximated distribution, and ensembling.
+
+

@@ -1,0 +1,75 @@
+DAdaQuant: Doubly-adaptive quantization for communication-efficient
+Federated Learning
+
+Robert Hönig 1 Yiren Zhao 2 Robert Mullins 2
+
+Abstract
+Federated Learning (FL) is a powerful technique
+to train a model on a server with data from several clients in a privacy-preserving manner. FL
+incurs significant communication costs because
+it repeatedly transmits the model between the
+server and clients. Recently proposed algorithms
+quantize the model parameters to efficiently
+compress FL communication. We find that
+dynamic adaptations of the quantization level
+can boost compression without sacrificing model
+quality. We introduce DAdaQuant as a doublyadaptive quantization algorithm that dynamically
+changes the quantization level across time and
+different clients. Our experiments show that
+DAdaQuant consistently improves client→server
+compression, outperforming the strongest nonadaptive baselines by up to 2.8×.
+
+1. Introduction
+Edge devices such as smartphones, remote sensors and
+smart home appliances generate massive amounts of data
+(Wang et al., 2018b; Cao et al., 2017; Shi & Dustdar, 2016).
+In recent years, Federated Learning (FL) has emerged as a
+technique to train models on this data while preserving privacy (McMahan et al., 2017; Li et al., 2018).
+In FL, we have a single server that is connected to many
+clients. Each client stores a local dataset that it does not
+want to share with the server because of privacy concerns
+or law enforcement (Voigt & Von dem Bussche, 2017). The
+server wants to train a model on all local datasets. To this
+end, it initializes the model and sends it to a random subset
+of clients. Each client trains the model on its local dataset
+and sends the trained model back to the server. The server
+1
+Department of Computer Science, ETH Zurich, Zurich,
+Switzerland 2 Department of Computer Science and Technology,
+University of Cambridge, Cambridge, United Kingdom. Correspondence to: Robert Hönig <rhoenig@ethz.ch>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+accumulates all trained models into an updated model for
+the next iteration and repeats the process for several rounds
+until some termination criterion is met. This procedure enables the server to train a model without accessing any local
+datasets.
+Today’s neural network models often have millions or even
+billions (Brown et al., 2020) of parameters, which makes
+high communication costs a concern in FL. In fact, Qiu
+et al. (2020) suggest that communication between clients
+and server may account for over 70% of energy consumption in FL. Reducing communication in FL is an attractive
+area of research because it lowers bandwidth requirements,
+energy consumption and training time.
+Communication in FL occurs in two phases: Sending parameters from the server to clients (downlink) and sending
+updated parameters from clients to the server (uplink). Uplink bandwidth usually imposes a tighter bottleneck than
+downlink bandwidth. This has several reasons. For one, the
+average global mobile upload bandwidth is currently less
+than one fourth of the download bandwidth (Speedtest).
+For another, FL downlink communication sends the same
+parameters to each client. Broadcasting parameters is usually more efficient than the accumulation of parameters
+from different clients that is required for uplink communication (Amiri et al., 2020; Reisizadeh et al., 2019). For
+these reasons, we seek to compress uplink communication.
+A large class of compression algorithms for FL apply some
+lossy quantizer Q, optionally followed by a lossless compression stage. Q usually provides a “quantization level”
+hyperparameter q to control the coarseness of quantization (e.g. the number of bins for fixed-point quantization).
+When q is kept constant during training, we speak of static
+quantization. When q changes, we speak of adaptive quantization. Adaptive quantization can exploit asymmetries in
+the FL framework to minimize communication. One such
+asymmetry lies in FL’s training time, where Jhunjhunwala
+et al. (2021) observed that early training rounds can use
+a lower q without affecting convergence. Figure 2 illustrates how time-adaptive quantization leverages this phenomenon to minimize communication. Another asymmetry lies in FL’s client space, because most FL algorithms
+weight client contributions to the global model proportional
+
+

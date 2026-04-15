@@ -1,0 +1,94 @@
+Mutual Information Neural Estimation
+Mohamed Ishmael Belghazi 1 Aristide Baratin 1 2 Sai Rajeswar 1 Sherjil Ozair 1 Yoshua Bengio 1 3 4
+Aaron Courville 1 3 R Devon Hjelm 1 4
+
+Abstract
+We argue that the estimation of mutual information between high dimensional continuous random variables can be achieved by gradient descent
+over neural networks. We present a Mutual Information Neural Estimator (MINE) that is linearly
+scalable in dimensionality as well as in sample
+size, trainable through back-prop, and strongly
+consistent. We present a handful of applications
+on which MINE can be used to minimize or maximize mutual information. We apply MINE to improve adversarially trained generative models. We
+also use MINE to implement the Information Bottleneck, applying it to supervised classification;
+our results demonstrate substantial improvement
+in flexibility and performance in these settings.
+
+1. Introduction
+Mutual information is a fundamental quantity for measuring
+the relationship between random variables. In data science
+it has found applications in a wide range of domains and
+tasks, including biomedical sciences (Maes et al., 1997),
+blind source separation (BSS, e.g., independent component
+analysis, Hyvärinen et al., 2004), information bottleneck (IB,
+Tishby et al., 2000), feature selection (Kwak & Choi, 2002;
+Peng et al., 2005), and causality (Butte & Kohane, 2000).
+Put simply, mutual information quantifies the dependence
+of two random variables X and Z. It has the form,
+Z
+dPXZ
+dPXZ ,
+(1)
+I(X; Z) =
+log
+dP
+X ⊗ PZ
+X ×Z
+where
+PXZ is the joint
+R
+R probability distribution, and PX =
+dP
+and
+P
+=
+dPXZ are the marginals. In conXZ
+Z
+Z
+X
+1
+
+Montréal Institute for Learning Algorithms (MILA),
+University of Montréal 2 Department of Mathematics and
+Statistics, McGill University 3 Canadian Institute for Advanced Research (CIFAR) 4 The Institute for Data Valorization
+(IVADO). Correspondence to: Mohamed Ishmael Belghazi <ishmael.belghazi@gmail.com>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+trast to correlation, mutual information captures non-linear
+statistical dependencies between variables, and thus can act
+as a measure of true dependence (Kinney & Atwal, 2014).
+Despite being a pivotal quantity across data science, mutual
+information has historically been difficult to compute (Paninski, 2003). Exact computation is only tractable for discrete
+variables (as the sum can be computed exactly), or for a
+limited family of problems where the probability distributions are known. For more general problems, this is not
+possible. Common approaches are non-parametric (e.g.,
+binning, likelihood-ratio estimators based on support vector
+machines, non-parametric kernel-density estimators; see,
+Fraser & Swinney, 1986; Darbellay & Vajda, 1999; Suzuki
+et al., 2008; Kwak & Choi, 2002; Moon et al., 1995; Kraskov
+et al., 2004), or rely on approximate gaussianity of data
+distribution (e.g., Edgeworth expansion, Van Hulle, 2005).
+Unfortunately, these estimators typically do not scale well
+with sample size or dimension (Gao et al., 2014), and thus
+cannot be said to be general-purpose. Other recent works
+include Kandasamy et al. (2017); Singh & Pczos (2016);
+Moon et al. (2017).
+In order to achieve a general-purpose estimator, we rely
+on the well-known characterization of the mutual information as the Kullback-Leibler (KL-) divergence (Kullback,
+1997) between the joint distribution and the product of the
+marginals (i.e., I(X; Z) = DKL (PXZ || PX ⊗ PZ )). Recent work uses a dual formulation to cast the estimation of
+f -divergences (including the KL-divergence, see Nguyen
+et al., 2010) as part of an adversarial game between competing deep neural networks (Nowozin et al., 2016). This
+approach is at the cornerstone of generative adversarial networks (GANs, Goodfellow et al., 2014), which train a
+generative model without any explicit assumptions about
+the underlying distribution of the data.
+In this paper we demonstrate that exploiting dual optimization to estimate divergences goes beyond the minimax objective as formalized in GANs. We leverage this strategy
+to offer a general-purpose parametric neural estimator of
+mutual information based on dual representations of the
+KL-divergence (Ruderman et al., 2012), which we show
+is valuable in settings that do not necessarily involve an
+adversarial game. Our estimator is scalable, flexible, and
+completely trainable via back-propagation. The contribu-
+
+

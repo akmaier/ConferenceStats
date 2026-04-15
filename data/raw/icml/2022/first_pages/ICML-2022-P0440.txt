@@ -1,0 +1,75 @@
+MASER: Multi-Agent Reinforcement Learning with Subgoals Generated from
+Experience Replay Buffer
+
+Jeewon Jeon 1 Woojun Kim 1 Whiyoung Jung 1 Youngchul Sung 1
+
+Abstract
+In this paper, we consider cooperative multi-agent
+reinforcement learning (MARL) with sparse reward. To tackle this problem, we propose a novel
+method named MASER: MARL with subgoals
+generated from experience replay buffer. Under
+the widely-used assumption of centralized training with decentralized execution and consistent
+Q-value decomposition for MARL, MASER automatically generates proper subgoals for multiple agents from the experience replay buffer by
+considering both individual Q-value and total Qvalue. Then, MASER designs individual intrinsic reward for each agent based on actionable
+representation relevant to Q-learning so that the
+agents reach their subgoals while maximizing the
+joint action value. Numerical results show that
+MASER significantly outperforms StarCraft II
+micromanagement benchmark compared to other
+state-of-the-art MARL algorithms.
+
+1. Introduction
+Deep multi-agent reinforcement learning (MARL) is an
+active research field to handle many real-world problems
+such as games, traffic control, and connected self-driving
+cars, which can be modeled as multi-agent systems (Li
+et al., 2019; Andriotis & Papakonstantinou, 2019). Since
+the introduction of the simplest approach of independent
+Q-learning (IQL) (Tan, 1993), many advanced MARL algorithms have been developed recently, e.g., VDN (Sunehag
+et al., 2017), QMIX (Rashid et al., 2018b), QTRAN (Son
+et al., 2019), COMA (Foerster et al., 2018b), MADDPG
+(Lowe et al., 2017), Social Influence (Jaques et al., 2018),
+Intention Sharing (Kim et al., 2020b). Although these recent algorithms effectively handle the increased dimensions
+1
+
+School of Electrical Engineering, KAIST, Daejeon, South Korea. Correspondence to: Youngchul Sung <ycsung@kaist.ac.kr>,
+Woojun Kim <woojun.kim@kaist.ac.kr>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+of joint state and action spaces associated with multiple
+agents and alleviate the burden of inter-agent communication (OroojlooyJadid & Hajinezhad, 2019; Rashid et al.,
+2018a), they were primarily developed under the assumption of dense reward. However, many multi-agent problems
+are modeled as sparse-reward environments in which a nonzero reward is not given to agents’ actions in every time
+step but given only when certain conditions are met. For
+example, in multi-agent robot soccer an actual non-zero
+reward occurs only when scoring a goal, and individual
+actions such as passes, dribbles or tackles do not receive
+non-zero rewards. Thus, non-zero rewards come very seldom in such sparse-reward environments. Reinforcement
+learning in sparse-reward environments is difficult in general and is more challenging in multi-agent environments
+since a global reward is shared among multiple agents and
+the combination of multiple agents’ actions jointly affects
+the state evolution in multi-agent systems.
+A common approach to tackle sparse-reward MARL is learning with efficient exploration (Liu et al., 2021; Christianos
+et al., 2020; Ryu et al., 2020; Mahajan et al., 2019; Kim
+et al., 2020a), which has been shown effective in some tasks.
+However, with exploration only, it is difficult to learn which
+action induces rare non-zero rewards. As an alternative to
+direct learning of assigning credit to trajectory, which is an
+essential difficulty in sparse environments, subgoal-based
+methods are recently emerging as an effective approach
+to sparse-reward MARL (Tang et al., 2018; Wang et al.,
+2020a;b), inspired by the methods using subgoals in singleagent systems (Kulkarni et al., 2016; Andrychowicz et al.,
+2017; Zhang et al., 2020; Chane-Sane et al., 2021). In
+subgoal-based methods, typically subgoals for maximizing
+the total episodic reward are determined or designed and
+learning is performed to reach the subgoals to attain the final
+goal. The key elements here are how to determine or design
+subgoals and how to learn to reach the subgoals. One way to
+determine subgoals is to select from a set of pre-defined subgoals designed based on domain knowledge for a given task
+(Tang et al., 2018; Kulkarni et al., 2016). However, such an
+approach is task-specific and not general enough to be applicable to a variety of different tasks. Thus, automatic subgoal
+generation is desirable for subgoal-based approaches to be
+applicable to various tasks without being dependent on task-
+
+

@@ -1,0 +1,86 @@
+Latent Diffusion Energy-Based Model for Interpretable Text Modeling
+
+Peiyu Yu 1 2 Sirui Xie 1 Xiaojian Ma 1 2 Baoxiong Jia 1 2 Bo Pang 3
+Ruiqi Gao 4 Yixin Zhu 5 6 Song-Chun Zhu 1 2 5 6 7 8 Ying Nian Wu 7
+
+Abstract
+Latent space Energy-Based Models (EBMs), also
+known as energy-based priors, have drawn growing interests in generative modeling. Fueled by its
+flexibility in the formulation and strong modeling
+power of the latent space, recent works built upon
+it have made interesting attempts aiming at the
+interpretability of text modeling. However, latent
+space EBMs also inherit some flaws from EBMs
+in data space; the degenerate MCMC sampling
+quality in practice can lead to poor generation
+quality and instability in training, especially on
+data with complex latent structures. Inspired by
+the recent efforts that leverage diffusion recovery
+likelihood learning as a cure for the sampling issue, we introduce a novel symbiosis between the
+diffusion models and latent space EBMs in a variational learning framework, coined as the latent
+diffusion energy-based model. We develop a geometric clustering-based regularization jointly with
+the information bottleneck to further improve the
+quality of the learned latent space. Experiments
+on several challenging tasks demonstrate the superior performance of our model on interpretable
+text modeling over strong counterparts.
+
+1. Introduction
+Text modeling has achieved impressive progress with the
+fast development of neural generative models (Serban et al.,
+2016; Li et al., 2017a; Zhao et al., 2017; Gupta et al., 2018;
+Zhao et al., 2018a). It allows near human-level text generCode repo and data: https://github.com/yuPeiyu98/LDEBM.
+1
+Department of Computer Science, UCLA, USA 2 Beijing Institute for General Artificial Intelligence, China 3 Salesforce Research, USA 4 Google Brain, USA 5 Institute for Artificial Intelligence, Peking University, China 6 School of Artificial Intelligence,
+Peking University, China 7 Department of Statistics, UCLA, USA
+8
+Department of Automation, Tsinghua University, China.
+Correspondence to: Peiyu Yu <yupeiyu98@cs.ucla.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+y
+
+pα (y, z0 |z1 )
+
+z0
+
+zt
+
+qϕ (z0 |x)
+x
+pβ (x|z0 )
+
+q(zt+1 |zt )
+zt+1
+pα (zt |zt+1 )
+
+t = 1, ..., T − 1
+
+Figure 1. Graphical illustration of the latent diffusion process.
+We construct the forward and reverse diffusion processes in the latent space. The symbolic one-hot vector is coupled with the initial
+latent vector z0 . The latent and diffused latent variables are highlighted by the red and blue plates, respectively. The cyan arrows
+indicate that z0 is connected with only z1 . We learn a sequence of
+EBMs to model the reverse diffusion process pα (zt |zt+1 ).
+
+ation quality and also leads to a wide range of real-world
+applications such as dialog system (Young et al., 2013) and
+machine translation (Brown et al., 1993). Although the quality of generation (e.g., fluency and diversity) is the primary
+concern of most work, interpretability of the generation process has drawn much attention recently. Among the existing
+frameworks, the Deep Latent Variable Model (DLVM) is
+especially suitable for the task, as the learned latent space
+could capture high-level structures with semantic meanings
+like topics (Wang et al., 2019) and dialog actions (Zhao
+et al., 2018b); such latent space could further enable more
+interpretable text modeling, featuring unsupervised text attributes discovery (Wen et al., 2017), conditional and controllable text generation (Fang et al., 2019; Shi et al., 2020),
+and semi-supervised text classification (Pang & Wu, 2021).
+In essence, DLVM summarizes the observed sample (e.g.,
+a piece of text) into inferred latent variables. Earlier
+text-modeling methods with DLVM mostly follow the formulation of Variational Auto-Encoder (VAE) (Kingma &
+Welling, 2013; Rezende et al., 2014; Bowman et al., 2016),
+which assumes a continuous latent space. More recently,
+Zhao et al. (2018b) explore the possibility of using a discrete
+latent space to capture dialog actions; Shi et al. (2020) propose to use VAE with the mixture of Gaussians as the prior,
+demonstrating promising interpretability of dialog utterance
+generation. To further improve the expressivity of the latent
+
+

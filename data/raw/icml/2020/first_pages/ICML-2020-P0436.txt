@@ -1,0 +1,95 @@
+Debiased Sinkhorn barycenters
+Hicham Janati 1 2 Marco Cuturi 3 2 Alexandre Gramfort 2
+
+Abstract
+Entropy regularization in optimal transport (OT)
+has been the driver of many recent interests for
+Wasserstein metrics and barycenters in machine
+learning. It allows to keep the appealing geometrical properties of the unregularized Wasserstein
+distance while having a significantly lower complexity thanks to Sinkhorn’s algorithm. However,
+entropy brings some inherent smoothing bias, resulting for example in blurred barycenters. This
+side effect has prompted an increasing temptation in the community to settle for a slower algorithm such as log-domain stabilized Sinkhorn
+which breaks the parallel structure that can be
+leveraged on GPUs, or even go back to unregularized OT. Here we show how this bias is tightly
+linked to the reference measure that defines the
+entropy regularizer and propose debiased Wasserstein barycenters that preserve the best of both
+worlds: fast Sinkhorn-like iterations without entropy smoothing. Theoretically, we prove that the
+entropic OT barycenter of univariate Gaussians
+is a Gaussian and quantify its variance bias. This
+result is obtained by extending the differentiability and convexity of entropic OT to sub-Gaussian
+measures with unbounded supports. Empirically,
+we illustrate the reduced blurring and the computational advantage on various applications.
+
+1. Introduction
+Comparing, interpolating or averaging probability distributions is an ubiquitous problem in machine learning. Optimal
+transport (OT) offers an efficient way to do exactly that
+while taking into account the geometry of the space they
+live in (Peyré & Cuturi, 2018). Let P(Rd ) denote the set
+of probability measures on Rd . Given some divergence
+F : P(Rd ) ⇥ P(Rd ) ! R and weights (wk )k such that
+1
+
+Inria Saclay, France 2 CREST-ENSAE, France 3 Google Research, Brain team, France. Correspondence to: Hicham Janati
+<hicham.janati@inria.fr>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+PK
+
+k=1 wk = 1, the weighted barycenter of a set of probability measures (↵k )k can be defined as the Fréchet mean:
+K
+X
+def
+↵F = arg min↵2P(Rd )
+wk F (↵k , ↵) .
+(1)
+k=1
+
+Here ↵F can be thought as a weighted average of distributions. While the (↵k )k may have a fixed support or
+known finite supports when working in machine learning
+applications, the support of ↵F may or may not be known.
+When the latter is unknown a priori, free support methods
+are needed to jointly minimize the objective with respect
+to both the support and the mass of the distribution (Cuturi & Doucet, 2014). Otherwise, fixed support methods,
+which only optimize weights on known supports, are employed (Benamou et al., 2014). While free support methods
+are more general and memory efficient, fixed support ones
+are faster in practice. In this paper, we focus on fixed support
+methods.
+Using the Wasserstein distance as a divergence F , Li &
+Wang (2006) were the first to propose the Fréchet mean (1)
+for a clustering application in computer vision. This idea
+was later adopted by Agueh & Carlier (2011) to formally
+define Optimal Transport (OT) barycenters. However, the
+Wasserstein distance is defined through a linear programming problem which does not scale to large datasets. To
+address this computational issue, some form of regularization is mandatory: either regularize the measures themselves
+using sliced projections for instances or regularize the OT
+problem using `2 (Blondel et al., 2018) or entropy (Cuturi, 2013). While `2 preserves some of the sparsity of the
+non-regularized optimal transportation plan, entropy regularization leads to an approximation of the Wasserstein
+distance that can be solved using a fast and parallelizable
+GPU-friendly algorithm: the celebrated Sinkhorn’s algorithm (Cuturi, 2013). In the rest of this paper, we will focus
+on entropic OT. Let C be a non-negative cost function on
+Rd ⇥ Rd such that C(x, y) = 0 , x = y. For instance, a
+usual choice is C(x, y) = kx yk2 . Entropy regularized
+OT between ↵, 2 P(Rd ) with the reference measures
+m1 , m2 2 P(Rd ) is defined as:
+def
+
+1 ,m2
+OTm
+(↵, ) =
+"
+Z
+min
+C d⇡ + " KL(⇡|m1 ⌦ m2 ) ,
+d
+
+d
+
+⇡2P(R ⇥R )
+⇡#1 =↵,⇡#2 =
+
+Rd⇥d
+
+(2)
+
+

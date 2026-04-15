@@ -1,0 +1,94 @@
+Exploiting Code Symmetries for Learning Program Semantics
+
+Kexin Pei 1 2 Weichen Li 1 Qirui Jin 3 Shuyang Liu 4 Scott Geng 5
+Lorenzo Cavallaro 6 Junfeng Yang 1 Suman Jana 1
+
+Abstract
+
+a (sequential) code fragment x=2;y=4. Reordering the instructions to y=4;x=2 does not change the semantics of the
+code. Of course, any code analysis task that depends solely on
+the semantics of the code (e.g., bug detection) needs to preserve
+these symmetries by staying invariant to the transformations.
+Otherwise, if a bug detector flips its prediction from correct to
+buggy due to such simple semantics-preserving permutations,
+developers will lose confidence in the tool (Bessey et al., 2010).
+Formally, given a code block c and a set of symmetries G, an
+LLM m should ensure ∀g ∈G,m(g(c))=m(c). Incorporating
+such an invariant property in the model has proven an effective
+approach in many domains to enforce domain-specific rules
+and improve generalization (Cohen & Welling, 2016).
+
+This paper tackles the challenge of teaching code
+semantics to Large Language Models (LLMs) for
+program analysis by incorporating code symmetries
+into the model architecture. We introduce a grouptheoretic framework that defines code symmetries
+as semantics-preserving transformations, where
+forming a code symmetry group enables precise and
+efficient reasoning of code semantics. Our solution,
+SYMC, develops a novel variant of self-attention that
+is provably equivariant to code symmetries from the
+permutation group defined over the program dependence graph. SYMC obtains superior performance
+on five program analysis tasks, outperforming stateof-the-art code models, including GPT-4, without
+any pre-training. Our results suggest that code
+LLMs that encode the code structural prior via the
+code symmetry group generalize better and faster.
+
+Limitations of existing approaches. A popular way to train
+LLMs to be robust to code symmetries is via large-scale
+pre-training, where the pre-training dataset likely includes many
+semantically equivalent code samples (Roziere et al., 2023).
+While this approach improves the generalization, it is inherently
+a best-effort attempt and does not guarantee invariance for the
+pre-trained model. Without the guarantee, the trained model
+lacks assurance when deployed for program analysis (Ullah
+et al., 2023), e.g., the malware can be easily transformed to
+evade detection. In fact, we find that state-of-the-art LLMs
+break desired invariances at an alarmingly high rate, e.g., 18%
+in CodeLlama in predicting function names (Table 1) even for
+simple code symmetries like a two-statement permutation.
+
+1. Introduction
+Automated program analysis using Large Language Models
+(LLMs) has become widely popular for software engineering
+and security tasks (Liu et al., 2023; Maniatis & Tarlow, 2023),
+but it remains unclear whether code LLMs can stay robust
+and generalize to new code (Henke et al., 2022; Rabin et al.,
+2021; Gao et al., 2023b;a; Yefet et al., 2020; Bundt et al., 2022;
+Zhang et al., 2023). This paper aims to enhance LLMs by
+establishing and preserving fundamental code symmetries,
+drawing inspiration from translation and rotation symmetries
+that typically hold in vision.
+
+A more direct approach is to explicitly enumerate the code
+symmetries via data augmentation. However, it is prohibitively
+expensive due to the sheer number of possible symmetries and
+their compositions. Similar to pre-training, even exhausting
+the code symmetries in the augmented training set does not
+provide any guarantee that the trained model stays invariant to
+the observed code symmetries. An alternative strategy involves
+approximating code symmetry structures as priors within the
+model’s architecture, e.g., data and control flow graphs, using
+Graph Neural Nets (GNNs) (Allamanis et al., 2017). Such
+approaches are argued to offer a better generalization, e.g., as
+evidenced in Table 1 where GGNN has the lowest violation
+rate among the baselines. However, graph architectures often
+restrict a model’s expressiveness relative to LLM architectures (Ying et al., 2021). Moreover, the existing common
+practice of encoding code structures into GNNs does not
+explicitly preserve code symmetries and thus lacks guarantee
+
+Code symmetry. Intuitively, symmetry of code refers to any
+transformation applied to a code block that preserves the semantics (i.e., input-output behavior) of the original code. Consider
+1
+
+Columbia University 2 The University of Chicago 3 University
+of Michigan 4 Huazhong University of Science and Technology
+5
+University of Washington 6 University College London. Correspondence to: Kexin Pei<kpei@cs.uchicago.edu>, Suman Jana
+<suman@cs.columbia.edu>.
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by the
+author(s).
+
+1
+
+

@@ -1,0 +1,128 @@
+CLOVER: Cross-Layer Orthogonal Vectors Pruning
+
+Fanxu Meng 1 2 Pingzhi Tang 1 Fan Jiang 1 Muhan Zhang 1 2
+
+𝑦
+
+Abstract
+Decoder-only models generate tokens autoregressively by caching key/value vectors, but as
+the cache grows, inference becomes memorybounded. To address this challenge, we introduce CLOVER (Cross-Layer Orthogonal Vectors)
+pruning, a novel approach that treats pairs of components of the attention mechanism as low-rank
+decompositions. CLOVER applies Singular Value
+Decomposition (SVD) to the Q-K and V-O pairs
+within each attention head. The resulting singular
+values, in turn, guide pruning and further serve
+as trainable parameters for efficient fine-tuning,
+ultimately enabling the model to recover its performance to the level before pruning.After pruning and fine-tuning, these values are reintegrated
+into the model without increasing its parameter
+count. Visualizations across various models show
+that CLOVER effectively removes linear redundancies within attention heads, greatly improving
+pruning efficiency. For example, pruning 70% of
+the Q-K head dimension in GPT-2 XL results in
+a perplexity comparable to that of pruning just
+8% using vanilla pruning. The combination of
+CLOVER and TransMLA achieves a speedup of
+up to 11.1× over LLaMA-2-7B. Our code is available at: https://github.com/GraphPKU/CLOVER
+
+𝑦
+𝑊$
+
+𝑉#$
+𝑊#
+
+𝑊"
+
+𝑉!"
+
+𝑊!
+
+𝑆!"
+
+𝑈#$
+
+𝑈!"
+
+𝑥
+
+𝑥
+(a) One Attention Head
+
+(b) CLOVER
+
+Vanilla
+CLOVER
+
+7
+
+35
+
+Vanilla
+CLOVER
+
+30
+
+6
+Perplexity
+
+Log of Perplexity
+
+𝑆#$
+
+5
+4
+
+25
+20
+15
+
+3
+0.08
+
+0.7
+
+Pruning Ratio
+
+(c) Pruning without Training
+
+1
+
+10 0.125 0.25 0.375 0.5 0.625 0.75
+Pruning Ratio
+
+(d) Fine-Tuning Pruned Model
+
+Figure 1. (a) We treat the Query-Key and Value-Output layers
+within a single attention head as a unified structure. (b) Apply
+SVD to obtain two sets of singular vectors for initializing the Q-K
+and V-O layers, along with singular values that guide pruning or
+enable efficient full-rank fine-tuning. (c) This cross-layer orthogonalization strategy allows for higher pruning rates. (d) The pruned
+model maintains strong performance after fine-tuning.
+
+1. Introduction
+In recent years, Large Language Models (LLMs) have
+rapidly evolved into essential tools for productivity (OpenAI,
+2024; Anthropic, 2024; Team et al., 2024a). Open-source
+models (AI@Meta, 2024; Mistral, 2024; Qwen, 2024; Liu
+et al., 2024b; Team et al., 2024b; Abdin et al., 2024) have
+also narrowed the performance gap with closed-source models. The success of LLMs is largely attributed to Next Token
+
+Prediction (Radford et al., 2018; Brown et al., 2020), where
+tokens are predicted sequentially, with attention computed
+between each token and all preceding ones. To avoid redundant computations, key-value features are cached. However,
+as model size grows, the overhead of caching becomes substantial, leading to memory and communication bottlenecks.
+For instance, in the case of a 65B parameter model (Touvron et al., 2023) with 8-bit key-value quantization, storing
+512K tokens requires over 86GB of GPU memory, which
+surpasses the capacity of a single 80GB GPU (Sun et al.,
+2024).
+
+1
+
+Institute for Artificial Intelligence, Peking University 2 State
+Key Laboratory of General Artificial Intelligence, BIGAI. Correspondence to: Muhan Zhang <muhan@pku.edu.cn>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

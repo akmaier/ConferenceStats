@@ -1,0 +1,65 @@
+Delta Networks for Optimized Recurrent Network Computation
+
+Daniel Neil 1 Jun Haeng Lee 2 Tobi Delbruck 1 Shih-Chii Liu 1
+
+Abstract
+Many neural networks exhibit stability in their
+activation patterns over time in response to inputs from sensors operating under real-world
+conditions. By capitalizing on this property of
+natural signals, we propose a Recurrent Neural
+Network (RNN) architecture called a delta network in which each neuron transmits its value
+only when the change in its activation exceeds
+a threshold. The execution of RNNs as delta networks is attractive because their states must be
+stored and fetched at every timestep, unlike in
+convolutional neural networks (CNNs). We show
+that a naive run-time delta network implementation offers modest improvements on the number of memory accesses and computes, but optimized training techniques confer higher accuracy
+at higher speedup. With these optimizations, we
+demonstrate a 9X reduction in cost with negligible loss of accuracy for the TIDIGITS audio
+digit recognition benchmark. Similarly, on the
+large Wall Street Journal (WSJ) speech recognition benchmark, pretrained networks can also be
+greatly accelerated as delta networks and trained
+delta networks show a 5.7X improvement with
+negligible loss of accuracy. Finally, on an endto-end CNN-RNN network trained for steering
+angle prediction in a driving dataset, the RNN
+cost can be reduced by a substantial 100X.
+
+1. Introduction
+Recurrent Neural Networks (RNNs) have achieved tremendous progress in recent years, with the increased availability of large datasets, more powerful computer resources
+such as GPUs, and improvements in their training algorithms. These combined factors have enabled break1
+Institute of Neuroinformatics, UZH and ETH Zurich, Zurich,
+Switzerland 2 Samsung Advanced Institute of Technology, Samsung Electronics, Suwon-Si, Republic of Korea. Correspondence
+to: Daniel Neil, Shih-Chii Liu <dneil,shih@ini.ethz.ch>.
+
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+throughs in the use of RNNs for processing of temporal sequences. Applications such as natural language processing
+(Mikolov et al., 2010), speech recognition (Amodei et al.,
+2015; Graves et al., 2013), and attention-based models for
+structured prediction (Yao et al., 2015; Xu et al., 2015)
+have showcased the advantages of RNNs. The introduction
+of gating units such as long short-term memory (LSTM)
+units (Hochreiter & Schmidhuber, 1997) and gated recurrent units (GRU) (Cho et al., 2014) has greatly improved
+the training process with these networks. However, RNNs
+require many matrix-vector multiplications per layer to calculate the updates of neuron activations over time.
+RNNs also require a large weight memory storage that is
+expensive to allocate to on-chip static random access memory (SRAM). In a 45nm technology, the energy cost of an
+off-chip 32-bit dynamic DRAM access is about 2nJ and the
+energy for a 32-bit integer multiply is about 3pJ, so memory access is about 700 times more expensive than arithmetic (Horowitz, 2014). Architectures can benefit from
+minimizing the use of this external memory. Previous work
+focused on a variety of algorithmic optimizations for reducing compute and memory access requirements for deep
+neural networks. These methods include reduced precision
+for hardware optimization (Courbariaux et al., 2015; Stromatias et al., 2015; Courbariaux & Bengio, 2016; Esser
+et al., 2016; Rastegari et al., 2016); weight encoding, pruning, and compression (Han et al., 2015; 2016); and architectural optimizations (Iandola et al., 2016; Szegedy et al.,
+2015; Huang et al., 2016). However these studies did not
+consider the temporal properties of the data.
+Natural inputs to a neural network tend to have a high
+degree of temporal autocorrelation, resulting in slowlychanging network states. This slow-changing activation
+feature is also seen within the computation of RNNs processing audio inputs, for example, speech (Fig. 1).
+Delta networks, as introduced here, exploit the temporal
+stability of both the input stream and the associated neural representation to reduce memory access and computation without loss of accuracy. By caching neuron activations, computations can be skipped where inputs change
+by a small amount from the previous update. Because
+each neuron that is not updated will save fetches of entire columns of several weight matrices, determining which
+
+

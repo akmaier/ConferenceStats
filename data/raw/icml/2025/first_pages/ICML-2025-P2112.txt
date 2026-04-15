@@ -1,0 +1,113 @@
+NestQuant: Nested Lattice Quantization for Matrix Products and LLMs
+
+Semyon Savkin * 1 Eitan Porat * 2 Or Ordentlich 3 Yury Polyanskiy 1
+
+Abstract
+9.0
+
+Post-training quantization (PTQ) has emerged as a
+critical technique for efficient deployment of large
+language models (LLMs). This work proposes
+N EST Q UANT, a novel PTQ scheme for weights
+and activations that is based on self-similar
+nested lattices. Recent works have mathematically shown such quantizers to be informationtheoretically optimal for low-precision matrix
+multiplication. We implement a practical lowcomplexity version of NestQuant based on Gosset lattice, making it a drop-in quantizer for any
+matrix multiplication step (e.g., in self-attention,
+MLP etc). For example, NestQuant quantizes
+weights, KV-cache, and activations of Llama-38B to 4 bits, achieving perplexity of 6.6 on wikitext2. This represents more than 55% reduction in
+perplexity gap with respect to unquantized model
+(perplexity of 6.14) compared to state-of-the-art
+Meta’s SpinQuant (perplexity 7.3), OstQuant (7.3)
+and QuaRot (8.2). Comparisons on bigger models
+(up to 70B) and on various LLM evaluation benchmarks confirm uniform superiority of NestQuant.
+
+NestQuant, W + KV + A
+NestQuant, W + KV
+NestQuant, weight only
+Full precision (FP16)
+SpinQuant, W + KV + A
+
+8.5
+
+SpinQuant, weight only
+OSTQuant, weight only
+OSTQuant, W + KV + A
+Quarot, W + KV + A
+DuQuant, W + A
+
+wiki2 ppl
+
+8.0
+
+7.5
+
+7.0
+
+6.5
+
+6.0
+
+3.2
+
+3.4
+
+3.6
+
+bits
+
+3.8
+
+4.0
+
+4.2
+
+Figure 1. Perplexity of quantized Llama-3-8B models for three
+regimes (weight-only, weights + KV cache, end-to-end) on wikitext2 vs number of bits per entry.
+
+ing a pair of n × n matrices requires 2n3 FLOPs and 38 Rn2
+bytes to exchange between the core and memory (here and
+below R designates the number of bits required to store each
+entry of a vector/matrix). So when matrices are large (such
+as during the pre-fill phase when the prompt is processed)
+the GPU is compute-bound, while when n is small (such as
+during generation) the GPU becomes memory-bound. One
+therefore needs to reduce R by quantizing both weights and
+the KV cache, thereby alleviating the memory bandwidth
+bottleneck during generation.
+
+1. Introduction
+There are three principal goals of post-training quantization
+(PTQ). First, reducing the number of bits per parameter
+allows for loading big models on cheap GPUs with limited
+memory, thus democratizing access to LLMs. This requires
+“weights-only” quantization algorithms of which the most
+popular are AWQ, GPTQ, and QuIP (see references in Section 2.2).
+
+The third goal of PTQ is to accelerate inference of giant
+LLMs that require hosting each layer on a separate GPU
+(pipelining parallelism). For this goal one needs to quantize
+activations passed from one layer to the next to reduce the
+communication bottleneck.
+
+The second goal of PTQ is to accelerate inference. In LLMs
+most of the compute is spent multiplying matrices. Multiply*
+Equal contribution 1 Department of Electrical Engineering and
+Computer Science, Massachusetts Institute of Technology, Cambridge, MA 2 Independent 3 Rachel and Selim Benin School of Computer Science and Engineering, Hebrew University of Jerusalem,
+Israel. Correspondence to: Semyon Savkin <semyon@mit.edu>,
+Eitan Porat <ethan.porat@gmail.com>.
+
+While quantization of weights to R = 3, 4 and even R = 2
+bits has been achieved with minimal loss of quality, quantization of KV cache and activations has been much more
+challenging. Popular algorithms for full quantization are
+LLM.int8(), SmoothQuant and SpinQuant (see references in
+Section 2.2), the latter having state-of-the-art performance.
+This work proposes an alternative algorithm (NestQuant)
+for quantizing weights, KV-cache, and activations. The
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

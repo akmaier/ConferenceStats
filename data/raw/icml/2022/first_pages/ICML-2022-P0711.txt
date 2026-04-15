@@ -1,0 +1,84 @@
+Overcoming Oscillations in Quantization-Aware Training
+
+Markus Nagel * 1 Marios Fournarakis * 1 Yelysei Bondarenko 1 Tijmen Blankevoort 1
+
+Abstract
+When training neural networks with simulated
+quantization, we observe that quantized weights
+can, rather unexpectedly, oscillate between
+two grid-points. The importance of this effect
+and its impact on quantization-aware training
+(QAT) are not well-understood or investigated in
+literature. In this paper, we delve deeper into the
+phenomenon of weight oscillations and show that
+it can lead to a significant accuracy degradation
+due to wrongly estimated batch-normalization
+statistics during inference and increased noise
+during training. These effects are particularly
+pronounced in low-bit (≤ 4-bits) quantization
+of efficient networks with depth-wise separable
+layers, such as MobileNets and EfficientNets. In
+our analysis we investigate several previously
+proposed QAT algorithms and show that most
+of these are unable to overcome oscillations.
+Finally, we propose two novel QAT algorithms
+to overcome oscillations during training: oscillation dampening and iterative weight freezing.
+We demonstrate that our algorithms achieve
+state-of-the-art accuracy for low-bit (3 & 4
+bits) weight and activation quantization of
+efficient architectures, such as MobileNetV2,
+MobileNetV3, and EfficentNet-lite on ImageNet.
+Our source code is available at https://
+github.com/qualcomm-ai-research/
+oscillations-qat.
+
+1. Introduction
+Quantization is one of the most successful methods for
+optimizing neural networks for efficient inference and ondevice execution while maintaining a high accuracy. By
+compressing the weights and activations from the regular
+*
+Equal contribution 1 Qualcomm AI Research, an initiative
+of Qualcomm Technologies, Inc.. Correspondence to: Markus
+Nagel <markusn@qti.qualcomm.com>, Marios Fournarakis
+<mfournar@qti.qualcomm.com>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+32-bit floating-point format to more efficient low bit fixedpoint representations, such as INT8, we can reduce power
+consumption and accelerate inference when deploying neural networks on edge devices (Horowitz, 2014).
+Despite its clear power and latency benefits, quantization
+comes at the cost of added noise due to the reduced precision.
+However, researchers in recent years have shown that neural
+networks are robust to this noise and can be quantized to
+8-bits with a minimal drop in accuracy using post-training
+quantization techniques (PTQ) (Nagel et al., 2019; Banner
+et al., 2019; Nahshan et al., 2020). PTQ can be very efficient
+and, generally, only requires access to a small calibration
+dataset, but suffers when applied to low-bit quantization (≤
+4-bits) of neural networks. Meanwhile, quantization-aware
+training (QAT) has become the de-facto standard method
+for achieving low-bit quantization while maintaining near
+full-precision accuracy (Krishnamoorthi, 2018; Esser et al.,
+2020; Nagel et al., 2021). By simulating the quantization
+operation during training or fine-tuning, the network can
+adapt to the quantization noise and reach better solutions
+than with PTQ.
+In this paper, we focus on the oscillations of quantized
+weights that occur during quantization-aware training. This
+is a little-known and under-investigated phenomenon in
+the optimization of quantized neural networks, with significant consequences for the network during and after training.
+When using the popular straight-through estimator (STE)
+(Bengio et al., 2013) for QAT, weights seemingly randomly
+oscillate between adjacent quantization levels leading to
+detrimental noise during the optimization process. Equipped
+with this insight, we investigate recent advances in QAT that
+claim improved performance and assess their effectiveness
+in addressing this oscillatory behavior.
+An adverse symptom of weight oscillations is that they
+can corrupt the estimated inference statistics of the batchnormalization layer collected during training, leading to
+poor validation accuracy. We find that this effect is particularly pronounced in low-bit quantization of efficient networks with depth-wise separable layers, such as MobileNets
+or EfficientNets, but can be addressed effectively by reestimating the batch-normalization statistics after training.
+While batch-normalization re-estimation overcomes one significant symptom of the oscillations, it does not tackle its
+
+

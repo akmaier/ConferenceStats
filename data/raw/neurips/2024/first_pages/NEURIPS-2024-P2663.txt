@@ -1,0 +1,60 @@
+Understanding and Minimising
+Outlier Features in Transformer Training
+
+Bobby He1∗
+
+Lorenzo Noci1
+Daniele Paliotta2
+Imanol Schlag1†
+1
+Department of Computer Science, ETH Zürich
+2
+Machine Learning Group, University of Geneva
+
+Thomas Hofmann1
+
+Abstract
+Outlier Features (OFs) are neurons whose activation magnitudes significantly
+exceed the average over a neural network’s (NN) width. They are well known to
+emerge during standard transformer training and have the undesirable effect of
+hindering quantisation in afflicted models. Despite their practical importance, little
+is known behind why OFs emerge during training, nor how one can minimise them.
+Our work focuses on the above questions, first identifying several quantitative
+metrics, such as the kurtosis over neuron activation norms, to measure OFs. With
+these metrics, we study how architectural and optimisation choices influence OFs,
+and provide practical insights to minimise OFs during training. As highlights, we
+introduce a novel unnormalised transformer block, the Outlier Protected block, and
+present a previously unknown benefit of non-diagonal preconditioning optimisers,
+finding both approaches to significantly reduce OFs and improve quantisation without compromising convergence speed, at scales of up to 7B parameters. Notably,
+our combination of OP block and non-diagonal preconditioner (SOAP) achieves
+14.87 weight-and-activation int8 perplexity (from 14.71 in standard precision), compared to 63.4 int8 perplexity (from 16.00) with a default OF-prone combination of
+Pre-Norm model and Adam, when quantising OPT-125m models post-training.
+
+1
+
+Introduction
+
+Despite their widespread use, our understanding of deep neural networks (NNs) and their training dynamics is very much incomplete. This, in part, reflects the complexity of traversing high-dimensional
+non-convex loss landscapes but is also symptomatic of the myriad design choices, such as NN
+architecture and optimiser hyperparameters, that a practitioner must take before training. While
+standard choices of architecture and optimiser exist, it is often unclear how these choices affect model
+performance or the emergence of various empirically observed phenomena during NN training.
+Outlier Features (OF) are one such training phenomenon. OFs are neurons whose activation magnitudes are significantly larger than average in the same layer, i.e. across NN width [1–3]. They have
+been widely observed in the popular transformer NN architecture [4–6], as we verify in Fig 1, and
+are of practical interest because their existence hinders quantisation [3, 7–12]. In particular, OFs
+cause large dynamic ranges in activations across NN width, leading to high quantisation errors in low
+precision matrix multiplications. As such, Outlier Feature Emergence (OFE) during training hinders
+low-precision training and inference, and minimising OFE could yield significant efficiency gains.
+In this paper, we tackle OFE from two related angles: by (1) proposing interventions to minimise
+OFE without affecting model convergence or training stability, using insights motivated through (2)
+enhancing our understanding of why OFs appear during training. We argue that it is important to first
+understand why OFs appear during standard NN training dynamics in order to identify which design
+∗
+†
+
+Correspondence to bobby.he@inf.ethz.ch
+ETH AI Center
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

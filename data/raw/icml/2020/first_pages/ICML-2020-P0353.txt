@@ -1,0 +1,77 @@
+Monte-Carlo tree search as regularized policy optimization
+
+Jean-Bastien Grill * 1 Florent Altché * 1 Yunhao Tang * 1 2 Thomas Hubert 3 Michal Valko 1
+Ioannis Antonoglou 3 Rémi Munos 1
+
+Abstract
+The combination of Monte-Carlo tree search
+(MCTS) with deep reinforcement learning has
+led to significant advances in artificial intelligence. However, AlphaZero, the current stateof-the-art MCTS algorithm, still relies on handcrafted heuristics that are only partially understood. In this paper, we show that AlphaZero’s
+search heuristics, along with other common ones
+such as UCT, are an approximation to the solution of a specific regularized policy optimization
+problem. With this insight, we propose a variant
+of AlphaZero which uses the exact solution to
+this policy optimization problem, and show experimentally that it reliably outperforms the original
+algorithm in multiple domains.
+
+1. Introduction
+Policy gradient is at the core of many state-of-the-art deep
+reinforcement learning (RL) algorithms. Among many successive improvements to the original algorithm (Sutton et al.,
+2000), regularized policy optimization encompasses a large
+family of such techniques. Among them trust region policy
+optimization is a prominent example (Schulman et al., 2015;
+2017; Abdolmaleki et al., 2018; Song et al., 2019). These algorithmic enhancements have led to significant performance
+gains in various benchmark domains (Song et al., 2019).
+As another successful RL framework, the AlphaZero family
+of algorithms (Silver et al., 2016; 2017b;a; Schrittwieser
+et al., 2019) have obtained groundbreaking results on challenging domains by combining classical deep learning (He
+et al., 2016) and RL (Williams, 1992) techniques with
+Monte-Carlo tree search (Kocsis and Szepesvári, 2006).
+To search efficiently, the MCTS action selection criteria
+takes inspiration from bandits (Auer, 2002). Interestingly,
+*
+
+Equal contribution 1 DeepMind, Paris, FR 2 Columbia University, New York, USA 3 DeepMind, London, UK. Correspondence
+to: Jean-Bastien Grill <jbgrill@google.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+AlphaZero employs an alternative handcrafted heuristic to
+achieve super-human performance on board games (Silver
+et al., 2016). Recent MCTS-based MuZero (Schrittwieser
+et al., 2019) has also led to state-of-the-art results in the
+Atari benchmarks (Bellemare et al., 2013).
+Our main contribution is connecting MCTS algorithms,
+in particular the highly-successful AlphaZero, with MPO,
+a state-of-the-art model-free policy-optimization algorithm (Abdolmaleki et al., 2018). Specifically, we show that
+the empirical visit distribution of actions in AlphaZero’s
+search procedure approximates the solution of a regularized
+policy-optimization objective. With this insight, our second
+contribution a modified version of AlphaZero that comes
+significant performance gains over the original algorithm,
+especially in cases where AlphaZero has been observed to
+fail, e.g., when per-search simulation budgets are low (Hamrick et al., 2020).
+In Section 2, we briefly present MCTS with a focus on AlphaZero and provide a short summary of the model-free
+policy-optimization. In Section 3, we show that AlphaZero
+(and many other MCTS algorithms) computes approximate
+solutions to a family of regularized policy optimization
+problems. With this insight, Section 4 introduces a modified
+version of AlphaZero which leverages the benefits of the
+policy optimization formalism to improve upon the original algorithm. Finally, Section 5 shows that this modified
+algorithm outperforms AlphaZero on Atari games and continuous control tasks.
+
+2. Background
+Consider a standard RL setting tied to a Markov decision
+process (MDP) with state space X and action space A. At a
+discrete round t ≥ 0, the agent in state xt ∈ X takes action
+at ∈ A given a policy at ∼ π(·|st ), receives reward rt ,
+and transitions to a next state xt+1 ∼ p(·|xt , at ). The RL
+problem consists in finding a policy
+P which maximizes the
+discounted cumulative return Eπ [ t≥0 γ t rt ] for a discount
+factor γ ∈ (0, 1). To scale the method to large environments,
+we assume that the policy πθ (a|x) is parameterized by a
+neural network θ.
+
+

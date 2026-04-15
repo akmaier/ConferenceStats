@@ -1,0 +1,71 @@
+SplitNet: Learning to Semantically Split Deep Networks
+for Parameter Reduction and Model Parallelization
+Juyong Kim * 1 Yookoon Park * 1 Gunhee Kim 1 Sung Ju Hwang 2 3
+
+Abstract
+We propose a novel deep neural network that
+is both lightweight and effectively structured for
+model parallelization. Our network, which we
+name as SplitNet, automatically learns to split
+the network weights into either a set or a hierarchy of multiple groups that use disjoint sets
+of features, by learning both the class-to-group
+and feature-to-group assignment matrices along
+with the network weights. This produces a treestructured network that involves no connection
+between branched subtrees of semantically disparate class groups. SplitNet thus greatly reduces the number of parameters and required
+computations, and is also embarrassingly modelparallelizable at test time, since the evaluation
+for each subnetwork is completely independent
+except for the shared lower layer weights that
+can be duplicated over multiple processors, or
+assigned to a separate processor. We validate
+our method with two different deep network
+models (ResNet and AlexNet) on two datasets
+(CIFAR-100 and ILSVRC 2012) for image classification, on which our method obtains networks
+with significantly reduced number of parameters
+while achieving comparable or superior accuracies over original full deep networks, and accelerated test speed with multiple GPUs.
+
+1. Introduction
+Recently, deep neural networks have shown impressive performances on a multitude of tasks, including visual recognition (Krizhevsky et al., 2012; Szegedy et al., 2015; He
+et al., 2016), speech recognition (Hinton et al., 2012), and
+*
+
+Equal contribution 1 Seoul National University, Seoul, South
+Korea 2 UNIST, Ulsan, South Korea 3 AITrics, Seoul, South Korea.
+Correspondence to: Sung Ju Hwang <sjhwang@unist.ac.kr>.
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+Codes available at http://vision.snu.ac.kr/
+projects/splitnet.
+
+natural language processing (Bengio et al., 2003; Sutskever
+et al., 2014). However, such remarkable performances are
+achieved at the cost of increased computational complexity
+at both training and test time compared to traditional machine learning models including shallow neural networks.
+This increased complexity of deep networks can be problematic if the model and the task size becomes very large
+(e.g. classifying tens of thousands of object classes), or the
+application is time-critical (e.g. real-time object detection).
+There exist various solutions to tackle this complexity issue. One way is to reduce the number of model parameters; this could be achieved either by training a new smaller
+network while maintaining similar behavior as the original network (Ba & Caruana, 2014; Hinton et al., 2014),
+or by disconnecting unnecessary weights through pruning
+or sparsity regularization (Reed, 1993; Han et al., 2015;
+Collins & Kohli, 2014; Wen et al., 2016; Alvarez & Salzmann, 2016). Another approach to speed up deep networks
+is distributed machine learning (Dean et al., 2012; Chilimbi
+et al., 2014; Zhang et al., 2015); however most research effort has been made on the systems and optimization sides,
+without consideration of the ways to obtain network structure that is intrinsically scalable.
+In this work, we aim to learn a deep neural network that
+not only reduces the number of model parameters, but also
+is effectively structured for model parallelization. How can
+we then achieve these seemingly disjoint goals in a single,
+unified learning framework? We focus on the observation
+that as the number of classes increases, semantically disparate classes (or tasks) can be represented by largely disjoint sets of features. For example, features describing animals may be quite different from those describing vehicles,
+whereas low-level features such as stripes, dots, and colors
+are likely be shared across all classes. It implicates that we
+can cluster classes into mutually exclusive groups based on
+the features they use. Such grouping of concepts based on
+semantic proximity also agrees with the way that our brain
+stores semantic concepts, where semantically related concepts activate similar part of the brain (Huth et al., 2012),
+in a highly localized manner.
+Based on this intuition, we propose a novel deep network
+architecture named SplitNet that automatically performs
+
+

@@ -1,0 +1,85 @@
+Distributed Clustering via LSH Based Data Partitioning
+
+Aditya Bhaskara 1 Maheshakya Wijewardena 1
+
+Abstract
+Given the importance of clustering in the analysis
+of large scale data, distributed algorithms for formulations such as k-means, k-median, etc. have
+been extensively studied. A successful approach
+here has been the “reduce and merge” paradigm,
+in which each machine reduces its input size to
+e
+O(k),
+and this data reduction continues (possibly
+iteratively) until all the data fits on one machine,
+at which point the problem is solved locally. This
+approach has the intrinsic bottleneck that each
+machine must solve a problem of size ≥ k, and
+needs to communicate at least Ω(k) points to the
+other machines. We propose a novel data partitioning idea to overcome this bottleneck, and in
+effect, have different machines focus on “finding
+different clusters”. Under the assumption that we
+know the optimum value of the objective up to
+a poly(n) factor (arbitrary polynomial), we establish worst-case approximation guarantees for
+our method. We see that our algorithm results in
+lower communication as well as a near-optimal
+number of ‘rounds’ of computation (in the popular
+MapReduce framework).
+
+1. Introduction
+Clustering is a fundamental problem in the analysis and
+understanding of data, and is used widely in different areas of science. The broad goal of clustering is to divide
+a (typically large) dataset into groups that such that data
+points within a group are “similar” to one another. In most
+applications, there is a measure of similarity between any
+two objects, which typically forms a metric. The problem
+can be formalized in many different ways, depending on
+the properties desired of the obtained clustering. While a
+“perfect” formulation may not exist (see (Kleinberg, 2002)),
+*
+
+Equal contribution 1 School of Computing, University
+of Utah. Correspondence to: Aditya Bhaskara <bhaskaraaditya@gmail.com>, Maheshakya Wijewardena <pmaheshakya4@gmail.com>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+many formulations have been very successful in applications, including k-means, k-median, k-center, and various
+notions of hierarchical clustering (see (Hastie et al., 2009;
+Dasgupta, 2016) and references there-in).
+In this paper, we focus on k-means clustering, in which the
+input is a set of n points in Euclidean space. Here the goal
+is to partition the points into k clusters, so as to minimize
+the sum of squared distances from the points to the respective cluster centers (see Section 2 for a formal definition).
+k-means is one of the most well-studied clustering variants.
+Lloyd’s algorithm (Lloyd, 1982), developed over 35 years
+ago, has been extremely successful in practice (the success
+has been ‘explained’ in many recent works; see (Arthur et al.,
+2011; Awasthi & Sheffet, 2012; Kumar & Kannan, 2010)
+and references there-in). Despite the success, Lloyd’s algorithm can have an arbitrarily bad approximation ratio in the
+worst case. To address this, constant factor approximation
+algorithms have been developed, which are more involved
+but have worst case guarantees (see (Kanungo et al., 2004)
+and (Ahmadian et al., 2017)). In another direction, works
+by (Ostrovsky et al., 2006; Jaiswal et al., 2012; Arthur &
+Vassilvitskii, 2007) have shown how to obtain simple bicriteria approximation algorithms for k-means. (Arthur &
+Vassilvitskii, 2007) also proposed a variant of Lloyd’s algorithm, termed “k-means++”, which also comes with a
+theoretical approximation factor guarantee of O(log k) approximation.
+All the algorithms above assume that data fits in a single
+machine. However, with the ubiquity of large data sets,
+there has been a lot of interest in distributed algorithms
+where data is spread across several machines. The goal is to
+use available distributed models of computation to design
+algorithms that can (a) work with machines having access
+only to their local data set, (b) use small amount of memory
+and only a few “rounds” of communication, and (c) have
+approximation guarantees for the solution they output.
+For k-means and related objectives, the paradigm of iterative
+‘data reduction’ has been remarkably successful. The main
+idea is that in each round, a machine chooses a small subset
+of its input, and only this subset is carried to the next round.
+Thus the total number of points reduces by a significant
+factor in every round, and this results in a small number
+of rounds overall. Such an algorithm can be implemented
+
+

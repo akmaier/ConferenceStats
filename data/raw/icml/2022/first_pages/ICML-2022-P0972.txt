@@ -1,0 +1,80 @@
+Addressing Optimism Bias in Sequence Modeling for Reinforcement Learning
+
+Adam Villaflor 1 Zhe Huang 1 Swapnil Pande 1 John Dolan 1 Jeff Schneider 1
+
+Abstract
+Impressive results in natural language processing
+(NLP) based on the Transformer neural network
+architecture have inspired researchers to explore
+viewing offline reinforcement learning (RL) as
+a generic sequence modeling problem. Recent
+works based on this paradigm have achieved stateof-the-art results in several of the mostly deterministic offline Atari and D4RL benchmarks. However, because these methods jointly model the
+states and actions as a single sequencing problem, they struggle to disentangle the effects of the
+policy and world dynamics on the return. Thus,
+in adversarial or stochastic environments, these
+methods lead to overly optimistic behavior that
+can be dangerous in safety-critical systems like
+autonomous driving. In this work, we propose a
+method that addresses this optimism bias by explicitly disentangling the policy and world models,
+which allows us at test time to search for policies
+that are robust to multiple possible futures in the
+environment. We demonstrate our method’s superior performance on a variety of autonomous
+driving tasks in simulation.
+
+1. Introduction
+Recent works have achieved impressive results in a variety
+of sequence modeling problems from NLP (Brown et al.,
+2020; Radford et al., 2019; 2018) to trajectory prediction
+(Ngiam et al., 2021; Liu et al., 2021; Quintanar et al., 2021;
+age) by leveraging powerful Transformer (Vaswani et al.,
+2017) models. Inspired by these numerous successes, several recent works (Chen et al., 2021b; Janner et al., 2021)
+have explored ways of reformulating sequential-decision
+making problems in the offline RL framework as a single sequence modeling problem. In particular, these approaches jointly model the states, actions, and rewards as a
+1
+
+Carnegie Mellon University.
+Correspondence to:
+Adam Villaflor <avillaflor@cmu.edu>, Jeff Schnedier
+<jeff.schneider@cs.cmu.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+single data stream with a high-capacity Transformer. These
+Transformer-based methods are able to outperform the behavioral policy at test time by either conditioning on desired
+outcomes when picking actions or leveraging the model to
+search for high-reward trajectories. The main benefit of
+this paradigm is that it avoids many of the complexities
+involved in modern model-free and model-based offline RL
+algorithms.
+There are 2 major issues with treating RL as a single sequence modeling problem like the words or characters in a
+NLP problem. (1) States and actions are fundamentally different concepts. The agent always has complete control over
+its action sequences, but often has only limited influence on
+the resulting state transitions. In adversarial or stochastic
+environments, the same action in the same state can lead to
+potentially different outcomes, which affects the likelihood
+or feasibility of achieving a desired result. This leads to
+the more practical issue (2), which is that we often need to
+perform different optimizations over the policy actions and
+the potential state transitions. Generally, we want to find the
+action that maximizes reward, but either in expectation over
+possible future states or with respect to the worst case scenario. Thus, in safety-critical domains or adversarial games
+we often want to perform a maximum over potential actions
+and a minimum over possible futures in the environment.
+Thus in these types of environments, special considerations
+are needed to ensure effective planning during deployment.
+Ozair et al. (2021) demonstrates similar issues when deploying MuZero (Schrittwieser et al., 2020) with different
+MCTS (Coulom, 2006) frameworks in chess. They find that
+planning with a single-player variant of MuZero that treats
+the other player as an unknown part of the environment
+results in a catastrophic drop in performance relative to the
+traditional two-player adversarial framework.
+Most prior works in offline RL have focused on the mainly
+deterministic D4RL (Fu et al., 2020) benchmarks and a
+variety of weakly stochastic Atari (Machado et al., 2018)
+benchmarks. Therefore, there has been limited focus on the
+difficulties of deploying such methods in largely stochastic
+domains. In this work, we instead focus specifically on
+stochastic safety-critical domains, and use autonomous driving as a representative setting. Understanding the stochastic
+and multi-modal nature of traffic is critical to safe and robust autonomous driving. For example, the same turning
+
+

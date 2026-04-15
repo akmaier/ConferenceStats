@@ -1,0 +1,78 @@
+Ripple Attention for Visual Perception with Sub-quadratic Complexity
+
+Lin Zheng 1 Huijie Pan 1 Lingpeng Kong 1 2
+
+Abstract
+Transformer architectures are now central to sequence modeling tasks. At its heart is the attention
+mechanism, which enables effective modeling of
+long-term dependencies in a sequence. Recently,
+transformers have been successfully applied in the
+computer vision domain, where 2D images are
+first segmented into patches and then treated as 1D
+sequences. Such linearization, however, impairs
+the notion of spatial locality in images, which
+bears important visual clues. To bridge the gap,
+we propose ripple attention, a sub-quadratic attention mechanism for vision transformers. Built
+upon the recent kernel-based efficient attention
+mechanisms, we design a novel dynamic programming algorithm that weights contributions of different tokens to a query with respect to their relative spatial distances in the 2D space in linear observed time. Extensive experiments and analyses
+demonstrate the effectiveness of ripple attention
+on various visual tasks.
+
+1. Introduction
+The transformer architecture (Vaswani et al., 2017) has been
+dominant in various important natural language processing (NLP) tasks, including machine translation (Vaswani
+et al., 2017; Dehghani et al., 2019), language understanding
+(Devlin et al., 2018), language modeling (Dai et al., 2019;
+Baevski & Auli, 2019) and many others. The cornerstone of
+a transformer is the attention mechanism (Bahdanau et al.,
+2014) which computes pair-wise interactions between any
+token pairs of the input sequence. As a result, it is capable
+of modeling long-term dependencies in a sequence, which
+is an important factor to the success of transformers.
+Recently, the transformer architecture has also found its
+applications in the domain of computer vision (CV). It is
+1
+
+Department of Computer Science, The University of Hong
+Kong 2 Shanghai Artificial Intelligence Laboratory. Correspondence to: Lin Zheng <linzheng@connect.hku.hk>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+adopted for image classification (Dosovitskiy et al., 2020;
+Touvron et al., 2020; Liu et al., 2021a; Yang et al., 2021;
+Wang et al., 2021b), segmentation (Wang et al., 2020b;
+Strudel et al., 2021), low-level image processing (Chen
+et al., 2020), image generation (Parmar et al., 2018), object
+detection (Carion et al., 2020; Meng et al., 2021) and many
+other tasks. In these vision applications, a 2D image is represented as a set of patches flattened into a 1D sequence.
+These patches are analogous to the tokens in sequence modeling tasks that are commonly seen in NLP. Nevertheless,
+such linearization undermines the inherent local structure of
+a 2D image, which bears important visual clues (Simoncelli
+& Olshausen, 2001). There often exist strong correlations
+within local neighborhoods in an image. Therefore, paying
+more attention to patches in a closer region could facilitate
+gathering information that is particularly useful in visual
+pattern recognition. This is similar to the concept of context
+in NLP, just that the structural context of a visual token is
+scattered in the 1D sequence, making it difficult for the transformer to capture such prior knowledge. In contrast, the
+convolutional neural network (CNN) (Fukushima & Miyake,
+1982; LeCun et al., 1989; Krizhevsky et al., 2012), which
+has been the de-facto architecture in computer vision tasks
+for decades, utilizes local receptive fields and achieves good
+performance. The drawback of that is, as convolution operations are limited to small receptive fields, they have great
+difficulty in extracting global image features.
+Therefore, it is appealing to incorporate the notion of spatial
+vicinity into the transformer, while still preserving its capacity of modeling long-term dependencies. To bridge the gap,
+we propose ripple attention (Figure 1; §3), an efficient attention mechanism for vision transformers based on recently
+proposed linearized attention variants (§2.2). In ripple attention, contributions from different tokens to a query are
+weighted with respect to their relative spatial distances in
+the 2D space. These spatial weights are derived through a
+stick-breaking transformation (§3.2), which promotes local
+correlations by leaning to assign larger weights to spatially
+closer tokens. We then design a dynamic programming algorithm (§3.3) that is capable of executing ripple attention
+in linear observed time, taking advantage of the recently
+proposed linearized attention (§2.2) and the summed-area
+table technique (§3.3).
+We validate our method by conducting extensive experi-
+
+

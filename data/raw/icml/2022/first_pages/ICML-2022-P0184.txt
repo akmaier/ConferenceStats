@@ -1,0 +1,79 @@
+Transfer and Marginalize: Explaining Away Label Noise with Privileged
+Information
+Mark Collier 1 Rodolphe Jenatton 1 Efi Kokiopoulou 1 Jesse Berent 1
+
+Abstract
+Supervised learning datasets often have privileged
+information, in the form of features which are
+available at training time but are not available at
+test time e.g. the ID of the annotator that provided
+the label. We argue that privileged information is
+useful for explaining away label noise, thereby reducing the harmful impact of noisy labels. We develop a simple and efficient method for supervised
+learning with neural networks: it transfers via
+weight sharing the knowledge learned with privileged information and approximately marginalizes over privileged information at test time. Our
+method, TRAM (TRansfer and Marginalize), has
+minimal training time overhead and has the same
+test-time cost as not using privileged information.
+TRAM performs strongly on CIFAR-10H, ImageNet and Civil Comments benchmarks.
+
+1. Introduction
+Supervised learning problems are typically formalized as
+learning a conditional distribution p(y|x), y ∈ Y and x ∈
+X from (xi , yi ), i = 1, ..., N pairs. Yet we often have
+access to additional features a ∈ A at training time that will
+not be available at test time. These features are known as
+privileged information (Vapnik & Vashist, 2009), or PI for
+short. An example of PI are features describing the human
+annotator that provided a given label, such as the annotator
+ID, the length of time to provide the label, the experience of
+the annotator, etc. Annotators do not always agree on the
+correct label for a given x, some annotators may be more
+reliable than others and the reliability of annotators may
+depend on the location of x in the input domain X (Snow
+et al., 2008; Sheng et al., 2008).
+The expanded training dataset consists of (xi , ai , yi )
+triplets. Given that our test-time predictive distribution can1
+
+Google AI. Correspondence to: Mark Collier <markcollier@google.com>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+not be conditioned on a, what use is this PI? As a thought
+experiment, suppose there exists a malicious (or lazy) annotator that provides random labels. It is known that random
+labels harm the performance of supervised learning models
+(Frénay & Verleysen, 2013; Song et al., 2020; Cordeiro &
+Carneiro, 2020). If these random labels can be explained
+away via access to PI, such as the annotator ID, then this
+harm can be prevented. In particular we can use the PI to
+explain away noise in the labels which otherwise would be
+irreducible aleatoric uncertainty.
+More formally, suppose the PI a is predictive of y given
+x, in the sense that the conditional mutual information
+I(y; a|x) is non-zero. Then, the entropy of y is reduced
+if we condition on both x and a rather than x alone, as
+summarised in the intuitive Lemma 1.1.
+Lemma 1.1. I(y; a|x) > 0 ⇒ H(y|x, a) < H(y|x).
+In §2.1, we make the implication of this lemma crisper for
+a particular model, proving that under certain conditions,
+PI can be leveraged to lower the expected risk for linear
+regression problems. Additionally, prior work has proven
+that PI can lead to generalization bounds with better sample
+complexity (Vapnik & Vashist, 2009; Lambert et al., 2018).
+Inspired by prior work and our theoretical analysis of a
+simple linear model, we focus on exploiting PI in supervised deep neural networks. The production deployment of
+such models often has tight latency and memory constraints.
+Hence a number of methods have been developed to utilize
+PI with the same test time memory and computation cost
+as networks trained without PI (Yang et al., 2017; Lambert
+et al., 2018; Lopez-Paz et al., 2015). Yang et al. (2017)
+uses PI as a form of input-dependent regularizer. Lambert
+et al. (2018) train with heteroscedastic Gaussian dropout,
+with the training-time dropout variance a function of the PI.
+Lopez-Paz et al. (2015) distill a network trained with PI into
+a network without access to a.
+Below we develop a method, TRAM, which transfers knowledge via weight sharing from the part of the network trained
+using PI to the test time network which does not have access
+to PI. At test time, TRAM makes aR simple, efficient approximation to the integral p(y|x) = p(y|x, a)p(a|x)da.
+Making predictions without PI is no more costly than that
+
+

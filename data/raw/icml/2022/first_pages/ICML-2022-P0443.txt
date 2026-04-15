@@ -1,0 +1,80 @@
+Improving Policy Optimization with Generalist-Specialist Learning
+
+Zhiwei Jia 1 Xuanlin Li 1 Zhan Ling 1 Shuang Liu 1 Yiran Wu 1 Hao Su 1
+
+Abstract
+Generalization in deep reinforcement learning
+over unseen environment variations usually requires policy learning over a large set of diverse
+training variations. We empirically observe that
+an agent trained on many variations (a generalist) tends to learn faster at the beginning, yet its
+performance plateaus at a less optimal level for a
+long time. In contrast, an agent trained only on
+a few variations (a specialist) can often achieve
+high returns under a limited computational budget. To have the best of both worlds, we propose
+a novel generalist-specialist training framework.
+Specifically, we first train a generalist on all environment variations; when it fails to improve,
+we launch a large population of specialists with
+weights cloned from the generalist, each trained
+to master a selected small subset of variations.
+We finally resume the training of the generalist
+with auxiliary rewards induced by demonstrations
+of all specialists. In particular, we investigate
+the timing to start specialist training and compare strategies to learn generalists with assistance
+from specialists. We show that this framework
+pushes the envelope of policy learning on several
+challenging and popular benchmarks including
+Procgen, Meta-World and ManiSkill.
+
+1. Introduction
+Deep Reinforcement Learning (DRL) holds the promise in
+a wide range of applications such as autonomous vehicles
+(Filos et al., 2020), gaming (Silver et al., 2017), robotics
+(Kalashnikov et al., 2018) and healthcare (Yu et al., 2021).
+To fulfill the potential of RL, we need algorithms and models capable of adapting and generalizing to unseen (but
+similar) environment variations during their deployment.
+Recently, several benchmarks (Gupta et al., 2018; Cobbe
+1
+University of California, San Diego. Correspondence to: Zhiwei Jia <zjia@eng.ucsd.edu>, Hao Su <haosu@eng.ucsd.edu>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+et al., 2020a; Mu et al., 2021; Szot et al., 2021; Gan et al.,
+2020; Zhao et al., 2021) were proposed to this end, featuring
+a very high diversity of variations in training environments,
+accomplished through procedural generation and layout randomization, to encourage policy generalization.
+However, due to the sheer number of variations, many existing DRL algorithms struggle to efficiently achieve high
+performance during training, let alone generalization. For
+instance, in Procgen Benchmark (Cobbe et al., 2020a), a
+PPO (Schulman et al., 2017b) agent trained on a thousand
+levels can have poor performance even with hundreds of
+millions of samples. Training PPO on visual navigation
+tasks involving ∼100 scenes might require billions of samples to achieve good performance (Wijmans et al., 2019).
+Several lines of work have been proposed to alleviate this
+issue, by accelerating training with automatic curriculum
+(Jiang et al., 2021), improving learned representations with
+the help of extra constraints (Igl et al., 2019; Raileanu et al.,
+2020), or decoupling the learning of the policy and value
+networks (Cobbe et al., 2021; Raileanu & Fergus, 2021).
+Orthogonal to these approaches, we tackle the challenge
+from a perspective inspired by how human organizations
+solve difficult problems. We first define a generalist agent to
+be a single policy that can solve all environment variations.
+We also define a specialist agent to be a policy that masters
+a subset, but not all, of environment variations. Our goal is
+to utilize experiences from the specialists to aid the policy
+optimization of the generalist.
+We observe that trajectories belonging to different environment variations often consist of shared early stages and
+context-specific later stages. It is often more efficient for a
+single generalist to learn the shared early stages for all contexts than first training different specialists and then merging
+them to a generalist. For instance, learning to push a chair
+towards a goal, regardless of variations in chair geometry,
+topology, or dynamics, requires an agent to first recognize
+the chair and approach it. During these early stages, jointly
+training an agent on all chairs, starting and goal states results
+in faster learning. However, as the visited states get more
+and more diverse, it becomes increasingly hard for the policy
+and value network to maintain the predictive power without forgetting (i.e., “catastrophic forgetting”), or be vigilant
+to input dimensions that were not useful at the beginning
+
+

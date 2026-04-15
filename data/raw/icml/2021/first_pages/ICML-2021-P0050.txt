@@ -1,0 +1,77 @@
+Locally Adaptive Label Smoothing for Predictive Churn
+
+Dara Bahri 1 Heinrich Jiang 1
+
+Abstract
+Training modern neural networks is an inherently
+noisy process that can lead to high prediction
+churn– disagreements between re-trainings of the
+same model due to factors such as randomization
+in the parameter initialization and mini-batches–
+even when the trained models all attain similar
+accuracies. Such prediction churn can be very
+undesirable in practice. In this paper, we present
+several baselines for reducing churn and show
+that training on soft labels obtained by adaptively
+smoothing each example’s label based on the example’s neighboring labels often outperforms the
+baselines on churn while improving accuracy on
+a variety of benchmark classification tasks and
+model architectures.
+
+1. Introduction
+Deep neural networks (DNNs) have proved to be immensely successful at solving complex classification tasks
+across a range of problems. Much of the effort has been
+spent towards improving their predictive performance (i.e.
+accuracy), while comparatively little has been done towards improving the stability of training these models
+(Zheng et al., 2016). Modern DNN training is inherently
+noisy due to factors such as the random initialization of
+network parameters (Glorot & Bengio, 2010), the minibatch ordering (Loshchilov & Hutter, 2015), the effects
+of various data augmentation (Shorten & Khoshgoftaar,
+2019) or pre-processing tricks (Santurkar et al., 2018), and
+the non-determinism arising from the hardware (Turner &
+Nowotny, 2015), all of which are exacerbated by the nonconvexity of the loss surface (Scardapane & Wang, 2017).
+This results in local optima corresponding to models that
+have very different predictions on the same data points.
+This may seem counter-intuitive, but even when the different runs all produce very high accuracies for the classification task, their predictions can still differ quite drastically
+1
+
+Google Research, Mountain View, USA. Correspondence to:
+Dara Bahri <dbahri@google.com>.
+
+as we will show later in the experiments. Thus, even an
+optimized training procedure can lead to high prediction
+churn, which refers to the proportion of sample-level disagreements between classifiers caused by different runs of
+the same training procedure1 .
+In practice, reducing such predictive churn can be critical.
+For example, in a production system, models are often continuously improved on by being trained or retrained with
+new data or better model architectures and training procedures. In such scenarios, a candidate model for release
+must be compared to the current model serving in production. Oftentimes, this decision is conditioned on more than
+just overall offline test accuracy– in fact, the offline metrics
+are often not completely aligned with the actual goal, especially if these models are used as part of a larger system
+(e.g. maximizing offline click-through rate vs. maximizing revenue or user satisfaction) (Deng et al., 2013; Beel
+et al., 2013; Dmitriev & Wu, 2016). As a result, these comparisons require extensive and costly live experiments, requiring human evaluation in situations where the candidate
+and the production model disagree (i.e. in many situations,
+the true labels are not available without a manual labeler)
+(Theocharous et al., 2015; Deng, 2015; Deng & Shi, 2016).
+In these cases, it can be highly desirable to lower predictive
+churn.
+Despite the practical relevance of lowering churn, there has
+been surprisingly little work done in this area, which we
+highlight in the related work section. In this work, we focus on predictive churn reduction under retraining the same
+model architecture on an identical train and test set. Our
+main contributions are as follows:
+• We provide one of the first comprehensive analyses of
+baselines to lower prediction churn, showing that popular approaches designed for other goals are effective
+baselines for churn reduction, even compared to methods designed for this goal.
+• We improve label smoothing, a global smoothing
+method popular for calibrating model confidence, by
+utilizing the local information leveraged by the k1
+
+th
+
+Proceedings of the 38 International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Concretely, given two classifiers applied to the same test samples, the prediction churn between them is the fraction of test samples with different predicted labels.
+
+

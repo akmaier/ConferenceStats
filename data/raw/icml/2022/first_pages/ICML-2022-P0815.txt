@@ -1,0 +1,75 @@
+LyaNet: A Lyapunov Framework for Training Neural ODEs
+
+Ivan Dario Jimenez Rodriguez 1 Aaron D. Ames 1 Yisong Yue 1 2
+
+Abstract
+We propose a method for training ordinary differential equations by using a control-theoretic
+Lyapunov condition for stability. Our approach,
+called LyaNet, is based on a novel Lyapunov loss
+formulation that encourages the inference dynamics to converge quickly to a correct prediction that
+minimizes the original supervised loss. Theoretically, we show that minimizing Lyapunov loss
+guarantees exponential convergence to a correct
+solution and enables a novel robustness guarantee. We also provide practical algorithms, including one that avoids the cost of backpropagating
+through a solver or using the adjoint method. Relative to standard Neural ODE training, we empirically find that LyaNet can offer improved prediction performance, faster convergence of inference
+dynamics, and improved adversarial robustness.
+Our code is available at https://github.
+com/ivandariojr/LyapunovLearning.
+
+1. Introduction
+The use of dynamical systems as a learnable function class
+has gained increasing attention, first sparked by the discovery of an alternative interpretation of ResNets as Ordinary
+Differential Equations (Haber & Ruthotto, 2017; E, 2017;
+Ruthotto & Haber, 2018; Lu et al., 2020), and further popularized with Neural ODEs (Chen et al., 2019). This fundamental insight holds the potential for a plethora of benefits
+including parameter efficiency, the ability to propagate probability distributions (Chen et al., 2019; Rozen et al., 2021;
+Song et al., 2020), accurate time-series modeling (Chen
+et al., 2021a), among others.
+1
+
+Department of Computational and Mathematical Sciences,
+California Institute of Technology 2 Argo AI. Correspondence to:
+Ivan Dario Jimenez Rodriguez <ivan.jimenez@caltech.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+Figure 1: Comparing learned dynamics on a toy prediction task.
+The quiver lines show the dynamics (Equation (2)) of a 2-D state
+space, the dotted black lines show state trajectories from 100
+initial conditions (Equations (1) and (2)), and the background
+coloring shows the class label from the output layer (Equation
+(3)), with red being the correct label. Left: a Neural ODE does
+not learn stable dynamics, where some dynamics point towards
+the incorrect prediction (blue region), and are especially sensitive
+around the initial conditions. Right: an identical model trained
+with LyaNet has much more stable dynamics that always smoothly
+point towards the correct prediction (red region).
+
+Neural ODE Model Class. Inference or the “forward pass”
+uses a continuous-time ODE, parameterized by θ:
+η(0) = φθ (x),
+(input layer)
+dη
+= fθ (η, x, t), (continuum of hidden layers)
+dt
+ŷ(t) = ψθ (η(t)). (output layer)
+
+(1)
+(2)
+(3)
+
+Given input x, one makes a prediction (i.e., inference) by
+solving the ODE specified by Equations (1) & (2), and
+computing the output via Equation (3). Without loss of
+generality, we assume (2) evolves in the time interval [0, 1],
+i.e., ŷ(t) is typically computed at t = 1, although one could
+in principle compute ŷ(t) at any t ∈ [0, 1]. We also assume
+that x ∈ Rn , η ∈ H ⊂ Rk , θ ∈ Θ ⊆ Rl , and y ∈ Rm . The
+state space H is assumed to be bounded and path connected.
+Motivation. The standard learning approach is to differentiate through the ODE solution with techniques such as the adjoint method (Chen et al., 2019; Kidger et al., 2021), which
+typically does not impose desirable structure, such as stability, within the learned dynamics.3 A such, the inference
+3
+Some prior work has explored learning dynamical systems
+that are stable but not explicitly to a correct prediction (Ruthotto
+& Haber, 2018; Manek & Kolter, 2020; Bai et al., 2019; 2021),
+which can lead to a tension between stability and accuracy.
+
+

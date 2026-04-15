@@ -1,0 +1,87 @@
+Neural Episodic Control
+
+Alexander Pritzel 1
+Benigno Uria 1
+Sriram Srinivasan 1
+1
+1
+Demis Hassabis Daan Wierstra Charles Blundell 1
+
+Abstract
+Deep reinforcement learning methods attain
+super-human performance in a wide range of environments. Such methods are grossly inefficient,
+often taking orders of magnitudes more data than
+humans to achieve reasonable performance. We
+propose Neural Episodic Control: a deep reinforcement learning agent that is able to rapidly
+assimilate new experiences and act upon them.
+Our agent uses a semi-tabular representation of
+the value function: a buffer of past experience containing slowly changing state representations and
+rapidly updated estimates of the value function.
+We show across a wide range of environments
+that our agent learns significantly faster than other
+state-of-the-art, general purpose deep reinforcement learning agents.
+
+1. Introduction
+Deep reinforcement learning agents have achieved state-ofthe-art results in a variety of complex environments (Mnih
+et al., 2015; 2016), often surpassing human performance (Silver et al., 2016). Although the final performance
+of these agents is impressive, these techniques usually require several orders of magnitude more interactions with
+their environment than a human in order to reach an equivalent level of expected performance. For example, in the
+Atari 2600 set of environments (Bellemare et al., 2013),
+deep Q-networks (Mnih et al., 2016) require more than 200
+hours of gameplay in order to achieve scores similar to those
+a human player achieves after two hours (Lake et al., 2016).
+The glacial learning speed of deep reinforcement learning
+has several plausible explanations and in this work we focus
+on addressing these:
+1. Stochastic gradient descent optimisation requires the use
+of small learning rates. Due to the global approximation
+nature of neural networks, high learning rates cause catastrophic interference (McCloskey & Cohen, 1989). Low
+1
+Deepmind, London, UK. Correspondence to: Alexander
+Pritzel <apritzel@google.com>.
+
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017 by
+the author(s).
+
+Adrià Puigdomènech Badia 1
+
+Oriol Vinyals 1
+
+learning rates mean that experience can only be incorporated into a neural network slowly.
+2. Environments with a sparse reward signal can be difficult
+for a neural network to model as there may be very few
+instances where the reward is non-zero. This can be viewed
+as a form of class imbalance where low-reward samples
+outnumber high-reward samples by an unknown number.
+Consequently, the neural network disproportionately underperforms at predicting larger rewards, making it difficult for
+an agent to take the most rewarding actions.
+3. Reward signal propagation by value-bootstrapping techniques, such as Q-learning, results in reward information
+being propagated one step at a time through the history of
+previous interactions with the environment. This can be
+fairly efficient if updates happen in reverse order in which
+the transitions occur. However, in order to train on uncorrelated minibatches DQN-style, algorithms train on randomly
+selected transitions, and, in order to further stabilise training,
+require the use of a slowly updating target network further
+slowing down reward propagation.
+In this work we shall focus on addressing the three concerns listed above; we must note, however, that other recent
+advances in exploration (Osband et al., 2016), hierarchical
+reinforcement learning (Vezhnevets et al., 2016) and transfer learning (Rusu et al., 2016; Fernando et al., 2017) also
+make substantial contributions to improving data efficiency
+in deep reinforcement learning over baseline agents.
+In this paper we propose Neural Episodic Control (NEC),
+a method which tackles the limitations of deep reinforcement learning listed above and demonstrates dramatic improvements on the speed of learning for a wide range of
+environments. Critically, our agent is able to rapidly latch
+onto highly successful strategies as soon as they are experienced, instead of waiting for many steps of optimisation
+(e.g., stochastic gradient descent) as is the case with DQN
+(Mnih et al., 2015) and A3C (Mnih et al., 2016).
+Our work is in part inspired by the hypothesised role of the
+Hippocampus in decision making (Lengyel & Dayan, 2007;
+Blundell et al., 2016) and also by recent work on one-shot
+learning (Vinyals et al., 2016) and learning to remember
+rare events with neural networks (Kaiser et al., 2016). Our
+agent uses a semi-tabular representation of its experience
+of the environment possessing several of the features of
+episodic memory such as long term memory, sequentiality,
+
+

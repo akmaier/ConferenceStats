@@ -1,0 +1,81 @@
+Biological Sequence Design with GFlowNets
+
+Moksh Jain 1 2 Emmanuel Bengio 1 3 Alex-Hernandez Garcia 1 2 Jarrid Rector-Brooks 1 2
+Bonaventure F. P. Dossou 1 2 4 Chanakya Ekbote 1 Jie Fu 1 2 Tianyu Zhang 1 2 Michael Kilgour 5
+Dinghuai Zhang 1 2 Lena Simine 3 Payel Das 6 Yoshua Bengio 1 2 7
+
+Abstract
+Design of de novo biological sequences with desired properties, like protein and DNA sequences,
+often involves an active loop with several rounds
+of molecule ideation and expensive wet-lab evaluations. These experiments can consist of multiple
+stages, with increasing levels of precision and
+cost of evaluation, where candidates are filtered.
+This makes the diversity of proposed candidates
+a key consideration in the ideation phase. In this
+work, we propose an active learning algorithm
+leveraging epistemic uncertainty estimation and
+the recently proposed GFlowNets as a generator
+of diverse candidate solutions, with the objective
+to obtain a diverse batch of useful (as defined by
+some utility function, for example, the predicted
+anti-microbial activity of a peptide) and informative candidates after each round. We also propose
+a scheme to incorporate existing labeled datasets
+of candidates, in addition to a reward function, to
+speed up learning in GFlowNets. We present empirical results on several biological sequence design tasks, and we find that our method generates
+more diverse and novel batches with high scoring
+candidates compared to existing approaches.
+
+1. Introduction
+Biological sequences like proteins and DNA have a broad
+range of applications to several impactful problems ranging
+from medicine to material design. For instance, design of
+novel anti-microbial peptides (AMPs; short sequences of
+amino-acids) is crucial, and identified as the first target to
+tackle the growing public health risks posed by increasing
+anti-microbial resistance (AMR; Murray et al., 2022). This
+1
+Mila 2 Université de Montréal 3 McGill University 4 Jacobs
+University Bremen 5 New York University 6 IBM 7 CIFAR Fellow and AI Chair. Correspondence to: Moksh Jain <mokshjn00@gmail.com>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+is particularly alarming according to a recent report2 by
+the World Health Organization, which predicts millions of
+human lives lost per year (with the potential breakdown of
+healthcare systems and many more indirect deaths), unless
+methods to efficiently control (and possibly stop) the fastgrowing AMR are found.
+Considering the diverse nature of the biological targets,
+modes of attack, structures, as well as the evolving nature
+of such problems, diversity becomes a key consideration in
+the design of these sequences (Mullis et al., 2019). Another
+reason for the importance of being able to propose a diverse
+set of good candidates is that cheap screening methods (like
+in-silico simulations or in-vitro experiments) may not reflect
+well future outcomes in animals and humans, as illustrated
+in Figure 1. To maximize the chances that at least one
+of the candidates will work in the end, it is important for
+these candidates to cover as much as possible the modes
+of a goodness function that estimates future success. The
+design of new biological sequences involves searching over
+combinatorially large discrete search spaces on the order
+of O(1060 ) candidates. Machine learning methods that can
+exploit the combinatorial structure in these spaces (e.g., due
+to laws of physics and chemistry) have the potential to speed
+up the design process for such biological sequences (PyzerKnapp, 2018; Terayama et al., 2021; Das et al., 2021).
+The development process of such biological sequences, for
+a particular application, involves several rounds of a candidate ideation phase (possibly starting with a random library)
+followed by an evaluation phase, as shown in Figure 1. The
+evaluation consists of several stages ranging from numerical simulations to expensive wet-lab experiments, possibly
+culminating in clinical trials. These stages filter candidates
+with progressively higher fidelity oracles that measure different aspects of the usefulness of a candidate. For example,
+the typical evaluation for an antibiotic drug after ideation
+would comprise of: (1) in-silico screening using approximate models to estimate anti-microbial activity of O(106 )
+candidates (2) in-vitro experiments to measure single-cell
+effectiveness against a target bacterium species of O(103 )
+2
+
+https://www.who.int/news-room/fact-sheets/
+detail/antibiotic-resistance
+
+

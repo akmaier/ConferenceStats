@@ -1,0 +1,82 @@
+FloE: On-the-Fly MoE Inference on Memory-constrained GPU
+
+Yuxin Zhou * 1 2 Zheng Li * 1 2 Jun Zhang 1 2 Jue Wang 1 Yiping Wang 3 Zhongle Xie 1 2 Ke Chen 1 2
+Lidan Shou 1 2
+
+Abstract
+
+chitecture by introducing sparsely activated experts. These
+sparse LLMs contextually activate only a subset of experts
+per token, significantly reducing inference costs while maintaining generative performance. However, the abundance
+of idle, non-activated experts during MoE inference significantly hampers efficient GPU memory utilization, making it
+challenging to deploy MoE models on memory-constrained
+GPUs. For instance, running inference for Mixtral-8×7B,
+where two experts are activated, requires approximately
+94GB of VRAM in FP16 precision. Of this, 30% of the
+activated parameters (27.3GB) are utilized during decoding,
+while the remaining 66.8GB is occupied by non-activated experts, resulting in significant inefficiency (Shin et al., 2024).
+
+With the widespread adoption of Mixture-ofExperts (MoE) models, there is a growing demand
+for efficient inference on memory-constrained
+devices. While offloading expert parameters to
+CPU memory and loading activated experts on
+demand has emerged as a potential solution, the
+large size of activated experts overburdens the limited PCIe bandwidth, hindering the effectiveness
+in latency-sensitive scenarios. To mitigate this,
+we propose FloE, an on-the-fly MoE inference
+system on memory-constrained GPUs. FloE is
+built on the insight that there exists substantial
+untapped redundancy within sparsely activated
+experts. It employs various compression techniques on the expert’s internal parameter matrices to reduce the data movement load, combined
+with low-cost sparse prediction, achieving perceptible inference acceleration in wall-clock time on
+resource-constrained devices. Empirically, FloE
+achieves a 9.3× compression of parameters per
+expert in Mixtral-8×7B; enables deployment on a
+GPU with only 11GB VRAM, reducing the memory footprint by up to 8.5×; and delivers a 48.7×
+inference speedup compared to DeepSpeed-MII
+on a single GeForce RTX 3090—all with only a
+4.4% ∼ 7.6% average performance degradation.
+
+To address the problem, offloading techniques (Sarkar et al.,
+2023; Eliseev & Mazur, 2023; Hwang et al., 2024; Song
+et al., 2024a; Xue et al., 2024a; Tang et al., 2024), which
+unmount expert parameters to CPU memory and load them
+into GPU memory on demand for each input, offers a natural solution. However, offloading shifts the decoding
+bottleneck from memory-bound to I/O-bound, as transferring billions of parameters through the low-bandwidth PCIe
+bus incurs substantial data transfer delays. For comparison,
+the DRAM-to-VRAM bandwidth (32GB/s for PCIe 4.0)
+is orders of magnitude lower than the bandwidth between
+GPU memory and on-chip computation units (300GB/s).
+Consequently, existing MoE inference systems with expert
+offloading, designed for edge-side continuous serving scenarios (i.e., single-batch latency-sensitive inference) (Kong
+et al., 2024; Eliseev & Mazur, 2023; Hwang et al., 2024;
+Sarkar et al., 2023; Tang et al., 2024), still fail to support
+on-the-fly inference, where the loading process is perceptible to the user because its overhead cannot be hidden by the
+model computation. Ultra-low-bit quantization effectively
+reduces the size of transmitted parameters to mitigate the
+latency of activated expert loading (Eliseev & Mazur, 2023;
+Sarkar et al., 2023), but at the cost of significantly degraded
+generation performance. Thus, a pressing question emerges:
+
+1. Introduction
+Mixture of Experts (MoE) models including DeepSeekR1 (DeepSeek-AI, 2025), GPT-4 (OpenAI, 2023), Phi4 (Abdin et al., 2024b), Mixtral (Jiang et al., 2024), etc.,
+offer a paradigm shift in the large language model (LLM) ar*
+Equal contribution 1 The State Key Laboratory of Blockchain
+and Data Security, Zhejiang University 2 Hangzhou High-Tech
+Zone (Binjiang) Institute of Blockchain and Data Security
+3
+Paul G. Allen School of Computer Science & Engineering,
+University of Washington. Correspondence to: Zhongle Xie
+<xiezl@zju.edu.cn>, Lidan Shou <should@zju.edu.cn>.
+
+How can we hide the I/O overhead of activated experts
+within model computation to enable on-the-fly MoE inference on the memory-constrained GPU while minimizing
+generation performance degradation?
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+In this paper, we present an on-the-fly MoE inference sys1
+
+

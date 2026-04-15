@@ -1,0 +1,63 @@
+Fast Matrix Square Roots with Applications to
+Gaussian Processes and Bayesian Optimization
+
+Geoff Pleiss
+Columbia University
+gmp2162@columbia.edu
+Anil Damle
+Cornell University
+damle@cornell.edu
+
+Martin Jankowiak
+The Broad Institute
+mjankowi@broadinstitute.org
+
+David Eriksson∗
+Facebook
+deriksson@fb.com
+
+Jacob R. Gardner
+University of Pennsylvania
+jacobrg@seas.upenn.edu
+
+Abstract
+Matrix square roots and their inverses arise frequently in machine learning, e.g.,
+when sampling from high-dimensional Gaussians N (0, K) or “whitening” a vector
+b against covariance matrix K. While existing methods typically require O(N 3 )
+computation, we introduce a highly-efficient quadratic-time algorithm for computing K1/2 b, K−1/2 b, and their derivatives through matrix-vector multiplication
+(MVMs). Our method combines Krylov subspace methods with a rational approximation and typically achieves 4 decimal places of accuracy with fewer than 100
+MVMs. Moreover, the backward pass requires little additional computation. We
+demonstrate our method’s applicability on matrices as large as 50,000 × 50,000—
+well beyond traditional methods—with little approximation error. Applying this
+increased scalability to variational Gaussian processes, Bayesian optimization,
+and Gibbs sampling results in more powerful models with higher accuracy. In
+particular, we perform variational GP inference with up to 10,000 inducing points
+and perform Gibbs sampling on a 25,000-dimensional problem.
+
+1
+
+Introduction
+
+High-dimensional Gaussian distributions arise frequently in machine learning, especially in the
+context of Bayesian modeling. For example, the prior of Gaussian process models is given by a
+multivariate Gaussian distribution N (0, K) governed by an N × N symmetric positive definite
+kernel matrix K. Historically, O(N 3 ) computation and O(N 2 ) memory requirements have limited
+the tractability of inference for high-dimensional Gaussian latent variable models.
+A growing line of research aims to reformulate many common covariance matrix operations—such as
+linear solves and log determinants—as iterative optimizations involving matrix-vector multiplications
+(MVMs) [e.g. 3, 11, 16, 29, 79]. MVM approaches have two primary advantages: 1) the covariance
+matrix need not be explicitly instantiated (so only O(N ) memory is required) [11, 16, 79]; and
+2) MVMs utilize GPU acceleration better than direct methods like Cholesky [3, 29]. Thus MVM
+methods can be scaled to much larger covariance matrices.
+In this paper, we propose an MVM method that addresses a common computational bottleneck for
+high-dimensional Gaussians: computing K±1/2 b. This operation occurs frequently in Gaussian
+1
+process models and inverse problems. For example, if b ∼ N (0, I), then K 2 b ∼ N (0, K). This
+operation appears frequently in Bayesian optimization [e.g. 23, 42, 74, 80] and Gibbs sampling [e.g.
+∗
+
+This work was conducted while David Eriksson was at Uber AI.
+
+34th Conference on Neural Information Processing Systems (NeurIPS 2020), Vancouver, Canada.
+
+

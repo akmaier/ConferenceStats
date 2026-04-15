@@ -1,0 +1,85 @@
+Delay-adaptive Step-sizes for Asynchronous Learning
+
+Xuyang Wu 1 Sindri Magnússon 2 Hamid Reza Feyzmahdavian 3 Mikael Johansson 1
+
+Abstract
+
+need to distribute the optimization process over multiple
+compute nodes. In a distributed environment, synchronous
+algorithms such as gradient descent or block coordinate
+descent, are often inefficient. Since they need to wait for
+the slowest worker node to complete its task, the system
+tends to spend a significant time idle and becomes sensitive
+to single node failures. This motivates the development of
+asynchronous algorithms which allow all nodes to run at
+their maximal capacity without synchronization overhead.
+
+In scalable machine learning systems, model training is often parallelized over multiple nodes that
+run without tight synchronization. Most analysis
+results for the related asynchronous algorithms
+use an upper bound on the information delays
+in the system to determine learning rates. Not
+only are such bounds hard to obtain in advance,
+but they also result in unnecessarily slow convergence. In this paper, we show that it is possible
+to use learning rates that depend on the actual
+time-varying delays in the system. We develop
+general convergence results for delay-adaptive
+asynchronous iterations and specialize these to
+proximal incremental gradient descent and blockcoordinate descent algorithms. For each of these
+methods, we demonstrate how delays can be measured on-line, present delay-adaptive step-size
+policies, and illustrate their theoretical and practical advantages over the state-of-the-art.
+
+1. Introduction
+This paper considers step-sizes that adapt to the true delays in asynchronous algorithms for solving optimization
+problems in the form
+min P (x) = f (x) + R(x),
+
+x∈Rd
+
+(1)
+
+where f : Rd → R is a smooth but possibly non-convex loss
+function and R : Rd → R ∪ {+∞} is a convex nonsmooth
+function. Here, R is typically a regularizer, promoting desired solution properties such as sparsity, or the indicator
+function of a closed convex set (the constraint set for x).
+When either the data dimension (the number of samples
+defining f ) or the variable dimension d is large, we may
+1
+
+Division of Decision and Control Systems, EECS, KTH Royal
+Institute of Technology, Stockholm, Sweden 2 Department of Computer and System Science, Stockholm University, Stockholm, Sweden 3 ABB Corporate Research, Västerås, Sweden. Correspondence to: Xuyang Wu <xuyangw@kth.se>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+In the past decade, numerous asynchronous algorithms have
+been proposed to solve large-scale problems on the form (1).
+Notable examples include ARock (Peng et al., 2016), PIAG
+(Aytekin et al., 2016; Vanli et al., 2018), Async-BCD (Liu
+et al., 2014), AsyFLEXA (Cannelli et al., 2016), DAve-RPG
+(Mishchenko et al., 2018), and the widely studied asynchronous SGD (Dean et al., 2012; Recht et al., 2011; Sra
+et al., 2016), to mention a few. Algorithms that use fixed
+step-sizes often assume bounded asynchrony and require
+an upper bound of the worst-case information delay to determine the step-size. However, such an upper bound is
+usually difficult to obtain in advance, and is a crude model
+for actual system delays. Indeed, actual latencies may be
+significantly smaller than the worst case for most nodes, and
+for most of the time. This makes the algorithm hard to tune
+and inefficient to run, since a large worst-case delay leads
+to a small step-size and a slow iterate convergence.
+1.1. Algorithms and related work
+In this paper, we develop general principles and convergence
+results for asynchronous optimization algorithms that adjust
+the learning rate on-line to the actual information delays.
+We then present concrete delay-tracking algorithms and
+adaptive step-size policies for two specific asynchronous
+optimization algorithms, PIAG and Async-BCD. These algorithms address two distinct variations of distributed model
+training: distribution of data over samples (PIAG) and distribution of variable updates across features (Async-BCD).
+To put our work in context, we review the related literature
+below.
+PIAG: PIAG
+Pn solves problem (1) with aggregated loss
+f (x) = n1 i=1 f (i) (x). Here, each f (i) could represent
+the training loss on sample i, on mini-batch i or on the
+complete data set held by some worker node. The PIAG
+
+

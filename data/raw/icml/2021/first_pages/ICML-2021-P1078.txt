@@ -1,0 +1,75 @@
+Backpropagated Neighborhood Aggregation
+for Accurate Training of Spiking Neural Networks
+
+Yukun Yang 1 Wenrui Zhang 1 Peng Li 1
+
+Abstract
+While backpropagation (BP) has been applied to
+spiking neural networks (SNNs) achieving encouraging results, a key challenge involved is to backpropagate a continuous-valued loss over layers
+of spiking neurons exhibiting discontinuous allor-none firing activities. Existing methods deal
+with this difficulty by introducing compromises
+that come with their own limitations, leading to
+potential performance degradation. We propose
+a novel BP-like method, called neighborhood aggregation (NA), which computes accurate error
+gradients guiding weight updates that may lead
+to discontinuous modifications of firing activities.
+NA achieves this goal by aggregating finite differences of the loss over multiple perturbed membrane potential waveforms in the neighborhood
+of the present membrane potential of each neuron
+while utilizing a new membrane potential distance
+function. Our experiments show that the proposed
+NA algorithm delivers the state-of-the-art performance for SNN training on several datasets.
+
+1. Introduction
+Artificial neural networks (ANNs) have achieved great
+progress on various tasks including computer vision (Krizhevsky et al., 2017), neural language processing (Brown et al., 2020), reinforcement learning (Berner
+et al., 2019; Ye et al., 2020), and other big data applications (Niu et al., 2020). Compared with the more conventional non-spiking ANNs, simply referred to as ANNs in this
+paper, spiking neural networks (SNNs) can exploit efficient
+temporal codes, exhibit a greater level of biologically plausibility, and achieve significantly improved energy efficiency
+on neuromorphic hardware (Merolla et al., 2014; Furber
+1
+
+Department of Electrical and Computer Engineering, University of California, Santa Barbara, CA 93106. Y. Yang is an
+incoming Ph.D. student to University of California, Santa Barbara.
+Correspondence to: Peng Li <lip@ucsb.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+et al., 2014; Davies et al., 2018). While recent SNN research
+advances have led to improved performance (Zenke & Ganguli, 2018; Shrestha & Orchard, 2018; Wu et al., 2018; Jin
+et al., 2018; Zhang & Li, 2020; Kim et al., 2020) particularly
+for tasks that are well suited for SNNs (Blouw et al., 2019;
+Deng et al., 2020), SNN training is still a challenging task
+in general.
+Backpropagation (BP) has been widely used for training
+ANNs. Recent works have also demonstrated the great potential of BP in training SNNs (Huh & Sejnowski, 2017;
+Bellec et al., 2018; Zenke & Ganguli, 2018; Shrestha &
+Orchard, 2018; Wu et al., 2018; Jin et al., 2018; Wu et al.,
+2019; Zhang & Li, 2020; Kim et al., 2020; Yang, 2020).
+Nevertheless, BP based training is complicated by issues
+such as spatiotemproal dynamics and discontinuities of firing activities in SNNs. Among these, one key challenge is
+to deal with non-differentiability of firing activities.
+To address this difficulty, two main families of BP methods,
+activation-based (or surrogate gradient) and timing-based
+methods, and their combination have been proposed (Kim
+et al., 2020). The activation-based methods approximate the
+non-differentiable spiking neural activation function by substituting it with a smoothed model (Zenke & Ganguli, 2018;
+Shrestha & Orchard, 2018; Wu et al., 2018; 2019), allowing
+error backpropagation in the manner of backpropagation
+through time (BPTT) or its variants. However, smoothing
+the non-differentiable activation function effectively converts one actual spike to multiple fictitious spikes and blurs
+timing information (Zhang & Li, 2020), making learning
+with precise timing difficult.
+On the other hand, timing-based methods train SNNs that
+code information using spike timing (Bohte et al., 2002;
+Mostafa, 2017; Zhang & Li, 2020) and are able to accurately
+compute the gradient of the loss with respect to firing times.
+Early timing-based methods (Bohte et al., 2002; Mostafa,
+2017) are limited to SNNs in which each neuron only fires
+once. The recent development in this family (Zhang & Li,
+2020) can handle more general SNNs where neurons are
+allowed to fire multiple times, achieving the state-of-the-art
+results on several datasets including CIFAR-10. The error
+gradient computed by the timing-based methods is based on
+a key assumption: the firing count of each neuron remains
+
+

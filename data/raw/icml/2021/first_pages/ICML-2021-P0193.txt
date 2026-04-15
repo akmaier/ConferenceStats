@@ -1,0 +1,95 @@
+Differentiable Particle Filtering via Entropy-Regularized Optimal Transport
+
+Adrien Corenflos * 1 James Thornton * 2 George Deligiannidis 2 Arnaud Doucet 2
+
+Abstract
+Particle Filtering (PF) methods are an established
+class of procedures for performing inference in
+non-linear state-space models. Resampling is a
+key ingredient of PF, necessary to obtain low variance likelihood and states estimates. However,
+traditional resampling methods result in PF-based
+loss functions being non-differentiable with respect to model and PF parameters. In a variational inference context, resampling also yields
+high variance gradient estimates of the PF-based
+evidence lower bound. By leveraging optimal
+transport ideas, we introduce a principled differentiable particle filter and provide convergence
+results. We demonstrate this novel method on a
+variety of applications.
+
+1. Introduction
+In this section we provide a brief introduction to state-space
+models (SSMs) and PF methods. We then illustrate one
+of the well-known limitations of PF (Kantas et al., 2015):
+resampling steps are required in order to compute lowvariance estimates, but these estimates are not differentiable
+w.r.t. to model and PF parameters. This hinders end-to-end
+training. We discuss recent approaches to address this problem in econometrics, statistics and machine learning (ML),
+outline their limitations and our contributions.
+1.1. State-Space Models
+SSMs are an expressive class of sequential models, used in
+numerous scientific domains including econometrics, ecology, ML and robotics; see e.g. (Chopin & Papaspiliopoulos,
+2020; Douc et al., 2014; Doucet & Lee, 2018; Kitagawa &
+Gersch, 1996; Lindsten & Schön, 2013; Thrun et al., 2005).
+SSM may be characterized by a latent X -valued Markov
+*
+Equal contribution 1 Department of Electrical Engineering
+and Automation, Aalto University 2 Department of Statistics, University of Oxford.
+Correspondence to: Adrien
+Corenflos <adrien.corenflos@aalto.fi>, James Thornton
+<james.thornton@spc.ox.ac.uk>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+process (Xt )t≥1 and Y-valued observations (Yt )t≥1 satisfying X1 ∼ µθ (·) and for t ≥ 1
+Xt+1 |{Xt = x} ∼ fθ (·|x), Yt |{Xt = x} ∼ gθ (·|x), (1)
+where θ ∈ Θ is a parameter of interest. Given observations
+(yt )t≥1 and parameter values θ, one may perform state inference at time t by computing the posterior of Xt given
+y1:t := (y1 , ..., yt ) where
+Z
+pθ (xt |y1:t−1 ) = fθ (xt |xt−1 )pθ (xt−1 |y1:t−1 )dxt−1 ,
+pθ (xt |y1:t ) = R
+
+gθ (yt |xt )pθ (xt |y1:t−1 )
+,
+gθ (yt |xt )pθ (xt |y1:t−1 )dxt
+
+with pθ (x1 |y0 ) := µθ (x1 ).
+The log-likelihood `(θ) = log pθ (y1:T ) is then given by
+`(θ) =
+
+T
+X
+
+log pθ (yt |y1:t−1 ),
+
+t=1
+
+with pθ (y1 |y0 ) :=
+
+R
+
+gθ (y1 |x1 )µθ (x1 )dx1 and for t ≥ 2
+Z
+pθ (yt |y1:t−1 ) = gθ (yt |xt )pθ (xt |y1:t−1 )dxt .
+
+The posteriors pθ (xt |y1:t ) and log-likelihood pθ (y1:T ) are
+available analytically for only a very restricted class of SSM
+such as linear Gaussian models. For non-linear SSM, PF
+provides approximations of such quantities.
+1.2. Particle Filtering
+PF are Monte Carlo methods entailing the propagation
+of N weighted particles (wti , Xti )i∈[N ] , here [N ] :=
+{1, ..., N }, over time to approximate the filtering distributions pθ (xt |y1:t ) and log-likelihood `(θ). Here Xti ∈ X
+denotes the value of the ith particle at timeP
+t and wt :=
+N
+i
+(wt1 , ..., wtN ) are weights satisfying wti ≥ 0,
+i=1 wt = 1.
+Unlike variational methods, PF methods provide consistent approximations under weak assumptions as N → ∞
+(Del Moral, 2004). In the general setting, particles are sampled according to proposal distributions qφ (x1 |y1 ) at time
+t = 1 and qφ (xt |xt−1 , yt ) at time t ≥ 2 prior to weighting
+and resampling. One often chooses θ = φ but this is not
+necessarily the case (Le et al., 2018; Maddison et al., 2017;
+Naesseth et al., 2018).
+
+

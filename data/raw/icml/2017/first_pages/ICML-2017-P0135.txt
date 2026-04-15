@@ -1,0 +1,71 @@
+Efficient softmax approximation for GPUs
+
+Édouard Grave 1 Armand Joulin 1 Moustapha Cissé 1 David Grangier 1 Hervé Jégou 1
+
+Abstract
+We propose an approximate strategy to efficiently
+train neural network based language models over
+very large vocabularies. Our approach, called
+adaptive softmax, circumvents the linear dependency on the vocabulary size by exploiting the
+unbalanced word distribution to form clusters that
+explicitly minimize the expectation of computation time. Our approach further reduces the
+computational time by exploiting the specificities of modern architectures and matrix-matrix
+vector operations, making it particularly suited
+for graphical processing units. Our experiments
+carried out on standard benchmarks, such as EuroParl and One Billion Word, show that our approach brings a large gain in efficiency over standard approximations while achieving an accuracy
+close to that of the full softmax. The code of our
+method is available at https://github.com/
+facebookresearch/adaptive-softmax.
+
+1. Introduction
+This paper considers strategies to learn parametric models
+for language modeling with very large vocabularies. This
+problem is key to natural language processing, with applications in machine translation (Schwenk et al., 2012;
+Sutskever et al., 2014; Vaswani et al., 2013) or automatic
+speech recognition (Graves et al., 2013; Hinton et al.,
+2012). In particular, Neural Network Language Models
+(NNLMs) have received a renewed interest in recent years,
+by achieving state of the art performance on standard benchmarks (Jozefowicz et al., 2016; Mikolov et al., 2010). These
+approaches are more computationally intensive but generalize better than traditional non-parametric models (Bahl
+et al., 1983; Kneser & Ney, 1995).
+Statistical language models assign a probability to words
+given their history (Bahl et al., 1983). They are evaluated
+1
+Facebook AI Research. Correspondence to: Édouard Grave
+<egrave@fb.com>.
+
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017 by
+the author(s).
+
+by objective criteria such as perplexity (ppl), which directly
+measures the ability of the system to determine proper probabilities for all the words. This potentially makes parametric models prohibitively slow to train on corpora with
+very large vocabulary. For instance, the vocabulary of the
+One Billion Word benchmark (Chelba et al., 2013) contains around 800K words. In standard NNLMs, such as
+feedforward networks (Bengio et al., 2003a) or recurrent
+networks (Mikolov et al., 2010), computing this probability
+over the whole vocabulary is the bottleneck. Many solutions have been proposed to reduce the complexity of this
+expensive step (Bengio et al., 2003b; Goodman, 2001a; Gutmann & Hyvärinen, 2010). We distinguish (i) the methods
+that consider the original distribution and aim at providing approximations of the probabilities, or of a subset of
+them (Bengio et al., 2003b; Ji et al., 2015), from (ii) the
+approaches that compute exact probabilities for an approximate model yielding a lower computational time, such as
+the popular hierarchical softmax (Goodman, 2001a; Mnih
+& Hinton, 2009; Morin & Bengio, 2005).
+Our approach, called adaptive softmax, belongs to the second category. More specifically, it is inspired by the hierarchical softmax and its subsequent variants. In contrast to
+previous works and motivated by the trend that GPUs are
+comparatively more and more performant than CPUs, our
+design is oriented towards efficient processing on GPUs. In
+this context, our paper makes the following points:
+• We define a strategy to produce an approximate hierarchical model. It departs from previous ones in that it
+explicitly takes into account the computation time of
+matrix-matrix multiplications on modern architectures,
+which is not trivially linear in the dimensions of the
+matrices.
+• We conduct an empirical analysis of this model on
+recent GPUs. This leads us to define a realistic computation time model that is incorporated in the proposed
+optimization;
+• Our approach provides a significant acceleration factor compared to the regular softmax, i.e., 2× to 10×
+speed-ups. Equivalently we improve the accuracy under computational constraints. Importantly, on the
+largest corpus, this higher efficiency empirically comes
+
+

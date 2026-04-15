@@ -1,0 +1,78 @@
+Neural Inverse Transform Sampler
+
+Henry Li 1 Yuval Kluger 1
+
+Abstract
+Any explicit functional representation f of a density is hampered by two main obstacles when
+we wish to use it as a generative model: designing f Rso that sampling is fast, and estimating
+Z = f so that Z −1 f integrates to 1. This
+becomes increasingly complicated as f itself becomes complicated. In this paper, we show that
+when modeling one-dimensional conditional densities with a neural network, Z can be exactly and
+efficiently computed by letting the network represent the cumulative distribution function of a
+target density, and applying a generalized fundamental theorem of calculus. We also derive a fast
+algorithm for sampling from the resulting representation by the inverse transform method. By extending these principles to higher dimensions, we
+introduce the Neural Inverse Transform Sampler (NITS), a novel deep learning framework for
+modeling and sampling from general, multidimensional, compactly-supported probability densities.
+NITS is a highly expressive density estimator that
+boasts end-to-end differentiability, fast sampling,
+and exact and cheap likelihood evaluation. We
+demonstrate the applicability of NITS by applying
+it to realistic, high-dimensional density estimation
+tasks: likelihood-based generative modeling on
+the CIFAR-10 dataset, and density estimation on
+the UCI suite of benchmark datasets, where NITS
+produces compelling results rivaling or surpassing
+the state of the art.
+
+1. Introduction
+Building efficient, highly expressive generative density estimators has been a long-standing challenge in machine
+learning. A sufficiently powerful estimator will have far
+reaching effects on a bevy of inference tasks, ranging from
+1
+Department of Applied Mathematics, Yale University, New
+Haven, CT. Correspondence to: Henry Li <henry.li@yale.edu>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+classification to generative modeling to missing value imputation.
+Density estimation of continuous random variables revolves
+around a fundamental trade off between expressivity and
+tractability, which is most concretely related
+to the compuR
+tation of the partition function Zθ = Ω fθ for a positive
+function fθ : Ω → R+ . The general rule of thumb: the more
+flexible the underlying fθ , the more difficult the estimation
+of Zθ .
+For instance, the most general model is perhaps the energybased model (EBM), where the desired density ν is approximated via an energy landscape — for example, the
+Boltzmann (or Gibbs) distribution
+e−fθ (x)
+,
+e−fθ (x) dx
+Ω
+
+νθ = R
+
+(1)
+
+where fθ may be an arbitrary function. The problem with
+this formulation is that analytic integration of functions of
+general form is unknown, and the cost of numerical integration techniques scales exponentially with the dimension of
+Ω. Thus there are few, if any, approaches that represent an
+arbitrary fθ in high dimension, though some methods may
+estimate fθ via a variational lower bound (Sohl-Dickstein
+et al., 2015; Du & Mordatch, 2019).
+On the other hand, one may obtain Zθ through direct analytic derivation — but this is only applicable for a small
+handful of distributions. (Theis et al., 2012) and (Uria et al.,
+2016), for example, perform density estimation via Gaussian mixture and Gaussian scale mixture models, which
+both have well-known partition functions.
+Ultimately, most approaches avoid explicit estimation of
+the density. Normalizing flows (Dinh et al., 2014; Rezende
+& Mohamed, 2015) learn the transform between the desired density and a reference density (usually Gaussian),
+and compute ν via the probabilistic change-of-variables formula, which does not require Z, while score-based (Song
+et al., 2020) models work with the gradient of the loglikelihood, which again does not depend on the partition
+function. These techniques for sidestepping the computation of Z each have drawbacks, which we will explore in
+Section 4.
+Directly approximating a pdf ν with a parametric function
+
+

@@ -1,0 +1,65 @@
+Structured Stochastic Gradient MCMC
+Antonios Alexos * 1 Alex Boyd * 2 Stephan Mandt 1 2
+
+Abstract
+Stochastic gradient Markov Chain Monte Carlo
+(SGMCMC) is a scalable algorithm for asymptotically exact Bayesian inference in parameterrich models, such as Bayesian neural networks.
+However, since mixing can be slow in high dimensions, practitioners often resort to variational
+inference (VI). Unfortunately, VI makes strong assumptions on both the factorization and functional
+form of the posterior. To relax these assumptions,
+this work proposes a new non-parametric variational inference scheme that combines ideas from
+both SGMCMC and coordinate-ascent VI. The approach relies on a new Langevin-type algorithm
+that operates on a "self-averaged" posterior energy function, where parts of the latent variables
+are averaged over samples from earlier iterations
+of the Markov chain. This way, statistical dependencies between coordinates can be broken in a
+controlled way, allowing the chain to mix faster.
+This scheme can be further modified in a “dropout”
+manner, leading to even more scalability. We test
+our scheme for ResNet-20 on CIFAR-10, SVHN,
+and FMNIST. In all cases, we find improvements
+in convergence speed and/or final accuracy compared to SGMCMC and parametric VI.
+
+1. Introduction
+There has been much recent interest in deep Bayesian neural networks (BNN) due to their reliable confidence estimates and generalization properties (Wilson & Izmailov,
+2020; Jospin et al., 2020; Cardelli et al., 2019). BNNs
+rely on ensemble averages over model parameters typically
+obtained from Markov chain Monte Carlo (MCMC) algorithms, which contrasts to regular neural networks that depend on a single set of parameters. The sheer size of these
+*
+Equal contribution 1 Department of Computer Science, University of California, Irvine, USA 2 Department of Statistics, University of California, Irvine, USA. Correspondence to: Antonios Alexos <aalexos@uci.edu>, Alex Boyd <alexjb@uci.edu>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+models requires scalable MCMC approaches based on inexpensive stochastic gradients, of which stochastic gradient
+Markov chain Monte Carlo (SGMCMC) algorithms are
+most widely used (Li et al., 2016; Welling & Teh, 2011; Patterson & Teh, 2013). These algorithms owe their scalability
+to approximating gradients via mini-batching.
+The main downside of using SGMCMC algorithms is their
+slow mixing rate in high dimensions. A less ambitious
+goal than sampling from the true high-dimensional posterior
+is to approximate the latter by a simpler, typically factorized distribution, as done in variational inference (VI) (Blei
+et al., 2017; Zhang et al., 2018). However, classical VI
+methods make strong parametric assumptions on the posterior, such as modeling it using product of univariate Gaussian distributions. These distributional assumptions are frequently over-simplistic in high-dimensional models, where
+the posterior can be highly multi-modal and possibly heavytailed. Another downside is that the variational approximation typically underestimates the posterior variance, leading
+to poorly calibrated uncertainties and overfitting (Ormerod
+& Wand, 2010; Giordano et al., 2015; Zhang et al., 2018).
+In this work, we derive a new approximate SGMCMC approach that takes inspiration from structured VI (Saul &
+Jordan, 1996; Wainwright & Jordan, 2008), a version of VI
+that maintains selected posterior correlations while breaking
+others. While our approach remains a sampling algorithm
+resembling SGMCMC, we speed up the mixing time by
+systematically breaking pre-specified posterior correlations.
+Our approach thus adapts the partial factorization aspect
+from structured mean-field VI, but it remains fully nonparametric and makes no assumptions on the functional
+form of the approximate posterior. For this reason, we name
+our approach structured SGMCMC.
+We start by reviewing the functional view on VI, deriving the
+optimal variational distribution for a given posterior subject
+to factorization constraints. Our main contribution is then to
+show that one can sample from this target distribution by running SGMCMC on a modified energy function. This energy
+function is inspired by the partially-marginalized log joint
+distribution as encountered in coordinate-ascent VI (Saul
+& Jordan, 1996; Bishop, 2006). We can tractably approximate the involved expectations by averaging selected latent
+variables over samples from the Markov chain. The resulting "self-averaged" energy function defines un-normalized
+
+

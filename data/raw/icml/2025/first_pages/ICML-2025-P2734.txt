@@ -1,0 +1,85 @@
+A First-order Generative Bilevel Optimization Framework for Diffusion Models
+
+Quan Xiao† 1 2 Hui Yuan 3 A F M Saif 1 Gaowen Liu 4 Ramana Kompella 4 Mengdi Wang 3 Tianyi Chen† 1 2
+
+Abstract
+
+an upper-level objective, has evolved from its theoretical
+origins in the 1970s (Bracken & McGill, 1973) into a cornerstone of modern machine learning. Its ability to model
+hierarchical dependencies makes it ideal for complex learning tasks, such as hyperparameter tuning (Pedregosa, 2016),
+meta-learning (Finn et al., 2017), reinforcement learning
+(Stadie et al., 2020; Shen et al., 2024), adversarial training
+(Zhang et al., 2022), neural architecture search (Liu et al.,
+2019) and LLM alignment (Zakarias et al., 2024; Shen et al.,
+2025a; Gong et al., 2022; Qin et al., 2024).
+
+Diffusion models, which iteratively denoise data
+samples to synthesize high-quality outputs, have
+achieved empirical success across domains. However, optimizing these models for downstream
+tasks often involves nested bilevel structures,
+such as tuning hyperparameters for fine-tuning
+tasks or noise schedules in training dynamics,
+where traditional bilevel methods fail due to the
+infinite-dimensional probability space and prohibitive sampling costs. We formalize this challenge as a generative bilevel optimization problem and address two key scenarios: (1) finetuning pre-trained models via an inference-only
+lower-level solver paired with a sample-efficient
+gradient estimator for the upper level, and (2)
+training diffusion model from scratch with noise
+schedule optimization by reparameterizing the
+lower-level problem and designing a computationally tractable gradient estimator. Our first-order
+bilevel framework overcomes the incompatibility of conventional bilevel methods with diffusion processes, offering theoretical grounding and
+computational practicality. Experiments demonstrate that our method outperforms existing finetuning and hyperparameter search baselines. Our
+code has been released at https://github.
+com/afmsaif/bilevel_diffusion.
+
+Meanwhile, the diffusion model has achieved remarkable success across various domains, particularly in image
+(Croitoru et al., 2023; Ho et al., 2020; Song et al., 2021a;b),
+audio (Yang et al., 2023; Liu et al., 2023a), and biological
+sequence generation (Jing et al., 2022; Wu et al., 2022). Yet,
+optimizing these models for downstream tasks often introduces nested objectives: for instance, fine-tuning pre-trained
+models to maximize task-specific rewards (e.g., aesthetic
+quality (Yang et al., 2024)) risks reward over-optimization,
+where generated samples become unrealistic despite high
+scores. To mitigate this, incorporating an auxiliary objective
+can balance the optimization process and prevent excessive
+focus on a single metric; see Section 3.1. Similarly, designing noise schedules for the forward/reverse processes (Chen,
+2023) requires balancing sample quality against computational cost - a problem inherently requiring coordination
+between training dynamics (lower-level) and scheduler parameters (upper-level); see Section 3.2. An overview of the
+bilevel generative problem is shown in Figure 1. All of the
+above illustrate the need for developing bilevel algorithms
+that are friendly to diffusion models. However, applying
+existing bilevel methods to diffusion models - which operate in infinite-dimensional probability spaces and require
+costly sampling steps—poses unique challenges. Traditional gradient-based bilevel approaches (Franceschi et al.,
+2017; Maclaurin et al., 2015) rely on exact lower-level solutions and dense gradient backpropagation, both infeasible
+for diffusion processes where generating a single sample
+can involve hundreds of neural network evaluations.
+
+1. Introduction
+Bilevel optimization, which involves nested problems where
+a lower-level optimization is constrained by the solution of
+†
+This work was done when the authors were at Rensselear
+Polytechnic Institute. 1 Department of Electrical, Computer, and
+Systems Engineering, Rensselaer Polytechnic Institute, Troy, NY
+2
+Department of Electrical and Computer Engineering, Cornell
+Tech, Cornell University, New York, NY 3 Department of Electrical
+and Computer Engineering, Princeton University, NJ 4 Cisco Research. Correspondence to: Quan Xiao <quanx1808@gmail.com>,
+Tianyi Chen <chentianyi19@gmail.com>.
+
+In this paper, we focus on designing computationally efficient and diffusion-friendly approaches for the following
+problem that we call the generative bilevel problem:
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+min
+
+x∈X ,y∈P
+
+1
+
+f (x, y), s.t. y ∈ S(x) = arg min g(x, y) (1)
+y∈P
+
+

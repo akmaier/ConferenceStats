@@ -1,0 +1,69 @@
+Efficient Model–Based Deep Reinforcement Learning with
+Variational State Tabulation
+Dane Corneil 1 Wulfram Gerstner 1 Johanni Brea 1
+
+Abstract
+Modern reinforcement learning algorithms reach
+super–human performance on many board and
+video games, but they are sample inefficient, i.e.
+they typically require significantly more playing
+experience than humans to reach an equal performance level. To improve sample efficiency,
+an agent may build a model of the environment
+and use planning methods to update its policy. In
+this article we introduce Variational State Tabulation (VaST), which maps an environment with a
+high–dimensional state space (e.g. the space of
+visual inputs) to an abstract tabular model. Prioritized sweeping with small backups, a highly
+efficient planning method, can then be used to update state–action values. We show how VaST can
+rapidly learn to maximize reward in tasks like 3D
+navigation and efficiently adapt to sudden changes
+in rewards or transition probabilities.
+
+1. Introduction
+Classical Reinforcement Learning (RL) techniques generally assume a tabular representation of the state space (Sutton & Barto, 2018). While methods like prioritized sweeping (Sutton & Barto, 2018; Moore & Atkeson, 1993; Peng
+& Williams, 1993; Van Seijen & Sutton, 2013) have proven
+to be very sample–efficient in tabular environments, there is
+no canonical way to carry them over to very large (or continuous) state spaces, where the agent seldom or never encounters the same state more than once. Recent approaches to reinforcement learning have shown tremendous success by using deep neural networks as function approximators in such
+environments, allowing for generalization between similar
+1
+
+Laboratory of Computational Neuroscience (LCN), School
+of Computer and Communication Sciences and Brain Mind Institute, School of Life Sciences, École Polytechnique Fédérale
+de Lausanne, Switzerland. Correspondence to: Dane Corneil
+<dane.corneil@epfl.ch>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+states (e.g. Mnih et al. (2015; 2016)) and learning approximate dynamics to perform planning at decision time (e.g. Silver et al. (2017); Oh et al. (2017); Farquhar et al. (2017);
+Racanière et al. (2017); Nagabandi et al. (2017)). However,
+methods like prioritized sweeping that use a model for offline updates of Q-values (i.e. background planning (Sutton
+& Barto, 2018)), have not yet been investigated in conjunction with function approximation by neural networks.
+Adjusting the weights in a deep network is a slow procedure
+relative to learning in tabular environments. In particular,
+agents using deep architectures typically fail to take advantage of single experiences that significantly alter the policy.
+This was illustrated by recent work on Model–Free Episodic
+Control (MFEC) (Blundell et al., 2016), where a very simple agent using a semi–tabular approach significantly outperformed existing deep network approaches in the early stages
+of learning. The basic MFEC agent uses a random projection from the observation space to a low–dimensional space,
+and stores the discounted returns associated with observations in a lookup table. The Q-values of states observed
+for the first time are determined by a k–Nearest–Neighbour
+average over discounted returns associated with similar existing states in the lookup table.
+As an example with an MFEC agent, we can consider the
+T–maze task shown in Figure 1A. The observations are continuous (x, y) coordinates; the agent can take a fixed–sized
+step in one of four cardinal directions, with a rebound on
+hitting a wall, and a terminal reward zone (green). The first
+episode (red) is spontaneously terminated without reward;
+the discounted returns along the red trajectory are therefore
+set to zero. On the second episode (blue), the agent reaches
+the reward zone, and the discounted reward is immediately
+associated with the states visited along the blue trajectory.
+To improve sample efficiency, we consider how an agent
+could apply the experience of the rewarded trajectory to
+Q-value estimates in the top–right arm. In particular, by
+learning a model of the environment, the agent could learn
+that both trajectories pass through the center of the T–maze,
+and that discovering a reward at the bottom of the maze
+should therefore change Q-value estimates in both of the
+arms at the top. This idea is exploited by the model–based
+RL technique of prioritized sweeping (Moore & Atkeson,
+
+

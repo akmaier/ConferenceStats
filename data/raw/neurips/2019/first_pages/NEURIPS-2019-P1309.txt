@@ -1,0 +1,55 @@
+Double Quantization for Communication-Efficient
+Distributed Optimization
+
+Yue Yu
+IIIS, Tsinghua University
+yu-y14@mails.tsinghua.edu.cn
+
+Jiaxiang Wu
+Tencent AI Lab
+jonathanwu@tencent.com
+
+Longbo Huang∗
+IIIS, Tsinghua University
+longbohuang@tsinghua.edu.cn
+
+Abstract
+Modern distributed training of machine learning models often suffers from high
+communication overhead for synchronizing stochastic gradients and model parameters. In this paper, to reduce the communication complexity, we propose
+double quantization, a general scheme for quantizing both model parameters and
+gradients. Three communication-efficient algorithms are proposed based on this
+general scheme. Specifically, (i) we propose a low-precision algorithm AsyLPG
+with asynchronous parallelism, (ii) we explore integrating gradient sparsification
+with double quantization and develop Sparse-AsyLPG, (iii) we show that double
+quantization can be accelerated by the momentum technique and design accelerated AsyLPG. We establish rigorous performance guarantees for the algorithms,
+and conduct experiments on a multi-server test-bed with real-world datasets to
+demonstrate that our algorithms can effectively save transmitted bits without performance degradation, and significantly outperform existing methods with either
+model parameter or gradient quantization.
+
+1
+
+Introduction
+
+The data parallel mechanism is a widely used architecture for distributed optimization, which has
+received much recent attention due to data explosion and increasing model complexity. It decomposes
+the time consuming gradient computations into sub-tasks, and assigns them to separate worker
+machines for execution. Specifically, the training data is distributed among M workers and each
+worker maintains a local copy of model parameters. At each iteration, each worker computes a
+gradient from a mini-batch randomly drawn from its local data. The global stochastic gradient is
+then computed by synchronously aggregating M local gradients. Model parameters are then updated
+accordingly.
+Two issues significantly slow down methods based on the data parallel architecture. One is the
+communication cost. For example, all workers must send their entire local gradients to the master
+node. If gradients are dense, the master node has to receive and send M × d floating-point numbers
+per iteration (d is the size of the model vector), which scales linearly with network and model vector
+sizes. With the increasing computing cluster size and model complexity, it has been observed in many
+systems that such communication overhead has become the performance bottleneck [38, 35]. The
+other factor is the synchronization cost, i.e., the master node has to wait for the last local gradient
+arrival at each iteration. This coordination dramatically increases system’s idle time.
+∗
+
+Corresponding author.
+
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

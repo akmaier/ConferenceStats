@@ -1,0 +1,71 @@
+Bringing regularized optimal transport to lightspeed:
+a splitting method adapted for GPUs
+
+Jacob Lindbäck
+EECS, KTH
+Stockholm, Sweden
+jlindbac@kth.se
+
+Zesen Wang
+EECS, KTH
+Stockholm, Sweden
+zesen@kth.se
+
+Mikael Johansson
+EECS, KTH
+Stockholm, Sweden
+mikaelj@kth.se
+
+Abstract
+We present an efficient algorithm for regularized optimal transport. In contrast to
+previous methods, we use the Douglas-Rachford splitting technique to develop
+an efficient solver that can handle a broad class of regularizers. The algorithm
+has strong global convergence guarantees, low per-iteration cost, and can exploit
+GPU parallelization, making it considerably faster than the state-of-the-art for
+many problems. We illustrate its competitiveness in several applications, including
+domain adaptation and learning of generative models.
+
+1
+
+Introduction
+
+Optimal transport (OT) is an increasingly important tool for many ML problems. It has proven
+successful in a wide range of applications, including domain adaptation [8, 19], learning generative
+models [2, 17], smooth ranking and sorting schemes [12], and long-tailed recognition [29]. The
+versatility of OT stems from the fact that it provides a flexible framework for comparing probability
+distributions that incorporates the geometric structure of the underlying sample space [30]. Early on,
+practitioners were directed to LP solvers with poor scalability to solve OT problems, but this changed
+dramatically with the introduction of entropic regularization and the Sinkhorn algorithm for OT.
+Sinkhorn’s simple parallelizable operations resolved a computational bottleneck of OT and enabled
+the solution of large-scale problems at “lightspeed” [11]. Despite the computational advantages
+of entropic regularization, many applications depend on sparse or structured transportation plans,
+and the bias that entropic regularization introduces can significantly impact the performance of the
+downstream task being solved. In such settings, other structure-promoting regularizers are typically
+preferred (see e.g. [10, 25, 19]). However, to the best of our knowledge, no framework exists that
+handles general regularizers for OT in a unifying way with a numerical efficiency that is comparable
+to Sinkhorn. To this end, we study OT for a broad class of regularizers and develop an algorithm
+with similar computational performance as Sinkhorn. Further, we benchmark our method against the
+state-of-the-art, showing that our algorithm achieves up to 100x speed-up for several applications.
+For discrete probability distributions, solving regularized OT problems amounts to finding a solution
+to the optimization problem
+minimize
+m×n
+
+⟨C, X⟩ + h(X)
+
+subject to
+
+X1n = p, X ⊤ 1m = q.
+
+X∈R+
+
+(1)
+
+Here p and q are non-negative vectors that sum to 1, C is a non-negative cost matrix, and the
+regularizer h is a function that promotes structured solutions. To solve (1) fast, it is important that
+the large number of decision variables and the non-negativity constraint on the transportation plan
+are handled in a memory-efficient way. It is also crucial to manage the non-smoothness induced
+by the non-negativity constraints without altering the complexity of the algorithm. It is common
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

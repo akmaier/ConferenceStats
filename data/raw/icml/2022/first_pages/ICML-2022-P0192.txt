@@ -1,0 +1,83 @@
+Self-conditioning Pre-Trained Language Models
+
+Xavier Suau 1 Luca Zappella 1 Nicholas Apostoloff 1
+
+Abstract
+In this paper we aim to investigate the mechanisms that guide text generation with pre-trained
+Transformer-based Language Models (TLMs).
+Grounded on the Product of Experts formulation
+by Hinton (1999), we describe a generative mechanism that exploits expert units which naturally
+exist in TLMs. Such units are responsible for
+detecting concepts in the input and conditioning
+text generation on such concepts. We describe
+how to identify expert units and how to activate
+them during inference in order to induce any desired concept in the generated output. We find
+that the activation of a surprisingly small amount
+of units is sufficient to steer text generation (as
+little as 3 units in a model with 345M parameters).
+While the objective of this work is to learn more
+about how TLMs work, we show that our method
+is effective for conditioning without fine-tuning
+or using extra parameters, even on fine-grained
+homograph concepts. Additionally, we show that
+our method can be used to correct gender bias
+present in the output of TLMs and achieves gender
+parity for all evaluated contexts. We compare our
+method with FUDGE (Yang & Klein, 2021) and
+PPLM-BoW (Dathathri et al., 2020), and show
+that our approach is able to achieve gender parity
+at a lower perplexity and better Self-BLEU score.
+The proposed method is accessible to a wide audience thanks to its simplicity and minimal compute
+needs. The findings in this paper are a step forward in understanding the generative mechanisms
+of TLMs.
+
+1. Introduction
+Natural Language Processing (NLP) is evolving at a fast
+pace. For instance, language models (Bengio et al., 2003)
+1
+Apple.
+Correspondence to:
+cuadros@apple.com>.
+
+Xavier Suau <xsuau-
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+based on the Transformer (Vaswani et al., 2017) architecture (TLMs) achieve impressive performance in many tasks,
+including text generation (Radford et al., 2019; Brown et al.,
+2020). Despite their success, the mechanisms that govern
+and control text generation using TLMs remain unclear.
+Additionally, TLMs have two important drawbacks: (1) conditioning these models to constrain the content of their generation requires either expensive re-training (Keskar et al.,
+2019) or the use of additional parameters (Dathathri et al.,
+2020; Zhang et al., 2020; Yang & Klein, 2021); (2) TLMs
+might inherit and perpetuate biases present in the training
+data, which can have a negative social impact (Sheng et al.,
+2019; Abid et al., 2021), especially when TLMs are deployed in commercial applications.
+This paper investigates the internal mechanisms used by
+TLMs to control text generation. Theoretically grounded on
+the Product of Experts formulation by Hinton (1999), we
+describe a generative mechanism based on the presence of
+expert units (neurons) in pre-trained TLMs. In this mechanism, expert units capture the presence of a concept in
+the TLM input. At generation time, the TLM relies on the
+activation of such expert units to produce text with a specific
+concept. In order to exploit the proposed generative mechanism, we first identify expert units based on their ability to
+detect a concept in the input with a given average precision.
+Our approach finds expert units in a scalable manner for a
+variety of concepts. Then, we apply a post-hoc intervention
+upon those units which increases the presence of a concept
+in the generated text, independently of the concepts present
+in the input. We show that intervening on as little as 3 units
+can be sufficient to steer the generation towards a desired
+concept. Our method does not require fine-tuning or using
+additional parameters1 .
+Sec. 2 contains a literature review of relevant works. In
+Sec. 3 we define the term concept and we describe its formal
+representation. In Sec. 4 we explain our algorithm to exploit
+the proposed generative mechanism by finding and activating expert units for a specific concept. In Sec. 5.1 we apply
+our method to condition TLMs on a variety of concepts
+(including fine-grained homographs) and we provide qualitative text generation results. In Sec. 5.2 we analyze the performance of our method for gender bias mitigation. We com1
+
+Code available at https://github.com/apple/ml-selfcond
+
+

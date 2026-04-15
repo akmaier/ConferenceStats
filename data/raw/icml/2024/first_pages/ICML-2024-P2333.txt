@@ -1,0 +1,97 @@
+Gated Linear Attention Transformers with Hardware-Efficient Training
+
+Songlin Yang 1 * Bailin Wang 1 * Yikang Shen 2 Rameswar Panda 2 Yoon Kim 1
+
+Abstract
+
+1
+
+Introduction
+
+Transformers with softmax attention (Vaswani et al., 2017)
+enjoy efficient parallel training but suffer from quadratic
+(in sequence length) complexity, thus motivating more
+RNN-like models that allow for linear-time sequence
+modeling. Linear attention, which replaces the exponential
+similarity function with a simple dot product over (possibly
+transformed) key/query vectors, has emerged as a promising
+alternative to classic softmax attention (Katharopoulos et al.,
+2020; Choromanski et al., 2021; Kasai et al., 2021; Peng
+et al., 2021). An attractive property of linear attention is that
+it admits a “recurrent form” in which it can be formulated
+as a linear RNN with 2D hidden states (Katharopoulos et al.,
+2020), thus enabling linear-time inference. For training,
+linear attention also admits a subquadratic “chunkwise parallel form” which divides the sequence into non-overlapping
+chunks and performs (serial) inter-chunk recurrent computations followed by (parallel) intra-chunk computations (Hua
+et al., 2022; Sun et al., 2023a; Lingle, 2023), thus (partially)
+maintaining parallel training. However, existing algorithms
+for linear attention are not I/O aware and thus, in practice,
+slower than optimized implementations of softmax attention
+(Dao et al., 2022b; Dao, 2023) on moderate sequence lengths.
+
+Transformers with linear attention allow for
+efficient parallel training but can simultaneously
+be formulated as an RNN with 2D (matrix-valued)
+hidden states, thus enjoying linear-time inference
+complexity. However, linear attention generally
+underperforms ordinary softmax attention. Moreover, current implementations of linear attention
+lack I/O-awareness and are thus slower than highly
+optimized implementations of softmax attention.
+This work describes a hardware-efficient algorithm for linear attention that trades off memory
+movement against parallelizability. The resulting
+implementation, dubbed F LASH L INEAR ATTENTION , is faster than F LASH ATTENTION -2
+(Dao, 2023) as a standalone layer even on short
+sequence lengths (e.g., 1K). We then generalize
+this algorithm to a more expressive variant of
+linear attention with data-dependent gates. When
+used as a replacement for the standard attention
+layer in Transformers, the resulting gated linear
+attention (GLA) Transformer is found to perform
+competitively against the LLaMA-architecture
+Transformer (Touvron et al., 2023) as well recent
+linear-time-inference baselines such as RetNet
+(Sun et al., 2023a) and Mamba (Gu & Dao, 2023)
+on moderate-scale language modeling experiments. GLA Transformer is especially effective
+at length generalization, enabling a model trained
+on 2K to generalize to sequences longer than 20K
+without significant perplexity degradations. For
+training speed, the GLA Transformer has higher
+throughput than a similarly-sized Mamba model.
+
+From a performance standpoint, linear attention has generally been found to underperform ordinary softmax attention,
+often by a significant margin in language modeling (Kasai
+et al., 2021). Recent variants of linear attention such as
+RetNet (Sun et al., 2023a) and TransNormerLLM (Qin et al.,
+2023b) obtain significant improvements by multiplying
+the current hidden state with a decay factor before the
+RNN update. However, these works use a global, dataindependent decay factor, despite the fact that in 1D RNNs,
+a data-dependent gating mechanism has been shown to be
+crucial for performance (van der Westhuizen & Lasenby,
+2018; Qin et al., 2023c). And even with the decay factor,
+linear attention Transformers underperform the strongest
+Transformer architectures when pretrained from scratch.
+
+ https://github.com/sustcsonglin/fl
+ash-linear-attention
+
+This work develops a hardware-efficient algorithm for linear
+attention, and applies it to train a gated variant of linear
+attention that is competitive with softmax attention. We first
+discuss aspects of optimizing ordinary linear attention on
+modern GPUs and give two I/O-aware algorithms (tailored
+for different training settings) based on these principles (§3).
+Our implementation of the algorithm, called F LASH L IN -
+
+*
+
+Equal contribution 1 Massachusetts Institute of Technology
+2
+MIT-IBM Watson AI Lab. Correspondence to: Songlin Yang
+<yangsl66@mit.edu>, Bailin Wang <bailinw@mit.edu>.
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024
+by the author(s).
+
+1
+
+

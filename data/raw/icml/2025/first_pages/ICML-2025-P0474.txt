@@ -1,0 +1,75 @@
+Efficient Noise Calculation in Deep Learning-based MRI Reconstructions
+
+Onat Dalmaz 1 2 Arjun D. Desai 1 2 Reinhard Heckel 3 Tolga Cukur 4 Akshay S. Chaudhari 2 5
+Brian Hargreaves 1 2 6
+
+Abstract
+
+applicability. Our work reintroduces accurate and
+efficient noise analysis as a central tenet of reconstruction algorithms, holding promise to reshape
+how we evaluate and deploy DL-based MRI.
+
+Accelerated MRI reconstruction involves solving
+an ill-posed inverse problem where noise in acquired data propagates to the reconstructed images. Noise analyses are central to MRI reconstruction for providing an explicit measure of solution fidelity and for guiding the design and deployment of novel reconstruction methods. However,
+deep learning (DL)-based reconstruction methods
+have often overlooked noise propagation due to
+inherent analytical and computational challenges,
+despite its critical importance. This work proposes a theoretically grounded, memory-efficient
+technique to calculate voxel-wise variance for
+quantifying uncertainty due to acquisition noise in
+accelerated MRI reconstructions. Our approach
+approximates noise covariance using the DL network’s Jacobian, which is intractable to calculate. To circumvent this, we derive an unbiased estimator for the diagonal of this covariance
+matrix—voxel-wise variance—, and introduce a
+Jacobian sketching technique to efficiently implement it. We evaluate our method on knee and
+brain MRI datasets for both data- and physicsdriven networks trained in supervised and unsupervised manners. Compared to empirical references obtained via Monte-Carlo simulations, our
+technique achieves near-equivalent performance
+while reducing computational and memory demands by an order of magnitude or more. Furthermore, our method is robust across varying input noise levels, acceleration factors, and diverse
+undersampling schemes, highlighting its broad
+
+1. Introduction
+Magnetic Resonance Imaging (MRI) has become indispensable in clinical diagnostics, yet prolonged acquisition times
+can reduce patient throughput and exacerbate motion artifacts. Parallel imaging (pMRI) (Pruessmann et al., 1999;
+Griswold et al., 2002) was developed to mitigate these challenges by undersampling k-space and exploiting multiple
+receiver coils with distinct sensitivity profiles. Despite
+successfully reducing scan duration, pMRI inevitably introduces spatially varying noise amplification—commonly
+quantified by the g-factor—due to the need to invert an
+ill-conditioned system. In regions where coil sensitivities
+overlap or are highly attenuated, the reconstruction leads
+to locally elevated noise levels (Pruessmann et al., 1999;
+Sodickson et al., 1999). Early pMRI research rigorously
+analyzed this spatial noise amplification, culminating in
+precise formulations that ensured reliable signal-to-noise
+ratio (SNR) performance to guide algorithm design and
+clinical implementation (Pruessmann et al., 1999; Sodickson et al., 1999; Aja-Fernández et al., 2014). For instance,
+the widely used SENSE algorithm explicitly incorporates
+coil sensitivities to minimize noise, reflecting how classical
+pMRI approaches typically maintain a clear link between
+measurement noise and the reconstructed image.
+In contrast, most deep learning (DL) reconstruction methods
+(Akçakaya et al., 2019; Knoll et al., 2020a; Yaman et al.,
+2022; Jalal et al., 2021; Jun et al., 2021; Wang et al., 2024;
+Sriram et al., 2020b) have not provided an explicit account
+of how noise from undersampled k-space propagates into
+the final image. A major obstacle lies in the highly nonlinear and complex nature of DL reconstructions (Chen et al.,
+2022) making it nontrivial to derive analytical frameworks
+to characterize how undersampling and learned regularization affect localized noise amplification. In response, the
+core emphasis in the design of DL methods typically sought
+maximization of summary metrics like peak signal-to-noise
+ratio (PSNR) or structural similarity index (SSIM) that do
+
+1
+
+Department of Electrical Engineering, Stanford University,
+Stanford, CA, USA 2 Department of Radiology, Stanford University, Stanford, CA, USA 3 Department of Computer Engineering,
+Technical University of Munich, Munich, Germany 4 Department of
+Electrical and Electronics Engineering, Bilkent University, Ankara,
+Turkey 5 Department of Biomedical Data Science, Stanford University, Stanford, CA, USA 6 Department of Bioengineering, Stanford
+University, Stanford, CA, USA. Correspondence to: Onat Dalmaz
+<onat@stanford.edu>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

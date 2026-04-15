@@ -1,0 +1,75 @@
+Towards Accurate Post-training Network Quantization via Bit-Split and
+Stitching
+
+Peisong Wang 1 Qiang Chen 1 Xiangyu He 1 Jian Cheng 1
+
+Abstract
+Network quantization is essential for deploying
+deep models to IoT devices due to its high efficiency. Most existing quantization approaches
+rely on the full training datasets and the timeconsuming fine-tuning to retain accuracy. Posttraining quantization does not have these problems, however, it has mainly been shown effective for 8-bit quantization due to the simple optimization strategy. In this paper, we propose a
+Bit-Split and Stitching framework (Bit-split) for
+lower-bit post-training quantization with minimal
+accuracy degradation. The proposed framework
+is validated on a variety of computer vision tasks,
+including image classification, object detection,
+instance segmentation, with various network architectures. Specifically, Bit-split can achieve
+near-original model performance even when quantizing FP32 models to INT3 without fine-tuning.
+
+1. Introduction
+Deep neural networks (DNNs) have been demonstrated to be
+effective in a wide range of computer vision tasks, including
+image recognition (Krizhevsky et al., 2012; Simonyan & Zisserman, 2014; Chatfield et al., 2014; He et al., 2016), object
+detection (Girshick et al., 2014; Ren et al., 2015; Liu et al.,
+2016), segmentation (Long et al., 2015; Chen et al., 2019)
+and so on. At the same time, the high complexity including
+the huge parameter size and computing operations as well
+as the power consumption have hindered the deployment
+of deep networks to real-world applications. Thus network
+compression (Han et al., 2015; Wu et al., 2016; Wang &
+Cheng, 2016; Romero et al., 2014) has drawn great attention of researchers. Among these compression techniques,
+network quantization is widely used no matter on special
+1
+
+NLPR & AIRIA, Institute of Automation, Chinese
+Academy of Sciences.
+Correspondence to: Jian Cheng
+<jcheng@nlpr.ia.ac.cn>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+hardware like TPU or general hardware like CPU and GPU.
+By turning the floating-point values within the networks to
+low-bit integers, the complex floating-point operations can
+be replaced by more efficient integer operations.
+Despite its efficiency, training low-bit neural networks is
+nontrivial. In (Krishnamoorthi, 2018), the authors proposed
+two basic network quantization paradigms, i.e., quantizationaware training and post-training quantization. Most of current quantization approaches belong to the former, where
+low-bit networks are trained with quantization operations
+inserted. Quantization-aware training can achieve higher
+accuracy because the learned weights could be adjusted during training to fit the quantization operations. On the other
+hand, quantization-aware training has several drawbacks. It
+relies on the full training data and large computing resources
+like GPUs. Moreover, the tedious and time-consuming retraining procedure has posed high requirements in domain
+knowledge and experience for the users, which is hindering
+the application of quantization techniques.
+By contrast, post-training quantization has many desirable
+properties. It does not need the training dataset, except for a
+very small amount of data for calibration, thus no privacy
+or data transmission problems will be caused. Moreover,
+post-training quantization is network architecture free, backpropagation free, and does not require domain knowledge or
+any optimization tricks. It is for this reason that post-training
+quantization is supported and preferable to accelerate the inference of many libraries and devices, such as the TensorRT
+(Migacz, 2017) on GPU, TF-Lite (Krishnamoorthi, 2018)
+on TPU and the SNPE on Qualcomm devices.
+Despite the advantages of post-training quantization, it has
+the problem of significant accuracy degradation, especially
+when both activations and weights are quantized into very
+low-bit integers. Thus for current post-training quantization
+in TensorRT and TF-Lite as well as the SNPE, only 8-bit
+quantization is supported for the weights and activations.
+However, for hardware accelerators, every bit saving could
+result in significant resource reduction, including storage,
+computing units and more importantly the energy consumption (Horowitz, 2014). To this end, ZeroQ (Cai et al., 2020)
+utilizes knowledge distillation and mix-precision quantization, i.e., allowing different channels and filters to be quan-
+
+

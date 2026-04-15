@@ -1,0 +1,82 @@
+Latent Space Factorisation and Manipulation via Matrix Subspace Projection
+
+Xiao Li 1 2 Chenghua Lin 2 Ruizhe Li 2 Chaozheng Wang 1 Frank Guerin 3
+
+Abstract
+We tackle the problem disentangling the latent
+space of an autoencoder in order to separate labelled attribute information from other characteristic information. This then allows us to change
+selected attributes while preserving other information. Our method, matrix subspace projection, is
+much simpler than previous approaches to latent
+space factorisation, for example not requiring multiple discriminators or a careful weighting among
+their loss functions. Furthermore our new model
+can be applied to autoencoders as a plugin, and
+works across diverse domains such as images or
+text. We demonstrate the utility of our method
+for attribute manipulation in autoencoders trained
+across varied domains, using both human evaluation and automated methods. The quality of
+generation of our new model (e.g. reconstruction,
+conditional generation) is highly competitive to a
+number of strong baselines.
+
+1. Introduction
+We investigate the problem of manipulating multiple attributes of data samples. This can be applied to image data,
+for example to manipulate a picture of a face to add a beard,
+change gender, or age. It can also be applied to text, for example to change the style or sentiment of a text. We assume
+that we have a training dataset where attributes are labelled.
+However there is an unsupervised aspect because we do
+not have samples of the same individual with different attribute combinations, e.g., the same person with and without
+a beard. Furthermore the training samples have some attribute combinations that are highly correlated, while other
+combinations are completely absent; e.g., in the CelebA
+dataset blond hair and earrings are highly correlated with
+female (Torfason et al., 2016), while a female with beard is
+1
+Department of Computing Science, University of Aberdeen,
+UK 2 Department of Computer Science, University of Sheffield,
+UK 3 Department of Computer Science, University of Surrey, UK.
+Correspondence to: Chenghua Lin <c.lin@sheffield.ac.uk>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+absent. Nevertheless we would like our system to somehow
+isolate the explanatory factors in pixel space, to understand,
+e.g., that blond hair corresponds only to colour changes to
+hair pixels, and no change elsewhere in the face.
+This challenge of isolating multiple explanatory factors
+poses interesting problems for generative models. In images of faces for example, even if the training data has no
+bearded lady, a good generative model should be able to
+‘imagine’ novel examples that combine attributes in ways
+not present in training data. As noted by Higgins et al.
+(2016) “Models are unable to generalise to data outside of
+the convex hull of the training distribution . . . unless they
+learn about the data generative factors and recombine them
+in novel ways.” Ideally we should fully disentangle and
+isolate the data generative factors, so that we can represent
+the generative factors of a sample with a vector that has one
+part labelled attribute information, and another part with
+the other characteristic information of the sample. This is
+in a small way part of a general trend to try to move deep
+neural network research towards explanatory models of the
+world (LeCun, 2013; Lake et al., 2016; Yuille & Liu, 2018),
+which requires disentanglement. The problem is important
+because isolating explanatory factors is a way to overcome
+the combinatorial explosion of required training examples
+if such factors are not isolated (Yuille & Liu, 2018).
+A typical approach to the problem uses an autoencoder (AE)
+which encodes a given input (e.g. picture, text, etc.) into a
+latent vector, and then restores (decodes) the latent vector to
+the given input (Lample et al., 2017; Hu et al., 2017; Xiao
+et al., 2018; Li et al., 2019). The latent vector contains the
+attribute information as well as other characteristic information of the input. If one can change the attribute information
+in the latent space, then one can generate examples with the
+altered attributes. The difficulty here is twofold: (1) learn
+a latent space representation which separates the attributes
+from all other characteristic information, and (2) fully disentangle the attributes. If we fail in the separation part,
+then efforts to generate with specific attributes may conflict
+with other information in the latent space (as in Kingma
+et al. (2014) etc., see §2). If we fail in the second part then
+examples generated with specified attributes will also be
+contaminated with spurious attributes (see Fig. 1 Left).
+Many recent approaches make use of auxiliary neural net-
+
+

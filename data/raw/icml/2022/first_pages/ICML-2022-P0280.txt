@@ -1,0 +1,81 @@
+Coordinated Double Machine Learning
+
+Nitai Fingerhut 1 Matteo Sesia 2 Yaniv Romano 1
+
+Abstract
+Double machine learning is a statistical method
+for leveraging complex black-box models to construct approximately unbiased treatment effect
+estimates given observational data with highdimensional covariates, under the assumption of
+a partially linear model. The idea is to first fit
+on a subset of the samples two non-linear predictive models, one for the continuous outcome
+of interest and one for the observed treatment,
+and then to estimate a linear coefficient for the
+treatment using the remaining samples through
+a simple orthogonalized regression. While this
+methodology is flexible and can accommodate
+arbitrary predictive models, typically trained independently of one another, this paper argues that a
+carefully coordinated learning algorithm for deep
+neural networks may reduce the estimation bias.
+The improved empirical performance of the proposed method is demonstrated through numerical
+experiments on both simulated and real data.
+
+1. Introduction
+A fundamental problem in data science is to estimate from
+high-dimensional observational data the effect of one variable, the treatment, on an outcome of interest, accounting
+for all covariates. For example, one may want to understand
+the effect of temperature on atmospheric pollution using
+measurements from weather stations. Alternatively, in a
+retrospective medical study one may want to estimate the relation between drug dosage and changes in blood pressure,
+accounting for differences in patients characteristics and
+clinical histories. These questions have traditionally been
+addressed through multivariate parametric models. However, it is difficult to obtain exact inferences if the data
+include many covariates. Further, simple modelling assump1
+Departments of Electrical and Computer Engineering and of
+Computer Science, Technion, Israel 2 Department of Data Sciences
+and Operations, University of Southern California, CA, USA. Correspondence to: Nitai Fingerhut <nitai@campus.technion.ac.il>.
+th
+
+Proceedings of the 39 International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+tions may not be appropriate if the outcome depends on the
+covariates in an unknown and possibly complicated way.
+Sophisticated machine learning (ML) algorithms, such as
+deep neural networks and random forests, are playing increasingly relevant roles in estimation applications, even
+though they were originally designed for prediction tasks.
+Although generally difficult to analyze theoretically and often hard to interpret, ML models are sometimes appealing
+for estimation because they can flexibly account for complex relations between the covariates and the outcome. For
+example, the output of ML models can be translated into
+treatment effect estimates using an approach known as double machine learning (DML) (Chernozhukov et al., 2018).
+DML enjoys desirable theoretical properties—it leads to
+approximately unbiased estimates of the treatment effect—
+and it is becoming widely applied in many fields, including
+public health (Chernozhukov et al., 2021; Torrats-Espinosa,
+2021), finance (Feng et al., 2020), and economics (Knaus,
+2020; Semenova et al., 2017).
+The goal of this paper is to improve the estimation performance of DML by adapting the learning algorithms used to
+fit its two underlying predictive models—one tasked with
+predicting the outcome and the other with predicting the
+treatment given the covariates. Concretely, a novel loss function is introduced to jointly fit the two ML models as to minimize the final DML estimation bias, and a cross-validation
+technique is developed to tune the relevant hyperparameters.
+They key idea is to coordinate the two predictive models
+so that the impacts of their respective errors approximately
+cancel out, in contrast with the typical practice of training
+the two models separately. Concretely, this idea is explored
+in this paper within the context of deep neural networks.
+1.1. Problem Statement and Technical Background
+Consider n data points (Xi , Di , Yi ) drawn i.i.d. from some
+distribution assumed to follow a partially linear model
+(Robinson, 1988):
+Yi = g(Xi ) + Di θi + Ui ,
+
+Di = m(Xi ) + Vi .
+
+(1)
+
+Above, the outcome Yi ∈ R may depend on the covariates
+Xi ∈ Rd through the unknown function g. The treatment
+Di ∈ R may depend on Xi through the unknown function
+m, and it affects Yi linearly. The inferential target is the
+
+

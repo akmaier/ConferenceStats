@@ -1,0 +1,81 @@
+Learning by Playing – Solving Sparse Reward Tasks from Scratch
+
+Martin Riedmiller * 1 Roland Hafner * 1 Thomas Lampe 1 Michael Neunert 1 Jonas Degrave 1
+Tom Van de Wiele 1 Volodymyr Mnih 1 Nicolas Heess 1 Tobias Springenberg 1
+
+Abstract
+We propose Scheduled Auxiliary Control (SACX), a new learning paradigm in the context of
+Reinforcement Learning (RL). SAC-X enables
+learning of complex behaviors – from scratch – in
+the presence of multiple sparse reward signals. To
+this end, the agent is equipped with a set of general auxiliary tasks, that it attempts to learn simultaneously via off-policy RL. The key idea behind
+our method is that active (learned) scheduling and
+execution of auxiliary policies allows the agent to
+efficiently explore its environment – enabling it
+to excel at sparse reward RL. Our experiments in
+several challenging robotic manipulation settings
+demonstrate the power of our approach. A video
+of the rich set of learned behaviours can be found
+at https://youtu.be/mPKyvocNe M.
+
+1. Introduction
+Consider the following scenario: a learning agent has to
+control a robot arm to open a box and place a block inside.
+While defining the reward for this task is simple and straightforward (e.g. using a simple mechanism inside the box such
+as a force sensor to detect a placed block), the underlying
+learning problem is hard. The agent has to discover a long
+sequence of “correct” actions in order to find a configuration
+of the environment that yields the sparse reward – the block
+contained inside the box. Discovering this sparse reward
+signal is a hard exploration problem for which success via
+random exploration is highly unlikely.
+Over the last decades, a multitude of methods have been
+developed to help with the above mentioned exploration
+problem. These include for example: shaping rewards (Ng
+et al., 1999; Randløv & Alstrøm, 1998; Gu et al., 2017),
+curriculum learning (Heess et al., 2017; Ghosh et al., 2018;
+Forestier et al., 2017), transfer of learned policies from
+*
+
+1
+
+Equal contribution Google DeepMind, London, GB. Correspondence to: Martin Riedmiller <riedmiller@google.com>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+simulation to reality (see Duan et al. (2017); Sadeghi et al.
+(2017); Tobin et al. (2017); Rusu et al. (2017); Hanna &
+Stone (2017) for recent examples), learning from demonstrations (Ross et al., 2011; Vecerik et al., 2017; Kober & Peters,
+2011; Sermanet et al., 2017; Nair et al., 2017), learning with
+model guidance, see e.g. Montgomery & Levine (2016), or
+inverse RL (Ng & Russell, 2000; Ziebart et al., 2008). All
+of these approaches rely on the availability of prior knowledge that is specific to a task. Moreover, they often bias
+the control policy in a certain – potentially suboptimal –
+direction. For example, using a shaped reward designed by
+the experimenter, inevitably, biases the solutions that the
+agent can find. In contrast to this, when a sparse task formulation is used, the agent can discover novel and potentially
+preferable solutions. We would thus, arguably, prefer to
+develop methods that support the agent during learning but
+preserve the ability of the agent to learn from sparse rewards.
+Ideally, our new methods should reduce the specific prior
+task knowledge that is required to cope with sparse rewards.
+In this paper, we introduce a new method dubbed Scheduled
+Auxiliary Control (SAC-X, with X denoting the scheduler
+type), as a first step towards such an approach. It is based
+on four main principles:
+1. Every state-action pair is paired with a vector of rewards, consisting of (typically sparse) externally provided rewards and (typically sparse) internal auxiliary
+rewards.
+2. Each reward entry has an assigned policy, called intention in the following, which is trained to maximize its
+corresponding cumulative reward.
+3. There is a high-level scheduler which selects and executes the individual intentions with the goal of improving performance of the agent on the external tasks.
+4. Learning is performed off-policy (and asynchronously
+from policy execution) and the experience between
+intentions is shared – to use information effectively.
+Although the approach proposed in this paper is generally
+applicable to a wider range of problems, we discuss our
+method in the light of a typical robotics manipulation application with sparse rewards: stacking various objects and
+cleaning a table.
+Auxiliary rewards in these tasks are defined based on the
+
+

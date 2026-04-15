@@ -1,0 +1,75 @@
+Marginalized Stochastic Natural Gradients for Black-Box Variational Inference
+
+Geng Ji 1 2 Debora Sujono 2 Erik B. Sudderth 2
+
+Abstract
+Black-box variational inference algorithms use
+stochastic sampling to analyze diverse statistical models, like those expressed in probabilistic
+programming languages, without model-specific
+derivations. While the popular score-function estimator computes unbiased gradient estimates, its
+variance is often unacceptably large, especially in
+models with discrete latent variables. We propose
+a stochastic natural gradient estimator that is as
+broadly applicable and unbiased, but improves
+efficiency by exploiting the curvature of the variational bound, and provably reduces variance
+by marginalizing discrete latent variables. Our
+marginalized stochastic natural gradients have intriguing connections to classic coordinate ascent
+variational inference, but allow parallel updates
+of variational parameters, and provide superior
+convergence guarantees relative to naive Monte
+Carlo approximations. We integrate our method
+with the probabilistic programming language Pyro
+and evaluate real-world models of documents, images, networks, and crowd-sourcing. Compared
+to score-function estimators, we require far fewer
+Monte Carlo samples and consistently convergence orders of magnitude faster.
+
+1. Introduction
+Variational inference is widely used to estimate the posterior distributions of hidden variables in probabilistic models
+(Wainwright & Jordan, 2008). Many previous studies have
+found that variational inference can have dramatic computational advantages compared to MCMC methods like
+Gibbs samplers (Gopalan & Blei, 2013; Gan et al., 2015;
+Gopalan et al., 2016; Ji et al., 2019). Variational bounds are
+usually optimized via coordinate ascent variational inference (CAVI, Jordan et al. (1999)) algorithms that iteratively
+1
+Facebook AI 2 Department of Computer Science, University
+of California, Irvine. Correspondence to: Geng Ji <gji@fb.com>,
+Debora Sujono <dsujono@uci.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+update single (or small blocks of) variational parameters,
+while holding all others fixed to their current values. Although CAVI updates can be effective for simple models
+composed from conjugate priors, for many models the expectations required for exact CAVI updates are intractable:
+they may require complex integrals for continuous variables,
+or computation scaling exponentially with the number of
+dependent discrete variables.
+Variational algorithms for models with non-conjugate conditionals have been derived via hand-crafted auxiliary variables that induce looser, but more tractable, bounds on the
+data log-likelihood (Jordan et al., 1999; Winn & Bishop,
+2005). Such bounds typically require complex derivations
+specialized to the parametric structure of specific distributions (Albert & Chib, 1993; Jaakkola & Jordan, 1999;
+Polson et al., 2013), and thus do not easily integrate with
+general-purpose probabilistic inference systems.
+To address these limitations, several authors have explored
+stochastic gradient algorithms that directly optimize a reparameterized bound involving the log-likelihood gradient
+or score function (Paisley et al., 2012; Wingate & Weber,
+2013; Ranganath et al., 2014), as in the classic REINFORCE
+policy gradient algorithm (Williams, 1992). Unlike other
+black-box variational methods such as automatic differentiation variational inference (ADVI, Kucukelbir et al. (2017))
+that require specific variable reparameterizations (Kingma
+& Welling, 2014; Rezende et al., 2014), REINFORCE provides unbiased gradients for all models including the many
+practically important ones with discrete latent variables.
+Due to its simplicity and generality, REINFORCE has become the “standard” variational inference algorithm for a
+number of probabilistic programming languages (PPLs) including Edward and TensorFlow Probability (Tran et al.,
+2016; 2018), WebPPL (Goodman & Stuhlmüller, 2014;
+Ritchie et al., 2016), Pyro (Bingham et al., 2019), and
+Gen (Cusumano-Towner et al., 2019). However, its gradient
+estimates may have extremely high variance. An official
+WebPPL tutorial1 warns that REINFORCE will produce
+poor results for the LDA topic model (Blei et al., 2003) due
+to its discrete assignment variables: “Because WebPPL’s
+implementation of variational inference works much bet1
+http://probmods.github.io/ppaml2016/chapters/
+4-3-variational.html
+
+

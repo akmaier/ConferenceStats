@@ -1,0 +1,62 @@
+Coop: Memory is not a Commodity
+
+Jianhao Zhang∗
+OneFlow Research
+daquexian566@gmail.com
+
+Shihan Ma∗
+OneFlow Research
+mmasss1205@gmail.com
+
+Peihong Liu
+OneFlow Research
+peihong.l@outlook.com
+
+Jinhui Yuan
+OneFlow Research
+yuanjinhui@oneflow.org
+
+Abstract
+Tensor rematerialization allows the training of deep neural networks (DNNs) under
+limited memory budgets by checkpointing the models and recomputing the evicted
+tensors as needed. However, the existing tensor rematerialization techniques
+overlook the memory system in deep learning frameworks and implicitly assume
+that free memory blocks at different addresses are identical. Under this flawed
+assumption, discontiguous tensors are evicted, among which some are not used to
+allocate the new tensor. This leads to severe memory fragmentation and increases
+the cost of potential rematerializations. To address this issue, we propose to
+evict tensors within a sliding window to ensure all evictions are contiguous and
+are immediately used. Furthermore, we proposed cheap tensor partitioning and
+recomputable in-place to further reduce the rematerialization cost by optimizing
+the tensor allocation. We named our method Coop as it is a co-optimization
+of tensor allocation and tensor rematerialization. We evaluated Coop on eight
+representative DNNs. The experimental results demonstrate that Coop achieves up
+to 2× memory saving and hugely reduces compute overhead, search latency, and
+memory fragmentation compared to the state-of-the-art baselines.
+
+1
+
+Introduction
+
+Recent development of deep neural networks (DNNs) shows a continuous rage on increasing the scale
+of the network structures, which dramatically improves the capability of the neural network [1, 2, 3, 4].
+Training such gigantic models with billions of parameters, however, requires huge on-device memory
+[5]. Tensor rematerialization, also known as activation checkpointing, is one technique that allows
+the training of large DNNs under a limited GPU memory budget without compromising the model’s
+accuracy. This technique has been widely applied in the training of large language models such as
+GPT-3 [1, 6] and LLaMa [3].
+The key idea of tensor rematerialization is to evict some intermediate tensors during forward propagation and recompute them as needed during backward propagation, essentially trading recomputing
+time for memory. Tensor rematerialization can be traced back to checkpointing in reverse-mode
+automatic differentiation [7, 8, 9], and was first applied to DNN training as a global optimization
+technique for static computation graphs (SCGs) [10, 11, 12, 13].
+√ Chen et al. ([10]) reduced the
+memory cost of training a neural network with n layers to O( n) by dividing the network into
+segments and dropping the intermediate results within each segment. Checkmate [11] further formalized tensor rematerialization as a mixed integer linear program and used numerical solvers to
+find an optimal solution. Tensor rematerialization methods that support dynamic computational
+∗
+
+Equal contribution.
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

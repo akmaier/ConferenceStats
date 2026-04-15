@@ -1,0 +1,127 @@
+Unit Scaling: Out-of-the-Box Low-Precision Training
+
+Charlie Blake 1 Douglas Orr 1 Carlo Luschi 1
+
+1. Abstract
+matmul
+
+We present unit scaling, a paradigm for designing deep
+learning models that simplifies the use of low-precision
+number formats. Training in FP16 or the recently proposed
+FP8 formats offers substantial efficiency gains, but can lack
+sufficient range for out-of-the-box training. Unit scaling addresses this by introducing a principled approach to model
+numerics: seeking unit variance of all weights, activations
+and gradients at initialisation. Unlike alternative methods,
+this approach neither requires multiple training runs to find
+a suitable scale nor has significant computational overhead.
+We demonstrate the efficacy of unit scaling across a range of
+models and optimisers. We further show that existing models can be adapted to be unit-scaled, training BERTLARGE in
+FP16 and then FP8 with no degradation in accuracy.
+
+GeLU
+
+matmul
+
+Exponent value
+15
+12
+9
+6
+3
+0
+-3
+-6
+-9
+-12
+
+Loss Scaling
+
+15
+12
+9
+6
+3
+0
+-3
+-6
+-9
+-12
+
+2. Introduction
+
+Unit Scaling
+
+w 1 ∇w1
+
+x1
+
+∇x1
+
+x2
+
+∇x2
+
+x3
+
+∇x3
+
+w 2 ∇w2
+
+x4
+
+∇x4
+
+The development of algorithms that efficiently leverage
+available hardware has been key to the substantial advances
+seen in deep learning over the last decade (Sutton, 2019;
+Hooker, 2021).
+
+Figure 1. Above: Unit scaling of an FFN layer. We multiply each
+tensor by a fixed scalar to achieve consistent scale, no longer requiring a loss scale to control the scale of ∇x4 . Hyperparameters here
+are the same as those in our BERTLARGE experiments (Table A.5).
+
+With the increase in size of state-of-the-art models,
+hardware-efficiency is also motivated by the need to lower
+the costs of training. These have grown to become
+substantial—in terms of money, time, and environmental impact (Strubell et al., 2019; Chowdhery et al., 2022; Luccioni
+et al., 2022).
+
+Below: A histogram of exponent values at initialisation for the
+above FFN, with shade indicating bin density. The y-axis reflects
+exponent values available in FP16, while dashed lines show the
+max/min exponents of the FP8 E4 format of Noune et al. (2022).
+
+Unlike inference, where integer quantisation is possible (Jacob et al., 2018), for training, floating point formats are
+required (Noune et al., 2022; Micikevicius et al., 2022;
+Kuzmin et al., 2022). The traditional approach of using 32bit floats is being superseded by mixed precision strategies,
+which place many values into 16-bit formats (Micikevicius
+et al., 2018). Furthermore, 8-bit floating-point hardware
+is becoming available (Graphcore, 2022; Nvidia, 2022),
+with the potential for accurate 8-bit training already demonstrated (Wang et al., 2018; Sun et al., 2019; Noune et al.,
+2022; Micikevicius et al., 2022).
+
+However, with the end of Moore’s law and Dennard scaling (Esmaeilzadeh et al., 2011; Theis and Wong, 2017),
+increased transistor density can no longer be relied upon to
+provide a simple path towards greater efficiency, and other
+techniques must be leveraged. One such technique is the use
+of low-precision number formats. The gains to be had here
+are considerable: compute, memory and bandwidth usage
+all depend on the bit-width of a format.
+1
+
+Graphcore Research, United Kingdom. Correspondence to:
+Charlie Blake <charlieb@graphcore.ai>, Douglas Orr <douglaso@graphcore.ai>.
+
+However, the use of low-precision formats introduces new
+difficulties, reducing the absolute range of representable values and increasing quantisation noise. Existing techniques
+to address these issues either introduce additional overhead
+or require manual tuning. An approach is needed which is
+both accurate and places minimal burden on the user.
+
+Proceedings of the 40 th International Conference on Machine
+Learning, Honolulu, Hawaii, USA. PMLR 202, 2023. Copyright
+2023 by the author(s).
+
+1
+
+

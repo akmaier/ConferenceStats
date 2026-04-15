@@ -1,0 +1,55 @@
+ReMaX: Relaxing for Better Training on Efficient
+Panoptic Segmentation
+
+Shuyang Sun1∗ Weijun Wang2 Qihang Yu† Andrew Howard2 Philip Torr1 Liang-Chieh Chen†
+1
+University of Oxford 2 Google Research
+
+Abstract
+This paper presents a new mechanism to facilitate the training of mask transformers
+for efficient panoptic segmentation, democratizing its deployment. We observe that
+due to the high complexity in the training objective of panoptic segmentation, it will
+inevitably lead to much higher penalization on false positive. Such unbalanced loss
+makes the training process of the end-to-end mask-transformer based architectures
+difficult, especially for efficient models. In this paper, we present ReMaX that adds
+relaxation to mask predictions and class predictions during the training phase for
+panoptic segmentation. We demonstrate that via these simple relaxation techniques
+during training, our model can be consistently improved by a clear margin without
+any extra computational cost on inference. By combining our method with efficient
+backbones like MobileNetV3-Small, our method achieves new state-of-the-art
+results for efficient panoptic segmentation on COCO, ADE20K and Cityscapes.
+Code and pre-trained checkpoints will be available at https://github.com/
+google-research/deeplab2.
+
+1
+
+Introduction
+
+Panoptic segmentation [36] aims to provide a holistic scene understanding [63] by unifying instance
+segmentation [21] and semantic segmentation [24]. The comprehensive understanding of the scene is
+obtained by assigning each pixel a label, encoding both semantic class and instance identity. Prior
+works adopt separate segmentation modules, specific to instance and semantic segmentation, followed
+by another fusion module to resolve the discrepancy [71, 12, 35, 70, 53, 42]. More recently, thanks
+to the transformer architecture [64, 4], mask transformers [66, 13, 76, 43, 72, 14, 73] are proposed
+for end-to-end panoptic segmentation by directly predicting class-labeled masks.
+Although the definition of panoptic segmentation only permits each pixel to be associated with
+just one mask entity, some recent mask transformer-based methods [13, 76, 14, 40] apply sigmoid
+cross-entropy loss (i.e., not enforcing a single prediction via softmax cross-entropy loss) for mask
+supervision. This allows each pixel to be associated with multiple mask predictions, leading to an
+extremely unbalanced loss during training. As shown in Figure 1, when using the sigmoid crossentropy loss to supervise the mask branch, the false-positive (FP) loss can be even 103 × larger than
+the false-negative (FN) loss. Surprisingly, such unbalanced loss leads to better results than using
+softmax cross-entropy, which indicates that the gradients produced by the FP loss are still helpful for
+better performance.
+However, the radical imbalance in the losses makes it difficult for the network to produce confident
+predictions, especially for efficient backbones [28, 57, 27], as they tend to make more mistakes given
+the smaller model size. Meanwhile, the training process will also become unstable due to the large
+scale loss fluctuation. To address this issue, recent approaches [4, 13, 14, 40] need to carefully clip
+∗
+†
+
+Work done during internship at Google Research. Correspondence to: kevinsun@robots.ox.ac.uk
+Work done while at Google.
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

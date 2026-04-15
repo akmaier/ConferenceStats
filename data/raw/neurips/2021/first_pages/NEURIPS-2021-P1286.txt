@@ -1,0 +1,60 @@
+Joint inference and input optimization
+in equilibrium networks
+
+Swaminathan Gurumurthy∗
+Carnegie Mellon University
+
+Shaojie Bai
+Carnegie Mellon University
+
+J. Zico Kolter
+Carnegie Mellon University
+Bosch Center for AI
+
+Zachary Manchester
+Carnegie Mellon University
+
+Abstract
+Many tasks in deep learning involve optimizing over the inputs to a network to
+minimize or maximize some objective; examples include optimization over latent
+spaces in a generative model to match a target image, or adversarially perturbing
+an input to worsen classifier performance. Performing such optimization, however,
+is traditionally quite costly, as it involves a complete forward and backward pass
+through the network for each gradient step. In a separate line of work, a recent
+thread of research has developed the deep equilibrium (DEQ) model, a class of
+models that foregoes traditional network depth and instead computes the output of a
+network by finding the fixed point of a single nonlinear layer. In this paper, we show
+that there is a natural synergy between these two settings. Although, naively using
+DEQs for these optimization problems is expensive (owing to the time needed to
+compute a fixed point for each gradient step), we can leverage the fact that gradientbased optimization can itself be cast as a fixed point iteration to substantially
+improve the overall speed. That is, we simultaneously both solve for the DEQ
+fixed point and optimize over network inputs, all within a single “augmented”
+DEQ model that jointly encodes both the original network and the optimization
+process. Indeed, the procedure is fast enough that it allows us to efficiently train
+DEQ models for tasks traditionally relying on an “inner” optimization loop. We
+demonstrate this strategy on various tasks such as training generative models while
+optimizing over latent codes, training models for inverse problems like denoising
+and inpainting, adversarial training and gradient based meta-learning.
+
+1
+
+Introduction
+
+Many settings in deep learning involve optimization over the inputs to a network to minimize some
+desired loss. For example, for a “generator” network G : Z → X that maps from latent space Z to
+an observed space X , it may be desirable to find a latent vector z ∈ Z that most closely produces
+some target output x ∈ X by solving the optimization problem (e.g. [10, 13])
+minimize kx − Gθ (z)k22 .
+z∈Z
+
+(1)
+
+As another example, constructing adversarial examples for classifiers [28, 53] typically involves
+optimizating over a perturbation to a given input; i.e., given a classifier network g : X → Y, task loss
+∗
+Correspondence to: Swaminathan Gurumurthy <sgurumur@andrew.cmu.edu>
+Code available at https://github.com/locuslab/JIIO-DEQ
+
+35th Conference on Neural Information Processing Systems (NeurIPS 2021).
+
+

@@ -1,0 +1,95 @@
+Off-Policy Actor-Critic with
+Shared Experience Replay
+
+Simon Schmitt 1 Matteo Hessel 1 Karen Simonyan 1
+
+Abstract
+We investigate the combination of actor-critic reinforcement learning algorithms with a uniform
+large-scale experience replay and propose solutions for two ensuing challenges: (a) efficient
+actor-critic learning with experience replay (b)
+the stability of off-policy learning where agents
+learn from other agents behaviour. To this end
+we analyze the bias-variance tradeoffs in V-trace,
+a form of importance sampling for actor-critic
+methods. Based on our analysis, we then argue
+for mixing experience sampled from replay with
+on-policy experience, and propose a new trust
+region scheme that scales effectively to data distributions where V-trace becomes unstable. We
+provide extensive empirical validation of the proposed solutions on DMLab-30 and further show
+the benefits of this setup in two training regimes
+for Atari: (1) a single agent is trained up until
+200M environment frames per game (2) a population of agents is trained up until 200M environment frames each and may share experience.
+We demonstrate state-of-the-art data efficiency
+among model-free agents in both regimes.
+
+1. Introduction
+Value-based and actor-critic policy gradient methods are the
+two leading model-free techniques of constructing general
+and scalable reinforcement learning agents (Sutton et al.,
+2018). Both have been combined with non-linear function
+approximation (Tesauro, 1995; Williams, 1992), and have
+achieved remarkable successes on multiple challenging domains; yet, these algorithms still require large amounts of
+data to determine good policies for any new environment.
+To improve data efficiency, experience replay agents store
+experience in a memory buffer (replay) (Lin, 1992), and
+1
+DeepMind.
+Correspondence to:
+<suschmitt@google.com>.
+
+Simon Schmitt
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+Table 1. Comparison of model-free state-of-the-art agents on 57
+Atari games in the standard regime: Here no experience is shared
+between agents (differently from Figure 1 and Table 2). One
+agent is trained per game for up until 200M environment steps
+per game. We observe that our proposed LASER (LArge Scale
+Experience Replay) agent achieves a substantially higher score
+than all model-free prior art.
+
+AGENTS ( TRAINED IN STANDARD
+REGIME )
+LASER ( OURS )
+M ETA -G RADIENT (X U ET AL ., 2018)
+RAINBOW (H ESSEL ET AL ., 2017)
+IQN (DABNEY ET AL ., 2018)
+REACTOR (G RUSLYS ET AL ., 2018)
+DQN (M NIH ET AL ., 2013)
+
+ATARI -57 M EDIAN
+AT 200M
+431%
+288%
+223%
+218%
+187%
+79%
+
+reuse it multiple times to perform reinforcement learning
+updates (Riedmiller, 2005). Replay is often combined with
+the value-based Q-learning (Mnih et al., 2015), as it is an offpolicy algorithm by construction, and can perform well even
+if the sampling distribution from replay is not aligned with
+the latest agent’s policy. Combining experience replay with
+actor-critic algorithms can be harder due to their on-policy
+nature. Hence, most established actor-critic algorithms with
+replay such as (Wang et al., 2017; Gruslys et al., 2018;
+Haarnoja et al., 2018) employ and maintain Q-functions to
+learn from the replayed off-policy experience.
+In this paper, we demonstrate that off-policy actor-critic
+learning with experience replay can be achieved without
+surrogate Q-function approximators using V-trace by employing the following approaches:
+• Off-policy replay experience needs to be mixed with a
+proportion of on-policy experience. We experimentally
+observe severe degradation in performance if this is
+missed (Figure 2) and theoretically that the V-trace
+policy gradient is otherwise not guaranteed to converge
+to a locally optimal solution.
+• A trust region scheme (Conn et al., 2000; Schulman
+et al., 2015; 2017) can mitigate bias and enable efficient
+learning in a strongly off-policy regime, where distinct
+
+

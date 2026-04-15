@@ -1,0 +1,68 @@
+Optimizing Dynamic Structures with
+Bayesian Generative Search
+
+Minh Hoang 1 Carl Kingsford 2
+
+Abstract
+Kernel selection for kernel-based methods is prohibitively expensive due to the NP-hard nature of
+discrete optimization. Since gradient-based optimizers are not applicable due to the lack of a differentiable objective function, many state-of-theart solutions resort to heuristic search or gradientfree optimization. These approaches, however,
+require imposing restrictive assumptions on the
+explorable space of structures such as limiting the
+active candidate pool, thus depending heavily on
+the intuition of domain experts. This paper instead
+proposes DTERGENS, a novel generative search
+framework that constructs and optimizes a highperformance composite kernel expressions generator. DTERGENS does not restrict the space of
+candidate kernels and is capable of obtaining flexible length expressions by jointly optimizing a generative termination criterion. We demonstrate that
+our framework explores more diverse kernels and
+obtains better performance than state-of-the-art
+approaches on many real-world predictive tasks.
+
+1. Introduction
+At the core of most machine learning (ML) algorithms,
+practitioners will often find two universally essential components: model specification and (hyper)-parameter optimization. While there has been reasonable progress on
+automating the latter (Bergstra et al., 2013; Kandasamy
+et al., 2015; Wang et al., 2017; Hoang et al., 2018), model
+selection remains an art due to the complexity of a highly
+structured space of model architectures and the lack of a
+differentiable objective. In deep learning, for example, the
+1
+
+Computer Science Department, School of Computer Science, Carnegie Mellon University, USA 2 Computational Biology Department, School of Computer Science, Carnegie
+Mellon University, USA. Correspondence to: Minh Hoang
+<qhoang@andrew.cmu.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+space of architectures encompasses neural network design
+choices such as the number of hidden layers, dimension
+of each hidden layer and its activation function (Elsken
+et al., 2018). For kernel-based methods such as support
+vector machine (SVM) (Hearst, 1998), Gaussian processes
+(GP) (Rasmussen & Williams, 2006) or sparse Gaussian processes (Quiñonero-Candela & Rasmussen, 2005; QuiñoneroCandela et al., 2007; Hensman et al., 2013; Gal & Turner,
+2015; Low et al., 2015; Hoang et al., 2015; 2017; Yu et al.,
+2019), we are interested in the space of semi-positive definite composite kernels closed under addition and multiplication. In this paper, we focus on the latter, which is important
+in many learning disciplines such as active learning (Castro
+et al., 2005; Krause & Guestrin, 2007; Castro, 2007; Low
+et al., 2012; Cao et al., 2013; Hoang et al., 2014a;b), distributed learning (Chen et al., 2013; Gal et al., 2014; Hoang
+et al., 2016; Allamraju & Chowdhary, 2017; Hoang et al.,
+2019a;b) and reinforcement learning (Poupart et al., 2006;
+Poupart & Vlassis, 2008; Akchurina, 2009; Ziebart et al.,
+2010; Hoang & Low, 2013; Engel et al., 2013; da Motta
+Salles Barreto et al., 2014; Zoph & Le, 2016).
+1.1. Related works
+In each example above, the space of model architecture
+typically does not have a well-defined distance metric and
+is therefore not amenable to popular gradient-based optimization techniques such as gradient descent and coordinate
+descent (Lu et al., 2018). To sidestep this issue, existing
+solutions for model selection resort to either heuristic search
+(Duvenaud et al., 2013; Idrissi et al., 2016) or gradientfree optimization methods (Malkomes et al., 2016; Kandasamy et al., 2018; Lu et al., 2018). These methods, however, either (a) compromise search efficiency (Idrissi et al.,
+2016; Malkomes et al., 2016); or (b) restrict the space of
+valid structure candidates, thus potentially leaving out highperforming candidates (Duvenaud et al., 2013; Kandasamy
+et al., 2018; Lu et al., 2018). More specifically, there are 4
+lines of relevant work which are detailed below:
+1. Naı̈ve random search, grid search and genetic algorithms
+(Idrissi et al., 2016), despite being frequently employed
+due to their ease of implementation, are generally slow to
+converge, hence less practical, under complex and high-
+
+

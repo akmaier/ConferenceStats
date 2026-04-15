@@ -1,0 +1,80 @@
+Machine Unlearning for Random Forests
+
+Jonathan Brophy 1 Daniel Lowd 1
+
+Abstract
+Responding to user data deletion requests, removing noisy examples, or deleting corrupted training
+data are just a few reasons for wanting to delete
+instances from a machine learning (ML) model.
+However, efficiently removing this data from an
+ML model is generally difficult. In this paper, we
+introduce data removal-enabled (DaRE) forests, a
+variant of random forests that enables the removal
+of training data with minimal retraining. Model
+updates for each DaRE tree in the forest are exact,
+meaning that removing instances from a DaRE
+model yields exactly the same model as retraining
+from scratch on updated data.
+DaRE trees use randomness and caching to make
+data deletion efficient. The upper levels of
+DaRE trees use random nodes, which choose
+split attributes and thresholds uniformly at random. These nodes rarely require updates because
+they only minimally depend on the data. At the
+lower levels, splits are chosen to greedily optimize a split criterion such as Gini index or mutual
+information. DaRE trees cache statistics at each
+node and training data at each leaf, so that only the
+necessary subtrees are updated as data is removed.
+For numerical attributes, greedy nodes optimize
+over a random subset of thresholds, so that they
+can maintain statistics while approximating the
+optimal threshold. By adjusting the number of
+thresholds considered for greedy nodes, and the
+number of random nodes, DaRE trees can trade
+off between more accurate predictions and more
+efficient updates.
+In experiments on 13 real-world datasets and one
+synthetic dataset, we find DaRE forests delete
+data orders of magnitude faster than retraining
+from scratch while sacrificing little to no predictive power.
+1
+Department of Computer and Information Science, University
+of Oregon, Eugene, Oregon. Correspondence to: Jonathan Brophy
+<jbrophy@cs.uoregon.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+1. Introduction
+Recent legislation (EU, 2016; California, 2018; Canada,
+2018) requiring companies to remove private user data upon
+request has prompted new discussions on data privacy and
+ownership (Shintre et al., 2019), and fulfilling this “right
+to be forgotten” (Kwak et al., 2017; Garg et al., 2020) may
+require updating any models trained on this data (Villaronga
+et al., 2018). However, retraining a model from scratch on a
+revised dataset becomes prohibitively expensive as dataset
+sizes and model complexities increase (Shoeybi et al., 2019);
+the result is wasted time and computational resources, exacerbated as the frequency of data removal requests increases.
+Decision trees and random forests (Breiman et al., 1984;
+Friedman, 2001) are popular and widely used machine learning models (Lundberg et al., 2018), mainly due to their
+predictive prowess on many classification and regression
+tasks (Kocev et al., 2013; Genuer et al., 2017; Wager &
+Athey, 2018; Linero & Yang, 2018; Biau et al., 2019). Current work on deleting data from machine learning models has focused mainly on recommender systems (Cao &
+Yang, 2015; Schelter, 2020), K-means (Ginart et al., 2019),
+SVMs (Cauwenberghs & Poggio, 2001), logistic regression (Guo et al., 2020; Schelter, 2020), and deep neural
+networks (Baumhauer et al., 2020; Golatkar et al., 2020b;
+Wu et al., 2020); however, there is very limited work addressing the problem of efficient data deletion for tree-based
+models (Schelter et al., 2021). Thus, we outline our contributions as follows:
+1. We introduce DaRE (Data Removal-Enabled) Forests
+(a.k.a DaRE RF), a variant of random forests that supports the efficient removal of training instances. DaRE
+RF works with discrete tree structures, in contrast to
+many related works on efficient data deletion that assume continuous parameters. The key components
+of DaRE RF are to retrain subtrees only as needed,
+consider only a subset of valid thresholds per attribute
+at each decision node, and to strategically place completely random nodes near the top of each tree to avoid
+costly retraining.
+2. We provide algorithms for training and subsequently
+removing data from a DaRE forest.
+3. We evaluate DaRE RF’s ability to efficiently perform
+
+

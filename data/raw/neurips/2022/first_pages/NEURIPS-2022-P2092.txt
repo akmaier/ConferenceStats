@@ -1,0 +1,52 @@
+Efficient Spatially Sparse Inference for
+Conditional GANs and Diffusion Models
+
+1
+
+Muyang Li1 Ji Lin2 Chenlin Meng3 Stefano Ermon3 Song Han2 Jun-Yan Zhu1
+Carnegie Mellon University 2 Massachusetts Institute of Technology 3 Stanford University
+
+Abstract
+During image editing, existing deep generative models tend to re-synthesize the
+entire output from scratch, including the unedited regions. This leads to a significant waste of computation, especially for minor editing operations. In this
+work, we present Spatially Sparse Inference (SSI), a general-purpose technique
+that selectively performs computation for edited regions and accelerates various
+generative models, including both conditional GANs and diffusion models. Our
+key observation is that users tend to make gradual changes to the input image. This
+motivates us to cache and reuse the feature maps of the original image. Given
+an edited image, we sparsely apply the convolutional filters to the edited regions
+while reusing the cached features for the unedited regions. Based on our algorithm,
+we further propose Sparse Incremental Generative Engine (SIGE) to convert the
+computation reduction to latency reduction on off-the-shelf hardware. With 1.2%area edited regions, our method reduces the computation of DDIM by 7.5⇥ and
+GauGAN by 18⇥ while preserving the visual fidelity. With SIGE, we accelerate
+the inference time of DDIM by 3.0⇥ on RTX 3090 and 6.6⇥ on Apple M1 Pro
+CPU, and GauGAN by 4.2⇥ on RTX 3090 and 14⇥ on Apple M1 Pro CPU.
+
+1
+
+Introduction
+
+Deep generative models, such as GANs [1, 2] and diffusion models [3, 4, 5], excel at synthesizing
+photo-realistic images, enabling many image synthesis and editing applications. For example, users
+can edit an image by drawing sketches [6, 7], semantic maps [6, 8], or strokes [9]. All of these
+applications require users to interact with generative models frequently and therefore demand fast
+inference time.
+In practice, content creators often edit images gradually and only update a small image region each
+time. However, even for a minor edit, recent generative models often synthesize the entire image,
+including the unchanged regions, which leads to a significant waste of computation. As a concrete
+example shown in Figure 2(a), the result of the previous editing has already been computed, and
+the user further edits 9.4% area. However, the vanilla DDIM [5] needs to generate the entire image
+to obtain the newly edited regions, wasting 80% computation on the unchanged regions. A naive
+approach to address this issue would be to first segment the newly edited regions, synthesize the
+corresponding output regions, and blend the outputs back into the previous output. Unfortunately,
+this method often creates visible seams between the newly edited and unedited regions. How could
+we save the computation by only updating the edited regions without losing global coherence?
+In this work, we propose Spatially Sparse Inference (SSI), a general method to accelerate deep
+generative models, including conditional GANs and diffusion models, by utilizing the spatial sparsity
+of edited regions. Our method is motivated by the observation that feature maps at the unedited regions
+remain mostly the same during user editing. As shown in Figure 2(b), our key idea is to reuse the
+cached feature maps of the previous editing and sparsely update the newly edited regions. Specifically,
+given user input, we first compute the difference mask to locate the newly edited regions. For each
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+

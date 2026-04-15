@@ -1,0 +1,86 @@
+Promises and Pitfalls of Generative Masked Language Modeling:
+Theoretical Framework and Practical Guidelines
+Yuchen Li 1 2 Alexandre Kirchmeyer * 1 Aashay Mehta * 1 Yilong Qin * 1
+Boris Dadachev * 2 Kishore Papineni * 2 Sanjiv Kumar 2 Andrej Risteski 1
+
+Abstract
+
+1. Introduction
+
+Autoregressive language models are the currently
+dominant paradigm for text generation, but they
+have some fundamental limitations that cannot
+be remedied by scale—for example inherently
+sequential and unidirectional generation. While
+alternate classes of models have been explored,
+we have limited mathematical understanding of
+their fundamental power and limitations. In this
+paper we focus on Generative Masked Language
+Models (GMLMs), a non-autoregressive paradigm
+in which we train a model to fit conditional probabilities of the data distribution via masking, which
+are subsequently used as inputs to a Markov Chain
+to draw samples from the model. These models
+empirically strike a promising speed-quality tradeoff as each step can be typically parallelized by
+decoding the entire sequence in parallel. We develop a mathematical framework for analyzing
+and improving such models which sheds light
+on questions of sample complexity and inference
+speed and quality. Empirically, we adapt the T5
+model for iteratively-refined parallel decoding,
+achieving 2-3x speedup in machine translation
+with minimal sacrifice in quality compared with
+autoregressive models. We run careful ablation
+experiments to give recommendations on key design choices, and make fine-grained observations
+on the common error modes in connection with
+our theory. Our mathematical analyses and empirical observations characterize both potentials and
+limitations of this approach, and can be applied
+to future works on improving understanding and
+performance of GMLMs.
+*
+
+The current dominant approach to language modeling is
+autoregressive (AR): to generate a sequence of tokens, the
+language model starts by predicting the leftmost token, and
+then proceeds from left to right, each step predicting the
+next token based on everything on its left (Raffel et al., 2020;
+Brown et al., 2020; Touvron et al., 2023). AR models are
+not without limitations:
+1. Lack of parallelism: To generate a sequence of N
+tokens, AR language models need N sequential decoding steps. Each step consists of a forward pass of the
+decoder component. When N is large, N sequential
+decoding steps incur high latency.
+2. Quality: When predicting each token, the model cannot
+access its right hand side context, and has no natural
+way to revise earlier predictions on the left. This intuitive limitation was more formally explored in prior
+theoretical works (Li & Risteski, 2021; Lin et al., 2021;
+Bachmann & Nagarajan, 2024).
+One promising alternative is based on Generative Masked
+Language Models (GMLMs). They are trained to fit conditional probabilities for parts of the sequence (by applying a
+mask), conditioned on the rest. To produce samples, these
+conditionals are used as oracles for running Markov Chain,
+e.g. a Gibbs sampler (Wang & Cho, 2019; Goyal et al.,
+2022). Alternatively, we can think of these steps as an iterative refinement process, typically starting with pure noise
+(i.e. all tokens are masked or randomized). One can even
+fit conditional probabilities for noised versions of the input
+distribution, and use them as inputs to a denoiser to get certain types of discrete diffusion models (Austin et al., 2021).
+In GMLMs, typically one step of the Markov Chain is operationalized by a Transformer that generates the sequence in
+parallel (i.e. parallel decoding (Ghazvininejad et al., 2019;
+Gu & Kong, 2021; Savinov et al., 2022) ). Hence, if the
+total number of steps is small, the latency is low. 1
+
+Equal contribution 1 Carnegie Mellon University 2 Google Research.
+Correspondence to: Yuchen Li <yuchenl4@cs.cmu.edu>, and
+Boris Dadachev <dadachev@google.com>, and Andrej Risteski
+<aristesk@andrew.cmu.edu>.
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+1
+
+Our codes are released at https://github.com/
+google-research/google-research/tree/
+master/padir
+
+

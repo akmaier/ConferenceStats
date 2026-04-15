@@ -1,0 +1,82 @@
+Few-shot Conformal Prediction with Auxiliary Tasks
+
+Adam Fisch 1 Tal Schuster 1 Tommi Jaakkola 1 Regina Barzilay 1
+
+Abstract
+We develop a novel approach to conformal prediction when the target task has limited data available for training. Conformal prediction identifies a small set of promising output candidates
+in place of a single prediction, with guarantees
+that the set contains the correct answer with high
+probability. When training data is limited, however, the predicted set can easily become unusably large. In this work, we obtain substantially
+tighter prediction sets while maintaining desirable marginal guarantees by casting conformal
+prediction as a meta-learning paradigm over exchangeable collections of auxiliary tasks. Our
+conformalization algorithm is simple, fast, and
+agnostic to the choice of underlying model, learning algorithm, or dataset. We demonstrate the
+effectiveness of this approach across a number of
+few-shot classification and regression tasks in natural language processing, computer vision, and
+computational chemistry for drug discovery.
+
+1
+
+Introduction
+
+Accurate estimates of uncertainty are important for difficult
+or sensitive prediction problems that have variable accuracy (Amodei et al., 2016; Jiang et al., 2012; 2018; Angelopoulos et al., 2021). Few-shot learning problems, in
+which training data for the target task is severely limited,
+pose a discouragingly compounded challenge: in general,
+not only is (1) making accurate predictions with little data
+hard, but also (2) rigorously quantifying the uncertainty in
+these few-shot predictions is even harder.
+In this paper, we are interested in creating confident prediction sets that provably contain the correct answer with high
+probability (e.g., 95%), while only relying on a few in-task
+examples. Specifically, we focus on conformal prediction
+(CP)—a model-agnostic and distribution-free methodology
+1
+Computer Science and Artificial Intelligence Laboratory, Massachusetts Institute of Technology, Cambridge, MA, USA. Correspondence to: Adam Fisch <fisch@csail.mit.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+for creating confidence-based set predictions (Vovk et al.,
+2005). Concretely, suppose we have been given n examples, (Xj , Yj ) ∈ X × Y, j = 1, . . . , n, as training data,
+that have been drawn exchangeably from some underlying
+distribution P . Let Xn+1 ∈ X be a new exchangeable test
+example for which we would like to predict Yn+1 ∈ Y.
+The aim of conformal prediction is to construct a set-valued
+output, C (Xn+1 ), that contains Yn+1 with distribution-free
+marginal coverage at a significance level  ∈ (0, 1), i.e.,
+P (Yn+1 ∈ C (Xn+1 )) ≥ 1 − .
+
+(1)
+
+A conformal model is considered to be valid if the frequency
+of error, Yn+1 6∈ C (Xn+1 ), does not exceed . The challenge for few-shot learning, however, is that as n → 0,
+standard CP methods quickly result in outputs C (Xn+1 ) so
+large that they lose all utility (e.g., a trivially valid classifier
+that returns all of Y). A conformal model is only considered
+to be efficient if E[|C (Xn+1 )|] is relatively small.
+In this work, we approach this frustrating data sparsity issue
+by casting conformal prediction as a meta-learning paradigm
+over exchangeable collections of tasks. By being exposed
+to a set of similar, auxiliary tasks, our model can learn to
+learn quickly on the target task at hand. As a result, we can
+increase the data efficiency of our procedure, and are able
+to produce more precise—and confident—outputs.
+Specifically, we use the auxiliary tasks to meta-learn both
+a few-shot model and a quantile predictor. The few-shot
+model provides relevance scores (i.e., nonconformity scores,
+see §3.1) for each possible label candidate y ∈ Y, and the
+quantile predictor provides a threshold rule for including
+the candidate y in the prediction set, C (Xn+1 ), or not. A
+good few-shot model should provide scores that clearly
+separate correct labels from incorrect labels—much like
+a maximum-margin model. Meanwhile, a good quantile
+predictor—which is intrinsically linked to the specific fewshot model used—should quantify what few-shot scores
+correspond to relatively “high” or relatively “low” values
+for that task (i.e., as the name suggests, they infer the target
+quantile of the expected distribution of few-shot scores).
+Both of these models must be able to operate effectively
+given only a few examples from the target task, hence how
+they are meta-learned over auxiliary tasks becomes crucial.
+Consider the example of image classification for novel cate-
+
+

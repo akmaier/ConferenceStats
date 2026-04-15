@@ -1,0 +1,63 @@
+Error Discovery By Clustering Influence Embeddings
+
+Fulton Wang∗
+Meta
+
+Julius Adebayo∗
+Prescient Design / Genentech
+
+Sarah Tan
+Cornell University
+
+Diego Garcia-Olano
+Meta
+
+Narine Kokhlikyan
+Meta
+
+Abstract
+We present a method for identifying groups of test examples—slices—on which
+a model under-performs, a task now known as slice discovery. We formalize
+coherence—a requirement that erroneous predictions, within a slice, should be
+wrong for the same reason—as a key property that any slice discovery method
+should satisfy. We then use influence functions to derive a new slice discovery
+method, InfEmbed, which satisfies coherence by returning slices whose examples
+are influenced similarly by the training data. InfEmbed is simple, and consists
+of applying K-Means clustering to a novel representation we deem influence
+embeddings. We show InfEmbed outperforms current state-of-the-art methods on
+2 benchmarks, and is effective for model debugging across several case studies.2
+
+1
+
+Introduction
+
+Error analysis is a longstanding challenge in machine learning [Pope, 1976, Amershi et al., 2015,
+Sculley et al., 2015, Chung et al., 2019, Chakarov et al., 2016, Cadamuro et al., 2016, Kearns et al.,
+2018, Kim et al., 2019, Zinkevich Martin, 2020]. Recently, Eyuboglu et al. [2022b] formalized a
+type of error analysis termed the slice discovery problem. In the slice discovery problem, given
+a multi-class classification model and test data, the goal is to partition the test data into a set of
+slices—groups of test examples—by model performance. An effective slice discovery method (SDM)
+should satisfy two desiderata:
+1. Error surfacing: Identify under-performing slices, i.e. slices with low accuracy, if they exist.
+2. Coherence: Return slices that are coherent in the following sense: Erroneous predictions in
+a given slice should have the same root cause, i.e. be “wrong for the same reason”.
+To illustrate, suppose we have a pre-trained model that detects hip fractures from an x-ray, trained
+on data from one hospital, that is now deployed in a new hospital. The model might err frequently
+on two groups: 1) examples containing a spurious signal like the frequency signature of the scanner
+from the first hospital [Badgeley et al., 2019], and 2) examples from patients not represented in the
+new hospital. An effective SDM should uncover these two groups. The slice discovery problem
+has taken on renewed importance given that models trained via empirical risk minimization exhibit
+degraded performance on certain data groups—slices—due to distribution shift [Koh et al., 2021],
+noisy labels [Northcutt et al., 2021], and imbalanced data [Idrissi et al., 2022].
+In developing a SDM, there are two key challenges. First, formalizing the coherence property,
+i.e., defining the root cause of an error, identifying whether two errors have similar root causes,
+and ultimately, defining whether a slice is coherent. Second, identifying the representation to use:
+∗
+2
+
+The two authors contributed equally. Correspondence to fultonwang@meta.com
+Code to replicate our findings is available at: https://github.com/adebayoj/infembed
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

@@ -1,0 +1,73 @@
+1-bit Adam: Communication Efficient Large-Scale Training with Adam’s
+Convergence Speed
+Hanlin Tang 1 2 Shaoduo Gan 3 Ammar Ahmad Awan 1 Samyam Rajbhandari 1 Conglong Li 1 Xiangru Lian 2
+Ji Liu 2 Ce Zhang 3 Yuxiong He 1
+
+Abstract
+Scalable training of large models (like BERT
+and GPT-3) requires careful optimization rooted
+in model design, architecture, and system capabilities. From a system standpoint, communication has become a major bottleneck, especially on commodity systems with standard TCP
+interconnects that offer limited network bandwidth. Communication compression is an important technique to reduce training time on such
+systems. One of the most effective methods is
+error-compensated compression, which offers robust convergence speed even under 1-bit compression. However, state-of-the-art error compensation techniques only work with basic optimizers like SGD and Momentum SGD, which
+are linearly dependent on the gradients. They
+do not work with non-linear gradient-based optimizers like Adam, which offer state-of-the-art
+convergence efficiency and accuracy for models like BERT. In this paper, we propose 1-bit
+Adam that reduces the communication volume
+by up to 5⇥, offers much better scalability, and
+provides the same convergence speed as uncompressed Adam. Our key finding is that Adam’s
+variance (non-linear term) becomes stable during
+training, hence we can run Adam in the beginning
+(warmup phase) and use it as a precondition for
+Momentum SGD during the rest of the training
+(compression phase). Experiments on up to 256
+GPUs show that 1-bit Adam enables up to 3.3⇥
+higher throughput for BERT-Large pre-training
+and up to 2.9⇥ higher throughput for SQuAD
+fine-tuning. In addition, we provide theoretical
+analysis for our proposed work.
+1
+Microsoft 2 Department of Computer Science, University of
+Rochester 3 Department of Computer Science, ETH Zurich. Correspondence to: Yuxiong He <yuxhe@microsoft.com>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+1. Introduction
+Modern advancement of machine learning is heavily driven
+by the advancement of computational power and techniques.
+Nowadays, it is not unusual to train a single model using
+hundreds of computational devices such as GPUs. As a result, scaling up training algorithms in the distributed setting
+has attracted intensive interests over the years. One important direction is communication efficient distributed training, which enhances the scalability of the training system by
+reducing the communication cost. Example techniques include quantization (Zhang et al., 2017; Wangni et al., 2018),
+decentralization (Lian et al., 2017; Koloskova* et al., 2020;
+Li et al., 2018), and asynchronous communication (Zheng
+et al., 2016; Chaturapruek et al., 2015).
+One widely used strategy for alleviating the communication
+overhead is gradient compression. Before communication,
+the original gradient g will be compressed into C! [g], where
+C! [·] is the compress operator1 . As a result the communication volume could be greatly reduced. However, this
+gradient compression could slow down the convergence
+speed because important information might get lost during
+the compression. To recover this information lost, errorcompensated compression strategy was proposed: Instead of
+compressing the gradient at t-th iteration directly, we would
+first add back the compression error from the last step and
+then do the compression. Recent studies (Stich et al., 2018)
+observed that by using error-compensated compression, the
+asymptotic convergence speed remains unchanged for SGD
+even using 1-bit compression.
+On the other hand, many state-of-the-art models have to be
+trained using a more complicated variant, Adam (Kingma
+and Ba, 2014). For example, to train models such as BERT,
+one has to resort to the Adam optimizer, since training it
+with vanilla/momentum SGD has been shown to be less
+effective. Unfortunately, we find that error-compensated
+compression does not work for Adam, because Adam is
+non-linearly dependent on the gradient which affects the
+error compensation mechanism (see Section 3.2 and 4.2 for
+more details).
+1
+
+C! [·] could also include randomness.
+
+

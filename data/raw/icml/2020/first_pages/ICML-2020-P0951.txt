@@ -1,0 +1,78 @@
+State Space Expectation Propagation:
+Efficient Inference Schemes for Temporal Gaussian Processes
+
+William J. Wilkinson 1 Paul E. Chang 1 Michael Riis Andersen 2 Arno Solin 1
+
+Abstract
+We formulate approximate Bayesian inference
+in non-conjugate temporal and spatio-temporal
+Gaussian process models as a simple parameter update rule applied during Kalman smoothing. This viewpoint encompasses most inference
+schemes, including expectation propagation (EP),
+the classical (Extended, Unscented, etc.) Kalman
+smoothers, and variational inference. We provide a unifying perspective on these algorithms,
+showing how replacing the power EP moment
+matching step with linearisation recovers the classical smoothers. EP provides some benefits over
+the traditional methods via introduction of the socalled cavity distribution, and we combine these
+benefits with the computational efficiency of linearisation, providing extensive empirical analysis
+demonstrating the efficacy of various algorithms
+under this unifying framework. We provide a fast
+implementation of all methods in JAX.
+
+Filtering / Forward pass → ← Smoothing / Backward pass
+(a) EKF forward and RTS backward pass
+
+Filtering / Forward pass →
+
+← Smoothing / Backward pass
+
+(b) Extended Expectation Propagation (EEP)
+
+1. Introduction
+Gaussian processes (GPs, Rasmussen & Williams, 2006)
+are a nonlinear probabilistic modelling tool that combine
+well calibrated uncertainty estimates with the ability to encode prior information, and as such they are an increasingly
+effective method for many difficult machine learning tasks.
+The well known limitations of GPs are (i) their cubic scaling
+in the number of data, and (ii) their intractability when the
+observation model is non-Gaussian.
+For (i), a wide variety of methods have been proposed (e.g.
+Hensman et al., 2013; Salimbeni & Deisenroth, 2017; Wang
+et al., 2019), with perhaps the most common being the
+1
+Department of Computer Science, Aalto University, Finland
+Department of Applied Mathematics and Computer Science,
+Technical University of Denmark, Denmark. Correspondence
+to: William J. Wilkinson <william.wilkinson@aalto.fi>.
+2
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Figure 1. Filtering and smoothing in the Banana classification task.
+Training data represented by coloured points, the decision boundaries by black lines, and the predictive mean for the class label by
+colour map
+. The vertical dimension is treated as the ‘spatial’
+input and the horizontal as the sequential (‘temporal’) dimension.
+Forward sweep on the left, backward sweep on the right. Top
+panels (a) show the EKF; bottom (b) is the 2nd iteration of EEP.
+
+˜
+sparse-GP approach
+(Quinonero-Candela & Rasmussen,
+2005) which summarises the GP posterior through a subset
+of ‘inducing’ points. However, when the data exhibits a
+natural ordering—as in temporal or spatio-temporal tasks—
+many GP priors can be rewritten in closed-form in terms
+of stochastic differential equations (SDEs, ¨
+Sarkkä & Solin,
+2019), allowing for linear-time exact inference via Kalman
+filtering (Hartikainen & ¨
+Sarkkä, 2010; Reece & Roberts,
+2010). This link is beneficial in scenarios such as climate
+modelling, or audio signal analysis, which exhibit both high
+and low-frequency behaviour. A sparse-GP analogy to the
+Shannon–Nyquist theorem (Tobar, 2019) tells us that audio
+signals, for example, necessarily require tens of thousands
+of inducing points per second of data, rendering sparse ap-
+
+

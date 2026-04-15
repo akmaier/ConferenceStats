@@ -1,0 +1,74 @@
+Adversarial Time-to-Event Modeling
+
+Paidamoyo Chapfuwa 1 Chenyang Tao 1 Chunyuan Li 1 Courtney Page 1 Benjamin Goldstein 1
+Lawrence Carin 1 Ricardo Henao 1
+
+Abstract
+Modern health data science applications leverage
+abundant molecular and electronic health data,
+providing opportunities for machine learning to
+build statistical models to support clinical practice. Time-to-event analysis, also called survival
+analysis, stands as one of the most representative
+examples of such statistical models. We present a
+deep-network-based approach that leverages adversarial learning to address a key challenge in
+modern time-to-event modeling: nonparametric
+estimation of event-time distributions. We also
+introduce a principled cost function to exploit information from censored events (events that occur
+subsequent to the observation window). Unlike
+most time-to-event models, we focus on the estimation of time-to-event distributions, rather than
+time ordering. We validate our model on both
+benchmark and real datasets, demonstrating that
+the proposed formulation yields significant performance gains relative to a parametric alternative,
+which we also propose.
+
+1. Introduction
+Time-to-event modeling is one of the most widely used
+statistical analysis tools in biostatistics and, more broadly,
+health data science applications. For a given subject, these
+models estimate either a risk score or the time-to-event distribution, from a pre-specified point in time at which a set
+of covariates (predictors) are observed. In practice, the
+model is parameterized as a weighted, often linear, combination of covariates. Time is estimated parametrically or
+nonparametrically, the former by assuming an underlying
+time distribution and the latter as proportional to observed
+event times. These models have been widely used in risk
+profiling (Hippisley-Cox & Coupland, 2013; Cheng et al.,
+2013), treatment planning, and drug development (Fischl
+1
+Duke University. Correspondence to: Paidamoyo Chapfuwa
+<paidamoyo.chapfuwa@duke.edu>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+et al., 1987). Time-to-event modeling, and in a larger context, point processes, constitute the fundamental analytical
+tools in applications for which the future behavior of a system or individual is to be characterized statistically.
+The principal time-to-event modeling tool is the Cox Proportional Hazards (Cox-PH) model (Cox, 1992). Cox-PH is
+a semi-parametric model that assumes the effect of covariates is a fixed, time-independent, multiplicative factor on
+the hazard rate, which characterizes the instantaneous death
+rate of the surviving population. By optimizing a partial
+likelihood formulation, Cox-PH circumvents the difficulty
+of specifying the unknown, time-dependent, baseline hazard
+function. Consequently, Cox-PH results in point-estimates
+proportional to the event times. Further, estimation of CoxPH models depends heavily on event ordering and not the
+time-to-event itself, which is known to compromise the scalability of the estimation procedure to large datasets. This
+poor scaling behavior is manifested because the formulation
+is not amenable to stochastic training with minibatches.
+It is well accepted that the fixed-covariate-effects assumption made in Cox-PH is strong, and unlikely to hold in reality
+(Aalen, 1994). For instance, individual heterogeneity and
+other sources of variation, often likely to be dependent on
+time, are rarely measured or totally unobservable. This unobservable variation has been gradually recognized as a major
+concern in survival analysis and cannot be safely ignored
+(Collett, 2015; Aalen et al., 2001). When these sources
+of variation are independent of time, they can be modeled
+via fixed or random effects (Aalen, 1994; Hougaard, 1995).
+However, in cases for which they render the hazard rate timedependent, such variation is difficult to control, diagnose, or
+model parametrically. Cox-PH is known to be sensitive to
+such assumption violations (Aalen et al., 2001; Kleinbaum
+& Klein, 2010). Moreover, Cox-PH focuses on the estimation of the covariate effects rather than the survival time
+distribution, i.e., time-to-event prediction. The motivation
+behind Cox-PH and its shortcomings make it less appealing
+in applications where prediction is of highest importance.
+An alternative to the Cox-PH model is the Accelerated Failure Time (AFT) model (Wei, 1992). AFT makes the simplifying assumption that the effect of covariates either accelerates or delays the event progression, relative to a parametric
+
+

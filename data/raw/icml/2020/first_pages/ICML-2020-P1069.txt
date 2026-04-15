@@ -1,0 +1,63 @@
+Divide, Conquer, and Combine: a New Inference Strategy
+for Probabilistic Programs with Stochastic Support
+Yuan Zhou 1 Hongseok Yang 2 Yee Whye Teh 3 Tom Rainforth 3
+
+Abstract
+Universal probabilistic programming systems
+(PPSs) provide a powerful framework for specifying rich probabilistic models. They further
+attempt to automate the process of drawing inferences from these models, but doing this successfully is severely hampered by the wide range of
+non–standard models they can express. As a result, although one can specify complex models in
+a universal PPS, the provided inference engines often fall far short of what is required. In particular,
+we show that they produce surprisingly unsatisfactory performance for models where the support
+varies between executions, often doing no better than importance sampling from the prior. To
+address this, we introduce a new inference framework: Divide, Conquer, and Combine, which remains efficient for such models, and show how it
+can be implemented as an automated and generic
+PPS inference engine. We empirically demonstrate substantial performance improvements over
+existing approaches on three examples.
+
+1. Introduction
+Probabilistic programming systems (PPSs) provide a flexible platform where probabilistic models are specified as
+programs and inference procedures are performed in an automated manner. Some systems, such as BUGS (Tesauro
+et al., 2012) and Stan (Carpenter et al., 2017), are primarily
+designed around the efficient automation of a small number of inference strategies and the convenient expression of
+models for which these inference strategies are suitable.
+Universal PPSs, such as Church (Goodman et al., 2008),
+Venture (Mansinghka et al., 2014), Anglican (Wood et al.,
+1
+Department of Computer Science, University of Oxford,
+United Kingdom 2 School of Computer Science, KAIST, South Korea 3 Department of Statistics, University of Oxford, United Kingdom. Correspondence to: Yuan Zhou <yuan.zhou@cs.ox.ac.uk>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Figure 1. MAP estimate of the means and covariances of a Gaussian mixture model in the cases of K = 1 and K = 2 clusters. If
+K is itself random, the model has stochastic support as the parameters of the second cluster, e.g. its mean, only exist when K = 2.
+
+2014), and Pyro (Bingham et al., 2018), on the other hand,
+are set up to try and support the widest possible range of
+models a user might wish to write. Though this means that
+such systems can be used to write models which would
+be otherwise difficult to encode, this expressiveness comes
+at the cost of significantly complicating the automation of
+inference. In particular, models may contain random variables with mixed types or have varying, or even unbounded,
+dimensionalities; characteristics which cause significant
+challenges at the inference stage.
+In this paper, we aim to address one of the most challenging
+model characteristics: variables whose very existence is
+stochastic, often, though not always, leading to the overall
+dimensionality of the model varying between realizations.
+Many practical models posses this characteristic. For example, many models contain a variable controlling an allowed
+number of states, such as the number of clusters in a mixture model (see Figure 1, Richardson & Green 1997; Nobile
+& Fearnside 2007), or the number of states in a HMM or
+change point model (Fox et al., 2008). More generally, many
+inference problems involve some sort of Bayesian model
+averaging where the constituent models do not share the
+exact same set of parameters. Other models are inherently
+defined on spaces with non-static support, such as probabilistic context free grammars (PCFGs) (Manning et al., 1999),
+program induction models (Perov & Wood, 2014), kernel
+or function induction models (Schaechtle et al., 2016; Janz
+et al., 2016), many Bayesian non-parametric models (Roy
+et al., 2008; Teh, 2010), and a wide range of simulator–based
+models (Le et al., 2016; Baydin et al., 2019).
+
+

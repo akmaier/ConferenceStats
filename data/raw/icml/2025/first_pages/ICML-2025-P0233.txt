@@ -1,0 +1,79 @@
+Attention-Level Speculation
+
+Jack Cai 1 2 Ammar Vora 1 2 Randolph Zhang 3 Mark O’Connor 2 Mark C. Jeffrey 1
+
+Abstract
+
+As model sizes and context lengths increase (Chitty-Venkata
+et al., 2024; Shoeybi et al., 2019; Huang et al., 2019), a single accelerator can no longer meet the memory and compute
+demands. Tensor parallelism (splitting the model weights
+across devices) and data parallelism (replicating the model
+weights on each device) have been widely used for largescale LLM inference. Despite their adoption, these techniques exhibit the following problems during the causal
+decode phase, hurting token-generation latency:
+
+As Large Language Models (LLMs) grow in size
+and context length, efficient inference strategies
+are essential to maintain low-latency token generation. Unfortunately, conventional tensor and
+data parallelism face diminishing returns when
+scaling across multiple devices. We propose
+a novel form—attention-level speculative parallelism (ALSpec)—that predicts self-attention outputs to execute subsequent operations early on
+separate devices. Our approach overlaps attention and non-attention computations, reducing
+the attention latency overhead at 128K context
+length by up to 5× and improving end-to-end decode latency by up to 1.65×, all without sacrificing quality. We establish the fundamental pillars
+for speculative execution and provide an execution paradigm that simplifies implementation. We
+show that existing attention-approximation methods perform well on simple information retrieval
+tasks, but they fail in advanced reasoning and
+math. Combined with speculative execution, we
+can approximate up to 90% of self-attention without harming model correctness. Demonstrated on
+Tenstorrent’s NPU devices,1 we scale up LLM
+inference beyond current techniques, paving the
+way for faster inference in transformer models.
+
+1. Tensor parallelism suffers from communication overhead.
+Latency for operations like all-gather grows with more
+devices, yielding diminishing returns with device scaling.
+2. Data parallelism improves throughput with large batch
+sizes but does not improve latency.
+3. As the key-value (KV) caches grow with context length,
+self-attention becomes a bottleneck and increases overall
+latency (see Section 5.1 and Appendix D for details).
+We observe in Figure 1(left) that during token generation at
+small context length, the majority of latency comes from the
+non-self-attention operations, particularly the feed-forward
+networks. The self-attention latency grows linearly with
+context length. In contrast, the non-self-attention latency
+stays constant. This motivates our question: Can we overlap
+attention with other operations to hide the increasing cost
+without compromising model correctness?
+We propose attention-level speculation (ALSpec), replacing some full self-attentions with cheaper approximations
+(e.g., windowed attention with attention sink (Xiao et al.,
+2024)) and verifying the approximation against the true attention in parallel. When the approximation is accurate, ALSpec commits and skips expensive calculations. This form
+of speculation, when successful, allows non-self-attention
+operations to overlap in time with the self-attention operations. We find that up to 90% of the self-attention operations can be safely speculated without harming output
+quality. In contrast to decode-level speculation (Leviathan
+et al., 2023), ALSpec can be applied to emerging model
+architectures with recurrent hidden states, such as layerlooping (Eyuboglu et al., 2024) and continuous chain-ofthoughts (Hao et al., 2024). When computing resources are
+abundant, ALSpec could be coupled with tensor parallelism
+and decode-level speculation to deliver even lower latency.
+Figure 1 shows that ALSpec delivers up to 5× reduction in
+
+1. Introduction
+State-of-the-art Large Language Models (LLMs) for token
+generation often rely on decoder-only transformer architectures (Touvron et al., 2023; Dubey et al., 2024; Jiang
+et al., 2024; Yang et al., 2024; Almazrouei et al., 2023).
+These models stack repetitive layers of self-attention and
+feed-forward operations, allowing efficient scaling across
+layers (Tay et al., 2022; Kim et al., 2023).
+1
+
+University of Toronto 2 Tenstorrent 3 University of Waterloo.
+Correspondence to: Mark C. Jeffrey <mcj@ece.utoronto.ca>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+1
+Our code is at github.com/mcj-group/alspec
+
+1
+
+

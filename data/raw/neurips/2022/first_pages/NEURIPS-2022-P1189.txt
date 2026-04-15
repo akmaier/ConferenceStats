@@ -1,0 +1,48 @@
+F LASH ATTENTION: Fast and
+Memory-Efficient Exact Attention with IO-Awareness
+
+Tri Dao† , Daniel Y. Fu † , Stefano Ermon † , Atri Rudra ‡ , Christopher Ré †
+† Department of Computer Science, Stanford University
+‡ Department of Computer Science and Engineering, University at Buffalo, SUNY
+{trid,danfu}@stanford.edu, ermon@stanford.edu, atri@buffalo.edu, chrismre@cs.stanford.edu
+
+Abstract
+Transformers are slow and memory-hungry on long sequences, since the time and
+memory complexity of self-attention are quadratic in sequence length. Approximate
+attention methods have attempted to address this problem by trading off model quality to reduce the compute complexity, but often do not achieve wall-clock speedup.
+We argue that a missing principle is making attention algorithms IO-aware—
+accounting for reads and writes between levels of GPU memory. We propose
+F LASH ATTENTION, an IO-aware exact attention algorithm that uses tiling to reduce
+the number of memory reads/writes between GPU high bandwidth memory (HBM)
+and GPU on-chip SRAM. We analyze the IO complexity of F LASH ATTENTION,
+showing that it requires fewer HBM accesses than standard attention, and is optimal
+for a range of SRAM sizes. We also extend F LASH ATTENTION to block-sparse attention, yielding an approximate attention algorithm that is faster than any existing
+approximate attention method. F LASH ATTENTION trains Transformers faster than
+existing baselines: 15% end-to-end wall-clock speedup on BERT-large (seq. length
+512) compared to the MLPerf 1.1 training speed record, 3× speedup on GPT-2 (seq.
+length 1K), and 2.4× speedup on long-range arena (seq. length 1K-4K). F LASH ATTENTION and block-sparse F LASH ATTENTION enable longer context in Transformers, yielding higher quality models (0.7 better perplexity on GPT-2 and 6.4 points
+of lift on long-document classification) and entirely new capabilities: the first Transformers to achieve better-than-chance performance on the Path-X challenge (seq.
+length 16K, 61.4% accuracy) and Path-256 (seq. length 64K, 63.1% accuracy).
+
+1
+
+Introduction
+
+Transformer models [86] have emerged as the most widely used architecture in applications such
+as natural language processing and image classification. Transformers have grown larger [5] and
+deeper [87], but equipping them with longer context remains difficult [83], since the self-attention
+module at their heart has time and memory complexity quadratic in sequence length. An important
+question is whether making attention faster and more memory-efficient can help Transformer models
+address their runtime and memory challenges for long sequences.
+Many approximate attention methods have aimed to reduce the compute and memory requirements
+of attention. These methods range from sparse-approximation [53, 77] to low-rank approximation [13, 52, 88], and their combinations [3, 9, 96]. Although these methods reduce the compute
+requirements to linear or near-linear in sequence length, many of them do not display wall-clock
+speedup against standard attention and have not gained wide adoption. One main reason is that
+they focus on FLOP reduction (which may not correlate with wall-clock speed) and tend to ignore
+overheads from memory access (IO).
+In this paper, we argue that a missing principle is making attention algorithms IO-aware [1]—that is,
+carefully accounting for reads and writes to different levels of fast and slow memory (e.g., between
+fast GPU on-chip SRAM and relatively slow GPU high bandwidth memory, or HBM [47], Figure 1
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+

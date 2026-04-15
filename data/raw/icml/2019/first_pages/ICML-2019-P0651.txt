@@ -1,0 +1,108 @@
+Learning to Select for a Predefined Ranking
+
+Aleksei Ustimenko * 1 2 3 Aleksandr Vorobev * 1 Gleb Gusev 1 4 Pavel Serdyukov 1
+
+Abstract
+In this paper, we formulate a novel problem of
+learning to select a set of items maximizing the
+quality of their ordered list, where the order is
+predefined by some explicit rule. Unlike the classic information retrieval problem, in our setting,
+the predefined order of items in the list may not
+correspond to their quality in general. For example, this is a dominant scenario in personalized
+news and social media feeds, where items are ordered by publication time in a user interface. We
+propose new theoretically grounded algorithms
+based on direct optimization of the resulting list
+quality. Our offline and online experiments with
+a large-scale product search engine demonstrate
+the overwhelming advantage of our methods over
+the baselines in terms of all key quality metrics.
+
+1. Introduction
+Modern search systems traditionally face the problem of
+providing users with ordered lists of items best responding
+their needs in different contexts. One particularly important case is serving a user with a list of relevant items, yet
+ordered not by their relevance, but by a dedicated item attribute (often chosen by the user after formulating the initial
+query). Examples of such scenarios are time-based ordering on a social media website (Hasanain et al., 2015) or
+price-based ordering of offers on an e-commerce website
+(e.g., Amazon 1 ). In that case, the algorithmic challenge
+essentially comes down to selecting items to include in the
+list to be shown to the user.
+*
+
+Equal contribution 1 Yandex, Moscow, Russia 2 Skoltech University, Moscow, Russia 3 Faculty of Computer Science, Higher
+School of Economics, Moscow, Russia 4 Department of Innovation and High Technology, Moscow Institute of Physics and
+Technology, Dolgoprudny, Russia. Correspondence to: Aleksei
+Ustimenko <austimenko@yandex-team.ru>, Aleksandr Vorobev
+<alvorobyev88@gmail.com>, Gleb Gusev <gleb57@gmail.com>,
+Pavel Serdyukov <pavser@yandex-team.ru>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+1
+https://www.amazon.com
+
+It is generally a poor choice to select all retrieved items,
+since the top ones by the dedicated attribute can be totally
+irrelevant to the user needs: e.g., the cheapest offer is often
+by no means the most relevant to the user query. In practice, selection algorithms are often far from perfect, and
+numerous users of, e.g., popular product or job search engines regularly suffer from poor quality of results ordered
+by price or publication time. For example, see (Spirin et al.,
+2015, Section 1) for illustrative statistics and Figure 1 in the
+supplementary material for a result page at one of the most
+popular product search system.
+Despite a large body of learning-to-rank literature, surprisingly, there are no papers about learning to select for a
+predefined ranking. One straightforward selection method
+referred to as the cutoff approach below is (1) to learn a
+relevance prediction model, (2) to select only items whose
+predicted relevance is higher than some threshold (Hasanain
+et al., 2015). As it was demonstrated by Spirin et al. (2015),
+this approach is too far from the optimal solution in general. Indeed, on one hand, we want to show the most relevant items at the top of the ordered list; therefore, we
+should exclude all items above, even if they are slightly
+less relevant. On the other hand, a threshold suitable for
+that purpose will also hide many relevant results ranked
+below from the user. For example, for the list of items
+(d1 , d2 , d3 ) (ordered by a dedicated attribute) with respective relevance values (2, 7, 1), the maximum Discounted
+Cumulative Gain2 (Järvelin & Kekäläinen, 2002) of top-3
+results (DCG@3) is achieved on the selected set (d2 , d3 ),
+where d3 is selected and d1 is not, though having the higher
+relevance (see Table 1 for details). At the same time, the
+cutoff approach with the best relevance threshold selects
+only d2 , and it is much closer to the original list than to the
+best solution in terms of DCG@3.
+Table 1. Example of suboptimality of the cutoff approach
+
+Original list
+List
+Attribute values
+Relevance values
+DCG@3 of list
+2
+
+d1 , d2 , d3
+1, 2, 3
+2, 7, 1
+6.92
+
+DCG@k(r1 , . . . , rk ) =
+the item at position i
+
+Pk
+
+Best
+cutoff
+d2
+2
+7
+7
+
+Best
+selection
+d2 , d3
+2, 3
+7, 1
+7.63
+
+ri
+i=1 log2 (i+1) , ri - relevance of
+
+

@@ -1,0 +1,69 @@
+Learning Gradient Fields for Molecular Conformation Generation
+
+Chence Shi * 1 2 Shitong Luo * 3 Minkai Xu 1 2 Jian Tang 1 4 5
+
+Abstract
+We study a fundamental problem in computational chemistry known as molecular conformation generation, trying to predict stable 3D structures from 2D molecular graphs. Existing machine learning approaches usually first predict
+distances between atoms and then generate a 3D
+structure satisfying the distances, where noise in
+predicted distances may induce extra errors during 3D coordinate generation. Inspired by the
+traditional force field methods for molecular dynamics simulation, in this paper, we propose a
+novel approach called ConfGF by directly estimating the gradient fields of the log density of
+atomic coordinates. The estimated gradient fields
+allow directly generating stable conformations
+via Langevin dynamics. However, the problem
+is very challenging as the gradient fields are rototranslation equivariant. We notice that estimating
+the gradient fields of atomic coordinates can be
+translated to estimating the gradient fields of interatomic distances, and hence develop a novel
+algorithm based on recent score-based generative models to effectively estimate these gradients. Experimental results across multiple tasks
+show that ConfGF outperforms previous state-ofthe-art baselines by a significant margin. The
+code is available at https://github.com/
+DeepGraphLearning/ConfGF.
+
+1. Introduction
+Graph-based representations of molecules, where nodes represent atoms and edges represent bonds, have been widely
+applied to a variety of molecular modeling tasks, ranging
+from property prediction (Gilmer et al., 2017; Hu et al.,
+2020) to molecule generation (Jin et al., 2018; You et al.,
+2018; Shi et al., 2020; Xie et al., 2021). However, in reality
+*
+
+Equal contribution 1 Mila - Quebec AI Institute, Montréal,
+Canada 2 University of Montréal, Montréal, Canada 3 Peking University 4 CIFAR AI Research Chair 5 HEC Montréal, Montréal,
+Canada. Correspondence to: Jian Tang <jian.tang@hec.ca>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+a more natural and intrinsic representation for molecules is
+their three-dimensional structures, where atoms are represented by 3D coordinates. These structures are also widely
+known as molecular geometry or conformation.
+Nevertheless, obtaining valid and stable conformations for
+a molecule remains a long-standing challenge. Existing
+approaches to molecular conformation generation mainly
+rely on molecular dynamics (MD) (De Vivo et al., 2016),
+where coordinates of atoms are sequentially updated based
+on the forces acting on each atom. The per-atom forces
+come either from computationally intensive Density Functional Theory (DFT) (Parr, 1989) or from hand-designed
+force fields (Rappé et al., 1992; Halgren, 1996) which are
+often crude approximations of the actual molecular energies (Kanal et al., 2017). Recently, there are growing interests in developing machine learning methods for conformation generation (Mansimov et al., 2019; Simm & HernandezLobato, 2020; Xu et al., 2021). In general, these approaches
+(Simm & Hernandez-Lobato, 2020; Xu et al., 2021) are
+divided into two stages, which first predict the molecular
+distance geometry, i.e., interatomic distances, and then convert the distances to 3D coordinates via post-processing
+algorithms (Liberti et al., 2014). Such methods effectively
+model the roto-translation equivariance of molecular conformations and have achieved impressive performance. Nevertheless, such approaches generate conformations in a twostage fashion, where noise in generated distances may affect
+3D coordinate reconstruction, often leading to less accurate
+or even erroneous structures. Therefore, we are seeking for
+an approach that is able to generate molecular conformations within a single stage.
+Inspired by the traditional force field methods for molecular
+dynamics simulation (Frenkel & Smit, 1996), in this paper,
+we propose a novel and principled approach called ConfGF
+for molecular conformation generation. The basic idea is to
+directly learn the gradient fields of the log density w.r.t. the
+atomic coordinates, which can be viewed as pseudo-forces
+acting on each atom. With the estimated gradient fields, conformations can be generated directly using Langevin dynamics (Welling & Teh, 2011), which amounts to moving atoms
+toward the high-likelihood regions guided by pseudo-forces.
+The key challenge with this approach is that such gradient
+fields of atomic coordinates are roto-translation equivariant,
+i.e., the gradients rotate together with the molecular system
+
+

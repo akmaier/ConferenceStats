@@ -1,0 +1,89 @@
+Neural Separation of Observed and Unobserved Distributions
+
+Tavi Halperin 1 Ariel Ephrat 2 Yedid Hoshen 1 3
+
+Abstract
+Separating mixed distributions is a long standing
+challenge for machine learning and signal processing. Most current methods either rely on making
+strong assumptions on the source distributions or
+rely on having training samples of each source
+in the mixture. In this work, we introduce a new
+method—Neural Egg Separation—to tackle the
+scenario of extracting a signal from an unobserved
+distribution additively mixed with a signal from
+an observed distribution. Our method iteratively
+learns to separate the known distribution from
+progressively finer estimates of the unknown distribution. In some settings, Neural Egg Separation
+is initialization sensitive, we therefore introduce
+Latent Mixture Masking which ensures a good
+initialization. Extensive experiments on audio
+and image separation tasks show that our method
+outperforms current methods that use the same
+level of supervision, and often achieves similar
+performance to full supervision.
+
+1. Introduction
+Humans are remarkably good at separating data coming
+from a mixture of distributions, e.g. hearing a person speaking in a crowded cocktail party. Artificial intelligence, on
+the the hand, is far less adept at separating mixed signals.
+This is an important ability as signals in nature are typically
+mixed, e.g. speakers are often mixed with other speakers or
+environmental sounds, objects in images are typically seen
+along other objects as well as the background. Understanding mixed signals is harder than understanding pure sources,
+making source separation an important research topic.
+Most previous work focused on the following settings:
+Full supervision: The learner has access to a training set
+1
+Department of Computer Science, The Hebrew University of Jerusalem, Jerusalem, Israel 2 Google Research
+3
+Facebook AI Research. Correspondence to: Tavi Halperin
+<tavi.halperin@mail.huji.ac.il >.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+including samples of mixed signals {y} ∈ Y as well as
+the ground truth sources of the same signals {b} ∈ B and
+{x} ∈ X (such that y = x + b). Having such strong
+supervision is very potent, allowing the learner to directly
+learn a mapping from the mixed signal y to its sources (x, b).
+Obtaining such strong supervision is nearly never possible,
+as it requires knowing for each input mixture y, its exact
+separate signals (x, b). This information is rarely available
+in a single microphone setting.
+Synthetic full supervision: The learner has access to a training set containing samples from the mixed signal {y} ∈ Y
+as well as samples from all source distributions {b} ∈ B
+and {x} ∈ X . The learner however does not have access to
+paired sets of the mixed and unmixed signal ground truth
+(that is for any given y in the training set, its separate b and
+x are unknown). This supervision setting is more realistic
+than the fully supervised case, and occurs when each of the
+source distributions can be sampled in isolation (e.g. we can
+record a violin and piano separately in a studio and can thus
+obtain unmixed samples of each of their distributions). It is
+typically solved by learning to separate synthetic mixtures
+b + x of independently sampled b and x.
+No supervision: The learner only has access to training
+samples of the mixed signal Y but not to sources B and
+X . Although this settings puts the least requirements on
+the training dataset, it is a hard problem and can be poorly
+specified in the absence of strong assumptions and priors. It
+is generally necessary to make strong assumptions on the
+properties of the component signals (e.g. smoothness, low
+rank, periodicity) in order to make progress in separation.
+This limits the applicability of such methods.
+In this work we concentrate on the semi-supervised setting:
+unmixing of signals in the case where the mixture Y consists
+of a signal coming from an unobserved distribution X and
+another signal from an observed distribution B (i.e. the
+learner has access to a training set of clean samples such
+that {b} ∈ B along with different mixed samples {y 0 } ∈ Y).
+One possible way of obtaining such supervision is to label
+every element of a signal (e.g. short waveform segment)
+by a label, indicating if it comes only from the observed
+distribution B or if it is a mixture of both distributions B+X .
+The task is to learn a parametric function able to separate
+the mixed signal y ∈ Y into sources x ∈ X and b ∈ B s.t.
+
+

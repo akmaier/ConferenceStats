@@ -1,0 +1,68 @@
+Stochastic Gradient Push for Distributed Deep Learning
+Mahmoud Assran 1 2 Nicolas Loizou 1 3 Nicolas Ballas 1 Mike Rabbat 1
+
+Abstract
+Distributed data-parallel algorithms aim to accelerate the training of deep neural networks by parallelizing the computation of large mini-batch gradient updates across multiple nodes. Approaches
+that synchronize nodes using exact distributed averaging (e.g., via A LL R EDUCE) are sensitive to
+stragglers and communication delays. The P USH S UM gossip algorithm is robust to these issues,
+but only performs approximate distributed averaging. This paper studies Stochastic Gradient
+Push (SGP), which combines P USH S UM with
+stochastic gradient updates. We prove that SGP
+converges to a stationary point of smooth, nonconvex objectives at the same sub-linear rate as
+SGD, and that all nodes achieve consensus. We
+empirically validate the performance of SGP on
+image classification (ResNet-50, ImageNet) and
+machine translation (Transformer, WMT’16 EnDe) workloads.
+
+1. Introduction
+Deep Neural Networks (DNNs) are the state-of-the art machine learning approach in many application areas, including computer vision (He et al., 2016) and natural language
+processing (Vaswani et al., 2017). Stochastic Gradient Descent (SGD) is the current workhorse for training neural
+networks. The algorithm optimizes the network parameters,
+x, to minimize a loss function, f (·), through gradient descent, where the loss function’s gradients are approximated
+using a subset of training examples (a mini-batch). DNNs
+often require large amounts of training data and trainable
+parameters, necessitating non-trivial computational requirements (Wu et al., 2016; Mahajan et al., 2018).
+Large mini-batch parallel SGD is usually adopted for dis1
+
+Facebook AI Research, Montréal, QC, Canada 2 Department
+of Electrical and Computer Engineering, McGill University,
+Montréal, QC, Canada 3 School of Mathematics, University of
+Edinburgh, Edinburgh, Scotland. Correspondence to: Mahmoud
+Assran <mahmoud.assran@mail.mcgill.ca>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+tributed training of deep networks (Goyal et al., 2017; Li
+et al., 2014). Worker nodes compute local mini-batch gradients of the loss function on different subsets of the data, and
+then calculate an exact inter-node average gradient using
+either the A LL R EDUCE communication primitive, in synchronous implementations (Goyal et al., 2017; Akiba et al.,
+2017), or using a central parameter server, in asynchronous
+implementations (Dean et al., 2012). Using a parameter
+server to aggregate gradients introduces a potential bottleneck and a central point of failure (Lian et al., 2017). The
+A LL R EDUCE primitive computes the exact average gradient
+at all workers in a decentralized manner, avoiding issues associated with centralized communication and computation.
+However, exact averaging algorithms like A LL R EDUCE
+are not robust in communication-constrained settings, i.e.,
+where the network bandwidth is a significant bottleneck.
+This issue motivates the investigation of a decentralized and
+inexact version of SGD to reduce the communication overhead associated with distributed training. There have been
+numerous decentralized optimization algorithms proposed
+and studied in the control-systems literature that leverage
+gossip-based approaches for the computation of aggregate
+information; see the survey of Nedić et al. (2018) and references therein. State-of-the-art gossip-based optimization
+methods build on the P USH S UM algorithm for distributed
+averaging (Kempe et al., 2003; Nedić et al., 2018). Rather
+than computing exact averages (as with A LL R EDUCE), this
+line of work uses less-coupled message passing and computes approximate averages. The tradeoff is that approximate distributed averaging also injects additional noise in
+the average gradient estimate.
+In this work we study Stochastic Gradient Push (SGP), an
+algorithm blending parallel SGD and P USH S UM. SGP enables the use of generic communication topologies that may
+be directed (asymmetric), sparse, and time-varying. In contrast, existing gossip-based approaches explored in the context of training DNNs (Lian et al., 2017; Jiang et al., 2017)
+are constrained to use symmetric communication (i.e., if
+node i sends to j, then i must also receive from j before
+proceeding) and thus inherently require deadlock-avoidance,
+and more synchronization, making them slower and more
+sensitive to stragglers. Moreover, SGP can be seen as a generalization of parallel SGD and these previous approaches.
+
+

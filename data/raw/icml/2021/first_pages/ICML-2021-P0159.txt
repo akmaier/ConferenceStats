@@ -1,0 +1,74 @@
+Large-Scale Multi-Agent Deep FBSDEs
+
+Tianrong Chen 1 Ziyi Wang 2 Ioannis Exarchos 3 Evangelos A. Theodorou 2 4
+
+Abstract
+In this paper we present a scalable deep learning
+framework for finding Markovian Nash Equilibria
+in multi-agent stochastic games using fictitious
+play. The motivation is inspired by theoretical
+analysis of Forward Backward Stochastic Differential Equations (FBSDE) and their implementation in a deep learning setting, which is the source
+of our algorithm’s sample efficiency improvement.
+By taking advantage of the permutation-invariant
+property of agents in symmetric games, the scalability and performance is further enhanced significantly. We showcase superior performance
+of our framework over the state-of-the-art deep
+fictitious play algorithm on an inter-bank lending/borrowing problem in terms of multiple metrics. More importantly, our approach scales up
+to 3000 agents in simulation, a scale which, to
+the best of our knowledge, represents a new stateof-the-art. We also demonstrate the applicability
+of our framework in robotics on a belief space
+autonomous racing problem.
+
+1. Introduction
+Stochastic Differential Games (SDG) represent a framework
+for investigating scenarios where multiple players make
+decisions in a stochastic environment. The theory of differential games dates back to the seminal work of Isaacs
+(1965) studying two-player zero-sum dynamic games, with
+the stochastic extension first appearing in Kushner & Chamberlain (1969). A key step in the study of games is to obtain
+the Nash equilibrium among players (Osborne & Rubinstein,
+1994). A Nash equilibrium represents the solution of noncooperative games where two or more players are involved.
+1
+School of Electrical and Computer Engineering, Georgia Institute of Technology, Atlanta, USA 2 Center for Machine Learning, Georgia Institute of Technology, Atlanta, USA
+3
+Department of Computer Science, Stanford University, Stanford, USA 4 School of Aerospace Engineering, Georgia Institute
+of Technology, Atlanta, USA. Correspondence to: Tianrong Chen
+<tchen429@gatech.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+At the equilibrium, each player cannot gain any benefit
+by modifying his/her own strategy given opponents’ strategy. In the context of adversarial multi-objective games, the
+Nash equilibrium can be represented as a system of coupled
+Hamilton-Jacobi-Bellman (HJB) equations when the system satisfies the Markovian property. Analytical solutions
+exist only for few special cases. Therefore, obtaining the
+Nash equilibrium solution is usually done numerically, and
+this can become challenging as the number of states/agents
+increases. Despite extensive theoretical work (Buckdahn
+& Li, 2008; Ramachandran & Tsokos, 2012), the algorithmic part has received less attention and is limited to special
+cases of differential games (e.g., Duncan & Pasik-Duncan
+(2015)), or suffers from the curse of dimensionality (Kushner, 2002). Nevertheless, SDG has a variety of applications
+including in robotics, autonomy, economics and management. Relevant examples include Mataramvura & Øksendal
+(2008), which formulates portfolio management as a SDG
+in order to obtain a market portfolio that minimizes the
+convex risk measure of a terminal wealth index value, as
+well as Prasad & Sethi (2004), which investigates optimal
+advertising spending in duopolistic settings via SDG.
+Researchers have also been solving differential games via
+Reinforcement Learning (RL) (Harmon et al., 1995). Kamalapurkar et al. (2016) seeks to combine differential game
+theory and RL to solve cooperative control problems in
+which agents are coupled by graphs. Multi-agent RL
+(MARL) is an extension of RL, which is a more complex
+task due to internal interactions between agents and external
+interactions with environment. Independent learning (Tan,
+1993) is an approach which assumes other agents are part
+of environment, and it suffers from the unstable learning
+problem. Training agents by augmenting their states and actions is called centralized training and executing (Yang et al.,
+2019), and scalability of it is limited. Another method is
+centralized training and decentralized execute (CTDE), however the challenge therein lies on how to decompose value
+function in the execute phase for value-based MARL. Sunehag et al. (2018); Zhou et al. (2019); Rashid et al. (2018);
+Son et al. (2019); Mahajan et al. (2019) achieve remarkable
+success in this vein. However, RL usually adopts modelfree learning scheme in discrete time. Here we leverage the
+HJB PDE which contains information of the dynamics to
+develop data-efficient algorithm in continuous time. The de-
+
+

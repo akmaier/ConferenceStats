@@ -1,0 +1,70 @@
+Scalable Deep Reinforcement Learning Algorithms for Mean Field Games
+
+Mathieu Laurière * 1 Sarah Perrin * 2 Sertan Girgin * 3 Paul Muller 4 Ayush Jain 5 Theophile Cabannes 5
+Georgios Piliouras 6 Julien Pérolat 4 Romuald Élie 4 Olivier Pietquin † 3 Matthieu Geist † 3
+
+Abstract
+Mean Field Games (MFGs) have been introduced to efficiently approximate games with very
+large populations of strategic agents. Recently,
+the question of learning equilibria in MFGs has
+gained momentum, particularly using model-free
+reinforcement learning (RL) methods. One limiting factor to further scale up using RL is that
+existing algorithms to solve MFGs require the
+mixing of approximated quantities such as strategies or q-values. This is far from being trivial in
+the case of non-linear function approximation that
+enjoy good generalization properties, e.g. neural
+networks. We propose two methods to address
+this shortcoming. The first one learns a mixed
+strategy from distillation of historical data into
+a neural network and is applied to the Fictitious
+Play algorithm. The second one is an online mixing method based on regularization that does not
+require memorizing historical data or previous
+estimates. It is used to extend Online Mirror Descent. We demonstrate numerically that these
+methods efficiently enable the use of Deep RL algorithms to solve various MFGs. In addition, we
+show that these methods outperform SotA baselines from the literature.
+
+1. Introduction
+Despite outstanding success of machine learning in numerous applications (Goodfellow et al., 2016; 2020), learning
+in games remains difficult because two or more agents require the consideration of non-stationary environments. In
+particular, it is hard to scale in terms of number of agents
+*
+
+Equal contribution 1 NYU Shanghai, China 2 Univ. Lille,
+CNRS, Inria, Centrale Lille, UMR 9189 CRIStAL, France 3 Google
+Research 4 DeepMind 5 UC Berkeley, California, USA 6 Singapore
+University of Technology and Design, Singapore. Correspondence
+to: Mathieu Lauriere <mathieu.lauriere@nyu.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+because one has to keep track of all agents’ behaviors, leading to a prohibitive combinatorial complexity (Daskalakis
+et al., 2006; Tuyls and Weiss, 2012). Recently, Mean Field
+Games (MFGs) have brought a new perspective by replacing
+the atomic agents by their distribution. Introduced concurrently by Lasry and Lions (2007) and Huang et al. (2006),
+the mean field approximation relies on symmetry and homogeneity assumptions, and enables to scale to an infinite
+number of agents. Solving MFGs is usually done by solving
+a forward-backward system of partial (or stochastic) differential equations, which represent the dynamics of both the
+state distribution and the value function. However, traditional numerical methods (see e.g. (Achdou and CapuzzoDolcetta, 2010; Carlini and Silva, 2014; Briceño Arias et al.,
+2018) and (Achdou and Laurière, 2020) for a survey) do not
+scale well in terms of the complexity of the state and action
+spaces. Recently, several deep learning methods for MFGs
+have been developed to tackle high-dimensional problems
+(see e.g. (Fouque and Zhang, 2020; Carmona and Laurière,
+2019; Germain et al., 2022; Cao et al., 2020) and (Carmona and Laurière, 2022) for a survey). Nevertheless, these
+methods require the model (dynamics and rewards) to be
+completely known.
+On the other hand, Reinforcement Learning (RL) has proved
+very efficient to solve Markov Decision Processes (MDPs)
+and games with complex structures, from e.g. chess Campbell et al. (2002) to multi-agent systems (Lanctot et al.,
+2017). To tackle problems with highly complex environments, RL algorithms can be combined with efficient function approximation. Deep neural networks with suitable
+architectures are arguably the most popular choice, thanks
+to their ease of use and their generalization capabilities.
+Deep RL has brought several recent breakthrough results,
+e.g., Go (Silver et al., 2016), atari (Mnih et al., 2013),
+poker (Brown and Sandholm, 2018; Moravčı́k et al., 2017)
+or even video games such as Starcraft (Vinyals et al., 2019).
+Many recent works have combined MFGs with RL to leverage their mutual potential – albeit mostly without deep neural nets thus far. The intertwinement of MFGs and RL happens through an optimization (or learning) procedure. The
+simplest algorithm of this type is the (Banach-Picard) fixedpoint approach, consisting in alternating a best response
+computation against a given population distribution with an
+
+

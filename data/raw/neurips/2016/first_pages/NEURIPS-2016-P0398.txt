@@ -1,0 +1,58 @@
+Stochastic Gradient MCMC with Stale Gradients
+Changyou Chen†
+Nan Ding‡
+Chunyuan Li†
+Yizhe Zhang†
+Lawrence Carin†
+†
+Dept. of Electrical and Computer Engineering, Duke University, Durham, NC, USA
+‡
+Google Inc., Venice, CA, USA
+†
+{cc448,cl319,yz196,lcarin}@duke.edu; ‡ dingnan@google.com
+
+Abstract
+Stochastic gradient MCMC (SG-MCMC) has played an important role in largescale Bayesian learning, with well-developed theoretical convergence properties. In
+such applications of SG-MCMC, it is becoming increasingly popular to employ distributed systems, where stochastic gradients are computed based on some outdated
+parameters, yielding what are termed stale gradients. While stale gradients could
+be directly used in SG-MCMC, their impact on convergence properties has not
+been well studied. In this paper we develop theory to show that while the bias and
+MSE of an SG-MCMC algorithm depend on the staleness of stochastic gradients,
+its estimation variance (relative to the expected estimate, based on a prescribed
+number of samples) is independent of it. In a simple Bayesian distributed system
+with SG-MCMC, where stale gradients are computed asynchronously by a set
+of workers, our theory indicates a linear speedup on the decrease of estimation
+variance w.r.t. the number of workers. Experiments on synthetic data and deep
+neural networks validate our theory, demonstrating the effectiveness and scalability
+of SG-MCMC with stale gradients.
+
+1
+
+Introduction
+
+The pervasiveness of big data has made scalable machine learning increasingly important, especially
+for deep models. A basic technique is to adopt stochastic optimization algorithms [1], e.g., stochastic
+gradient descent and its extensions [2]. In each iteration of stochastic optimization, a minibatch of
+data is used to evaluate the gradients of the objective function and update model parameters (errors
+are introduced in the gradients, because they are computed based on minibatches rather than the
+entire dataset; since the minibatches are typically selected at random, this yields the term “stochastic”
+gradient). This is highly scalable because processing a minibatch of data in each iteration is relatively
+cheap compared to analyzing the entire (large) dataset at once. Under certain conditions, stochastic
+optimization is guaranteed to converge to a (local) optima [1]. Because of its scalability, the minibatch
+strategy has recently been extended to Markov Chain Monte Carlo (MCMC) Bayesian sampling
+methods, yielding SG-MCMC [3, 4, 5].
+In order to handle large-scale data, distributed stochastic optimization algorithms have been developed,
+for example [6], to further improve scalability. In a distributed setting, a cluster of machines with
+multiple cores cooperate with each other, typically through an asynchronous scheme, for scalability
+[7, 8, 9]. A downside of an asynchronous implementation is that stale gradients must be used in
+parameter updates (“stale gradients” are stochastic gradients computed based on outdated parameters,
+instead of the latest parameters; they are easier to compute in a distributed system, but introduce
+additional errors relative to traditional stochastic gradients). While some theory has been developed to
+guarantee the convergence of stochastic optimization with stale gradients [10, 11, 12], little analysis
+has been done in a Bayesian setting, where SG-MCMC is applied. Distributed SG-MCMC algorithms
+share characteristics with distributed stochastic optimization, and thus are highly scalable and suitable
+for large-scale Bayesian learning. Existing Bayesian distributed systems with traditional MCMC
+methods, such as [13], usually employ stale statistics instead of stale gradients, where stale statistics
+30th Conference on Neural Information Processing Systems (NIPS 2016), Barcelona, Spain.
+
+

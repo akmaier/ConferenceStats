@@ -1,0 +1,83 @@
+An Investigation into Neural Net Optimization via Hessian Eigenvalue Density
+
+Behrooz Ghorbani 1 2 Shankar Krishnan 2 Ying Xiao 2
+
+Abstract
+To understand the dynamics of optimization in
+deep neural networks, we develop a tool to study
+the evolution of the entire Hessian spectrum
+throughout the optimization process. Using this,
+we study a number of hypotheses concerning
+smoothness, curvature, and sharpness in the deep
+learning literature. We then thoroughly analyze
+a crucial structural feature of the spectra: in nonbatch normalized networks, we observe the rapid
+appearance of large isolated eigenvalues in the
+spectrum, along with a surprising concentration
+of the gradient in the corresponding eigenspaces.
+In batch normalized networks, these two effects
+are almost absent. We characterize these effects,
+and explain how they affect optimization speed
+through both theory and experiments. As part of
+this work, we adapt advanced tools from numerical linear algebra that allow scalable and accurate estimation of the entire Hessian spectrum of
+ImageNet-scale neural networks; this technique
+may be of independent interest in other applications.
+
+1. Introduction
+The Hessian of the training loss (with respect to the parameters) is crucial in determining many behaviors of neural
+networks. The eigenvalues of the Hessian characterize the
+local curvature of the loss which, for example, determine
+how fast models can be optimized via first-order methods
+(at least for convex problems), and is also conjectured to
+influence the generalization properties. Unfortunately, even
+for moderate sized models, exact computation of the Hessian eigenvalues is computationally impossible. Previous
+studies on the Hessian have focused on small models, or
+are limited to computing only a few eigenvalues (Sagun
+1
+Department of Electrical Engineering, Stanford University.
+Work was done while author was an intern at Google. 2 Machine
+Perception, Google Inc.. Correspondence to: Behrooz Ghorbani
+<ghorbani@stanford.edu>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+et al., 2016; 2017; Yao et al., 2018). In the absence of such
+concrete information about the eigenvalue spectrum, many
+researchers have developed clever ad hoc methods to understand notions of smoothness, curvature, sharpness, and poor
+conditioning in the landscape of the loss surface. Examples
+of such work, where some surrogate is defined for the curvature, include the debate on flat vs sharp minima (Keskar
+et al., 2016; Dinh et al., 2017; Wu et al., 2017; Jastrz˛ebski
+et al., 2017), explanations of the efficacy of residual connections (Li et al., 2018b; Orhan & Pitkow, 2017) and batch
+normalization (Santurkar et al., 2018), the construction of
+low-energy paths between different local minima (Draxler
+et al., 2018), qualitative studies and visualizations of the
+loss surface (Goodfellow et al., 2014), and characterization
+of the intrinsic dimensionality of the loss (Li et al., 2018a;
+Fort & Scherlis, 2018). In each of these cases, detailed
+knowledge of the entire Hessian spectrum would surely be
+informative, if not decisive, in explaining the phenomena at
+hand.
+In this paper, we develop a tool that allows us access to
+the entire spectrum of a deep neural network. The tool is
+both highly accurate (we validate it to a double-precision
+accuracy of 10−14 for a 15000 parameter model), and highly
+scalable (we are able to generate the spectra of Resnets (He
+et al., 2016) and Inception V3 (Szegedy et al., 2016) on
+ImageNet in a small multiple of the time it takes to train
+the model). The underlying algorithm is extremely elegant,
+and has been known in the numerical analysis literature for
+decades (Bai et al., 1996) (based on foundational work by
+Golub and Welsch (1969)); here we introduce it to the machine learning community, and build (and release) a system
+to run it at modern deep learning scale.
+This algorithm allows us to peer into the optimization process with unprecedented clarity. By generating Hessian
+spectra with fine time resolution, we are able to study all
+phases of training, and are able to comment fruitfully on a
+number of hypotheses in the literature about the geometry
+of the loss surface. Our main experimental result focuses on
+the role of outlier eigenvalues, we analyze how the outlier
+eigenvalues affect the speed of optimization; this in turn provides significant insight into how batch normalization (Ioffe
+& Szegedy, 2015), one of the most popular innovations in
+training deep neural nets, speeds up optimization.
+
+

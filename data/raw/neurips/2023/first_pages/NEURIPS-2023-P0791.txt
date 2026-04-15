@@ -1,0 +1,58 @@
+S3: Increasing GPU Utilization during Generative
+Inference for Higher Throughput
+
+Yunho Jin
+Harvard University
+
+Chun-Feng Wu
+National Yang Ming
+Chiao Tung University
+
+David Brooks
+Harvard University
+
+Gu-Yeon Wei
+Harvard University
+
+Abstract
+Generating texts with a large language model (LLM) consumes massive amounts
+of memory. Apart from the already-large model parameters, the key/value (KV)
+cache that holds information about previous tokens in a sequence can grow to
+be even larger than the model itself. This problem is exacerbated in one of the
+current LLM serving frameworks which reserves the maximum sequence length of
+memory for the KV cache to guarantee generating a complete sequence as they do
+not know the output sequence length. This restricts us to use a smaller batch size
+leading to lower GPU utilization and above all, lower throughput. We argue that
+designing a system with a priori knowledge of the output sequence can mitigate
+this problem. To this end, we propose S3 , which predicts the output sequence
+length, schedules generation queries based on the prediction to increase device
+resource utilization and throughput, and handle mispredictions. Our proposed
+method achieves 6.49× throughput over those systems that assume the worst case
+for the output sequence length.
+
+1
+
+Introduction
+
+Text generation has become increasingly popular in various services, leading to a surge in the use of
+large language models (LLMs) known for their high accuracy. LLMs have distinct features that differentiate them from non-Transformer-based models, including a requirement for massive amounts
+of compute and memory resources. Specifically, we observe that Transformer-based LLMs are often
+limited by memory capacity and bandwidth, resulting in significant underutilization of compute resources. When serving GPT-J on an NVIDIA A100 GPU, the utilization of GPU compute resources
+can be as low as 0.4%. This highlights the memory-bound nature of the LLMs and the need for
+efficient memory utilization to increase the utilization of GPU compute resources.
+A common approach to boost GPU utilization and enhance throughput is to increase batch size. This
+is due to the fact that inputs within a batch share the same model weights, thus the GPU only needs
+to load the model weight from its high bandwidth memory (HBM) to the on-chip SRAM once and
+reuse it for all inputs within the batch. The GPU uses more of its compute resources when processing
+the same model weights. Increasing batch size is a simple optimization technique and is, therefore,
+commonly used in serving convolutional and fully-connected neural network models [1, 2].
+However, the self-attention layer in Transformer-based text generation LLMs presents a challenge
+to this simple optimization due to its autoregressive nature. Specifically, when generating a new
+token in a sequence, the model needs to attend to all previous tokens in the sequence, requiring the
+model to retain all information from previous tokens and store them in HBM. We call this region
+in the HBM holding the information key/value cache (KV cache). The size of the KV cache grows
+with larger batch sizes and longer sequences, which limits the maximum batch size, thereby lowering GPU utilization and ultimately reducing throughput. To support the growing KV cache size,
+Huggingface’s Transformers library [3] constantly allocates new memory at each token generation
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

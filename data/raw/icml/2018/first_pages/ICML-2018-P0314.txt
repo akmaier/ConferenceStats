@@ -1,0 +1,81 @@
+RLlib: Abstractions for Distributed Reinforcement Learning
+
+Eric Liang * 1 Richard Liaw * 1 Philipp Moritz 1 Robert Nishihara 1 Roy Fox 1 Ken Goldberg 1
+Joseph E. Gonzalez 1 Michael I. Jordan 1 Ion Stoica 1
+
+Abstract
+Reinforcement learning (RL) algorithms involve
+the deep nesting of highly irregular computation
+patterns, each of which typically exhibits opportunities for distributed computation. We argue for
+distributing RL components in a composable way
+by adapting algorithms for top-down hierarchical control, thereby encapsulating parallelism and
+resource requirements within short-running compute tasks. We demonstrate the benefits of this
+principle through RLlib: a library that provides
+scalable software primitives for RL. These primitives enable a broad range of algorithms to be
+implemented with high performance, scalability,
+and substantial code reuse. RLlib is available as
+part of the open source Ray project 1 .
+
+1. Introduction
+Advances in parallel computing and composition through
+symbolic differentiation have been fundamental to the recent
+success of deep learning. Today, there are a wide range of
+deep learning frameworks (Paszke et al., 2017; Abadi et al.,
+2016; Chen et al., 2016; Jia et al., 2014) that enable rapid
+innovation in neural network design and facilitate training
+at the scale necessary for progress in the field.
+In contrast, while the reinforcement learning community
+enjoys the advances in systems and abstractions for deep
+learning, there has been comparatively less progress in the
+design of systems and abstractions that directly target reinforcement learning. Nonetheless, many of the challenges in
+reinforcement learning stem from the need to scale learning
+and simulation while also integrating a rapidly increasing
+range of algorithms and models. As a consequence, there
+is a fundamental need for composable parallel primitives to
+support research in reinforcement learning.
+*
+
+Equal contribution 1 University of California, Berkeley. Correspondence to: Eric Liang <ericliang@berkeley.edu>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+1
+RLlib documentation can be found at http://rllib.io
+
+In the absence of a single dominant computational pattern
+(e.g., tensor algebra) or fundamental rules of composition
+(e.g., symbolic differentiation), the design and implementation of reinforcement learning algorithms can often be
+cumbersome, requiring RL researchers to directly reason
+about complex nested parallelism. Unlike typical operators
+in deep learning frameworks, individual components may require parallelism across a cluster (e.g., for rollouts), leverage
+neural networks implemented by deep learning frameworks,
+recursively invoke other components (e.g., model-based subtasks), or interface with black-box third-party simulators. In
+essence, the heterogeneous and distributed nature of many of
+these components poses a key challenge to reasoning about
+their parallel composition. Meanwhile, the main algorithms
+that connect these components are rapidly evolving and expose opportunities for parallelism at varying levels. Finally,
+RL algorithms manipulate substantial amounts of state (e.g.,
+replay buffers and model parameters) that must be managed
+across multiple levels of parallelism and physical devices.
+The substantial recent progress in RL algorithms and applications has resulted in a large and growing number of RL
+libraries (Caspi, 2017; Duan et al., 2016; Hafner et al., 2017;
+Hesse et al., 2017; Kostrikov, 2017; Schaarschmidt et al.,
+2017). While some of these are highly scalable, few enable
+the composition of components at scale. In large part, this
+is due to the fact that many of the frameworks used by these
+libraries rely on communication between long-running program replicas for distributed execution; e.g., MPI (Gropp
+et al., 1996), Distributed TensorFlow (Abadi et al., 2016),
+and parameter servers (Li et al., 2014)). As this programming model ignores component boundaries, it does not
+naturally encapsulate parallelism and resource requirements
+within individual components.2 As a result, reusing these
+distributed components requires the insertion of appropriate
+control points in the program, a burdensome and error-prone
+process (Section 2). The absence of usable encapsulation
+hinders code reuse and leads to error prone reimplementation of mathematically complex and often highly stochastic
+algorithms. Even worse, in the distributed setting, often
+2
+By encapsulation, we mean that individual components specify their own internal parallelism and resources requirements and
+can be used by other components that have no knowledge of these
+requirements.
+
+

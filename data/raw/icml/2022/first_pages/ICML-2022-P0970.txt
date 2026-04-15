@@ -1,0 +1,83 @@
+On Implicit Bias in Overparameterized Bilevel Optimization
+
+Paul Vicol 1 2 Jonathan Lorraine 1 2 Fabian Pedregosa 3 David Duvenaud 1 2 Roger Grosse 1 2
+
+Abstract
+
+where S : U ⇒ W is a set-valued response mapping, from
+each outer parameter u to a set of optimal inner parameters S(u). We use quotes around the outer “arg min” to
+denote the ambiguity in the definition of the bilevel problem when the inner objective has multiple solutions, a point
+we expand upon in Section 2. Examples of bilevel optimization in machine learning include hyperparameter optimization (Domke, 2012; Maclaurin et al., 2015; MacKay
+et al., 2019; Lorraine et al., 2020; Shaban et al., 2019),
+dataset distillation (Wang et al., 2018; Zhao et al., 2021),
+influence function estimation (Koh & Liang, 2017), metalearning (Finn et al., 2017; Franceschi et al., 2018; Rajeswaran et al., 2019), example reweighting (Bengio et al.,
+2009; Ren et al., 2018), neural architecture search (Zoph &
+Le, 2017; Liu et al., 2019) and adversarial learning (Goodfellow et al., 2014; Pfau & Vinyals, 2016) (see Table 1).
+
+Many problems in machine learning involve
+bilevel optimization (BLO), including hyperparameter optimization, meta-learning, and dataset
+distillation. Bilevel problems involve inner and
+outer parameters, each optimized for its own objective. Often, at least one of the two levels is underspecified and there are multiple ways to choose
+among equivalent optima. Inspired by recent studies of the implicit bias induced by optimization
+algorithms in single-level optimization, we investigate the implicit bias of different gradient-based
+algorithms for jointly optimizing the inner and
+outer parameters. We delineate two standard BLO
+methods—cold-start and warm-start BLO—and
+show that the converged solution or long-run behavior depends to a large degree on these and
+other algorithmic choices, such as the hypergradient approximation. We also show that the solutions from warm-start BLO can encode a surprising amount of information about the outer
+objective, even when the outer optimization variables are low-dimensional. We believe that implicit bias deserves as central a role in the study of
+bilevel optimization as it has attained in the study
+of single-level neural net optimization.
+
+1. Introduction
+Bilevel optimization (BLO) problems consist of two nested
+sub-problems, called the outer and inner problems, where
+the outer problem must be solved subject to the optimality
+of the inner problem. Let u ∈ U, w ∈ W denote the outer
+and inner parameters, and let F, f : U × W → R denote the
+outer and inner objectives, respectively. The BLO problem
+is defined as:
+u⋆ ∈ “ arg min ”F (u, w⋆ )
+
+(1)
+
+w⋆ ∈ S(u ) = arg min f (u⋆ , w)
+
+(2)
+
+u∈U
+⋆
+
+w∈W
+
+1
+University of Toronto 2 Vector Institute 3 Google Research.
+Correspondence to: Paul Vicol <pvicol@cs.toronto.edu>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+Most algorithmic contributions to BLO make the simplifying assumption that the inner problem has a unique solution
+(that is, |S(u)| = 1, ∀u ∈ U), and give approximation methods that provably get close to the solution (Shaban et al.,
+2019; Pedregosa, 2016; Yang et al., 2021; Hong et al., 2020;
+Grazzi et al., 2020a). In practice, however, these algorithms
+are often run in settings where either the inner or outer
+problem is underspecified; i.e., the set of optima forms
+a non-trivial manifold. Underspecification often occurs
+due to overparameterization, e.g., given a learning problem
+with more parameters than datapoints, there are typically
+infinitely many solutions that achieve the optimal objective
+value (Belkin, 2021). Analyses of the dynamics of overparameterized single-objective optimization have shown that
+the nature of the converged solution, such as its pattern
+of generalization, depends in subtle ways on the details of
+the optimization dynamics (Lee et al., 2019; Arora et al.,
+2019; Bartlett et al., 2020; Amari et al., 2020); this general
+phenomenon is known as implicit bias. We extend this investigation to the bilevel setting: What are the implicit biases
+of practical BLO algorithms? What types of solutions do
+they favor, and what are the implications for how the trained
+models generalize?
+We identify two sources of implicit bias in underspecified
+BLO: 1) implicit bias resulting from the optimization algorithm, either cold-start or warm-start BLO (described
+below); and 2) implicit bias resulting from the hypergradient approximation. Classic literature on bilevel optimiza-
+
+

@@ -1,0 +1,75 @@
+The Combinatorial Brain Surgeon:
+Pruning Weights That Cancel One Another in Neural Networks
+
+Xin Yu * 1 Thiago Serra * 2 Srikumar Ramalingam 3 Shandian Zhe 1
+
+Abstract
+Neural networks tend to achieve better accuracy
+with training if they are larger — even if the resulting models are overparameterized. Nevertheless, carefully removing such excess of parameters before, during, or after training may also
+produce models with similar or even improved
+accuracy. In many cases, that can be curiously
+achieved by heuristics as simple as removing a
+percentage of the weights with the smallest absolute value — even though absolute value is not
+a perfect proxy for weight relevance. With the
+premise that obtaining significantly better performance from pruning depends on accounting for
+the combined effect of removing multiple weights,
+we revisit one of the classic approaches for impactbased pruning: the Optimal Brain Surgeon (OBS).
+We propose a tractable heuristic for solving the
+combinatorial extension of OBS, in which we select weights for simultaneous removal, and we
+combine it with a single-pass systematic update
+of unpruned weights. Our selection method outperforms other methods for high sparsity, and the
+single-pass weight update is also advantageous
+if applied after those methods. Source code:
+github.com/yuxwind/CBS.
+
+1. Introduction
+In a world where large and overparameterized neural networks keep GPUs burning hot because machine learning
+researchers rethought generalization (Zhang et al., 2017;
+Belkin et al., 2019) and started tuning neural architectures
+with a hope for globally convergent loss landscapes (Li et al.,
+*
+
+Equal contribution 1 University of Utah, Salt Lake City, UT,
+United States 2 Bucknell University, Lewisburg, PA, United States
+3
+Google Research, New York, NY, United States. Correspondence to: Shandian Zhe <zhe@cs.utah.edu>, Thiago Serra <thiago.serra@bucknell.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+2018; Sun et al., 2020), network pruning can perhaps save
+us from parameter redundancy (Denil et al., 2013).
+Network pruning can lead to more parameter-efficient networks, with which we can save on model deploying and
+storage costs, and even to models with better accuracy. Although the extent to which we can prune depends on the
+task (Liebenwein et al., 2021) and pruning may have an
+uneven impact across classes if not done properly (Hooker
+et al., 2019; Paganini, 2020; Hooker et al., 2020; Good et al.,
+2022), pruning can also make neural networks more robust
+to adversarial manipulation (Wu & Wang, 2021).
+From a perspective of model expressiveness using linear
+regions, we may see network pruning as a means to close
+the gap between the highly complex models that can be theoretically learned with an architecture (Pascanu et al., 2014;
+Montúfar et al., 2014; Telgarsky, 2015; Montúfar, 2017;
+Arora et al., 2018a; Serra et al., 2018; Serra & Ramalingam,
+2020; Xiong et al., 2020; Montúfar et al., 2021) and the
+relatively less complex models obtained in practice (Hanin
+& Rolnick, 2019a;b; Tseran & Montúfar, 2021).
+Curiously, however, the long-standing magnitude-based
+pruning approach (Hanson & Pratt, 1988; Mozer & Smolensky, 1989; Janowsky, 1989) remains remarkably competitive (Blalock et al., 2020) despite having equally longstanding evidence that it does not offer a good proxy for
+parameter relevance (Hassibi & Stork, 1992). But why?
+We conjecture that focusing on the impact of removing each
+parameter alone prevents impact-based methods from being
+more effective. In other words, we believe that the decision
+about pruning each parameter should be based on which
+other parameters are also removed. Ideally, we want the
+effect of such removals to cancel one another to the largest
+extent possible while achieving the aimed sparsity.
+In this work, we revisit the functional Taylor expansion of
+the loss function L on a choice of weights w ∈ RN around
+the learned weights w̄ ∈ RN of the neural network as
+L(w) − L(w̄) =(w − w̄)T ∇L(w̄)
+1
++ (w − w̄)T ∇2 L(w̄)(w − w̄)
+2
++ O(kw − w̄k3 ),
+
+

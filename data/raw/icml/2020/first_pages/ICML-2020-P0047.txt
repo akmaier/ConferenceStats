@@ -1,0 +1,81 @@
+Scalable Nearest Neighbor Search for Optimal Transport
+
+Arturs Backurs 1 2 Yihe Dong 3 Piotr Indyk 4 Ilya Razenshteyn 5 Tal Wagner 4
+
+Abstract
+The Optimal Transport (a.k.a. Wasserstein) distance is an increasingly popular similarity measure for rich data domains, such as images or
+text documents. This raises the necessity for fast
+nearest neighbor search algorithms according to
+this distance, which poses a substantial computational bottleneck on massive datasets. In this
+work we introduce Flowtree, a fast and accurate
+approximation algorithm for the Wasserstein-1
+distance. We formally analyze its approximation factor and running time. We perform extensive experimental evaluation of nearest neighbor search algorithms in the W1 distance on realworld dataset. Our results show that compared to
+previous state of the art, Flowtree achieves up to
+7.4 times faster running time.
+
+1. Introduction
+Given a finite metric space M = (X, dX ) and two distributions µ and ν on X, the Wasserstein-1 distance (a.k.a.
+Earth Mover’s Distance or Optimal Transport) between µ
+and ν is defined as
+X
+τ (x1 , x2 ) · dX (x1 , x2 ), (1)
+W1 (µ, ν) = min
+τ
+
+x1 ,x2 ∈X
+
+where the minimum is taken over all distributions τ on
+X × X whose marginals are equal to µ and ν. The
+Wasserstein-1 distance and its variants are heavily used in
+applications to measure similarity in structured data domains, such as images (Rubner et al., 2000) and natural
+language text (Kusner et al., 2015). In particular, (Kusner
+et al., 2015) proposed the Word Mover Distance (WMD)
+for text documents. Each document is seen as a uniform
+distribution over the words it contains, and the underlying
+1
+Author names are ordered alphabetically. Code available
+at https://github.com/ilyaraz/ot_estimators.
+2
+TTIC 3 Microsoft 4 MIT 5 Microsoft Research. Correspondence
+to: Tal Wagner <talw@mit.edu>.
+th
+
+Proceedings of the 37 International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+metric between words is given by high-dimensional word
+embeddings such as word2vec (Mikolov et al., 2013) or
+GloVe (Pennington et al., 2014). It is shown in (Kusner
+et al., 2015) (see also (Le et al., 2019; Yurochkin et al.,
+2019; Wu et al., 2018)) that the Wasserstein-1 distance between the two distributions is a high-quality measure of
+similarity between the associated documents.
+To leverage the Wasserstein-1 distance for classification
+tasks, the above line of work uses the k-nearest neighbor classifier. This poses a notorious bottleneck for large
+datasets, necessitating the use of fast approximate similarity search algorithms. While such algorithms are widely
+studied for `p distances (chiefly `2 ; see (Andoni et al.,
+2018a) for a survey), much less is known for Wasserstein distances, and a comprehensive study appears to be
+lacking. In particular, two properties of the W1 distance
+make the nearest neighbor search problem very challenging. First, the W1 distance is fairly difficult to compute
+(the most common approaches are combinatorial flow algorithms (Kuhn, 1955) or approximate iterative methods (Cuturi, 2013)). Second, the W1 distance is strongly incompatible with Euclidean (and more generally, with `p ) geometries (Bourgain, 1986; Khot & Naor, 2006; Naor &
+Schechtman, 2007; Andoni et al., 2008; 2015; 2018b),
+which renders many of the existing techniques for nearest
+neighbor search inadequate (e.g., random projections).
+In this work, we systematically study the k-nearest neighbor search (k-NNS) problem with respect to the W1 distance. In accordance with the above applications, we focus
+on the case where the ground set X is a finite subset of
+Rd , endowed with the Euclidean distance, where d can be
+a high dimension, and each distribution over X has finite
+support of size at most s.1 Given a dataset of n distributions µ1 , µ2 , . . . , µn , the goal is to preprocess it, such that
+given a query distribution ν (also supported on X), we can
+quickly find the k distributions µi closest to ν in the W1
+distance. To speed up search, the algorithms we consider
+rely on efficient estimates of the distances W1 (µi , ν). This
+may lead to retrieving approximate nearest neighbors rather
+than the exact ones, which is often sufficient for practical
+1
+
+In the application to (Kusner et al., 2015), X is the set word
+embeddings of (say) all terms in the English language, and s is
+the maximum number of terms per text document.
+
+

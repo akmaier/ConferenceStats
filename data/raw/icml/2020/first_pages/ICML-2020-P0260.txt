@@ -1,0 +1,80 @@
+On Contrastive Learning for Likelihood-free Inference
+
+Conor Durkan 1 Iain Murray 1 George Papamakarios 2
+
+Abstract
+Likelihood-free methods perform parameter inference in stochastic simulator models where evaluating the likelihood is intractable but sampling
+synthetic data is possible. One class of methods for this likelihood-free problem uses a classifier to distinguish between pairs of parameterobservation samples generated using the simulator and pairs sampled from some reference distribution, which implicitly learns a density ratio
+proportional to the likelihood. Another popular
+class of methods fits a conditional distribution to
+the parameter posterior directly, and a particular
+recent variant allows for the use of flexible neural
+density estimators for this task. In this work, we
+show that both of these approaches can be unified
+under a general contrastive learning scheme, and
+clarify how they should be run and compared.
+
+1. Introduction
+Modeling systems using parameterized stochastic simulators is prevalent across many scientific and engineering
+disciplines, including cosmology (Alsing et al., 2019), highenergy physics (Brehmer et al., 2018a), and computational
+neuroscience (Gonçalves et al., 2019). Specifying models
+in this way is appealing since it is often easier to describe a
+generative process implicitly rather than reasoning directly
+about an emergent probability distribution. Traditional parameter inference algorithms such as variational methods
+and Markov Chain Monte Carlo (MCMC) usually don’t
+apply to these models, since explicit evaluation of the likelihood function is often intractable.
+In recent years, significant progress has been made toward
+this challenge of likelihood-free inference (Sisson et al.,
+2018). Most of the literature relies on sample-based methods that require very large numbers of simulations. Methods
+1
+
+School of Informatics, University of Edinburgh, United Kingdom 2 DeepMind, London, United Kingdom. Correspondence to:
+Conor Durkan <conor.durkan@ed.ac.uk>.
+th
+
+Proceedings of the 37 International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+based on neural networks have reduced the number of simulations needed to perform effective inference by orders
+of magnitude (Papamakarios, 2019; Cranmer et al., 2019).
+Some of these can evaluate and sample from an approximate
+posterior directly, bypassing the need for MCMC schemes
+altogether. Ultimately, this line of work seeks to develop
+a robust and practical toolkit which practitioners can rely
+upon for whichever use case they desire.
+In this paper, we consider two recently proposed approaches
+to neural likelihood-free inference: the first uses classification to approximate density ratios proportional to the likelihood (Hermans et al., 2020), whereas the second directly
+casts the problem as a conditional density estimation task
+(Greenberg et al., 2019). We demonstrate that these two
+methods, traditionally viewed as distinct and compared as
+such in the literature, are both instances of a more general
+contrastive learning scheme, and can thus be unified under a
+single framework. Using this perspective, we directly compare the properties and behaviour of both algorithms, and
+offer practical recommendations for those wishing to use
+these methods.
+
+2. Background
+Given a vector of parameters θ, a stochastic simulator generates latent random numbers z, and produces observed
+data x = g(θ, z), where g is some nonlinear function. The
+likelihood of the parameters θ given observed data x is then
+Z
+p(x | θ) = δ(x − g(θ, z)) p(z | θ) dz,
+(1)
+where δ(·) is the Dirac delta, and this integral is intractable
+in general. In some cases it may be possible to evaluate the
+joint likelihood p(x, z | θ), but (i) this requires performing
+inference on the constrained manifold (g(θ, z), z), and (ii)
+often this augmented space is sufficiently high-dimensional
+to make standard inference approaches infeasible. In other
+cases, the simulator may be provided to us as a black-box
+whose internal workings are not accessible, and it is still
+desirable to carry out inference in this scenario.
+We are interested in computing the posterior p(θ | x0 ) for a
+specific observation x0 , where we have prior beliefs p(θ)
+about the parameters. This amounts to computing the denp(θ | x0 )
+0 | θ)
+sity ratio p(x
+p(x0 ) =
+p(θ) , and this quantity need only be
+
+

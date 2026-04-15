@@ -1,0 +1,138 @@
+Model-Value Inconsistency as a Signal for Epistemic Uncertainty
+
+Angelos Filos * 1 2 Eszter Vértes * 1 Zita Marinho * 1 Gregory Farquhar 1 Diana Borsa 1 Abram Friesen 1
+Feryal Behbahani 1 Tom Schaul 1 André Barreto 1 Simon Osindero 1
+
+Abstract
+Using a model of the environment and a value
+function, an agent can construct many estimates
+of a state’s value, by unrolling the model for different lengths and bootstrapping with its value
+function. Our key insight is that one can treat
+this set of value estimates as a type of ensemble,
+which we call an implicit value ensemble (IVE).
+Consequently, the discrepancy between these estimates can be used as a proxy for the agent’s
+epistemic uncertainty; we term this signal modelvalue inconsistency or self-inconsistency for short.
+Unlike prior work which estimates uncertainty by
+training an ensemble of many models and/or value
+functions, this approach requires only the single
+model and value function which are already being
+learned in most model-based reinforcement learning algorithms. We provide empirical evidence in
+both tabular and function approximation settings
+from pixels that self-inconsistency is useful (i)
+as a signal for exploration, (ii) for acting safely
+under distribution shifts, and (iii) for robustifying
+value-based planning with a learned model.
+
+1
+
+Introduction
+
+Agents that employ learning to improve their decision
+making should be equipped with mechanisms for representing and using their acquired knowledge effectively.
+Learned models of the environment (Sutton, 1991) and
+value functions (Sutton, 1988) are explicit ways that
+reinforcement learning (RL, Sutton & Barto, 2018) agents
+use to represent their knowledge about the environment.
+Equally important is the agents’ ability to reason about their
+ignorance (i.e., epistemic uncertainty, Strens, 2000) and
+factor it in their decisions (Milnor, 1951). In tabular settings,
+exact Bayesian inference can be used for quantifying the
+*
+Equal contribution 1 DeepMind 2 University of Oxford. Correspondence to: Angelos Filos <angelos.filos@cs.ox.ac.uk>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+s
+
+v̂
+
+0
+v̂m̂
+(s)
+
+s
+
+Tm̂
+
+v̂
+
+1
+v̂m̂
+(s)
+
+s
+
+Tm̂
+
+Tm̂
+
+v̂
+
+2
+v̂m̂
+(s)
+
+s
+
+Tm̂
+
+···
+
+Tm̂
+
+v̂
+
+v(s)
+
+s
+
+(b) At initialisation
+v(s)
+
+k
+v̂m̂
+(s)
+
+(a) Implicit Value Ensemble (IVE)
+
+s
+
+(c) After training
+
+Figure 1: Implicit value ensemble (IVE) estimated from
+a single learned model m̂ and value function v̂. (a)
+Computation graph. The model-induced Bellman operator
+Tm̂ is repeatedly applied k times on the approximate
+k
+value function v̂, i.e., v̂m̂
+(s) , (Tm̂ )k v̂(s). (b-c) Didactic
+example with 1D state space: Value predictions (in
+k 10
+blue) for different values of k, i.e., {v̂m̂
+}k=0 , along with
+the ensemble mean µ-IVE(10) and standard deviation
+σ-IVE(10) (in orange), before (b) and after (c) training
+with value targets (black circles). The ensemble standard
+deviation is non-trivial at out-of-distribution (OOD) states
+and zero at in-distribution states.
+agents’ uncertainty in both model-free (Dearden et al., 1998)
+and model-based (Dearden et al., 1999) RL approaches.
+However, in complex RL problems, since exact Bayesian
+inference is intractable, proxy signals are often used instead,
+including prediction error (Lopes et al., 2012; Pathak et al.,
+2017), approximate state visitation counts (Bellemare et al.,
+2016) and disagreement of samples from either approximate
+posterior distributions over learned parameters (Blundell
+et al., 2015) or explicit ensembles of value functions (Osband et al., 2016) or world models (Chua et al., 2018).
+In this work, we introduce a novel signal for capturing
+RL agents’ ignorance, termed model-value inconsistency
+or self-inconsistency for short. A k-step self-inconsistency
+signal is constructed by applying the model-induced Bellman operator Tm̂ to learned value function v̂, k times.
+This produces k + 1 different estimates of the state value:
+{v̂, Tm̂ v̂, (Tm̂ )2 v̂, . . . , (Tm̂ )k v̂}, as illustrated in Figures 1
+and 2c. Our key insight is that these can be thought of as
+predictions from an ensemble of value functions, which we
+call the implicit value ensemble (IVE).
+
+

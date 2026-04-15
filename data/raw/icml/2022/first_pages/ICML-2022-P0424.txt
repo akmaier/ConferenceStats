@@ -1,0 +1,85 @@
+The Dual Form of Neural Networks Revisited: Connecting Test Time Predictions
+to Training Patterns via Spotlights of Attention
+
+Kazuki Irie∗ 1 Róbert Csordás∗ 1 Jürgen Schmidhuber 1 2
+
+Abstract
+Linear layers in neural networks (NNs) trained
+by gradient descent can be expressed as a keyvalue memory system which stores all training
+datapoints and the initial weights, and produces
+outputs using unnormalised dot attention over the
+entire training experience. While this has been
+technically known since the 1960s, no prior work
+has effectively studied the operations of NNs in
+such a form, presumably due to prohibitive time
+and space complexities and impractical model
+sizes, all of them growing linearly with the number of training patterns which may get very large.
+However, this dual formulation offers a possibility
+of directly visualising how an NN makes use of
+training patterns at test time, by examining the corresponding attention weights. We conduct experiments on small scale supervised image classification tasks in single-task, multi-task, and continual
+learning settings, as well as language modelling,
+and discuss potentials and limits of this view for
+better understanding and interpreting how NNs
+exploit training patterns. Our code is public† .
+
+1. Introduction
+Despite the broad success of neural nets (NNs) in many
+applications, much of their internal functioning remains
+obscure. Naive visualisation of their activations or weight
+matrices rarely shows human-interpretable patterns, with
+the occasional exception of certain special structures such
+as filters in convolutional NNs trained for image processing
+(Zeiler & Fergus, 2014), attention weights (Bahdanau et al.,
+*
+Equal contribution 1 The Swiss AI Lab, IDSIA, USI & SUPSI,
+Lugano, Switzerland 2 AI Initiative, King Abdullah University of
+Science and Technology (KAUST), Thuwal, Saudi Arabia. Correspondence to: <{kazuki, robert, juergen}@idsia.ch>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+†
+https://github.com/robertcsordas/linear_
+layer_as_attention
+
+2015) or the sequential Jacobian (Graves, 2008) in sequence
+processing, or, to a limited extent, the distribution of individual word embeddings in natural language processing
+(NLP) (Mikolov et al., 2013). In many ways, NNs remain
+blackboxes. In particular, while iteratively trained on a large
+number of datapoints, the entire training experience gets
+somehow compressed (through lossy compression) into a
+fixed size weight matrix, which may be useful for making predictions on yet unseen datapoints, although the raw
+values of weights are not easily human-interpretable.
+While it is debatable whether this lack of interpretability is
+a problem, it makes it hard for humans to explain certain
+practical results obtained by NNs—especially those trained
+on a vast amount of data. For example, how can big language models such as GPT-3 (Brown et al., 2020) generate
+an answer to a question never seen during training, translate
+languages without being trained to do so, or solve previously unseen math problems? How can DALL-E (Ramesh
+et al., 2021) generate various pictures of a radish walking
+a dog or a banana performing stand-up comedy without
+training examples containing such images1 ? Perhaps there
+have been at least some pictures of “radish” and others representing the concept of “walking a dog” among the training
+samples, and somehow the model interpolated them2 . If so,
+is it possible to point out exactly which training samples are
+the original sources of that specific output?
+Here we propose to revisit the dual form of the perceptron
+(Aizerman et al., 1964) and apply it in the modern context
+of deep NNs, with the objective of better understanding how
+training datapoints relate to test time predictions in NNs.
+Essentially, the dual form expresses the forward operation of
+any linear layers in NNs trained by gradient descent (GD) as
+a key/value/query-attention operation (Vaswani et al., 2017)
+where the keys and values are training datapoints and the
+query is generated from the test input (details in Sec. 3).
+This allows for directly connecting test time predictions to
+training datapoints. To the best of our knowledge, no prior
+work has studied deep NNs in their dual form, which is
+1
+
+We assume that this was the case.
+Here by “interpolate”, we informally mean “combine”. For a
+discussion based on a formal definition of “interpolation”, see e.g.,
+Balestriero et al. (2021).
+2
+
+

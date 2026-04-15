@@ -1,0 +1,109 @@
+BP IPE: Memory-Balanced Pipeline Parallelism for Training
+Large Language Models
+
+Taebum Kim 1 2 Hyoungjoo Kim 1 Gyeong-In Yu 1 Byung-Gon Chun 1 2
+memory
+capacity
+
+Abstract
+Pipeline parallelism is a key technique for training large language models within GPU clusters.
+However, it often leads to a memory imbalance
+problem, where certain GPUs face high memory
+pressure while others underutilize their capacity.
+This imbalance results in suboptimal training performance, even when the overall GPU memory
+capacity is sufficient for more efficient setups. To
+address this inefficiency, we propose BP IPE, a
+novel approach for achieving memory balance in
+pipeline parallelism. BP IPE employs an activation balancing method to transfer intermediate
+activations between GPUs during training, enabling all GPUs to utilize comparable amounts
+of memory. With balanced memory utilization,
+BP IPE enhances the training efficiency of large
+language models like GPT-3 by eliminating redundant recomputations or increasing the microbatch size. Our evaluation conducted on 48 A100
+GPUs across six nodes interconnected with HDR
+InfiniBand shows that BP IPE accelerates the training of GPT-3 96B and GPT-3 134B models by
+1.25x-2.17x compared to Megatron-LM, a stateof-the-art framework for training large language
+models.
+
+memory
+transferred
+
+memory
+required
+
+memory
+balance
+
+memory
+imbalance
+
+transfer
+
+GPU
+
+GPU
+
+GPU
+
+GPU
+
+earlier
+pipeline stage
+
+later
+pipeline stage
+
+earlier
+pipeline stage
+
+later
+pipeline stage
+
+1F1B
+
+BPIPE
+
+Figure 1. An illustration of how BP IPE deals with a memory imbalance problem. With the 1F1B pipeline schedule (left), the memory
+requirement of an earlier pipeline stage could exceed the memory
+capacity of a GPU. In that case, training is not feasible even if
+the total aggregated memory is sufficient for the memory requirement. BP IPE (right) balances the imbalanced memory requirement
+by transferring intermediate activations between earlier and later
+stages.
+
+an overwhelming number of parameters incurs high memory pressure, making large language model (LLM) training
+challenging. When training a model in mixed precision (Micikevicius et al., 2017) with the Adam (Kingma & Ba, 2014)
+optimizer, we need 20 bytes of memory for each model
+parameter (Smith et al., 2022). Hence, training a GPT-3
+175B model needs more than 3,000 GiB to store the model
+parameters and optimizer states. Yet, no GPU exists whose
+memory capacity satisfies the requirement.
+
+1. Introduction
+After the advent of the Transformer architecture (Vaswani
+et al., 2017), there has been a dramatic increase in the size
+of language models (Brown et al., 2020; Smith et al., 2022;
+Zhang et al., 2022; Chowdhery et al., 2022; Ouyang et al.,
+2022; Thoppilan et al., 2022; OpenAI, 2023). These models
+show astonishing results in a wide range of applications by
+exploiting more than a hundred billion parameters. Such
+
+A few methods, such as model parallelism and activation
+recomputation (Griewank & Walther, 2000; Kirisame et al.,
+2021), alleviate the memory pressure to satisfy the requirement. Model parallelism partitions the model parameters
+and optimizer states across multiple GPUs so that each GPU
+stores a subset of the model parameters. It is further classified into tensor parallelism (Shazeer et al., 2018; Shoeybi
+et al., 2019) and pipeline parallelism (Huang et al., 2019),
+where tensor parallelism splits the operations across GPUs
+and pipeline parallelism splits the layers across GPUs. On
+the other hand, activation recomputation releases intermediate activations from memory right after forward compu-
+
+1
+
+FriendliAI Inc., Seoul, Korea 2 Department of Computer Science and Engineering, Seoul National University, Seoul, Korea.
+Correspondence to: Byung-Gon Chun <bgchun@friendli.ai>.
+Proceedings of the 40 th International Conference on Machine
+Learning, Honolulu, Hawaii, USA. PMLR 202, 2023. Copyright
+2023 by the author(s).
+
+1
+
+

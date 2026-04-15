@@ -1,0 +1,101 @@
+Stabilizing Off-Policy Deep Reinforcement Learning from Pixels
+
+Edoardo Cetin * 1 Philip J. Ball * 2 Steve Roberts 2 Oya Celiktutan 1
+
+Abstract
+Off-policy reinforcement learning (RL) from
+pixel observations is notoriously unstable. As
+a result, many successful algorithms must combine different domain-specific practices and auxiliary losses to learn meaningful behaviors in complex environments. In this work, we provide
+novel analysis demonstrating that these instabilities arise from performing temporal-difference
+learning with a convolutional encoder and lowmagnitude rewards. We show that this new visual
+deadly triad causes unstable training and premature convergence to degenerate solutions, a phenomenon we name catastrophic self-overfitting.
+Based on our analysis, we propose A-LIX, a
+method providing adaptive regularization to the
+encoder’s gradients that explicitly prevents the
+occurrence of catastrophic self-overfitting using
+a dual objective. By applying A-LIX, we significantly outperform the prior state-of-the-art on the
+DeepMind Control and Atari 100k benchmarks
+without any data augmentation or auxiliary losses.
+
+1. Introduction
+One of the core challenges in real world Reinforcement
+Learning (RL) is achieving stable training with sampleefficient algorithms (Dulac-Arnold et al., 2019). Combining
+these properties with the ability to reason from visual observations has great implications for the application of RL to
+the real world (Kalashnikov et al., 2018; Zhu et al., 2020).
+Recent works utilizing temporal-difference (TD-) learning
+have made great progress advancing sample-efficiency (Lillicrap et al., 2015; Fujimoto et al., 2018; Haarnoja et al.,
+2018a; Cetin & Celiktutan, 2021). However, stability has
+remained a key issue for these off-policy algorithms (Sutton,
+*
+
+Equal contribution 1 Centre for Robotics Research, Department of Engineering, King’s College London 2 Department of
+Engineering Science, University of Oxford. Correspondence
+to: Edoardo Cetin <edoardo.cetin@kcl.ac.uk>, Philip J. Ball
+<ball@robots.ox.ac.uk>.
+th
+
+Proceedings of the 39 International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+DMC Performance
+A-LIX
+694.7
+632.7
+
+DrQ-v2
+DrQ 241.2
+CURL 262.1
+SAC
+
+51.9
+
+Atari 100K Performance
+A-LIX
+0.752
+SPR
+0.704
+SPR (No Augs)
+0.463
+DrQ
+0.357
+CURL
+0.381
+OTRainbow 0.264
+DER 0.285
+SimPLe
+0.443
+
+0
+250 500
+Average Score (Medium + Hard)
+
+0.00 0.25 0.50 0.75
+Mean Human-Normalized Score
+
+Figure 1. Performance of agents in DMC (left) and Atari 100k
+(right) benchmarks from 10 seeds. A-LIX outperforms previous
+methods without using image augmentations or auxiliary losses.
+
+1988; Duan et al., 2016; Van Hasselt et al., 2018; Buşoniu
+et al., 2018), making their general applicability limited as
+compared to their on-policy counterparts (Schulman et al.,
+2017; Cobbe et al., 2021). At the same time, using pixel
+observations has been another orthogonal source of instabilities, with several successful approaches relying on pretraining instead of end-to-end learning (Finn et al., 2015;
+Dwibedi et al., 2018). In fact, alternative optimization objectives, large amounts of simulation data, and symbolic
+observations have been common factors in most contemporary large-scale RL milestones (Silver et al., 2017; Vinyals
+et al., 2019; Berner et al., 2019).
+In this work, we provide novel insights behind why applying successful off-policy RL algorithms designed for
+proprioceptive tasks to pixel-based environments is generally underwhelming (Lee et al., 2019; Yarats et al., 2021).
+In particular, we provide evidence that three key elements
+strongly correlate with the occurrence of detrimental instabilities: i) Exclusive reliance on the TD-loss. ii) Unregularized end-to-end learning with a convolutional encoder.
+iii) Low-magnitude sparse rewards. Using this framework,
+we are able to motivate the effectiveness of auxiliary losses
+(Laskin et al., 2020b; Schwarzer et al., 2020; Yarats et al.,
+2021) and many domain-specific practices (Hessel et al.,
+2018b; Laskin et al., 2020a) by explaining how they address
+elements of this new visual deadly triad.
+We focus our analysis on the popular DeepMind Control
+suite (DMC) (Tassa et al., 2018), where the introduction
+of random shift augmentations has played a key role in recent advances (Laskin et al., 2020a; Kostrikov et al., 2021;
+
+

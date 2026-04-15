@@ -1,0 +1,68 @@
+Imputer: Sequence Modelling via Imputation and Dynamic Programming
+
+William Chan 1 Chitwan Saharia 1 † Geoffrey Hinton 1 Mohammad Norouzi 1 Navdeep Jaitly 2
+
+Abstract
+This paper presents the Imputer, a neural sequence model that generates output sequences
+iteratively via imputations. The Imputer is an
+iterative generative model, requiring only a constant number of generation steps independent of
+the number of input or output tokens. The Imputer can be trained to approximately marginalize
+over all possible alignments between the input
+and output sequences, and all possible generation
+orders. We present a tractable dynamic programming training algorithm, which yields a lower
+bound on the log marginal likelihood. When applied to end-to-end speech recognition, the Imputer outperforms prior non-autoregressive models and achieves competitive results to autoregressive models. On LibriSpeech test-other, the Imputer achieves 11.1 WER, outperforming CTC at
+13.0 WER and seq2seq at 12.5 WER.
+
+1. Introduction
+Neural sequence models have been widely successful across
+a wide range of applications, including machine translation
+(Bahdanau et al., 2015; Luong et al., 2015), speech recognition (Graves & Jaitly, 2014; Chan et al., 2016), speech
+synthesis (Oord et al., 2016; 2018) and image captioning
+(Vinyals et al., 2015; Xu et al., 2015). Autoregressive sequence models (e.g., Sutskever et al. (2014); Cho et al.
+(2014)) enable exact likelihood estimation, at the cost of
+requiring n generation steps to generate n tokens during
+inference. On the other hand, non-autoregressive models
+such as CTC (Graves et al., 2006) and NAT (Gu et al., 2018)
+can generate sequences in a single generation step, independent of the number of output tokens. However these
+†
+
+Work done as part of the Google AI Residency. 1 Google Research, Brain Team, Toronto, Ontario, Canada. 2 Work done at
+Google; currently at The D. E. Shaw Group, New York, New York,
+USA. Correspondence to: W. Chan <williamchan@google.com>,
+C. Saharia <sahariac@google.com>, G. Hinton <geoffhinton@google.com>, M. Norouzi <mnorouzi@google.com>, N.
+Jaitly <navdeep.jaitly@deshaw.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+non-autoregressive models typically make a strong conditional independence assumption between output tokens, often underperforming their autoregressive counterparts. Recently, there has been a growing interest in models that
+make a trade-off between the two extremes of fully autoregressive and fully non-autoregressive generation, such
+as the Insertion Transformer (Stern et al., 2019), MaskPredict (Ghazvininejad et al., 2019), Levenstein Transformer (Gu et al., 2019b) and Multilingual KERMIT (Chan
+et al., 2019a). Such models sacrifice almost no performance,
+while requiring a logarithmic (Chan et al., 2019c) or a constant number of generation steps (Lee et al., 2018).
+In this paper, we seek to extend prior work to achieve a desirable balance between fully autoregressive and fully nonautoregressive models. We are concerned with sequence
+problems in which a natural monotonic latent alignment
+exists between the source and target sequences (e.g., endto-end speech recognition). Prior work typically does not
+take advantage of such useful inductive biases, which become increasingly important for problems with long output
+sequences. For instance, in speech recognition sequences
+are typically an order of magnitude longer than sequences
+seen in machine translation. The need to generate longer
+sequences highlights the importance of developing sequence
+generation frameworks with sub-linear inference time.
+Three popular types of generative models have been developed for end-to-end speech recognition applications: CTC
+(Graves et al., 2006; Graves & Jaitly, 2014), RNN-T (Graves,
+2012; Graves et al., 2013) and seq2seq (Chan et al., 2016;
+Bahdanau et al., 2016a). CTC is a non-autoregressive model
+and makes a conditional independence assumption between
+token frame predictions. Accordingly, CTC can make use
+of dynamic programming to marginalize over all possible
+alignments. CTC models exhibit fast inference but relatively
+poor performance (Battenberg et al., 2017). RNN-T is an autoregressive model that captures conditional dependencies
+between output tokens, but at the cost of n generation steps
+to generate n tokens. Similar to CTC, the RNN-T relies
+on dynamic programming to marginalize over all possible
+alignments for exact likelihood computation. However, the
+RNN-T dynamic programming framework typically relies
+on a linear bottleneck for tractability (e.g., the linear bottleneck between the prediction and transcription network
+(Graves, 2012)); this has typically limited the empirical
+
+

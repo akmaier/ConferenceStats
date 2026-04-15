@@ -1,0 +1,75 @@
+TeraPipe: Token-Level Pipeline Parallelism for Training
+Large-Scale Language Models
+
+Zhuohan Li 1 Siyuan Zhuang 1 Shiyuan Guo 1 Danyang Zhuo 2 Hao Zhang 1 Dawn Song 1 Ion Stoica 1
+
+Abstract
+Model parallelism has become a necessity for
+training modern large-scale deep language models. In this work, we identify a new and orthogonal dimension from existing model parallel approaches: it is possible to perform pipeline
+parallelism within a single training sequence for
+Transformer-based language models thanks to its
+autoregressive property. This enables a more finegrained pipeline compared with previous work.
+With this key idea, we design TeraPipe, a highperformance token-level pipeline parallel algorithm for synchronous model-parallel training
+of Transformer-based language models. We develop a novel dynamic programming-based algorithm to calculate the optimal pipelining execution scheme given a specific model and cluster configuration. We show that TeraPipe can
+speed up the training by 5.0x for the largest GPT3 model with 175 billion parameters on an AWS
+cluster with 48 p3.16xlarge instances compared
+with state-of-the-art model-parallel methods. The
+code for reproduction can be found at https:
+//github.com/zhuohan123/terapipe
+
+1. Introduction
+Transformer-based language models (LMs) have revolutionized the area of natural language processing (NLP) by
+achieving state-of-the-art results for many NLP tasks, including text classification, question answering, and text generation (Brown et al., 2020; Radford et al.). The accuracy of
+a Transformer-based LM grows substantially with its model
+size, attributing to the fact that they can be unsupervisedly
+trained on almost unlimited text data. Today, a large LM,
+such as GPT-3 (Brown et al., 2020), can have more than
+175B parameters, which amounts to 350 GB, assuming 16UC Berkeley 2 Duke University. Correspondence to: Zhuohan
+Li <zhuohan@cs.berkeley.edu>.
+
+bit floating-point numbers. This significantly exceeds the
+memory capacity of existing hardware accelerators, such
+as GPUs and TPUs, which makes model-parallel training
+a necessity, i.e., partitioning the model on multiple devices
+during the training process.
+Because of the demands for efficient LM training, many
+researchers and industry practitioners have proposed different ways for model parallel training. One approach is to
+partition the weight matrices and dispatch smaller matrix
+operations to parallel devices (Figure 1b; Shoeybi et al.,
+2019; Shazeer et al., 2018). Another approach is to split
+a batch of training data into many microbatches and then
+evenly pipeline the layer computations across different microbatches and devices (Figure 1c; Huang et al., 2019).
+Unfortunately, these approaches either introduce excessive
+communication overheads between compute devices, or lead
+to reduced efficiency due to pipeline “bubbles” (i.e. device
+idle time, see Section 2 and 3.2 for details).
+Our key observation in this paper is that Transformer-based
+language models have a key property: the computation of a
+given input token only depends on previous tokens, but not
+on future tokens. This lack of dependency on future tokens
+provides new opportunities for pipeline parallel training.1
+In particular, it allows us to create a fine-grained pipeline
+within a single training sequence for Transformer-based
+LMs, by parallelizing the computation of the current token
+on the current layer with the computation of the previous
+token on the next layer of the model. For example, in Figure 1d, we can pipeline the execution across all 5 devices
+within a single input sequence. Similar to other synchronous
+model parallel training methods, e.g., Gpipe (Huang et al.,
+2019), Megatron-LM (Shoeybi et al., 2019), we do not
+change the underlying optimization algorithm, so the resulting model has exactly the same accuracy.
+However, leveraging the token dimension for efficient model
+parallel training raises several challenges. First, if the partitioning along the token dimension is too fine-grained, it
+leads to under-utilization on devices that require large blocks
+
+1
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+1
+
+In this paper, we focus on unidirectional autoregressive language models (e.g., GPT (Radford et al.; Brown et al., 2020))
+but not bidirectional models like masked language models (e.g.,
+BERT (Devlin et al., 2018)).
+
+

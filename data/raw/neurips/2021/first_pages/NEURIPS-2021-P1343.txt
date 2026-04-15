@@ -1,0 +1,57 @@
+Hash Layers For Large Sparse Models
+
+Stephen Roller
+
+Sainbayar Sukhbaatar
+
+Arthur Szlam
+
+Jason Weston
+
+Facebook AI Research
+
+Abstract
+We investigate the training of sparse layers that use different parameters for different
+inputs based on hashing in large Transformer models. Specifically, we modify the
+feedforward layer to hash to different sets of weights depending on the current token,
+over all tokens in the sequence. We show that this procedure either outperforms or
+is competitive with learning-to-route mixture-of-expert methods such as Switch
+Transformers and BASE Layers, while requiring no routing parameters or extra
+terms in the objective function such as a load balancing loss, and no sophisticated
+assignment algorithm. We study the performance of different hashing techniques,
+hash sizes and input features, and show that balanced and random hashes focused
+on the most local features work best, compared to either learning clusters or using
+longer-range context. We show our approach works well both on large language
+modeling and dialogue tasks, and on downstream fine-tuning tasks.
+
+1
+
+Introduction
+
+Recent studies of Transformer models have shown a clear trend towards improvements with scale in
+data and model size [1], mirroring the same trend in Machine Learning more generally. However,
+when architected naively, larger (in terms of parameter count) models are slower to train and to
+evaluate; and at extreme scale, with current computer systems, necessitate complex engineering to
+facilitate communication between workers. To address these challenges, researchers have studied
+Mixtures-of-Experts (MoE) models [2, 3, 4, 5, 6, 7, 8], where a “gater” routes computation through
+a sparse subset of the weights of the model (the “expert modules”). Specifically in the setting of
+Transformers for Natural Language Processing (NLP), recent approaches have led to state of the art
+performance in language modeling [8]. MoE models allow increasing the number of parameters in
+the model while holding steady the number of computations that affect a given sample.
+A key component to a MoE model is the routing (gating) strategy. While MoE models can be
+computationally advantageous per parameter compared to a dense model, they might be functionally
+less powerful per parameter. A poor routing strategy might lead to expert modules that are not
+properly specialized (essentially making a stochastic ensemble model); or overly specialized, using
+the data assignment function to overfit. Meanwhile, the routing strategy itself must be efficient.
+A standard approach is to train a layer of weights that makes the routing decision based upon the input
+to the layer to be routed. Classically, this may have been implemented with a softmax over the choice
+of expert modules, and fitted via backpropagation. However, a dense softmax requires all expert
+modules to run on all data points at train time, which negates the computational savings. Several
+works have shown that sparsity can be maintained during training, e.g. [9, 7, 8, 10]. In particular,
+Switch Transformers [8] select the top expert per token using a softmax over the token’s hidden
+state, but require a load balancing term in the objective function or they can become imbalanced or
+degenerate, giving poor results. BASE Layers [10] employ a linear assignment algorithm to try to
+resolve the same problem.
+35th Conference on Neural Information Processing Systems (NeurIPS 2021).
+
+

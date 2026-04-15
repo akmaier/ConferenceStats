@@ -1,0 +1,54 @@
+An In-depth Study of Stochastic Backpropagation
+
+Mingze Xu∗ Hao Chen Bing Shuai Zhuowen Tu Joseph Tighe
+AWS AI Labs
+{junfa, xumingze, hxen, bshuai, ztu, tighej}@amazon.com
+
+Jun Fang
+
+Abstract
+In this paper, we provide an in-depth study of Stochastic Backpropagation (SBP)
+when training deep neural networks for standard image classification and object
+detection tasks. During backward propagation, SBP calculates gradients by using
+only a subset of feature maps to save GPU memory and computational cost. We
+interpret SBP as an efficient way to implement stochastic gradient decent by
+performing backpropagation dropout, which leads to significant memory saving and
+training run-time reduction, with a minimal impact on the overall model accuracy.
+We offer best practices to apply SBP for training image recognition models, which
+can be adopted in learning a wide range of deep neural networks. Experiments
+on image classification and object detection show that SBP can save up to 40%
+of GPU memory with less than 1% accuracy degradation. Code is available at:
+https://github.com/amazon-research/stochastic-backpropagation
+
+1
+
+Introduction
+
+A common practice to improve accuracy when training deep neural networks is to increase the input
+resolution [19], model depth [7], and model width [21]. However, this can significantly increase
+the GPU memory usage, making training on devices with limited resources difficult. For example,
+training an object detector using ConvNeXt-Base [14] as the backbone with batch size 2 requires
+over 17 GB of memory, which cannot fit on many modern GPUs.
+A number of prior works have explored memory-efficient training designs, especially for large
+model training on high resolution images or videos. Mixed-precision training [17] uses lower
+precision to represent the network weights and activations for certain layers of the network. Gradient
+checkpointing [2] restores intermediate feature maps by recomputing nodes in the computation graph
+during the backward pass, which requires extra computations. Gradient accumulation [12] splits a
+mini-batch into smaller chunks to calculate gradients iteratively, which slows down training process.
+A recent method, Stochastic Backpropagation (SBP) [3], offers a new perspective for memoryefficient model training. It performs partial execution of gradients during backpropagation on
+randomly selected frames when training video models [13, 24, 23, 22]. It achieves considerable
+memory saving by only caching a subset of video frame feature maps without significant accuracy
+loss. However, SBP in [3] is only applied to video-based models using two architectures and its
+design space has not be thoroughly explored on wider tasks. The explanation provided in [3] for
+the effectiveness of SBP is simple but narrow — it attributes the validity of the method to the high
+redundancy of video frames.
+This leaves a number of questions around SBP unanswered: (1) Is SBP ’s effectiveness limited to
+the temporal redundancy of video or can it effectively leverage spatial redundancy? (2) If so, can
+SBP be generalized to image-based tasks, with more limited redundancy? (3) Is SBP generalizable
+∗
+
+Corresponding Author.
+
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+

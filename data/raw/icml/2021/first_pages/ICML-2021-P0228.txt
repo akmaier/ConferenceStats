@@ -1,0 +1,75 @@
+Catformer: Designing Stable Transformers via Sensitivity Analysis
+
+Jared Quincy Davis * 1 2 Albert Gu * 1 Krzysztof Choromanski 3 4 Tri Dao 1 Christopher Re 1 Chelsea Finn 1 3
+Percy Liang 1
+
+Abstract
+Transformer architectures are widely used, but
+training them is non-trivial, requiring custom
+learning rate schedules, scaling terms, residual
+connections, careful placement of submodules
+such as normalization, and so on. In this paper,
+we improve upon recent analysis of Transformers
+and formalize a notion of sensitivity to capture
+the difficulty of training. Sensitivity characterizes how the variance of activation and gradient
+norms change in expectation when parameters
+are randomly perturbed. We analyze the sensitivity of previous Transformer architectures and
+design a new architecture, the Catformer, which
+replaces residual connections or RNN-based gating mechanisms with concatenation. We prove
+that Catformers are less sensitive than other Transformer variants and demonstrate that this leads
+to more stable training. On DMLab30, a suite of
+high-dimension reinforcement tasks, Catformer
+outperforms other transformers, including Gated
+Transformer-XL—the state-of-the-art architecture
+designed to address stability—by 13%.
+
+1. Introduction
+Transformer architectures (Vaswani et al., 2017; Choromanski et al., 2020b) are widely used in natural language processing (Luo et al., 2020; Chen et al., 2018b), vision (Dosovitskiy et al., 2020) and bioinformatics (Rives et al., 2019;
+Madani et al., 2020; Li, 2019). This success is due to their
+ability to effectively model long-range dependencies as well
+as scale effectively with data and compute (Kaplan et al.,
+2020).
+However, Transformers are hard to train, limiting their effectiveness in challenging and noisy domains such as reinforcement learning (RL). Even in the supervised learning setting,
+*
+Equal contribution 1 Stanford University 2 DeepMind 3 Google
+Brain Robotics 4 Columbia University. Correspondence to: Jared
+Davis <jaredquincydavis@gmail.com>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+to ameliorate these challenges, they require a combination
+of techniques such as complex optimizers and learning rate
+schedules (Dai et al., 2019), special weight initialization
+(Radford et al., 2019), and careful ordering of components
+such as normalization blocks (Parisotto et al., 2020). Architecturally, recent Transformer variants designed for stability have emerged, introducing new components (Liu et al.,
+2020) or replacing the residual connection with RNN-style
+gates (Xu et al., 2020; Parisotto et al., 2020). Only with
+these recent changes have transformers made progress in
+reinforcement learning.
+These modifications are not specific to Transformers per
+se, but rather refine the general architecture wiring—such
+as residual connections and normalization layers—which
+can be shown to improve training stability in deep models at large. More broadly, these improvements are guided
+by general principles in deep learning that aim to control
+standard measures of stability: conventionally, the activation and gradient variance (i.e., preventing the oft-studied
+vanishing/exploding gradient problem (Hochreiter, 1991)).
+However, these measures can be too coarse to capture the
+true source of instability. For example, controlling activation variance at initialization does not preclude instability as
+the model’s weights change during training (Choromanski
+et al., 2020a; Likhosherstov et al., 2020),. Standard tools of
+capturing how the output might change–such as measuring
+gradient norms and Lipschitzness–are too pessimistic and
+can be difficult to analyze.
+This paper makes two main contributions. The first is introducing the concept of sensitivity, a measure of average-case
+instability that captures a notion of how sensitive a function
+is to random perturbations of its inputs. Our second main
+contribution is a new Transformer architecture inspired by
+the sensitivity analysis which empirically reduces instability.
+First, we formalize and generalize ideas in Liu et al. (2020)
+to introduce an improved measure of stability called sensitivity, a function of architecture that measures the effect
+of random parameter perturbations on the output variance.
+Sensitivity can be applied to analyze a broad class of architectures composed of repeated building blocks of normalization layers, generalized residual connections, and
+black-box computation modules such as the self-attention
+
+

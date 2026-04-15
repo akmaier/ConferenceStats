@@ -1,0 +1,50 @@
+ZeroS: Zero-Sum Linear Attention for Efficient
+Transformers
+Jiecheng Lu1† , Xu Han2 , Yan Sun1 , Viresh Pati1 , Yubin Kim1 , Siddhartha Somani1 , Shihao Yang1‡
+Georgia Institute of Technology1 , Amazon Web Services2
+jlu414@gatech.edu† , shihao.yang@isye.gatech.edu‡
+
+Abstract
+Linear attention methods offer Transformers O(N ) complexity but typically underperform standard softmax attention. We identify two fundamental limitations
+affecting these approaches: the restriction to convex combinations that only permits additive information blending, and uniform accumulated weight bias that
+dilutes attention in long contexts. We propose Zero-Sum Linear Attention (ZeroS),
+which addresses these limitations by removing the constant zero-order term 1/t
+and reweighting the remaining zero-sum softmax residuals. This modification
+creates mathematically stable weights, enabling both positive and negative values
+and allowing a single attention layer to perform contrastive operations. While
+maintaining O(N ) complexity, ZeroS theoretically expands the set of representable
+functions compared to convex combinations. Empirically, it matches or exceeds
+standard softmax attention across various sequence modeling benchmarks. The
+code implementation is available at this link.
+
+1
+
+Introduction
+
+The Transformer architecture [1] has revolutionized sequence modeling across NLP, vision, speech,
+and reinforcement learning [2–7]. While its self-attention mechanism offers exceptional modeling
+flexibility, the quadratic O(N 2 ) complexity in both time and memory with sequence length N limits
+its efficient implementation to long-context scenarios [8, 9]. Researchers have developed numerous
+linear-time attention mechanisms [8, 10–14] that preserve Transformer’s strengths while scaling to
+longer sequences. Approaches include sparse attention patterns [15–17], kernel methods [8, 13, 14],
+low-rank approximation [18, 19], and efficient factorizations [20, 21]. Despite reducing from O(N 2 )
+to O(N ), these variants often underperform standard softmax attention, raising the question: Why
+do linear approximations save computation but sacrifice accuracy? Recent efforts to bridge this
+gap typically: 1) hybridize linear attention with local quadratic windows [22, 23], 2) learn softmax
+matrix low-rank projections [19, 24], or 3) sharpen linear kernels through normalization and gating
+[11, 12, 25]. While offer incremental gains, these approaches often compromise O(N ) efficiency,
+rely on task-specific hyperparameters, or introduce instabilities, limiting their practical use.
+In this paper, we identify two fundamental limitations affecting linear and even softmax attention: 1)
+Bottleneck of convex combination [26–28]: softmax attention produces convex combinations of value
+vectors, with linear attention also aiming to achieve this primarily for numerical stability. However,
+these combinations can only blend information additively, unable to express subtractive or contrastive
+operations directly, forcing models to use multiple layers even for simple differencing tasks. 2)
+Uniform weight bias and attention dilution [11, 12, 29]: In long contexts, attention mechanisms
+incorporate a roughly uniform N1 component in their weight expansion, introducing a persistent
+averaging effect that weakens focused attention and limits modeling of complex patterns. These
+limitations stem from the Taylor expansion exp(q · k) = 1 + ⟨q, k⟩ + 21 ⟨q, k⟩2 + . . . , where the
+constant zero-order term enforces non-negativity for stability but creates an average-pooling bias that
+diminishes high-order token interactions. Rather than designing complex kernels to approximate
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

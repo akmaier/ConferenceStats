@@ -1,0 +1,128 @@
+Aligned Cross Entropy for Non-Autoregressive Machine Translation
+
+Marjan Ghazvininejad 1 Vladimir Karpukhin 1 Luke Zettlemoyer 1 Omer Levy 1
+
+Abstract
+Non-autoregressive machine translation models
+significantly speed up decoding by allowing for
+parallel prediction of the entire target sequence.
+However, modeling word order is more challenging due to the lack of autoregressive factors in
+the model. This difficultly is compounded during training with cross entropy loss, which can
+highly penalize small shifts in word order. In this
+paper, we propose aligned cross entropy (AXE)
+as an alternative loss function for training of nonautoregressive models. AXE uses a differentiable
+dynamic program to assign loss based on the
+best possible monotonic alignment between target tokens and model predictions. AXE-based
+training of conditional masked language models
+(CMLMs) substantially improves performance on
+major WMT benchmarks, while setting a new
+state of the art for non-autoregressive models.
+
+1. Introduction
+Non-autoregressive machine translation models can significantly improve decoding speed by predicting every word
+in parallel (Gu et al., 2018; Libovický & Helcl, 2018). This
+advantage comes at a cost to performance since modeling
+word order is trickier when the model cannot condition on
+its previous predictions. A range of semi-autoregressive
+models (Lee et al., 2018; Stern et al., 2019; Gu et al., 2019;
+Ghazvininejad et al., 2019) have shown there is a speedaccuracy tradeoff that can be optimized with limited forms
+of autoregression. However, increasing performance of the
+purely non-autoregressive models without sacrificing decoding speed remains an open challenge. In this paper, we
+present a new training loss for non-autoregressive machine
+translation that softens the penalty for word order errors, and
+significantly improves performance with no modification to
+the model or to the decoding algorithm.
+
+Target Y
+
+it
+
+tastes
+
+pretty
+
+good
+
+though
+
+Model
+Predictions
+P (Top 5)
+
+but
+however
+for
+and
+though
+
+it
+that
+this
+for
+the
+
+tastes
+makes
+looks
+taste
+feels
+
+delicious
+good
+tasty
+fine
+exquisite
+
+.
+,
+so
+though
+!
+
+Figure 1. The model predictions are quite similar to the target, but
+misaligned by one token. The first and second target tokens (it
+tastes) are predicted in the second and third positions, respectively,
+leaving only the predictions in the fourth and fifth positions aligned
+with the target. The cross-entropy loss will heavily penalize the
+predictions in the first, second, and third positions.
+
+Existing models (both autoregressive and nonautoregressive) are typically trained with cross entropy loss.
+Cross entropy is a strict loss function, where a penalty is
+incurred for every word that is predicted out of position,
+even for output sequences with small edit distances (see
+Figure 1). Autoregressive models learn to avoid such
+penalties, since words are generated conditioned on the
+sentence prefix. However, non-autoregressive models do
+not know the exact sentence prefix, and should (intuitively)
+focus more on root errors (e.g. a missing word) while
+allowing more partial credit for cascading errors (the right
+word in the wrong place).
+
+Marjan
+
+To achieve this more relaxed loss, we introduce aligned
+cross entropy (AXE), a new objective function that computes the cross entropy loss based on an alignment between
+the sequence of token labels and the sequence of token distribution predictions. AXE uses dynamic programming to
+find the monotonic alignment that minimizes the cross entropy loss. It provides non-autoregressive models with a
+more accurate training signal by ignoring absolute positions
+and focusing on relative order and lexical matching. We
+efficiently implement AXE via matrix operations, and use
+it to train conditional masked language models (CMLM;
+Ghazvininejad et al., 2019) for machine translation. AXE
+only slightly increases training time compared to cross entropy, and requires no changes to parallel argmax decoding.
+
+Proceedings of the 37 International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+Extensive experiments on machine translation benchmarks
+demonstrate that AXE substantially boosts the performance
+of CMLMs, while having the same decoding speed. In
+WMT’14 EN-DE, training CMLMs with AXE (instead of
+
+1
+Facebook AI Research. Correspondence to:
+Ghazvininejad <ghazvini@fb.com>.
+th
+
+

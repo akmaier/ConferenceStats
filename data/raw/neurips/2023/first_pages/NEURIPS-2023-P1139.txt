@@ -1,0 +1,76 @@
+NeRF Revisited: Fixing Quadrature Instability in
+Volume Rendering
+Mikaela Angelina Uy1
+George Kiyohiro Nakayama1
+Guandao Yang1,2
+1
+1
+Rahul Krishna Thomas
+Leonidas Guibas
+Ke Li3,4
+1
+2
+3
+Stanford University Cornell University Simon Fraser University 4 Google
+{mikacuy, w4756677, guandao, rt03mas, guibas}@stanford.edu, keli@sfu.ca
+
+Abstract
+Neural radiance fields (NeRF) rely on volume rendering to synthesize novel views.
+Volume rendering requires evaluating an integral along each ray, which is numerically approximated with a finite sum that corresponds to the exact integral along
+the ray under piecewise constant volume density. As a consequence, the rendered
+result is unstable w.r.t. the choice of samples along the ray, a phenomenon that
+we dub quadrature instability. We propose a mathematically principled solution
+by reformulating the sample-based rendering equation so that it corresponds to
+the exact integral under piecewise linear volume density. This simultaneously
+resolves multiple issues: conflicts between samples along different rays, imprecise
+hierarchical sampling, and non-differentiability of quantiles of ray termination
+distances w.r.t. model parameters. We demonstrate several benefits over the classical sample-based rendering equation, such as sharper textures, better geometric
+reconstruction, and stronger depth supervision. Our proposed formulation can be
+also be used as a drop-in replacement to the volume rendering equation for existing
+methods like NeRFs. Our project page can be found at pl-nerf.github.io.
+
+1
+
+Introduction
+
+The advent of neural radiance fields (NeRF) [18] has sparked a flurry of work on neural rendering
+and has opened the way to many exciting applications [5, 11, 8, 20]. One of the key underpinnings of
+NeRF is volume rendering [14] – it is especially well-suited to end-to-end differentiable rendering [9],
+since the rendered image is a smooth function of the model parameters. This has made it possible to
+learn the 3D geometry and appearance solely from a 2D photometric loss on rendered images.
+In volume rendering, the rendered colour ŷ for every pixel is an expectation of the colours along the
+ray cast through the pixel w.r.t. the distribution over ray termination distance s [6].
+Z ∞
+ŷ = Es∼p(s) [c(s)] =
+p(s)c(s) ds
+(1)
+0
+
+where p(s) denotes the probability density function (PDF) of the distribution over ray termination
+distance s and c(s) denotes the the colour as a function of different points along the ray.
+In general, p(s) and c(s) can be of arbitrary forms, so evaluating this integral analytically is not
+possible. Therefore, in practice, Es∼p(s) [c(s)] is approximated with quadrature. The quadrature
+formula that is most commonly used in the NeRF literature takes the following form:
+Es∼p(s) [c(s)] =
+
+N
+X
+
+
+
+Tj 1 − e−τj (sj+1 −sj ) cj ,
+
+(2)
+
+j=0
+
+ P
+
+j
+where Tj = exp − k=0 −τk (sk+1 − sk ) and τk is the opacity evaluated at a sample sk along
+the ray.
+This expression is derived from the exact integral under a piecewise constant assumption to the
+opacity and colour along the given ray [14].
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

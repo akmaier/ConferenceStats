@@ -1,0 +1,71 @@
+DiTFastAttn: Attention Compression for Diffusion
+Transformer Models
+Zhihang Yuan∗ 1,2
+
+Hanling Zhang∗1,2
+
+Tianchen Zhao1,2
+
+Pu Lu∗1
+
+Shengen Yan2
+
+1 Tsinghua University
+
+2 Infinigence AI
+
+Xuefei Ning1 †
+
+Linfeng Zhang3
+
+Guohao Dai3,2
+
+Yu Wang1
+
+3 Shanghai Jiao Tong University
+
+Abstract
+Diffusion Transformers (DiT) excel at image and video generation but face computational challenges due to the quadratic complexity of self-attention operators.
+We propose DiTFastAttn, a post-training compression method to alleviate the computational bottleneck of DiT. We identify three key redundancies in the attention
+computation during DiT inference: (1) spatial redundancy, where many attention
+heads focus on local information; (2) temporal redundancy, with high similarity
+between the attention outputs of neighboring steps; (3) conditional redundancy,
+where conditional and unconditional inferences exhibit significant similarity. We
+propose three techniques to reduce these redundancies: (1) Window Attention
+with Residual Sharing to reduce spatial redundancy; (2) Attention Sharing across
+Timesteps to exploit the similarity between steps; (3) Attention Sharing across
+CFG to skip redundant computations during conditional generation. We apply
+DiTFastAttn to DiT, PixArt-Sigma for image generation tasks, and OpenSora for
+video generation tasks. Our results show that for image generation, our method
+reduces up to 76% of the attention FLOPs and achieves up to 1.8× end-to-end
+speedup at high-resolution (2k × 2k) generation.
+
+1
+
+Introduction
+
+Recently, diffusion transformers (DiT) have gained increasing popularity in image (Peebles & Xie,
+2023; Chen et al., 2024) and video generation (Brooks et al., 2024). However, a major challenge
+with DiTs is their substantial computational demand, particularly noticeable when generating highresolution content. On the one hand, traditional transformer architectures, with their self-attention
+mechanism, have an O(L2 ) complexity to the input token length L. This quadratic complexity leads
+to significant computational costs as the resolution of images and videos escalates. As demonstrated
+in Fig. 1, the attention computation becomes the primary computational bottleneck during the
+inference process as image resolution increases. Specifically, if a 2K × 2K image is tokenized
+into 16k tokens (Chen et al., 2024), this requires several seconds for attention computation, even
+on high-end GPUs such as the Nvidia A100. On the other hand, the inference process of diffusion
+requires a substantial number of neural network inferences due to the multiple denoising steps and
+the classifier-free guidance (CFG) technique (Ho & Salimans, 2022).
+Previous efforts to accelerate attention mechanisms, such as Local Attention, Swin Transformer (Liu
+et al., 2021), and Group Query Attention (GQA) (Ainslie et al., 2023), mainly focused on designing
+the attention mechanism or network architecture. While effective in reducing computational costs,
+these approaches necessitate large retraining costs. Due to the substantial data and computational
+requirements for training a DiT, there is a need for post-training compression methods.
+In this work, we identify three types of redundancy in the attention computation of DiT inference and
+propose a post-training model compression method, DiTFastAttn, to address these redundancies:
+∗
+
+Equal contribution. † Corresponding author and project advisor: foxdoraame@gmail.com. Project Website:
+http://nics-effalg.com/DiTFastAttn.
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

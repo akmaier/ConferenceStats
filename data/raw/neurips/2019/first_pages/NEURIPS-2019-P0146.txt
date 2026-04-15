@@ -1,0 +1,51 @@
+Hindsight Credit Assignment
+
+Anna Harutyunyan, Will Dabney, Thomas Mesnard, Nicolas Heess, Mohammad G. Azar,
+Bilal Piot, Hado van Hasselt, Satinder Singh, Greg Wayne, Doina Precup, Rémi Munos
+DeepMind
+{harutyunyan, wdabney, munos}@google.com
+
+Abstract
+We consider the problem of efficient credit assignment in reinforcement learning.
+In order to efficiently and meaningfully utilize new data, we propose to explicitly
+assign credit to past decisions based on the likelihood of them having led to the
+observed outcome. This approach uses new information in hindsight, rather than
+employing foresight. Somewhat surprisingly, we show that value functions can
+be rewritten through this lens, yielding a new family of algorithms. We study the
+properties of these algorithms, and empirically show that they successfully address
+important credit assignment challenges, through a set of illustrative tasks.
+
+1
+
+Introduction
+
+A reinforcement learning (RL) agent is tasked with two fundamental, interdependent problems:
+exploration (how to discover useful data), and credit assignment (how to incorporate it). In this work,
+we take a careful look at the problem of credit assignment. The instrumental learning object in RL –
+the value function – quantifies the following question: “how does choosing an action a in a state x
+affect future return?”. This is a challenging question for several reasons.
+Issue 1: Variance. The simplest way of estimating the value function is by averaging returns
+(future discounted sums of rewards) starting from taking a in x. This Monte Carlo style of estimation
+is inefficient, since there can be a lot of randomness in trajectories.
+Issue 2: Partial observability. To amortize the search and reduce variance, temporal difference
+(TD) methods, like Sarsa and Q-learning, use a learned approximation of the value function and
+bootstrap. This introduces bias due to the approximation, as well as a reliance on the Markov
+assumption, which is especially problematic when the agent operates outside of a Markov Decision
+Process (MDP), for example if the state is partially observed, or if there is function approximation.
+Bootstrapping may then cause the value function to not converge at all, or to remain permanently
+biased [19].
+Issue 3: Time as a proxy. TD(λ) methods control this bias-variance trade-off, but they rely on
+time as the sole metric for relevance: the more recent the action, the more credit or blame it receives
+from a future reward [20, 21]. Although time is a reasonable proxy for cause-and-effect (especially
+in MDPs), in general it is a heuristic, and can hence be improved by learning.
+Issue 4: No counterfactuals. The only data used for estimating an action’s value are trajectories
+that contain that action, while ideally we would like to be able to use the same trajectory to update all
+relevant actions, not just the ones that happened to (serendipitously) occur.
+Figure 1 illustrates these issues concretely. At the high-level, we wish to achieve credit assignment
+mechanisms that are both sample-efficient (issues 1 and 4), and expressive (issues 2 and 3). To this
+end, we propose to reverse the key learning question, and learn estimators that measure: “given
+the future outcome (reward or state), how relevant was the choice of a in x to achieve it?”, which
+is essentially the credit assignment question itself. Although eligibility traces consider the same
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

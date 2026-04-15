@@ -1,0 +1,94 @@
+Streaming Coresets for Symmetric Tensor Factorization
+
+Rachit Chhaya 1 Jayesh Choudhari 1 Anirban Dasgupta 1 Supratim Shit 1
+
+Abstract
+Factorizing tensors has recently become an important optimization module in a number of machine
+learning pipelines, especially in latent variable
+models. We show how to do this efficiently in
+the streaming setting. Given a set of n vectors,
+each in Rd , we present algorithms to select a sublinear number of these vectors as coreset, while
+guaranteeing that the CP decomposition of the
+p-moment tensor of the coreset approximates the
+corresponding decomposition of the p-moment
+tensor computed from the full data. We introduce
+two novel algorithmic techniques: online filtering
+and kernelization. Using these two, we present
+four algorithms that achieve different tradeoffs of
+coreset size, update time and working space, beating or matching various state of the art algorithms.
+In the case of matrices (2-ordered tensor), our online row sampling algorithm guarantees (1 ± )
+relative error spectral approximation. We show
+applications of our algorithms in learning single
+topic modeling.
+
+1. Introduction
+Much of the data that is consumed in data mining and machine learning applications arrives in a streaming manner.
+The data is conventionally treated as a matrix, with a row
+representing a single data point and the columns its corresponding features. Since the matrix is typically large, it is
+advantageous to be able to store only a small number of
+rows and still preserve some of its “useful” properties. One
+such abstract property that has proven useful in a number of
+different settings, such as solving regression, finding various factorizations, is subspace preservation. Given a matrix
+A ∈ Rn×d , an m × d matrix C is its subspace preserving
+1
+
+Computer Science and Engineering, Indian Institute of Technology Gandhinagar, India. Correspondence to: Supratim Shit
+<supratim.shit@iitgn.ac.in>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+matrix for the `2 norm if, ∀x ∈ Rd ,
+X
+X
+X
+(ãTj x)2 −
+(aTi x)2 ≤  ·
+(aTi x)2
+ãj ∈C
+
+ai ∈A
+
+ai ∈A
+
+We typically desire m  n and ãj ’s represent the subsampled and rescaled rows from A. Such a sample C is
+often referred to as a coreset. This property has been used
+to obtain approximate solutions to many problems such as
+regression, low-rank approximation, etc (Woodruff et al.,
+2014) while having m to be at most O(d2 ). Such property
+has been defined for other `p norms too (Dasgupta et al.,
+2009; Cohen & Peng, 2015; Clarkson et al., 2016).
+Matrices are ubiquitous, and depending on the application,
+one can assume that the data is coming from a generative
+model, i.e., there is some distribution from which every
+incoming data point (or row) is sampled and given to user.
+Many a time, the goal is to know the hidden variables of this
+generative model. An obvious way to learn these variables
+is by representing data (matrix) by its low-rank representation. However, we know that a low-rank representation of a
+matrix is not unique as there are various ways (such as SVD,
+QR, LU) to decompose a matrix. So it difficult to realize
+the hidden variables just by the low-rank decomposition
+of the data matrix. This is one of the reasons to look at
+higher order moments of the data i.e. tensors. Tensors are
+formed by outer product of data vectors, i.e. for a dataset
+A∈P
+Rn×d one can use a p order tensor T ∈ Rd×...×d as
+n
+T = i=1 ai ⊗p , where p is set by user depending on the
+number of latent variables one is expecting in the generative model (Ma et al., 2016). The decomposition of such a
+tensor is unique under a mild assumption (Kruskal, 1977).
+Factorization of tensors into its constituent elements has
+found uses in many machine learning applications such as
+topic modeling (Anandkumar et al., 2014), various latent
+variable models (Anandkumar et al., 2012; Hsu et al., 2012;
+Jenatton et al., 2012), training neural networks (Janzamin
+et al., 2015) etc.
+P
+For a p-order moment tensor T = i ai ⊗p created using
+the set of vectors {ai } and for x ∈ Rd one of thePimportant
+property one needs to preserve is T (x,··· , x) = i (aTi x)p .
+This operation is also called tensor contraction (Song et al.,
+2016). Now if we wish to “approximate” it using only a
+subset of the rows in A, the above property for `2 norm
+subspace preservation does not suffice.
+
+

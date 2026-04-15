@@ -1,0 +1,73 @@
+On Improving Model-Free Algorithms for Decentralized
+Multi-Agent Reinforcement Learning
+
+Weichao Mao 1 Lin F. Yang 2 Kaiqing Zhang 3 Tamer Başar 1
+
+Abstract
+Multi-agent reinforcement learning (MARL) algorithms often suffer from an exponential sample
+complexity dependence on the number of agents,
+a phenomenon known as the curse of multiagents.
+We address this challenge by investigating sampleefficient model-free algorithms in decentralized
+MARL, and aim to improve existing algorithms
+along this line. For learning (coarse) correlated
+equilibria in general-sum Markov games, we propose stage-based V-learning algorithms that significantly simplify the algorithmic design and
+analysis of recent works, and circumvent a rather
+complicated no-weighted-regret bandit subroutine.
+For learning Nash equilibria in Markov potential
+games, we propose an independent policy gradient algorithm with a decentralized momentumbased variance reduction technique. All our algorithms are decentralized in that each agent can
+make decisions based on only its local information. Neither communication nor centralized coordination is required during learning, leading
+to a natural generalization to a large number of
+agents. Finally, we provide numerical simulations
+to corroborate our theoretical findings.
+
+1. Introduction
+Many real-world sequential decision-making problems involve the strategic interactions of multiple agents in a shared
+1
+Department of Electrical and Computer Engineering & Coordinated Science Laboratory, University of Illinois UrbanaChampaign. 2 Department of Electrical and Computer Engineering,
+University of California, Los Angeles. Part of this work done
+while the author was visiting DeepMind. 3 Laboratory for Information & Decision Systems, Massachusetts Institute of Technology.
+Part of this work done while the author was visiting Simons Institute for the Theory of Computing. Correspondence to: W. Mao
+<weichao2@illinois.edu>, L. F. Yang <linyang@ee.ucla.edu>,
+K. Zhang <kaiqing@mit.edu>, T. Başar <basar1@illinois.edu>.
+th
+
+Proceedings of the 39 International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+environment, which are commonly addressed with multiagent reinforcement learning (MARL). Successful applications of MARL include playing the game of Go (Silver et al.,
+2016), Poker (Brown & Sandholm, 2018), real-time strategy
+games (Vinyals et al., 2019), autonomous driving (ShalevShwartz et al., 2016), and robotics (Kober et al., 2013).
+Despite the empirical successes, sample-efficient solutions
+are still relatively lacking for MARL with a large number
+of agents, mostly due to the well-known challenge named
+the curse of multiagents (Jin et al., 2021): The joint action space in a MARL problem is equal to the Cartesian
+product of the individual action spaces of all agents, which
+scales exponentially in the number of agents. A typical
+kind of algorithms that easily fail at this challenge are those
+using centralized/joint learning (Boutilier, 1996; Claus &
+Boutilier, 1998). Specifically, centralized learning assumes
+the existence of a single coordinator who can access the local information of all the agents, and learns policies jointly
+for all of them. This centralized training (though possibly
+decentralized execution) approach has become a common
+practice in empirical MARL (Oliehoek et al., 2008; Foerster
+et al., 2016; Lowe et al., 2017; Rashid et al., 2018; Son et al.,
+2019; Mao et al., 2020a). Centralized learning essentially
+reduces the multi-agent problem to a single-agent one, but
+unfortunately suffers from the exponential dependence as it
+usually needs to exhaustively search the joint action space.
+Such a computation bottleneck can be partially resolved
+by allowing communications among the agents and hence
+distributing the workload to each of them (Kar et al., 2013;
+Zhang et al., 2018; Dubey & Pentland, 2021). However,
+communication-based methods instead suffer from the additional communication overheads, which can be unrealistic
+in some real-world scenarios where communication may
+be expensive and/or unreliable, such as in unmanned aerial
+vehicle (UAV) field coverage (Pham et al., 2018).
+Given the aforementioned limitations, in this paper, we are
+interested in a more practical setting: decentralized learning1 . We focus on solutions where each agent can make
+1
+
+This setting has been studied under various names in the literature, including individual learning (Leslie & Collins, 2005), decentralized learning (Arslan & Yüksel, 2016), agnostic learning (Tian
+et al., 2021; Wei et al., 2021), and independent learning (Claus &
+
+

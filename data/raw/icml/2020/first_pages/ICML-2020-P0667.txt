@@ -1,0 +1,86 @@
+Up or Down? Adaptive Rounding for Post-Training Quantization
+
+Markus Nagel * 1 Rana Ali Amjad * 1 Mart van Baalen 1 Christos Louizos 1 Tijmen Blankevoort 1
+
+Abstract
+When quantizing neural networks, assigning each
+floating-point weight to its nearest fixed-point
+value is the predominant approach. We find that,
+perhaps surprisingly, this is not the best we can
+do. In this paper, we propose AdaRound, a better weight-rounding mechanism for post-training
+quantization that adapts to the data and the task
+loss. AdaRound is fast, does not require finetuning of the network, and only uses a small
+amount of unlabelled data. We start by theoretically analyzing the rounding problem for a
+pre-trained neural network. By approximating the
+task loss with a Taylor series expansion, the rounding task is posed as a quadratic unconstrained binary optimization problem. We simplify this to a
+layer-wise local loss and propose to optimize this
+loss with a soft relaxation. AdaRound not only
+outperforms rounding-to-nearest by a significant
+margin but also establishes a new state-of-the-art
+for post-training quantization on several networks
+and tasks. Without fine-tuning, we can quantize
+the weights of Resnet18 and Resnet50 to 4 bits
+while staying within an accuracy loss of 1%.
+
+1. Introduction
+Deep neural networks are being used in many real-world
+applications as the standard technique for solving tasks in
+computer vision, machine translation, voice recognition,
+ranking, and many other domains. Owing to this success
+and widespread applicability, making these neural networks
+efficient has become an important research topic. Improved
+efficiency translates into reduced cloud-infrastructure costs
+and makes it possible to run these networks on heterogeneous devices such as smartphones, internet-of-things appli*
+
+Equal contribution 1 Qualcomm AI Research, an initiative of Qualcomm Technologies, Inc.. Correspondence to:
+Markus Nagel <markusn@qti.qualcomm.com>, Rana Ali Amjad <ramjad@qti.qualcomm.com>, Tijmen Blankevoort <tijmen@qti.qualcomm.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+cations, and even dedicated low-power hardware.
+One effective way to optimize neural networks for inference is neural network quantization (Krishnamoorthi, 2018;
+Guo, 2018). In quantization, neural network weights and
+activations are kept in a low-bit representation for both
+memory transfer and calculations in order to reduce power
+consumption and inference time. The process of quantizing
+a network generally introduces noise, which results in a loss
+of performance. Various prior works adapt the quantization
+procedure to minimize the loss in performance while going
+as low as possible in the number of bits used.
+As Nagel et al. (2019) explained, the practicality of neural network quantization methods is important to take
+into consideration. Although many methods exist that do
+quantization-aware training (Jacob et al., 2018; Louizos
+et al., 2019) and get excellent results, these methods require
+a user to spend significant time on re-training models and
+hyperparameter tuning.
+On the other hand, much attention has recently been dedicated to post-training quantization methods (Nagel et al.,
+2019; Cai et al., 2020; Choukroun et al., 2019; Banner et al.,
+2019), which can be more easily applied in practice. These
+types of methods allow for network quantization to happen
+on-the-fly when deploying models, without the user of the
+model spending time and energy on quantization. Our work
+focuses on this type of network quantization.
+Rounding-to-nearest is the predominant approach for all
+neural network weight quantization work that came out thus
+far. This means that the weight vector w is rounded to the
+nearest representable quantization grid value in a fixed-point
+grid by
+
+ 
+w
+b = s · clip
+, n, p ,
+(1)
+w
+s
+where s denotes the quantization scale parameter and, n and
+p denote the negative and positive integer thresholds for
+clipping. We could round any weight down by replacing b·e
+with b·c, or up using d·e. But, rounding-to-nearest seems
+the most sensible, as it minimizes the difference per-weight
+in the weight matrix. Perhaps surprisingly, we show that
+for post-training quantization, rounding-to-nearest is not
+optimal.
+Our contributions in this work are threefold:
+
+

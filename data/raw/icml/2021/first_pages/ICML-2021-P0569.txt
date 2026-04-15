@@ -1,0 +1,77 @@
+SigGPDE: Scaling Sparse Gaussian Processes on Sequential Data
+
+Maud Lemercier 1 Cristopher Salvi 2 Thomas Cass 3 Edwin V. Bonilla 4 Theodoros Damoulas 1 Terry Lyons 2
+
+Abstract
+Making predictions and quantifying their uncertainty when the input data is sequential is a fundamental learning challenge, recently attracting
+increasing attention. We develop SigGPDE, a new
+scalable sparse variational inference framework
+for Gaussian Processes (GPs) on sequential data.
+Our contribution is twofold. First, we construct
+inducing variables underpinning the sparse approximation so that the resulting evidence lower
+bound (ELBO) does not require any matrix inversion. Second, we show that the gradients of the
+GP signature kernel are solutions of a hyperbolic
+partial differential equation (PDE). This theoretical insight allows us to build an efficient backpropagation algorithm to optimize the ELBO. We
+showcase the significant computational gains of
+SigGPDE compared to existing methods, while
+achieving state-of-the-art performance for classification tasks on large datasets of up to 1 million
+multivariate time series.
+
+1. Introduction
+Gaussian process (GP) models provide a sound mathematical framework for supervised learning that allows the incorporation of prior assumptions and provides uncertainty
+estimates when modelling unknown functions (Rasmussen
+& Williams, 2006). This is usually achieved by specifying
+a GP prior over functions with a suitable covariance (or
+kernel) along with a conditional likelihood. With this, the
+problem boils down to that of estimating the posterior over
+the function (values) given the observed data.
+However, this posterior distribution is often analytically
+intractable and, even when the conditional likelihood is a
+Gaussian, GP models scale poorly on the number of obser1
+University of Warwick and Alan Turing Institute 2 University
+of Oxford and Alan Turing Institute 3 Imperial College London and Alan Turing Institute 4 CSIRO’s Data61 and The
+University of Sydney. Correspondence to: Maud Lemercier
+<maud.lemercier@warwick.ac.uk>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+vations N , with naïve approaches having a time complexity
+O(N 3 ). From a wide range of approximate techniques
+to scale inference in GP models to large datasets, “sparse”
+methods based on variational inference (VI) have emerged
+as one of the dominant approaches (Titsias, 2009). They consist in defining a family of approximate posteriors through
+M inducing variables, and selecting the distribution in this
+family that minimizes the Kullback-Leibler (KL) divergence
+between the approximation and the true posterior. This is
+achieved by minimizing the so-called evidence lower bound
+(ELBO). When the likelihood factorizes over datapoints,
+training can be done in minibatches of size Ñ resulting in
+a per-iteration computational cost O(Ñ M 2 + M 3 ), where
+the O(M 3 ) cost is due to the inversion of the covariance
+matrix of the M inducing variables. This yields significant
+computational savings when M  N .
+In the seminal work of Titsias (2009) the inducing variables
+correspond to evaluations of the GP at M pseudo input locations, which typically results in a dense covariance matrix
+to invert. Subsequently, other ways of constructing inducing variables have been introduced in order to mitigate the
+O(M 3 ) cost (Hensman et al., 2017; Burt et al., 2020b). The
+core idea consists in defining (almost) independent inducing
+variables, such that their covariance matrix is (almost) diagonal. These inducing variables correspond to projections of
+the GP on basis functions, such that the covariance matrix
+is a Gramian matrix with respect to some inner-product. Orthogonal basis functions yield diagonal Gramian matrices,
+hence these methods are often referred to as variational orthogonal features (VOFs) . However existing VOF methods
+are limited to stationary kernels on X ⊂ Rd (d ∈ N).
+In this work we are interested in generalizing the VOF
+paradigm to the case where the input space X is a set of
+sequences of vectors in Rd . One may be tempted to naively
+concatenate each vector in a sequence of length ` to form a
+flat vector in R`d . However in this case existing VOF methods cannot be directly applied because they are limited to
+low dimensional vectors, with d ≤ 8 (Dutordoir et al., 2020).
+Thus, one needs kernel functions specifically designed for
+sequential data. The signature kernel (Cass et al., 2020)
+is a natural choice that has recently emerged as a leading
+machine learning tool for learning on sequential data. In
+particular, Toth & Oberhauser (2020) have proposed GPSig,
+a GP inference framework leveraging an approximation of
+
+

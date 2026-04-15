@@ -1,0 +1,76 @@
+Semi-Amortized Variational Autoencoders
+Yoon Kim 1 Sam Wiseman 1 Andrew C. Miller 1 David Sontag 2 Alexander M. Rush 1
+
+Abstract
+Amortized variational inference (AVI) replaces
+instance-specific local inference with a global inference network. While AVI has enabled efficient
+training of deep generative models such as variational autoencoders (VAE), recent empirical work
+suggests that inference networks can produce suboptimal variational parameters. We propose a
+hybrid approach, to use AVI to initialize the variational parameters and run stochastic variational
+inference (SVI) to refine them. Crucially, the local SVI procedure is itself differentiable, so the
+inference network and generative model can be
+trained end-to-end with gradient-based optimization. This semi-amortized approach enables the
+use of rich generative models without experiencing the posterior-collapse phenomenon common
+in training VAEs for problems like text generation. Experiments show this approach outperforms strong autoregressive and variational baselines on standard text and image datasets.
+
+1. Introduction
+Variational inference (VI) (Jordan et al., 1999; Wainwright
+& Jordan, 2008) is a framework for approximating an
+intractable distribution by optimizing over a family of
+tractable surrogates. Traditional VI algorithms iterate over
+the observed data and update the variational parameters with
+closed-form coordinate ascent updates that exploit conditional conjugacy (Ghahramani & Beal, 2001). This style
+of optimization is challenging to extend to large datasets
+and non-conjugate models. However, recent advances in
+stochastic (Hoffman et al., 2013), black-box (Ranganath
+et al., 2014; 2016), and amortized (Mnih & Gregor, 2014;
+Kingma & Welling, 2014; Rezende et al., 2014) variational
+inference have made it possible to scale to large datasets and
+rich, non-conjugate models (see Blei et al. (2017), Zhang
+et al. (2017) for a review of modern methods).
+1
+School of Engineering and Applied Sciences, Harvard University, Cambridge, MA, USA 2 CSAIL & IMES, Massachusetts
+Institute of Technology, Cambridge, MA, USA. Correspondence
+to: Yoon Kim <yoonkim@seas.harvard.edu>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+In stochastic variational inference (SVI), the variational
+parameters for each data point are randomly initialized
+and then optimized to maximize the evidence lower bound
+(ELBO) with, for example, gradient ascent. These updates
+are based on a subset of the data, making it possible to scale
+the approach. In amortized variational inference (AVI), the
+local variational parameters are instead predicted by an inference (or recognition) network, which is shared (i.e. amortized) across the dataset. Variational autoencoders (VAEs)
+are deep generative models that utilize AVI for inference and
+jointly train the generative model alongside the inference
+network.
+SVI gives good local (i.e. instance-specific) distributions
+within the variational family but requires performing optimization for each data point. AVI has fast inference, but having the variational parameters be a parametric function of the
+input may be too strict of a restriction. As a secondary effect
+this may militate against learning a good generative model
+since its parameters may be updated based on suboptimal
+variational parameters. Cremer et al. (2018) observe that
+the amortization gap (the gap between the log-likelihood
+and the ELBO due to amortization) can be significant for
+VAEs, especially on complex datasets.
+Recent work has targeted this amortization gap by combining amortized inference with iterative refinement during
+training (Hjelm et al., 2016; Krishnan et al., 2018). These
+methods use an encoder to initialize the local variational parameters, and then subsequently run an iterative procedure
+to refine them. To train with this hybrid approach, they utilize a separate training time objective. For example Hjelm
+et al. (2016) train the inference network to minimize the
+KL-divergence between the initial and the final variational
+distributions, while Krishnan et al. (2018) train the inference
+network with the usual ELBO objective based on the initial
+variational distribution.
+In this work, we address the train/test objective mismatch
+and consider methods for training semi-amortized variational autoencoders (SA-VAE) in a fully end-to-end manner.
+We propose an approach that leverages differentiable optimization (Domke, 2012; Maclaurin et al., 2015; Belanger
+et al., 2017) and differentiates through SVI while training
+the inference network/generative model. We find that this
+method is able to both improve estimation of variational
+parameters and produce better generative models.
+
+

@@ -1,0 +1,56 @@
+Fast Black-box Variational Inference
+through Stochastic Trust-Region Optimization
+Jeffrey Regier
+jregier@cs.berkeley.edu
+
+Michael I. Jordan
+jordan@cs.berkeley.edu
+
+Jon McAuliffe
+jon@stat.berkeley.edu
+
+Abstract
+We introduce TrustVI, a fast second-order algorithm for black-box variational
+inference based on trust-region optimization and the “reparameterization trick.” At
+each iteration, TrustVI proposes and assesses a step based on minibatches of draws
+from the variational distribution. The algorithm provably converges to a stationary
+point. We implemented TrustVI in the Stan framework and compared it to two
+alternatives: Automatic Differentiation Variational Inference (ADVI) and Hessianfree Stochastic Gradient Variational Inference (HFSGVI). The former is based
+on stochastic first-order optimization. The latter uses second-order information,
+but lacks convergence guarantees. TrustVI typically converged at least one order
+of magnitude faster than ADVI, demonstrating the value of stochastic second-order
+information. TrustVI often found substantially better variational distributions than
+HFSGVI, demonstrating that our convergence theory can matter in practice.
+
+1
+
+Introduction
+
+The “reparameterization trick” [1, 2, 3] has led to a resurgence of interest in variational inference (VI),
+making it applicable to essentially any differentiable model. This new approach, however, requires
+stochastic optimization rather than fast deterministic optimization algorithms like closed-form
+coordinate ascent. Some fast stochastic optimization algorithms exist, but variational objectives have
+properties that make them unsuitable: they are typically nonconvex, and the relevant expectations
+cannot usually be replaced by finite sums. Thus, to date, practitioners have used SGD and its variants
+almost exclusively. Automatic Differentiation Variational Inference (ADVI) [4] has been especially
+successful at making variational inference based on first-order stochastic optimization accessible.
+Stochastic first-order optimization, however, is slow in theory (sublinear convergence) and in practice
+(thousands of iterations), negating a key benefit of VI.
+This article presents TrustVI, a fast algorithm for variational inference based on second-order
+trust-region optimization and the reparameterization trick. TrustVI routinely converges in tens
+of iterations for models that take thousands of ADVI iterations. TrustVI’s iterations can be more
+expensive, but on a large collection of Bayesian models, TrustVI typically reduced total computation
+by an order of magnitude. Usually TrustVI and ADVI find the same objective value, but when they
+differ, TrustVI is typically better.
+TrustVI adapts to the stochasticity of the optimization problem, raising the sampling rate for assessing
+proposed steps based on a Hoeffding bound. It provably converges to a stationary point. TrustVI
+generalizes the Newton trust-region method [5], which converges quadratically and has performed
+well at optimizing analytic variational objectives even at an extreme scale [6]. With large enough
+minibatches, TrustVI iterations are nearly as productive as those of a deterministic trust region
+method. Fortunately, large minibatches make effective use of single-instruction multiple-data (SIMD)
+parallelism on modern CPUs and GPUs.
+TrustVI uses either explicitly formed approximations of Hessians or approximate Hessian-vector
+products. Explicitly formed Hessians can be fast for low-dimensional problems or problems with
+sparse Hessians, particularly when expensive computations (e.g., exponentiation) already need to be
+
+

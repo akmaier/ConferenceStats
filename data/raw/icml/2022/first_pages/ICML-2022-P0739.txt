@@ -1,0 +1,97 @@
+Fast Finite Width Neural Tangent Kernel
+
+Roman Novak 1 Jascha Sohl-Dickstein 1 Samuel S. Schoenholz 1
+
+Abstract
+The Neural Tangent Kernel (NTK), defined as
+
+ 
+ T
+Θfθ (x1, x2 ) = 
+∂f (θ,
+ x1 ) ∂θ ∂f (θ, x2 ) ∂θ
+where ∂f (θ, ·) ∂θ is a neural network (NN) Jacobian, has emerged as a central object of study
+in deep learning. In the infinite width limit, the
+NTK can sometimes be computed analytically
+and is useful for understanding training and generalization of NN architectures. At finite widths, the
+NTK is also used to better initialize NNs, compare
+the conditioning across models, perform architecture search, and do meta-learning. Unfortunately,
+the finite width NTK is notoriously expensive
+to compute, which severely limits its practical
+utility. We perform the first in-depth analysis of
+the compute and memory requirements for NTK
+computation in finite width networks. Leveraging the structure of neural networks, we further
+propose two novel algorithms that change the exponent of the compute and memory requirements
+of the finite width NTK, dramatically improving
+efficiency. Our algorithms can be applied in a
+black box fashion to any differentiable function,
+including those implementing neural networks.
+We open-source our implementations within the
+Neural Tangents package (Novak et al., 2020) at
+github.com/google/neural-tangents.
+
+1. Introduction
+The past few years have seen significant progress towards
+a theoretical foundation for deep learning. Much of this
+work has focused on understanding the properties of random functions in high dimensions. One significant line of
+work (Neal, 1994; Lee et al., 2018; Matthews et al., 2018;
+Borovykh, 2018; Garriga-Alonso et al., 2019; Novak et al.,
+2019; Yang, 2019; Hron et al., 2020b;a; Hu et al., 2020)
+1
+Google Brain, Mountain View, California, United States.
+Correspondence to: Roman Novak <romann@google.com>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+established that in the limit of infinite width, randomly initialized Neural Networks (NNs) are Gaussian Processes
+(called NNGPs). Building on this development, Jacot et al.
+(2018) showed that in function space the dynamics under
+gradient descent could be computed analytically using the
+so-called Neural Tangent Kernel (NTK) and Lee et al. (2019)
+showed that wide neural networks reduce to their linearizations in weight space throughout training. A related set of
+results (Belkin et al., 2019; Spigler et al., 2019) showed that
+the ubiquitous bias-variance decomposition breaks down
+as high-dimensional models enter the so-called interpolating regime. Together these results describe learning in the
+infinite width limit and help explain the impressive generalization capabilities of NNs.
+Insights from the wide network limit have had significant
+practical impact. The conditioning of the NTK has been
+shown to significantly impact trainability and generalization in NNs (Schoenholz et al., 2017; Xiao et al., 2018;
+2020). This notion inspired initialization schemes like
+Fixup (Zhang et al., 2019), MetaInit (Dauphin & Schoenholz, 2019), and Normalizer Free networks (Brock et al.,
+2021a;b), and has enabled efficient neural architecture
+search (Park et al., 2020; Chen et al., 2021b). The NTK
+has additionally given insight into a wide range of phenomena such as: behavior of Generative Adversarial Networks (Franceschi et al., 2021), neural scaling laws (Bahri
+et al., 2021), and neural irradiance fields (Tancik et al.,
+2020). Kernel regression using the NTK has further enabled
+strong performance on small datasets (Arora et al., 2020),
+and applications such as approximate inference (Khan et al.,
+2019), dataset distillation (Nguyen et al., 2020; 2021), and
+uncertainty prediction (He et al., 2020; Adlam et al., 2020).
+Despite the significant promise of theory based on the NTK,
+computing the NTK in practice is challenging. In the infinite
+width limit, the NTK can sometimes be computed analytically. However, the infinite-width kernel remains intractable
+for many architectures and finite width corrections are often
+important to describe actual NNs used in practice (see §I for
+detailed discussion). The NTK matrix can be computed for
+finite width networks as the outer product of Jacobians using
+forward or reverse mode automatic differentiation (AD),
+
+ 
+ T
+Θfθ (x1 , x2 ) := ∂f (θ, x1 ) ∂θ ∂f (θ, x2 ) ∂θ ,
+| {z }
+|
+{z
+}|
+{z
+}
+O×O
+
+O×P
+
+P×O
+
+(1)
+
+

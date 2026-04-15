@@ -1,0 +1,62 @@
+Multi-ﬁdelity Bayesian Optimization with Max-value Entropy Search
+and its Parallelization
+Shion Takeno 1 2 Hitoshi Fukuoka 3 Yuhki Tsukada 3 4 Toshiyuki Koyama 3 Motoki Shiga 2 4 5
+Ichiro Takeuchi 1 2 Masayuki Karasuyama 1 4 6
+
+Abstract
+In a standard setting of Bayesian optimization (BO), the objective function evaluation
+is assumed to be highly expensive. Multiﬁdelity Bayesian optimization (MFBO) accelerates BO by incorporating lower ﬁdelity observations available with a lower sampling cost. We
+propose a novel information-theoretic approach
+to MFBO, called multi-ﬁdelity max-value entropy search (MF-MES), that enables us to obtain a more reliable evaluation of the information
+gain compared with existing information-based
+methods for MFBO. Further, we also propose a
+parallelization of MF-MES mainly for the asynchronous setting because queries typically occur asynchronously in MFBO due to a variety
+of sampling costs. We show that most of computations in our acquisition functions can be derived analytically, except for at most only two dimensional numerical integration that can be performed efﬁciently by simple approximations. We
+demonstrate effectiveness of our approach by using benchmark datasets and a real-world application to materials science data.
+
+1. Introduction
+Bayesian optimization (BO) is a popular machine-learning
+technique for the black-box optimization problem. Efﬁ1
+Department of Computer Science, Nagoya Institute of
+Technology, Aichi, Japan 2 Center for Advanced Intelligence
+Project, RIKEN, Tokyo, Japan 3 Department of Materials Design Innovation Engineering, Nagoya University, Aichi, Japan
+4
+PRESTO, Japan Science and Technology Agency, Saitama,
+Japan 5 Department of Electrical, Electronic and Computer Engineering, Gifu University, Gifu, Japan 6 Center for Materials Research by Information Integration, National Institute for Material Science, Ibaraki, Japan. Correspondence to: M. Karasuyama
+<karasuyama@nitech.ac.jp>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+ciency of BO has been widely shown in a variety of application areas such as scientiﬁc experiments (Wigley et al.,
+2016), simulation calculations (Ramprasad et al., 2017),
+and tuning of machine-learning methods (Snoek et al.,
+2012). In these scenarios, observing an objective function
+value is usually quite expensive and thus achieving the optimal value with low querying cost is strongly demanded.
+Although standard BO only considers directly querying
+to an objective function f (x), in many practical problems, lower ﬁdelity approximations of the original objective function can be observed. For example, theoretical
+computations of physical processes often have multiple levels of approximations by which the trade-off between the
+computational cost and accuracy can be controlled. The
+goal of multi-ﬁdelity Bayesian optimization (MFBO) is to
+accelerate BO by utilizing those lower ﬁdelity observations
+to reduce the total cost of the optimization.
+In this paper, we focus on the information-based approach.
+For usual BO without multi-ﬁdelity, which we call single ﬁdelity BO, seminal works of this direction are entropy search (ES) and predictive entropy search (PES) proposed by Hennig & Schuler (2012) and Hernández-Lobato
+et al. (2014), respectively. They deﬁne acquisition functions by using information gain for the optimal solution
+x∗ := argmaxx f (x). Unlike classical evaluation measures
+such as expected improvement, the information-based criterion is a measure of global utility which does not require
+any additional exploit-explore trade-off parameter. The
+superior performance of information-based methods have
+been shown empirically, and then, the same approach has
+also been extended to the multi-ﬁdelity setting (Swersky
+et al., 2013; Zhang et al., 2017).
+Even in the case of single ﬁdelity BO, however, accurately
+evaluating information gain is notoriously difﬁcult, which
+often requires complicated numerical approximations. For
+MFBO, evaluating information across multiple ﬁdelities is
+further difﬁcult. To overcome this difﬁculty, we consider
+a novel information-based approach to MFBO, which is
+based on a variant of ES called max-value entropy search
+(MES), proposed by Wang & Jegelka (2017). MES considers the information gain for f∗ := maxx f (x) instead
+
+

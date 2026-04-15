@@ -1,0 +1,79 @@
+Not All Poisons are Created Equal: Robust Training against Data Poisoning
+
+Yu Yang 1 Tian Yu Liu 1 Baharan Mirzasoleiman 1
+
+Abstract
+Data poisoning causes misclassification of test
+time target examples, by injecting maliciously
+crafted samples in the training data. Existing defenses are often effective only against a specific
+type of targeted attack, significantly degrade the
+generalization performance, or are prohibitive for
+standard deep learning pipelines. In this work, we
+propose an efficient defense mechanism that significantly reduces the success rate of various data
+poisoning attacks, and provides theoretical guarantees for the performance of the model. Targeted
+attacks work by adding bounded perturbations
+to a randomly selected subset of training data to
+match the targets’ gradient or representation. We
+show that: (i) under bounded perturbations, only
+a number of poisons can be optimized to have a
+gradient that is close enough to that of the target
+and make the attack successful; (ii) such effective
+poisons move away from their original class and
+get isolated in the gradient space; (iii) dropping
+examples in low-density gradient regions during
+training can successfully eliminate the effective
+poisons, and guarantees similar training dynamics
+to that of training on full data. Our extensive experiments show that our method significantly decreases the success rate of state-of-the-art targeted
+attacks, including Gradient Matching and Bullseye Polytope, and easily scales to large datasets1 .
+
+1. Introduction
+The impressive success of modern machine learning systems
+is highly dependent on the quality of their large training data.
+Many large datasets are scraped from the internet, or other
+public and user-provided sources. Models trained on such
+datasets are susceptible to data poisoning attacks, wherein
+1
+Department of Computer Science, University of California, Los Angeles, United States. Correspondence to: Yu Yang
+<yuyang@cs.ucla.edu>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+1
+Code is available at https://github.com/YuYang0901/Epic.
+
+an adversary places specially-constructed poisoned examples into the training data with the intention of manipulating
+the behavior of the system at test time. These attacks create
+security vulnerabilities that cannot be detected even if the
+data is labeled and checked by human supervision. This
+makes data poisoning arguably one of the most concerning threats to deep learning systems deployed in securityand safety-critical applications, such as financial services,
+security cameras, autonomous cars, and medical devices.
+Various types of poisoning attacks have been proposed in recent years. Most attacks fall into one of two main categories:
+backdoor or triggerless poisoning. Backdoor data poisoning
+augments the training data by a set of poisoned examples
+that contain a (not necessarily visible) trigger pattern (Gu
+et al., 2017; Turner et al., 2018; Souri et al., 2021). Finetuning the model on the augmented training data causes a model
+to misclassify test-time samples containing the trigger. On
+the other hand, triggerless poisoning attacks work by crafting small per-example perturbations so that the perturbed
+training examples collide with the adversarially labeled target in the feature or gradient space (Shafahi et al., 2018;
+Zhu et al., 2019; Huang et al., 2020; Geiping et al., 2021b;
+Aghakhani et al., 2021). Triggerless poisoning attacks cause
+misclassification of particular instances and do not require
+modification at inference time. In both cases, the poisoned
+examples may be seemingly innocent and properly labeled,
+and hence are hard to be detected by expert observers.
+Existing defense mechanisms against data poisoning attacks
+mainly rely on either anomaly detection based on nearest
+neighbors, training loss, singular-value decomposition, feature and activation clustering (Cretu et al., 2008; Steinhardt
+et al., 2017; Tran et al., 2018; Chen et al., 2019; Peri et al.,
+2020), or robust training based on strong data augmentation, randomized smoothing, ensembling, and adversarial
+training (Weber et al., 2020; Levine & Feizi, 2020; Abadi
+et al., 2016; Ma et al., 2019; Li et al., 2021; Tao et al.,
+2021). However, such methods either drastically degrade
+the generalization performance of the model (Geiping et al.,
+2021a), or can only protect the model against certain types
+of poisoning attacks (Koh et al., 2018; Tran et al., 2018),
+or are computationally prohibitive for standard deep learning pipelines (Geiping et al., 2021a). Importantly, these
+methods do not provide any theoretical guarantee for the
+performance of the model (Weber et al., 2020; Levine &
+
+

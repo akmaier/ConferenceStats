@@ -1,0 +1,74 @@
+Sparse Gaussian Processes with Spherical Harmonic Features
+Vincent Dutordoir 1 2 Nicolas Durrande 1 James Hensman 3
+
+Abstract
+We introduce a new class of inter-domain variational Gaussian processes (GP) where data is
+mapped onto the unit hypersphere in order to use
+spherical harmonic representations. Our inference scheme is comparable to variational Fourier
+features, but it does not suffer from the curse of
+dimensionality, and leads to diagonal covariance
+matrices between inducing variables. This enables a speed-up in inference, because it bypasses
+the need to invert large covariance matrices. Our
+experiments show that our model is able to fit a
+regression model for a dataset with 6 million entries two orders of magnitude faster compared to
+standard sparse GPs, while retaining state of the
+art accuracy. We also demonstrate competitive
+performance on classification with non-conjugate
+likelihoods.
+
+1. Introduction
+Gaussian processes (GPs) (Rasmussen & Williams, 2006)
+provide a flexible framework for modelling unknown functions: they are robust to overfitting, offer good predictive
+uncertainty estimates and allow us to incorporate prior assumptions into the model. Given a dataset with some inputs
+X 2 RN ⇥d and outputs y 2 RN , a GP regression model
+assumes yi = f (xi ) + "i where f is a GP over Rd and
+where the "i are normal random variables accounting for observation noise. The model predictions at x 2 Rd are then
+given by the posterior distribution f | y. However, computing the posterior distribution usually scales O(N 3 ), because
+it requires solving a system involving an N ⇥ N matrix.
+A range of sparse GP methods (see Quiñonero-Candela &
+Rasmussen (2005) for an overview) have been developed
+1
+
+PROWLER.io, Cambridge, United Kingdom 2 Department of
+Engineering, University of Cambridge, Cambridge, United Kingdom 3 Amazon Research, Cambridge, United Kingdom (work done
+while JH was affiliated to PROWLER.io). Correspondence to:
+Vincent Dutordoir <vincent@prowler.io>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+y
+
+bias
+
+x
+
+Figure 1. Illustration of the mapping between a 2D dataset (grey
+dots) embedded into a 3D space and its projection (orange dots)
+onto the unit half-circle using a linear mapping.
+
+to improve on this O(N 3 ) scaling. Among them, variational inference is a practical approach allowing regression
+(Titsias, 2009), classification (Hensman et al., 2015), minibatching (Hensman et al., 2013) and structured models including latent variables, time-series and depth (Titsias &
+Lawrence, 2010; Frigola et al., 2014; Hensman & Lawrence,
+2014; Salimbeni & Deisenroth, 2017). Variational inference
+in GPs works by approximating the exact (but intractable)
+posterior f | y. This approximate posterior process is constructed from a conditional distribution based on M pseudo
+observations of ui = f (zi ) at locations Z = {zi }M
+i=1 . The
+approximation is optimised by minimising the KullbackLeibler divergence between the approximate posterior and
+the exact one. The resulting complexity is O(M 3 + M 2 N ),
+so choosing M ⌧ N enables significant speedups compared to vanilla GP models. However, when using common
+stationary kernels such as Matérn, Squared Exponential (SE)
+or rational quadratic, the influence of pseudo-observations
+are only local and limited to the neighbourhoods of the inducing points Z, so a large number of inducing points M
+may be required to cover the input space. This is especially
+problematic for higher dimensional data as a result of the
+curse of dimensionality.
+Variational Fourier Features (Hensman et al., 2017, VFF)
+inducing variables have been proposed to overcome this
+limitation. In VFF the inducing variables based on pseudo
+observations are replaced with inducing variables obtained
+by projecting the GP onto the Fourier basis. This results in
+inducing variables that have global influence on the predictions. For one-dimensional inputs, this construction leads
+to covariances matrices between inducing variables that are
+
+

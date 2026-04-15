@@ -1,0 +1,79 @@
+Using Reward Machines for High-Level Task Specification
+and Decomposition in Reinforcement Learning
+
+Rodrigo Toro Icarte 1 2 Toryn Q. Klassen 1 Richard Valenzano 3 Sheila A. McIlraith 1 2
+
+Abstract
+In this paper we propose Reward Machines – a
+type of finite state machine that supports the specification of reward functions while exposing reward function structure to the learner and supporting decomposition. We then present Q-Learning
+for Reward Machines (QRM), an algorithm which
+appropriately decomposes the reward machine
+and uses off-policy q-learning to simultaneously
+learn subpolicies for the different components.
+QRM is guaranteed to converge to an optimal policy in the tabular case, in contrast to Hierarchical
+Reinforcement Learning methods which might
+converge to suboptimal policies. We demonstrate
+this behavior experimentally in two discrete domains. We also show how function approximation
+methods like neural networks can be incorporated
+into QRM, and that doing so can find better policies more quickly than hierarchical methods in a
+domain with a continuous state space.
+
+1. Introduction
+A standard assumption in reinforcement learning (RL) is
+that the agent does not have access to the environment model
+(Sutton & Barto, 1998). This means that it does not know, a
+priori, the transition probabilities or reward function manifest in the environment. To learn optimal behavior, an RL
+agent must therefore interact with the environment and learn
+from its experience. While assuming that the transition probabilities are unknown seems reasonable, there is less reason
+to hide the reward function from the agent. Artificial agents
+cannot inherently perceive reward from the environment;
+someone must program those rewards functions (even if the
+agent is interacting with the real world). Typically, though,
+1
+Department of Computer Science, University of Toronto,
+Toronto, Ontario, Canada 2 Vector Institute, Toronto, Ontario,
+Canada 3 Element AI, Toronto, Ontario, Canada. Correspondence
+to: Rodrigo Toro Icarte <rntoro@cs.toronto.edu>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+a programmed reward function is given as a black box to the
+agent. The agent can query the function for the reward in
+the current situation, but does not have access to whatever
+structures or high-level ideas the programmer may have
+used in defining it. However, an agent that had access to
+the specification of the reward function might be able to use
+it to decompose the problem and speed up learning. We
+consider a way to do so in this paper.
+Previous work on giving an agent knowledge about the
+reward function focus on defining a task specification
+language, usually based on sub-goal sequences (Singh,
+1992a;b) or linear temporal logic (Li et al., 2017; Camacho et al., 2017; Littman et al., 2017; Toro Icarte et al.,
+2018; Hasanbeig et al., 2018), and then generate a reward
+function towards fulfilling that specification. In this work,
+we instead directly tackle the problem of defining reward
+functions that expose structure to the agent. As such, our
+approach is able to reward behaviors to varying degrees in
+manners that cannot be expressed by previous approaches.
+There are two main contributions of this work. First, we introduce a type of finite state machine, called the Reward Machine, which we use in defining rewards. A reward machine
+allows for composing different reward functions in flexible ways, including concatenations, loops, and conditional
+rules. As an agent acts in the environment, moving from
+state to state, it also moves from state to state within a reward machine (as determined by high-level events detected
+within the environment). After every transition, the reward
+machine outputs the reward function the agent should use
+at that time. For example, we might construct a reward
+machine for “delivering coffee to an office” using two states.
+In the first state, the agent does not receive any rewards, but
+it moves to the second state whenever it gets the coffee. In
+the second state, the agent gets rewards after delivering the
+coffee. The advantage of defining rewards this way is that
+the agent knows that the problem consists of two stages and
+might use this information for decomposing it.
+Our second contribution is to introduce an algorithm, called
+Q-Learning for Reward Machines (QRM), that can exploit a
+reward machine’s internal structure to decompose the problem and thereby improve sample efficiency. QRM’s task
+decomposition does not prune optimal policies and uses q-
+
+

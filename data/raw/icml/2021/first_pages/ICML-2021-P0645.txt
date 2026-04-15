@@ -1,0 +1,79 @@
+Relative Positional Encoding for Transformers with Linear Complexity
+
+Antoine Liutkus * 1 Ondřej Cı́fka * 2 Shih-Lun Wu 3 4 5 Umut Şimşekli 6 Yi-Hsuan Yang 3 5 Gaël Richard 2
+
+Abstract
+Recent advances in Transformer models allow
+for unprecedented sequence lengths, due to linear
+space and time complexity. In the meantime, relative positional encoding (RPE) was proposed as
+beneficial for classical Transformers and consists
+in exploiting lags instead of absolute positions
+for inference. Still, RPE is not available for the
+recent linear-variants of the Transformer, because
+it requires the explicit computation of the attention matrix, which is precisely what is avoided by
+such methods. In this paper, we bridge this gap
+and present Stochastic Positional Encoding as a
+way to generate PE that can be used as a replacement to the classical additive (sinusoidal) PE and
+provably behaves like RPE. The main theoretical
+contribution is to make a connection between positional encoding and cross-covariance structures of
+correlated Gaussian processes. We illustrate the
+performance of our approach on the Long-Range
+Arena benchmark and on music generation.
+
+1. Introduction
+1.1. Linear Complexity Transformers
+The Transformer model (Vaswani et al., 2017) is a new
+kind of neural network that quickly became state-of-theart in many application domains, including the processing
+of natural language (He et al., 2020), images (Dosovitskiy
+et al., 2020), audio (Huang et al., 2018; Pham et al., 2020)
+or bioinformatics (AlQuraishi, 2019) to mention just a few.
+The core, novel component of the Transformer is the attention layer. It computes M output values ym from N
+input values vn , all being vectors of an arbitrary dimen*
+Equal contribution 1 Inria, Zenith Team, UMR LIRMM, Univ.
+Montpellier, France 2 LTCI, Télécom Paris, Institut Polytechnique
+de Paris, France 3 Research Center for IT Innovation, Academia
+Sinica, Taiwan 4 National Taiwan University, Taiwan 5 Taiwan AI
+Labs, Taiwan 6 INRIA – Département d’Informatique de l’École
+Normale Supérieure – PSL Research University, Paris, France.
+Correspondence to: Liutkus Antoine <antoine.liutkus@inria.fr>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Figure 1. Examples of attention patterns observed in the Performers trained for pop piano music generation (section 3.2) at inference time, for sequence length M = N = 3 072 while training
+sequences have length 2 048. (left) Absolute PE. (middle) Sinusoidal SPE. (right) Convolutional SPE. Note that SPE never
+requires computing these full attention patterns.
+
+sion. Following classical non-parametric regression principles (Nadaraya, 1964; Watson, 1964), it consists in a simple
+weighted sum:
+P
+n amn vn
+ym = P
+,
+(1)
+n amn
+where each attention coefficient amn ∈ R+ – gathered in
+the M × N matrix A – indicates how important the value
+vn is in the computation of the output ym .
+One of the main contributions of the Transformer is an original method to compute these coefficients. D-dimensional
+feature vectors kn and qm are attached to all items of the
+input and output sequences and are called keys and queries,
+respectively. Gathering them in the N × D and M × D
+matrices K and Q, we get softmax dot-product attention as:
+
+.√ 
+A = exp QK>
+D ≡ [amn = K(qm , kn )]mn , (2)
+where the function exp is applied element-wise. The righthand side in (2) is a generalization introduced by Tsai et al.
+(2019) and Choromanski et al. (2020), where K is a kernel
+function. Parameters pertain to how keys kn , values vn and
+queries qm are obtained from the raw sequences, usually by
+time-distributed fully connected layers.
+The original Transformer architecture (Vaswani et al., 2017)
+explicitly computes the attention matrix A, leading to a
+O(M N ) complexity that prevents it from scaling to very
+long sequence lengths. Although this is not necessarily a
+problem when sequence lengths are barely on the order of
+a few hundreds, as in some language processing tasks, it is
+
+

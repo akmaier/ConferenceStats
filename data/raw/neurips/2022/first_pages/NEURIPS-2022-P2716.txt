@@ -1,0 +1,58 @@
+The Implicit Delta Method
+Nathan Kallus⇤
+Cornell University & Netflix Research
+kallus@cornell.edu
+
+James McInerney⇤
+Netflix Research
+jmcinerney@netflix.com
+
+Abstract
+Epistemic uncertainty quantification is a crucial part of drawing credible conclusions from predictive models, whether concerned about the prediction at a
+given point or any downstream evaluation that uses the model as input. When
+the predictive model is simple and its evaluation differentiable, this task is solved
+by the delta method, where we propagate the asymptotically-normal uncertainty
+in the predictive model through the evaluation to compute standard errors and
+Wald confidence intervals. However, this becomes difficult when the model and/or
+evaluation becomes more complex. Remedies include the bootstrap, but it can be
+computationally infeasible when training the model even once is costly. In this
+paper, we propose an alternative, the implicit delta method, which works by infinitesimally regularizing the training loss of the predictive model to automatically
+assess downstream uncertainty. We show that the change in the evaluation due to
+regularization is consistent for the asymptotic variance of the evaluation estimator,
+even when the infinitesimal change is approximated by a finite difference. This
+provides both a reliable quantification of uncertainty in terms of standard errors
+as well as permits the construction of calibrated confidence intervals. We discuss
+connections to other approaches to uncertainty quantification, both Bayesian and
+frequentist, and demonstrate our approach empirically.
+
+1
+
+Introduction
+
+In this paper, we consider quantifying uncertainty in evaluations of predictive models trained on data.
+Consider the following examples. We fit a complex model (such as a neural net) to predict mean
+service time for an incoming call to a call center given some features, and we use it to prioritize
+calls in a queuing system. We may be interested in confidence intervals on the average wait time
+of incoming calls in the queue. Such confidence intervals would be crucial for drawing credible
+conclusions about such evaluations, since we know we cannot take the point prediction at face value
+given the sampling uncertainty in the data. We may, alternatively, be fitting a ranking algorithm by
+predicting user interaction from user-item features and then applying some fixed business rules on
+top, and we want to assess how often certain item categories would end up at the top. Of course,
+we would want to understand how certain we are in this assessment. Or, we fit a complex model
+to predict mean demand given price and user features from a price experiment we ran, and we use
+it to target discounts by optimizing demand at a price times unit profit. We may be interested in
+confidence intervals on the average profit over a given distribution of features.
+All of these examples have three important features: they involve (1) a computationally burdensome
+step of fitting a large-scale model, (2) evaluating the result using a complicated function that need not
+even be known explicitly, and (3) requiring the epistemic uncertainty of the evaluation given a model
+and finite data set, in contrast to the total uncertainty comprising both epistemic and irreducible
+aleatoric uncertainty [9]. Were the first two of these simple (simple model and simple function
+thereof), we could just use the classic delta method [10] (see next section for detail). However, when
+these aspects are complex and the model involves many parameters, it may be too prohibitive to
+⇤
+
+Equal contribution, alphabetical order.
+
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+

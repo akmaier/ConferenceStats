@@ -1,0 +1,70 @@
+Generative Pretraining from Pixels
+
+Mark Chen 1 Alec Radford 1 Rewon Child 1 Jeff Wu 1 Heewoo Jun 1 David Luan 1 Ilya Sutskever 1
+
+Abstract
+Inspired by progress in unsupervised representation learning for natural language, we examine
+whether similar models can learn useful representations for images. We train a sequence Transformer to auto-regressively predict pixels, without
+incorporating knowledge of the 2D input structure. Despite training on low-resolution ImageNet
+without labels, we find that a GPT-2 scale model
+learns strong image representations as measured
+by linear probing, fine-tuning, and low-data classification. On CIFAR-10, we achieve 96.3% accuracy with a linear probe, outperforming a supervised Wide ResNet, and 99.0% accuracy with
+full fine-tuning, matching the top supervised pretrained models. We are also competitive with
+self-supervised benchmarks on ImageNet when
+substituting pixels for a VQVAE encoding, achieving 69.0% top-1 accuracy on a linear probe of our
+features.
+
+1. Introduction
+Unsupervised pre-training played a central role in the resurgence of deep learning. Starting in the mid 2000’s, approaches such as the Deep Belief Network (Hinton et al.,
+2006) and Denoising Autoencoder (Vincent et al., 2008)
+were commonly used in neural networks for computer vision (Lee et al., 2009) and speech recognition (Mohamed
+et al., 2009). It was believed that a model which learned
+the data distribution P (X) would also learn beneficial features for the subsequent supervised modeling of P (Y |X)
+(Lasserre et al., 2006; Erhan et al., 2010). However, advancements such as piecewise linear activation functions (Nair
+& Hinton, 2010), improved initializations (Glorot & Bengio, 2010), and normalization strategies (Ioffe & Szegedy,
+2015; Ba et al., 2016) removed the need for pre-training in
+order to achieve strong results. Other research cast doubt
+1
+OpenAI, San Francisco, CA, USA. Correspondence to: Mark
+Chen <mark@openai.com>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+on the benefits of deep unsupervised representations and reported strong results using a single layer of learned features
+(Coates et al., 2011), or even random features (Huang et al.,
+2014; May et al., 2017). The approach fell out of favor as
+the state of the art increasingly relied on directly encoding
+prior structure into the model and utilizing abundant supervised data to directly learn representations (Krizhevsky
+et al., 2012; Graves & Jaitly, 2014). Retrospective study of
+unsupervised pre-training demonstrated that it could even
+hurt performance in modern settings (Paine et al., 2014).
+Instead, unsupervised pre-training flourished in a different domain. After initial strong results for word vectors
+(Mikolov et al., 2013), it has pushed the state of the art
+forward in Natural Language Processing on most tasks (Dai
+& Le, 2015; Peters et al., 2018; Howard & Ruder, 2018;
+Radford et al., 2018; Devlin et al., 2018). Interestingly, the
+training objective of a dominant approach like BERT, the
+prediction of corrupted inputs, closely resembles that of the
+Denoising Autoencoder, which was originally developed for
+images.
+As a higher dimensional, noisier, and more redundant modality than text, images are believed to be difficult for generative modeling. Here, self-supervised approaches designed to
+encourage the modeling of more global structure (Doersch
+et al., 2015) have shown significant promise. A combination
+of new training objectives (Oord et al., 2018), more recent
+architectures (Gomez et al., 2017), and increased model capacity (Kolesnikov et al., 2019) has allowed these methods
+to achieve state of the art performance in low data settings
+(Hénaff et al., 2019) and sometimes even outperform supervised representations in transfer learning settings (He et al.,
+2019; Misra & van der Maaten, 2019).
+Given that it has been a decade since the original wave of
+generative pre-training methods for images and considering
+their substantial impact in NLP, this class of methods is due
+for a modern re-examination and comparison with the recent
+progress of self-supervised methods. We re-evaluate generative pre-training on images and demonstrate that when using
+a flexible architecture (Vaswani et al., 2017), a tractable and
+efficient likelihood based training objective (Larochelle &
+Murray, 2011; Oord et al., 2016), and significant compute
+resources (1024 TPU cores), generative pre-training is competitive with other self-supervised approaches and learns
+
+

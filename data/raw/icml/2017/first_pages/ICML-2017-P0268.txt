@@ -1,0 +1,69 @@
+Post-Inference Prior Swapping
+
+Willie Neiswanger 1 Eric Xing 2
+
+Abstract
+While Bayesian methods are praised for their
+ability to incorporate useful prior knowledge, in
+practice, convenient priors that allow for computationally cheap or tractable inference are commonly used. In this paper, we investigate the following question: for a given model, is it possible
+to compute an inference result with any convenient false prior, and afterwards, given any target prior of interest, quickly transform this result into the target posterior? A potential solution is to use importance sampling (IS). However, we demonstrate that IS will fail for many
+choices of the target prior, depending on its parametric form and similarity to the false prior. Instead, we propose prior swapping, a method that
+leverages the pre-inferred false posterior to efficiently generate accurate posterior samples under arbitrary target priors. Prior swapping lets us
+apply less-costly inference algorithms to certain
+models, and incorporate new or updated prior information “post-inference”. We give theoretical
+guarantees about our method, and demonstrate it
+empirically on a number of models and priors.
+
+1. Introduction
+There are many cases in Bayesian modeling where a certain choice of prior distribution allows for computationally
+simple or tractable inference. For example,
+• Conjugate priors yield posteriors with a known parametric form and therefore allow for non-iterative, exact inference (Diaconis et al., 1979).
+• Certain priors yield models with tractable conditional
+or marginal distributions, which allows efficient approximate inference algorithms to be applied (e.g.
+Gibbs sampling (Smith & Roberts, 1993), sampling
+1
+
+Carnegie Mellon University, Machine Learning Department,
+Pittsburgh, USA 2 CMU School of Computer Science. Correspondence to: Willie Neiswanger <willie@cs.cmu.edu>.
+th
+
+Proceedings of the 34 International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+in collapsed models (Teh et al., 2006), or mean-field
+variational methods (Wang & Blei, 2013)).
+• Simple parametric priors allow for computationally
+cheap density queries, maximization, and sampling,
+which can reduce costs in iterative inference algorithms (e.g. Metropolis-Hastings (Metropolis et al.,
+1953), gradient-based MCMC (Neal, 2011), or sequential Monte Carlo (Doucet et al., 2000)).
+For these reasons, one might hope to infer a result under a
+convenient-but-unrealistic prior, and afterwards, attempt to
+correct the result. More generally, given an inference result
+(under a convenient prior or otherwise), one might wish to
+incorporate updated prior information, or see a result under different prior assumptions, without having to re-run a
+costly inference algorithm.
+This leads to the main question of this paper: for a given
+model, is it possible to use any convenient false prior to
+infer a false posterior, and afterwards, given any target prior
+of interest, efficiently and accurately infer the associated
+target posterior?
+One potential strategy involves sampling from the false
+posterior and reweighting these samples via importance
+sampling (IS). However, depending on the chosen target
+prior—both its parametric form and similarity to the false
+prior—the resulting inference can be inaccurate due to high
+or infinite variance IS estimates (demonstrated in Sec. 2.1).
+We instead aim to devise a method that yields accurate inferences for arbitrary target priors. Furthermore, like IS, we
+want to make use of the pre-inferred false posterior, without
+simply running standard inference algorithms on the target
+posterior. Note that most standard inference algorithms are
+iterative and data-dependent: parameter updates at each iteration involve data, and the computational cost or quality
+of each update depends on the amount of data used. Hence,
+running inference algorithms directly on the target posterior can be costly (especially given a large amount of data
+or many target priors of interest) and defeats the purpose of
+using a convenient false prior.
+In this paper, we propose prior swapping, an iterative, dataindependent method for generating accurate posterior samples under arbitrary target priors. Prior swapping uses the
+pre-inferred false posterior to perform efficient updates that
+
+

@@ -1,0 +1,85 @@
+RocketKV: Accelerating Long-Context LLM Inference via
+Two-Stage KV Cache Compression
+
+Payman Behnam * 1 2 Yaosheng Fu * 1 Ritchie Zhao 1 Po-An Tsai 1 Zhiding Yu 1 Alexey Tumanov 2
+
+Abstract
+
+tation—becomes a major bottleneck during the decode
+phase, as its size scales linearly with both the sequence
+length and batch size. For example, the Llama3.1-70BInstruct (AI@Meta, 2024) model with a batch size of 32,
+and a context length of 32K requires around 320GB of KV
+cache storage at FP16 precision, which even advanced hardware (NVIDIA, 2024; Jouppi et al., 2023; AMD, 2024) can
+hardly handle.
+
+Transformer-based Large Language Models rely
+critically on the KV cache to efficiently handle
+extended contexts during the decode phase. Yet,
+the size of the KV cache grows proportionally
+with the input length, burdening both memory
+bandwidth and capacity as decoding progresses.
+To address this challenge, we present RocketKV,
+a training-free KV cache compression strategy
+containing two consecutive stages. In the first
+stage, it performs coarse-grain permanent KV
+cache eviction on the input sequence tokens. In
+the second stage, it adopts a hybrid sparse attention method to conduct fine-grain top-k sparse
+attention, approximating the attention scores by
+leveraging both head and sequence dimensionality reductions. We show that RocketKV provides
+a compression ratio of up to 400×, end-to-end
+speedup of up to 3.7× as well as peak memory
+reduction of up to 32.6% in the decode phase on
+an NVIDIA A100 GPU compared to the full KV
+cache baseline, while achieving negligible accuracy loss on a variety of long-context tasks. We
+also propose a variant of RocketKV for multi-turn
+scenarios, which consistently outperforms other
+existing methods and achieves accuracy nearly
+on par with an oracle top-k attention scheme.
+The source code is available here: https://
+github.com/NVlabs/RocketKV.
+
+Fortunately, previous work has shown that only a small
+subset of KV tokens is required at each decode step to
+maintain accuracy (Zhang et al., 2023; Tang et al., 2024;
+Ribar et al., 2024; Li et al., 2024; Singhania et al., 2024; Ge
+et al., 2024). Therefore, if those KV tokens can be accurately predicted in advance, dense attention operations can
+be replaced with sparse attention operations with significant
+memory bandwidth and capacity improvement. These methods often fall into two categories: 1) permanent KV token
+eviction, and 2) dynamic KV token selection. The former
+results in both memory bandwidth and storage savings, but
+could lead to noticeable accuracy loss if KV tokens dropped
+earlier are needed by later decode steps. The latter avoids
+this shortcoming by keeping all KV tokens in memory and
+dynamically selecting a subset each time. Hence, it only
+results in memory bandwidth savings, but often requires
+extra memory storage overhead for auxiliary data.
+To understand the effectiveness of existing KV token dropping methods, Figure 1 presents the accuracy comparison
+of four different methods (two in each category) for qasper
+benchmark in LongBench (Bai et al., 2024) on the Mistral7B-Instruct-v0.2 model (Jiang et al., 2023). We observe
+that the accuracy of all four methods drops significantly as
+the token budget becomes lower than 1024 while an oracle
+top-k attention scheme achieves negligible accuracy drop
+even with a token budget of 256. This indicates that existing
+practical methods fail to accurately predict top-k KV tokens
+under low token budgets.
+
+1. Introduction
+In Transformer-based LLM inference (Vaswani et al., 2017;
+Pawar et al., 2024), the key-value cache (KV cache)—which
+stores past attention keys and values to avoid recompu*
+Equal contribution: work done during internship/part-time at
+NVIDIA 1 NVIDIA, Santa Clara, USA 2 Georgia Institute of Technology, Atlanta, USA. Correspondence to: Payman Behnam <payman.behnam@gatech.edu>, Yaosheng Fu <yfu@nvidia.com>.
+
+To improve the prediction accuracy, we propose RocketKV,
+a two-stage KV cache compression method that combines
+permanent KV token eviction with dynamic KV token selection to accelerate the decode phase of LLM inference. The
+RocketKV framework enables flexible integration of a wide
+range of KV cache compression techniques at each stage. To
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

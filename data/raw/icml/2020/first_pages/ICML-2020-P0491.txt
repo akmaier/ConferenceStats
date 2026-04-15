@@ -1,0 +1,97 @@
+Variational Inference for Sequential Data with Future Likelihood Estimates
+
+Geon-Hyeong Kim 1 Youngsoo Jang 1 Hongseok Yang 1 Kee-Eung Kim 1 2
+
+Abstract
+The recent development of ﬂexible and scalable
+variational inference algorithms has popularized
+the use of deep probabilistic models in a wide
+range of applications. However, learning and rea­
+soning about high-dimensional models with nondifferentiable densities are still a challenge. For
+such a model, inference algorithms struggle to
+estimate the gradients of variational objectives ac­
+curately, due to high variance in their estimates.
+To tackle this challenge, we present a novel vari­
+ational inference algorithm for sequential data,
+which performs well even when the density from
+the model is not differentiable, for instance, due
+to the use of discrete random variables. The key
+feature of our algorithm is that it estimates future
+likelihoods at all time steps. The estimated future
+likelihoods form the core of our new low-variance
+gradient estimator. We formally analyze our gra­
+dient estimator from the perspective of variational
+objective, and show the effectiveness of our algo­
+rithm with synthetic and real datasets.
+
+1. Introduction
+Learning a deep probabilistic model for complex data with
+latent variables is one of the most important tasks in ma­
+chine learning. Such models are typically built using neural
+networks, and applied to analyze a wide variety of data,
+including high-dimensional ones such as images (Kingma
+& Welling, 2014; Rezende & Mohamed, 2015; Chen et al.,
+2016; Gulrajani et al., 2016), speech and music (Chung et al.,
+2015; Fraccaro et al., 2016), and videos (Babaeizadeh et al.,
+2017; Denton & Fergus, 2018). However, when these mod­
+els do not have differentiable densities (for instance, due to
+1
+School of Computing, KAIST, Daejeon, Republic of Korea
+Graduate School of AI, KAIST, Daejeon, Republic of Korea.
+Correspondence to: Geon-Hyeong Kim <ghkim@ai.kaist.ac.kr>,
+Youngsoo Jang <ysjang@ai.kaist.ac.kr>, Hongseok Yang
+<hongseok.yang@kaist.ac.kr>,
+Kee-Eung Kim <keee­
+ung.kim@kaist.edu>.
+2
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the au­
+thor(s).
+
+discrete latent variables), learning and analyzing the models
+for high-dimensional data is still a challenge despite impres­
+sive progress in the past few years, including, but not limited
+to, tighter variational bounds (Burda et al., 2016; Maddison
+et al., 2017a; Naesseth et al., 2018; Le et al., 2018; Lawson
+et al., 2018; Masrani et al., 2019), low-variance gradient
+estimators (Mnih & Gregor, 2014; Mnih & Rezende, 2016;
+Tucker et al., 2017; Grathwohl et al., 2018), and techniques
+for preventing the diminishing gradient due to the multiple
+samples (Rainforth et al., 2018; Tucker et al., 2019).
+In this paper, we tackle the challenge for models for se­
+quential data in the context of black-box variational infer­
+ence (Ranganath et al., 2014). For these models, the noise
+from the data or the algorithm accumulates over time, and
+the variance of the algorithm’s estimates typically grows
+exponentially with the number of time steps. As a result,
+parameter learning and posterior inference via black-box
+variational inference are particularly difﬁcult for these mod­
+els. While there have been a large amount of prior work
+on these models, such as tighter variational bound derived
+from sequential Monte Carlo (Maddison et al., 2017a; Naes­
+seth et al., 2018; Le et al., 2018; Lawson et al., 2018), the
+current variational inference algorithms struggle to approxi­
+mate the gradients of variational bounds accurately, due to
+high variance in their estimates, especially when the models
+use discrete latent variables and thus do not have smooth
+densities; in such a case, the techniques that leverage the
+smoothness of the model, such as reparameterization trick,
+are no longer straightforwardly applicable.
+We propose a novel gradient estimator for a sequential vari­
+ant of the importance-weighted-autoencoder (IWAE) objec­
+tive (Burda et al., 2016), which is a provably tighter lower
+bound to the log marginal likelihood than the more tradi­
+tional evidence-lower-bound (ELBO) objective. In order
+to approximate the gradient accurately, our estimator com­
+putes the estimates of future likelihoods at each time step, by
+exploiting the recursive nature of sequential models. The es­
+timated future likelihoods are then used to improve the stan­
+dard score-function-based gradient estimator of the IWAE
+objective. Speciﬁcally, they serve as baselines (i.e. control
+variates), and also enable to replace a high-variance part of
+this standard estimator with a low-variance counterpart. Our
+estimator does not require the differentiability of a model’s
+density, and can be applied to sequential models with both
+
+

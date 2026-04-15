@@ -1,0 +1,122 @@
+On Distribution Shift in Learning-based Bug Detectors
+
+Jingxuan He 1 Luca Beurer-Kellner 1 Martin Vechev 1
+
+Abstract
+Deep learning has recently achieved initial success in program analysis tasks such as bug detection. Lacking real bugs, most existing works construct training and test data by injecting synthetic
+bugs into correct programs. Despite achieving
+high test accuracy (e.g., >90%), the resulting bug
+detectors are found to be surprisingly unusable in
+practice, i.e., <10% precision when used to scan
+real software repositories. In this work, we argue
+that this massive performance difference is caused
+by a distribution shift, i.e., a fundamental mismatch between the real bug distribution and the
+synthetic bug distribution used to train and evaluate the detectors. To address this key challenge,
+we propose to train a bug detector in two phases,
+first on a synthetic bug distribution to adapt the
+model to the bug detection domain, and then on a
+real bug distribution to drive the model towards
+the real distribution. During these two phases, we
+leverage a multi-task hierarchy, focal loss, and
+contrastive learning to further boost performance.
+We evaluate our approach extensively on three
+widely studied bug types, for which we construct
+new datasets carefully designed to capture the real
+bug distribution. The results demonstrate that our
+approach is practically effective and successfully
+mitigates the distribution shift: our learned detectors are highly performant on both our test set
+and the latest version of open source repositories.
+Our code, datasets, and models are publicly available at https://github.com/eth-sri/
+learning-real-bug-detector.
+
+1. Introduction
+The increasing amount of open source programs and advances in neural code models have stimulated the initial suc1
+Department of Computer Science, ETH Zurich, Switzerland.
+Correspondence to: Jingxuan He <jingxuan.he@inf.ethz.ch>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+Test set I:
+50% synthetic bugs
+50% non-buggy
+CuBERT
+Random
+
+94
+
+91
+
+87
+35
+
+85
+
+79
+
+GNN
+Random
+GNN
+BugLab
+
+Test set III (real-world):
+Test set II:
+50% real bugs
+0.5% real bugs
+50% non-buggy
+99.5% non-buggy
+
+75
+
+82
+
+72
+
+65
+
+36
+
+3
+
+1
+
+51
+
+35
+
+36
+
+51
+1
+
+Figure 1: Performance of variable misuse classifiers are
+drastically reduced from synthetic test sets to a real-world
+test set.
+and
+are precision and recall, respectively.
+
+cess of deep learning-based bug detectors (Vasic et al., 2019;
+Hellendoorn et al., 2020; Allamanis et al., 2021; Kanade
+et al., 2020; Chen et al., 2021b). These detectors can discover hard-to-spot bugs such as variable misuses (Allamanis et al., 2018) and wrong binary operators (Pradel & Sen,
+2018), issues that greatly impair software reliability (Rice
+et al., 2017; Karampatsis & Sutton, 2020) and cannot be
+handled by traditional formal reasoning techniques.
+Lacking real bugs, existing works build training sets by injecting few synthetic bugs, e.g., one (Kanade et al., 2020),
+three (Hellendoorn et al., 2020), or five (Allamanis et al.,
+2021), into each correct program. The learned bug detectors then achieve high accuracy on test sets created in the
+same way as the training set. However, when scanning realworld software repositories, these detectors were found to
+be highly imprecise and practically ineffective, achieving
+only 2% precision (Allamanis et al., 2021) or <10% precision (He et al., 2021). The key question then is: what is the
+root cause for this massive drop in performance?
+Unveiling Distribution Shifts We argue that the root
+cause is distribution shift (Koh et al., 2021), a fundamental
+mismatch between the real bug distribution found in public
+code repositories and the synthetic bug distribution used to
+train and evaluate existing detectors. Concretely, real bugs
+are known to be different from synthetic ones (Yasunaga
+& Liang, 2021), and further, correct programs outnumber
+buggy ones in practice, e.g., around 1:2000 as reported
+in (Karampatsis & Sutton, 2020). This means that the real
+bug distribution inherently exhibits extreme data imbalance.
+
+

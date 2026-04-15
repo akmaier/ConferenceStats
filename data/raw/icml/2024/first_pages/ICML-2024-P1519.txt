@@ -1,0 +1,99 @@
+Dynamic Memory Compression: Retrofitting LLMs for Accelerated Inference
+
+Piotr Nawrot * Q V Adrian Łańcucki * Q K Marcin Chochowski Q David Tarjan Q Edoardo M. Ponti V
+Q
+
+NVIDIA
+
+K
+
+University of Wrocław
+
+Abstract
+
+V
+
+University of Edinburgh
+
+Key-value
+cache
+
+Transformers have emerged as the backbone of
+large language models (LLMs). However, generation remains inefficient due to the need to store in
+memory a cache of key–value representations for
+past tokens, whose size scales linearly with the
+input sequence length and batch size. As a solution, we propose Dynamic Memory Compression
+(DMC), a method for on-line key–value cache
+compression at inference time. Most importantly,
+the model learns to apply different compression ratios in different heads and layers. We retrofit pretrained LLMs such as Llama 2 (7B, 13B and 70B)
+into DMC Transformers, achieving up to ~3.7×
+throughput increase during auto-regressive inference on an NVIDIA H100 GPU. DMC is applied
+via continued pre-training on a negligible percentage of the original data without adding any extra
+parameters. We find that DMC preserves the original downstream performance with up to 4× cache
+compression, outperforming up-trained groupedquery attention (GQA) and key–value eviction
+policies (H2 O, TOVA). GQA and DMC can be
+even combined to obtain compounded gains. As a
+result DMC fits longer contexts and larger batches
+within any given memory budget. We release the
+DMC code and models at https://github.com/
+NVIDIA/Megatron-LM/tree/DMC.
+
+(append)
+kvt
+
+(a) Regular key–value cache with items kvi depicted as boxes.
+New items are always appended.
+Key-value
+cache
+
+αt=0 (append)
+kvt
+αt=1 (accumulate)
+kvt
+
+weighted
+average
+
+(b) Dynamic Memory Compression (DMC) chooses whether to
+accumulate or append current items, resulting in a smaller key–
+value cache.
+
+Figure 1: Key–value cache update mechanisms.
+
+et al., 2015; Vaswani et al., 2017): during generation, Transformers store the keys and values of past tokens in memory
+to avoid recomputing them multiple times. Since this key–
+value (KV) cache grows linearly with the sequence length
+and batch size, generation with Transformers quickly becomes prohibitive due to the excessive memory load. This
+issue emerges even more clearly with long-context generation (e.g., in dialogues and stories) or when serving large
+numbers of user queries.
+A widespread solution to increase the memory efficiency of
+Transformers during inference is Grouped Query Attention
+(GQA; Ainslie et al., 2023; Shazeer, 2019), which uses a
+number of key and value heads inferior to the number of
+query heads through parameter sharing. As an alternative,
+the number of tokens in memory can be reduced through
+token merging (Zhang et al., 2018; Liu et al., 2018; Bolya
+et al., 2023) or cache eviction policies (Zhang et al., 2023;
+Oren et al., 2024). Nevertheless, these methods often pay the
+price of a severe degradation in downstream performance.
+On the other hand, hardware/IO-aware (Dao et al., 2022;
+Kwon et al., 2023) and sub-quadratic algorithms for attention (Beltagy et al., 2020; Choromanski et al., 2021) do not
+alleviate the memory load of the KV cache.
+
+1. Introduction
+Transformer Large Language Models (LLMs) are the state
+of the art in generative and conversational AI (Touvron et al.,
+2023; Jiang et al., 2023). Their deployment, however, is
+curtailed in part by their inefficiency. This is not only due
+to the quadratic complexity of attention layers (Bahdanau
+*
+Equal contribution . Correspondence to: Piotr Nawrot
+<piotr.nawrot@ed.ac.uk>.
+
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

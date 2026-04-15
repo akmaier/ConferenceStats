@@ -1,0 +1,75 @@
+Memory-Efficient Pipeline-Parallel DNN Training
+
+Deepak Narayanan 1 * Amar Phanishayee 2 Kaiyu Shi 3 Xie Chen 3 Matei Zaharia 1
+
+Abstract
+Many state-of-the-art ML results have been obtained by scaling up the number of parameters in
+existing models. However, parameters and activations for such large models often do not fit in
+the memory of a single accelerator device; this
+means that it is necessary to distribute training
+of large models over multiple accelerators. In
+this work, we propose PipeDream-2BW, a system that supports memory-efficient pipeline parallelism. PipeDream-2BW uses a novel pipelining and weight gradient coalescing strategy, combined with the double buffering of weights, to
+ensure high throughput, low memory footprint,
+and weight update semantics similar to data parallelism. In addition, PipeDream-2BW automatically partitions the model over the available hardware resources, while respecting hardware constraints such as memory capacities of accelerators
+and interconnect topologies. PipeDream-2BW can
+accelerate the training of large GPT and BERT
+language models by up to 20× with similar final
+model accuracy.
+
+1. Introduction
+In the quest to achieve higher accuracy across a range of
+tasks, DNN models have grown in size, often by scaling up
+the number of parameters in existing architectures (Devlin
+et al., 2018; Radford et al., 2018; 2019; Brown et al., 2020).
+It is challenging to train large models with billions of parameters. Modern accelerators have limited memory, which
+means that the model parameters and intermediate outputs
+that need to be in accelerator memory during training might
+not fit on a single accelerator. One of the solutions researchers and practitioners have turned to is model-parallel
+training (Dean et al., 2012; Chilimbi et al., 2014), where a
+model is partitioned over multiple accelerator devices. How*
+Work done in part as intern at Microsoft Research. 1 Stanford
+University 2 Microsoft Research 3 Microsoft. Correspondence to:
+Deepak Narayanan <deepakn@cs.stanford.edu>.
+th
+
+Proceedings of the 38 International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+ever, model parallelism, when traditionally deployed, can
+either lead to resource under-utilization (Narayanan et al.,
+2019) or high communication overhead with good scaling
+only within a multi-GPU server (Shoeybi et al., 2019), and
+consequently an increase in training time and dollar cost.
+Recent work has proposed pipelined model parallelism
+to accelerate model-parallel training.
+For example,
+GPipe (Huang et al., 2019) and PipeDream (Harlap et al.,
+2018; Narayanan et al., 2019) push multiple inputs in sequence through a series of workers that each manage one
+model partition, allowing different workers to process different inputs in parallel. Naı̈ve pipelining can harm model
+convergence due to inconsistent weight versions between
+the forward and backward passes of a particular input. Existing techniques trade off memory footprint and throughput
+in different ways to avoid this. GPipe maintains a single
+weight version, but has periodic pipeline flushes where the
+pipeline is drained of inputs to update weights (Figure 1a);
+these flushes limit overall throughput as resources are idle.
+PipeDream does not periodically flush the pipeline but stores
+multiple weight versions, which increases throughput but
+also increases the memory footprint, making the training of
+large models infeasible due to memory constraints. Efficient
+training of large models requires an approach with both high
+throughput and low memory footprint.
+Additionally, the performance of a pipeline-parallel system
+is dependent on how DNN model operators are partitioned
+over workers. This is challenging for three reasons:
+• Memory Capacity Constraints: Parameters and intermediate activations associated with a model partition need
+to fit in the main device memory of the accelerator.
+• Heterogeneous Network Interconnects: Training deployments today feature heterogeneous network topologies, with higher-bandwidth links between devices on the
+same server.
+• Large Search Space for Operator Placement: As
+model sizes increase, splitting an operator graph becomes
+computationally expensive since the number of distinct
+partitionings is exponential in the model size.
+In this paper, we introduce PipeDream-2BW, a system for
+efficient pipeline-parallel training of DNN models with billions of parameters. PipeDream-2BW achieves high through-
+
+

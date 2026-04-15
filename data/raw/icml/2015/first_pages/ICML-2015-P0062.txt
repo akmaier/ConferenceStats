@@ -1,0 +1,62 @@
+Yinyang K-Means: A Drop-In Replacement of the Classic K-Means
+with Consistent Speedup
+Yufei Ding⇤
+Yue Zhao⇤
+Xipeng Shen⇤
+Madanlal Musuvathi⇧
+Todd Mytkowicz⇧
+Department of Computer Science, North Carolina State University ⇤
+Microsoft Research ⇧
+
+Abstract
+This paper presents Yinyang K-means, a new
+algorithm for K-means clustering. By clustering the centers in the initial stage, and leveraging efficiently maintained lower and upper
+bounds between a point and centers, it more
+effectively avoids unnecessary distance calculations than prior algorithms. It significantly outperforms prior K-means algorithms consistently
+across all experimented data sets, cluster numbers, and machine configurations. The consistent, superior performance—plus its simplicity,
+user-control of overheads, and guarantee in producing the same clustering results as the standard K-means—makes Yinyang K-means a dropin replacement of the classic K-means with an
+order of magnitude higher performance.
+
+1. Introduction
+The classic K-means algorithm (Lloyd’s algorithm) consists of two steps. For an input of n data points of d dimensions and k initial cluster centers, the assignment step
+assigns each point to its closest cluster, and the update step
+updates each of the k cluster centers with the centroid of the
+points assigned to that cluster. The algorithm repeats until
+all the cluster centers remain unchanged in an iteration.
+Because of its simplicity and general applicability, the algorithm is one of the most widely used clustering algorithms in practice, and is identified as one of the top 10
+data mining algorithms (Wu et al., 2008). However, when
+n, k,or d is large, the algorithm runs slow due to its linear
+Proceedings of the 32 nd International Conference on Machine
+Learning, Lille, France, 2015. JMLR: W&CP volume 37. Copyright 2015 by the author(s).
+
+YDING 8@ NCSU . EDU
+YZHAO 30@ NCSU . EDU
+XSHEN 5@ NCSU . EDU
+MADANM @ MICROSOFT. COM
+TODDM @ MICROSOFT. COM
+
+dependence on n, k,and d.
+There have been a number of efforts trying to improve its
+speed. Some try to come up with better initial centers (e.g.,
+K-means++ (Arthur & Vassilvitskii, 2007; Bahmani et al.,
+2012)) or parallel implementations (Zhao et al., 2009). A
+complementary approach is to speed up the algorithm itself, which is the focus of this paper.
+Prior efforts in this direction include approximation (Czumaj & Sohler, 2007; Sculley, 2010; Philbin et al., 2007;
+Guha et al., 1998; Wang et al., 2012), structural optimization (Pelleg & Moore, 1999; Kanungo et al., 2002), and
+incremental optimization (Elkan, 2003; Drake & Hamerly,
+2012; Hamerly, 2010). They each have made significant contributions. However, the classic Lloyd’s algorithm still remains the dominant choice in practice, exemplified by the implementations in popular libraries, such
+as GraphLab (Low et al., 2010), OpenCV (OpenCV), mlpack (Curtin et al., 2013), and so on. They offer some seeding options, but are primarily based on Lloyd’s algorithm.
+For an alternative algorithm to get widely accepted, we believe that it needs to meet several requirements: (1) It must
+inherit the level of trust that Lloyd’s algorithm has attained
+through the many decades of practical use; (2) it must produce significant speedups consistently; (3) it must be simple to develop and deploy.
+The previous proposals unfortunately fall short in at least
+one of the three requirements. The approximation methods (Czumaj & Sohler, 2007; Sculley, 2010; Philbin et al.,
+2007; Guha et al., 1998; Wang et al., 2012), for instance,
+produce clustering results different from the results of the
+standard K-means. It is possible that their outputs could be
+good enough (or even better) for some usage, but in general
+such a confidence is yet to be established, in both theory
+and practice: Users still face the uncertainty on whether
+the output from these algorithms is good enough on an ar-
+
+

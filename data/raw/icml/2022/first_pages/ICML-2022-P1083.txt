@@ -1,0 +1,74 @@
+Analyzing and Mitigating Interference in Neural Architecture Search
+
+Jin Xu 1 Xu Tan 2 Kaitao Song 2 Renqian Luo 1 Yichong Leng 2 3 Tao Qin 2 Tie-Yan Liu 2 Jian Li 1
+
+Abstract
+Weight sharing is a popular approach to reduce
+the cost of neural architecture search (NAS) by
+reusing the weights of shared operators from previously trained child models. However, the rank
+correlation between the estimated accuracy and
+ground truth accuracy of those child models is low
+due to the interference among different child models caused by weight sharing. In this paper, we investigate the interference issue by sampling different child models and calculating the gradient similarity of shared operators, and observe: 1) the interference on a shared operator between two child
+models is positively correlated with the number of
+different operators; 2) the interference is smaller
+when the inputs and outputs of the shared operator
+are more similar. Inspired by these two observations, we propose two approaches to mitigate the
+interference: 1) MAGIC-T: rather than randomly
+sampling child models for optimization, we propose a gradual modification scheme by modifying
+one operator between adjacent optimization steps
+to minimize the interference on the shared operators; 2) MAGIC-A: forcing the inputs and outputs
+of the operator across all child models to be similar to reduce the interference. Experiments on a
+BERT search space verify that mitigating interference via each of our proposed methods improves
+the rank correlation of super-net and combining
+both methods can achieve better results. Our discovered architecture outperforms RoBERTabase
+by 1.1 and 0.6 points and ELECTRAbase by 1.6
+and 1.1 points on the dev and test set of GLUE
+benchmark. Extensive results on the BERT compression, reading comprehension and ImageNet
+task demonstrate the effectiveness and generality
+of our proposed methods.
+1
+Institute for Interdisciplinary Information Sciences (IIIS), Tsinghua University 2 Microsoft Research Asia 3 University of Science and Technology of China. Correspondence to: Xu Tan
+<xuta@microsoft.com>, Jian Li <lijian83@mail.tsinghua.edu.cn>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+1. Introduction
+Neural Architecture Search (NAS) (Zoph & Le, 2017; Zoph
+et al., 2018; Liu et al., 2018) aims to automatize the process
+of discovering high-performance architectures. Conventional NAS (Zoph & Le, 2017; Zoph et al., 2018; Real et al.,
+2017) obtains the accuracy of an architecture by training it
+from scratch, which requires huge computational resources
+(e.g., hundreds of GPU days). To speed up the training
+process, an important technique, called weight sharing, is
+proposed by Pham et al. (2018). Briefly speaking, weight
+sharing is to maintain a single copy of weights on a super-net
+that contains all the architectures in the search space. Rather
+than stand-alone training from scratch for each architecture,
+the weight sharing method samples an architecture at each
+training step as a child model or a sub-graph of the super-net,
+and continues the training on the weights of shared operators
+from previously trained architectures in the super-net. Due
+to low computational cost and competitive performance,
+weight sharing has drawn wide attention (Pham et al., 2018;
+Bender et al., 2018; Liu et al., 2018; Xie et al., 2019; Cai
+et al., 2018; 2019; Li & Talwalkar, 2020; Guo et al., 2020;
+Peng et al., 2020; Chu et al., 2021; Ning et al., 2021).
+Although a number of NAS methods based on weight sharing have been proposed and achieved impressive results,
+many works (Ning et al., 2021; Guo et al., 2020; Zela et al.,
+2019; Yu et al., 2019; Zhang et al., 2020a;b) find that the
+rank correlation between the estimated accuracy and ground
+truth accuracy of child models is low due to the interference
+among different child models on shared weights. The shared
+operators receive different gradient directions from child
+models with different architecture topologies for optimization even with the same batch of training data, which seriously affects the rank of the child models since interference
+can cause insufficient training and inaccurate performance
+evaluation. This phenomenon is especially severe for the
+complex search space that contains different types of candidate operators (e.g., convolutions and multi-head attention)
+and numerous child models.
+While previous research works have noticed the interference
+issue and empirically found that the interference is correlated with factors such as the size of a search space (Shu
+et al., 2019; Zhang et al., 2020a), little has been discussed
+about the causes of the interference and how to mitigate it.
+
+

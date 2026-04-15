@@ -1,0 +1,56 @@
+Hyperparameter Transfer Enables Consistent Gains of
+Matrix-Preconditioned Optimizers Across Scales
+
+Shikai Qiu∗ Zixi Chen∗
+
+Hoang Phan Qi Lei
+New York University
+
+Andrew Gordon Wilson
+
+Abstract
+Several recently introduced deep learning optimizers utilizing matrix-level preconditioning have shown promising speedups relative to the current dominant optimizer
+AdamW, particularly in relatively small-scale experiments. However, efforts to
+validate and replicate their successes have reported mixed results. To better understand the effectiveness of these optimizers at scale, in this work we investigate how
+to scale preconditioned optimizers via hyperparameter transfer, building on prior
+works such as µP. We study how the optimal learning rate and weight decay should
+scale with model width and depth for a wide range of optimizers, including Shampoo, SOAP, and Muon, accounting for the impact of commonly used techniques
+such as blocking and grafting. We find that scaling the learning rate according to
+µP improves transfer, but can still suffer from significant finite-width deviations
+that cause drifting optimal learning rates, which we show can be mitigated by
+blocking and explicit spectral normalization. For compute-optimal scaling, we find
+scaling independent weight decay as 1/width is nearly optimal across optimizers.
+Applying these scaling rules, we show Muon, SOAP and Shampoo consistently
+achieve near 1.4× speedup over AdamW for training Llama-architecture language
+models of sizes ranging from 190M to 1.4B, whereas the speedup vanishes rapidly
+with scale under incorrect scaling. Based on these results and further ablations,
+we argue that studying optimal hyperparameter transfer is essential for reliably
+comparing optimizers at scale given a realistic tuning budget.
+
+1
+
+Introduction
+
+Developing better optimization techniques can fundamentally accelerate deep learning. While
+AdamW [31] continues to dominate deep learning workloads, including training frontier-scale
+language models [16, 51, 29], several recently introduced optimizers have demonstrated significant
+speedups relative to AdamW, including Shampoo [19, 25, 3], SOAP [47], and Muon [23]. These
+optimizers use matrix rather than elementwise preconditioners that lead to faster learning per step
+while incurring a mild overhead. Notably, Muon’s recent success in training trillion-parameter
+language models [45] points to the potential in replacing AdamW as the default optimizer at scale.
+Unfortunately, subsequent works have reported mixed results in replicating these claimed speedups,
+especially on larger-scale experiments. For example, while Liu et al. [30] demonstrates consistent 2×
+speedup of Muon relative to AdamW from 400M to 1.5B-parameter language models, Wen et al. [49]
+show that Muon is at most 1.4× more efficient than well-tuned AdamW, and this speedup quickly
+diminishes to 1.1× for 1.2B models, with SOAP following a similar trend. Similarly, Semenov
+et al. [39] shows the speedups of matrix-preconditioned optimizers over AdamW decrease with scale.
+While the different experiment setups make it difficult to fully reconcile these studies, we hypothesize
+that the lack of a robust and consistent way of choosing hyperparameters, particularly for the larger
+models where careful tuning is impractical, is likely the main reason for these inconsistent findings.
+∗
+
+Equal contribution. Correspondence to sq2129@nyu.edu, zc2157@nyu.edu, andrewgw@cims.nyu.edu.
+
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+
+

@@ -1,0 +1,89 @@
+Self-Supervised Exploration via Disagreement
+
+Deepak Pathak * 1 Dhiraj Gandhi * 2 Abhinav Gupta 2 3
+
+Abstract
+Efficient exploration is a long-standing problem
+in sensorimotor learning. Major advances have
+been demonstrated in noise-free, non-stochastic
+domains such as video games and simulation.
+However, most of these formulations either get
+stuck in environments with stochastic dynamics
+or are too inefficient to be scalable to real robotics
+setups. In this paper, we propose a formulation for
+exploration inspired by the work in active learning literature. Specifically, we train an ensemble of dynamics models and incentivize the agent
+to explore such that the disagreement of those
+ensembles is maximized. This allows the agent
+to learn skills by exploring in a self-supervised
+manner without any external reward. Notably,
+we further leverage the disagreement objective
+to optimize the agent’s policy in a differentiable
+manner, without using reinforcement learning,
+which results in a sample-efficient exploration.
+We demonstrate the efficacy of this formulation
+across a variety of benchmark environments including stochastic-Atari, Mujoco and Unity. Finally, we implement our differentiable exploration
+on a real robot which learns to interact with objects completely from scratch. Project videos and
+code are at https://pathak22.github.
+io/exploration-by-disagreement/.
+
+1. Introduction
+Exploration is a major bottleneck in both model-free and
+model-based approaches to sensorimotor learning. In modelbased learning, exploration is a critical component in collecting diverse data for training the model in the first place.
+On the other hand, exploration is indispensable in modelfree reinforcement learning (RL) when rewards extrinsic
+*
+
+1
+Equal contribution
+UC Berkelely
+AI Research.
+Correspondence to:
+<pathak@cs.berkeley.edu>.
+
+2
+
+CMU 3 Facebook
+Deepak Pathak
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+to the agent are sparse. The common approach to exploration has been to generate “intrinsic” rewards, i.e., rewards
+automatically computed based on the agents model of the
+environment. Existing formulations of intrinsic rewards include maximizing “visitation count” (Bellemare et al., 2016;
+Lopes et al., 2012; Poupart et al., 2006) of less-frequently
+visited states, “curiosity” (Oudeyer & Kaplan, 2009; Pathak
+et al., 2017; Schmidhuber, 1991a) where prediction error is
+used as reward signal and “diversity rewards” (Eysenbach
+et al., 2018; Lehman & Stanley, 2011a;b) which incentivize
+diversity in the visited states. These rewards provide continuous feedback to the agent when extrinsic rewards are
+sparse, or even absent altogether.
+Generating intrinsic rewards requires building some form
+of a predictive model of the world. However, there is a key
+challenge in learning predictive models beyond noise-free
+simulated environments: how should the stochastic nature
+of agent-environment interaction be handled? Stochasticity
+could be caused by several sources: (1) noisy environment
+observations (e.g, TV playing noise), (2) noise in the execution of agent’s action (e.g., slipping) (3) stochasticity as an
+output of the agent’s action (e.g., agent flipping coin). One
+straightforward solution to learn a predictive forward model
+that is itself stochastic! Despite several methods to build
+stochastic models in low-dimensional state space (Chua
+et al., 2018; Houthooft et al., 2016), scaling it to high dimensional inputs (e.g., images) still remains challenging.
+An alternative is to build deterministic models but encode
+the input in a feature space that is invariant to stochasticity. Recent work proposed building such models in inverse
+model feature space (Pathak et al., 2017) which can handle
+stochastic observations but fail when the agent itself is the
+source of noise (e.g. TV with remote (Burda et al., 2019)).
+Beyond handling stochasticity, a bigger issue in the current
+intrinsic reward formulations is that of sample efficiency.
+The agent performs an action and then computes the reward
+based on its own prediction and environment behavior. For
+instance, in curiosity (Oudeyer & Kaplan, 2009; Pathak
+et al., 2017), the policy is rewarded if the prediction model
+and the observed environment disagree. From an exploration viewpoint, this seems like a good formulation, i.e,
+rewarding actions whose effects are poorly modeled. But
+this reward is a function of environment dynamics with
+respect to the performed action. Since the environment
+
+

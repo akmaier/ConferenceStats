@@ -1,0 +1,82 @@
+Neural Datalog Through Time:
+Informed Temporal Modeling via Logical Speciﬁcation
+
+Hongyuan Mei 1 Guanghui Qin 1 Minjie Xu 2 Jason Eisner 1
+
+Abstract
+Learning how to predict future events from
+patterns of past events is difﬁcult when the set of
+possible event types is large. Training an unrestricted neural model might overﬁt to spurious
+patterns. To exploit domain-speciﬁc knowledge
+of how past events might affect an event’s present
+probability, we propose using a temporal deductive database to track structured facts over time.
+Rules serve to prove facts from other facts and
+from past events. Each fact has a time-varying
+state—a vector computed by a neural net whose
+topology is determined by the fact’s provenance,
+including its experience of past events. The possible event types at any time are given by special
+facts, whose probabilities are neurally modeled
+alongside their states. In both synthetic and realworld domains, we show that neural probabilistic
+models derived from concise Datalog programs
+improve prediction by encoding appropriate
+domain knowledge in their architecture.
+
+1. Introduction
+Temporal sequences are abundant in applied machine
+learning. A common task is to predict the future from
+the past or to impute other missing events. Often this is
+done by ﬁtting a generative probability model. For evenly
+spaced sequences, historically popular generative models
+have included hidden Markov models and discrete-time linear dynamical systems, with more recent interest in recurrent neural network models such as LSTMs. For irregularly
+spaced sequences, a good starting point is the Hawkes process (a self-exciting temporal point process) and its many
+variants, including neuralized versions based on LSTMs.
+Under any of these models, each event ei updates the
+state of the system from si to si+1 , which then determines
+1
+Computer Science Dept., Johns Hopkins Univ. 2 Bloomberg
+LP. Correspondence to: Hongyuan Mei <hmei@cs.jhu.edu>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+the distribution from which the next event ei+1 is drawn.
+Alas, when the relationship between events and the system
+state is unrestricted—when anything can potentially affect
+anything—ﬁtting an accurate model is very difﬁcult, particularly in a real-world domain that allows millions of event
+types including many rare types. Thus, one would like to
+introduce domain-speciﬁc structure into the model.
+For example, one might declare that the probability that
+Alice travels to Chicago is determined entirely by Alice’s
+state, the states of Alice’s coworkers such as Bob, and the
+state of affairs in Chicago. Given that modeling assumption, parameter estimation can no longer incorrectly overﬁt
+this probability using spurious features based on unrelated
+temporal patterns of (say) wheat sales and soccer goals.
+To improve extrapolation, one can reuse this “Alice travels
+to Chicago” model for any person A traveling to any place
+C. Our main contribution is a modeling language that can
+travel(A,C) probabilities using
+concisely model all these travel
+a few rules over variables A, B, C. Here B ranges over A’s
+coworkers, where the coworker relation is also governed
+by rules and can itself be affected by stochastic events.
+In our paradigm, a domain expert simply writes down the
+rules of a temporal deductive database, which tracks the
+possible event types and other boolean facts over time. This
+logic program is then used to automatically construct a
+deep recurrent neural architecture, whose distributed state
+consists of vector-space embeddings of all present facts. Its
+output speciﬁes the distribution of the next event.
+What sort of rules? An event has a structured description
+with zero or more participating entities. When an event
+happens, pattern-matching against its description triggers
+update rules, which modify the database facts to reﬂect
+the new properties and relationships of these entities. Updates may have a cascading effect if the database contains
+deductive rules that derive further facts from existing
+ones at any time. (For example, coworker(A,B) is jointly
+implied by boss(U,A) and boss(U,B)). In particular, deductive rules can state that entities combine into a possible
+event type whenever they have the appropriate properties
+travel(A,C) is possible
+and relationships. (For example, travel
+if C is a place and A is a person who is not already at C.)
+
+

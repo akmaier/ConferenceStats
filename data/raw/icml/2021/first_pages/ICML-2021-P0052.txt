@@ -1,0 +1,81 @@
+Stabilizing Equilibrium Models by Jacobian Regularization
+
+Shaojie Bai 1 Vladlen Koltun 2 J. Zico Kolter 1
+
+Abstract
+Deep equilibrium networks (DEQs) are a new
+class of models that eschews traditional depth in
+favor of finding the fixed point of a single nonlinear layer. These models have been shown to
+achieve performance competitive with the stateof-the-art deep networks while using significantly
+less memory. Yet they are also slower, brittle to
+architectural choices, and introduce potential instability to the model. In this paper, we propose
+a regularization scheme for DEQ models that explicitly regularizes the Jacobian of the fixed-point
+update equations to stabilize the learning of equilibrium models. We show that this regularization
+adds only minimal computational cost, significantly stabilizes the fixed-point convergence in
+both forward and backward passes, and scales
+well to high-dimensional, realistic domains (e.g.,
+WikiText-103 language modeling and ImageNet
+classification). Using this method, we demonstrate, for the first time, an implicit-depth model
+that runs with approximately the same speed and
+level of performance as popular conventional deep
+networks such as ResNet-101, while still maintaining the constant memory footprint and architectural simplicity of DEQs. Code is available
+here.
+
+1. Introduction
+While conventional deep networks like ResNets (He et al.,
+2016) and Transformers (Vaswani et al., 2017) rely on hierarchical layer stacking, the recently-proposed deep equilibrium networks (DEQs) (Bai et al., 2019) directly model
+the “infinite-depth” representation of a single layer fθ by
+solving for its fixed point (i.e., “equilibrium”) z? :
+z? = fθ (z? ; x),
+where x is the original input. Importantly, to train these
+models, one could directly differentiate through the final
+1
+Carnegie Mellon University, Pittsburgh PA, USA 2 Intel Labs,
+USA. Correspondence to: Shaojie Bai <shaojieb@cs.cmu.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+equilibrium z? by the implicit function theorem (Krantz &
+Parks, 2012), irrespective of the method used to solve for
+this equilibrium in the forward pass. Therefore, like other
+implicit-depth architectures such as Neural ODEs (Chen
+et al., 2018), DEQs have the notable advantages that their
+forward passes can rely on any black-box root solvers (e.g.,
+Newton, quasi-Newton, simplest forward iterations), and
+that their training only consumes O(1) memory. With this
+formulation, prior works have managed to extend the DEQ
+framework for multiple large-scale applications, such as
+language modeling (Bai et al., 2019) and large-scale image
+classification or segmentation (Bai et al., 2020).
+However, these models suffer from a few issues. First,
+despite their memory efficiency, DEQs are also slower than
+conventional deep networks that achieve the same level
+of accuracy. Second, the number of iterations required to
+solve for the equilibrium quickly grows over the course
+of training, indicating a trend for approaching instability.
+Third, the DEQ model is sensitive to architectural choices,
+and sometimes even small modifications could break the
+model’s stability of convergence. Some recent works have
+tackled this third issue by exploiting provably convergent
+layers via monotone operator splitting theories (Winston
+& Kolter, 2020) and Lipschitz boundedness (Revay et al.,
+2020). However, these structural solutions rely extensively
+on specific layer parameterizations, rendering DEQ models
+unscalable and even more inflexible.
+In this paper, we first summarize and provide empirical evidence on all of these downsides of the equilibrium networks
+that have so far thwarted many from extending DEQs to
+both broader applications and more architectural variants.
+To address these issues, we further propose a regularization
+solution to improve on DEQ models’ stability, efficiency
+and flexibility. Importantly, while prior DEQs adopted regularization methods direcly borrowed from explicit deep networks (e.g., recurrent dropout (Gal & Ghahramani, 2016)),
+we introduce a simple and theoretically-motivated Jacobian
+regularization pursuant to DEQ models’ implicitness. We
+will discuss in detail how this Jacobian regularization relates
+to the contractivity of DEQ’s forward non-linear system and
+backward linear system, and is thus able to effectively stabilize not only forward but also backward dynamics of DEQ
+networks. There are two immediate benefits of the resulting
+stability in the dynamics. First, solving a DEQ requires
+far fewer iterations than before, which makes regularized
+
+

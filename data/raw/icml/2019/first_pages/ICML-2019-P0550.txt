@@ -1,0 +1,87 @@
+Separating value functions across time-scales
+
+Joshua Romoff * 1 2 Peter Henderson * 3 Ahmed Touati 4 2 Emma Brunskill 3 Joelle Pineau 1 2 Yann Ollivier 2
+
+Abstract
+In many finite horizon episodic reinforcement
+learning (RL) settings, it is desirable to optimize
+for the undiscounted return – in settings like Atari,
+for instance, the goal is to collect the most points
+while staying alive in the long run. Yet, it may be
+difficult (or even intractable) mathematically to
+learn with this target. As such, temporal discounting is often applied to optimize over a shorter effective planning horizon. This comes at the risk of
+potentially biasing the optimization target away
+from the undiscounted goal. In settings where
+this bias is unacceptable – where the system must
+optimize for longer horizons at higher discounts
+– the target of the value function approximator
+may increase in variance leading to difficulties
+in learning. We present an extension of temporal
+difference (TD) learning, which we call TD(∆),
+that breaks down a value function into a series
+of components based on the differences between
+value functions with smaller discount factors. The
+separation of a longer horizon value function into
+these components has useful properties in scalability and performance. We discuss these properties
+and show theoretic and empirical improvements
+over standard TD learning in certain settings.
+
+1. Introduction
+The goal of reinforcement learning (RL) algorithms is to
+learn a policy that optimizes the cumulative reward (return)
+provided by the environment. A discount factor 0 ≤ γ < 1
+can be used to optimize an exponentially decreasing function of the future return. Discounting is often used as a
+biased proxy for optimizing the cumulative reward to reduce variance and make use of convenient theoretical con*
+
+1
+Equal contribution
+MILA, McGill University
+3
+Facebook AI Research
+Stanford University 4 MILA,
+Université de Montréal. Correspondence to: Joshua Romoff <joshua.romoff@mail.mcgill.ca>, Peter Henderson
+<phend@stanford.edu>.
+2
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+vergence properties, making learning more efficient and
+stable (Bertsekas & Tsitsiklis, 1995; Prokhorov & Wunsch,
+1997; Even-Dar & Mansour, 2003). However, in many of
+the complex tasks used for evaluating current state-of-the-art
+reinforcement learning systems (Mnih et al., 2013; OpenAI, 2018), it is more desirable to optimize for performance
+over long horizons. The optimal choice of discount factor,
+which balances asymptotic policy performance with learning ability, is often difficult, and solutions have ranged from
+scheduled curricula (OpenAI, 2018; Prokhorov & Wunsch,
+1997; François-Lavet et al., 2015) to meta-gradient learning
+of the discount factor (Xu et al., 2018).
+OpenAI (2018), for example, start with a small discount
+factor and gradually increase it to bootstrap the learning process. Rather than explicitly tackling the problem of discount
+selection, we make the observation that for any arbitrary
+discount factor, the discounted value function already encompasses all smaller timescales (discounts). This simple
+observation allows us to derive a novel method of generating separable value functions. That is, we can separate the
+value function into a number of partial estimators, which
+we call delta estimators, which approximate the difference
+Wz = Vγz − Vγz−1 between value functions. Importantly,
+each delta estimators is learnable by itself, because it satisfies a Bellman-like equation based on the W s of shorter
+horizons. Thus, these delta estimators can then be summed
+to yield the same discounted value function, and any subset
+of estimators from the series of smaller γz values. The use
+of difference methods (the delta between two value functions at different time scales) leads us to call our method
+TD(∆).
+The separable nature of the full TD(∆) estimator allows for
+each component to be learned in a way that is optimal for
+that part of the overall value function. This means that, for
+example, the learning rate (and similarly other parameters)
+can be adjusted for each component, yielding overall faster
+convergence. Moreover, the components corresponding to
+smaller effective horizons can converge faster, bootstrapping
+larger horizon components (at the risk of some bias). Our
+method provides a simple drop-in way to separate value
+functions in any TD-like algorithm to increase performance
+in a variety of settings, particularly in MDPs with dense
+rewards.
+
+

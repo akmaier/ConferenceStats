@@ -1,0 +1,88 @@
+Asymptotically Optimal Exact Minibatch
+Metropolis-Hastings
+Ruqi Zhang∗
+Cornell University
+rz297@cornell.edu
+
+A. Feder Cooper∗
+Cornell University
+afc78@cornell.edu
+
+Christopher De Sa
+Cornell University
+cdesa@cs.cornell.edu
+
+Abstract
+Metropolis-Hastings (MH) is a commonly-used MCMC algorithm, but it can be
+intractable on large datasets due to requiring computations over the whole dataset.
+In this paper, we study minibatch MH methods, which instead use subsamples to
+enable scaling. We observe that most existing minibatch MH methods are inexact
+(i.e. they may change the target distribution), and show that this inexactness can
+cause arbitrarily large errors in inference. We propose a new exact minibatch
+MH method, TunaMH, which exposes a tunable trade-off between its batch size
+and its theoretically guaranteed convergence rate. We prove a lower bound on
+the batch size that any minibatch MH method must use to retain exactness while
+guaranteeing fast convergence—the ﬁrst such bound for minibatch MH—and show
+TunaMH is asymptotically optimal in terms of the batch size. Empirically, we
+show TunaMH outperforms other exact minibatch MH methods on robust linear
+regression, truncated Gaussian mixtures, and logistic regression.
+
+1
+
+Introduction
+
+Bayesian inference is widely used for probabilistic modeling of data. Speciﬁcally, given a dataset
+D = {xi }N
+i=1 and a θ-parameterized model, it aims to compute the posterior distribution
+� �
+�
+N
+π(θ) ∝ exp − i=1 Ui (θ) , where Ui (θ) = − log p(xi |θ) − N1 log p(θ).
+
+Here p(θ) is the prior and the p(xi |θ) give the likelihood of observing xi given the parameter θ.
+We assume the data are conditionally independent given θ. The Ui have a natural interpretation
+as component energy functions with π acting as a Gibbs measure. In practice, computing π(θ)
+is often intractable and thus requires using approximate methods, such as Markov chain Monte
+Carlo (MCMC). MCMC uses sampling to estimate the posterior and is guaranteed to converge
+asymptotically to the true distribution, π [9].
+The Metropolis-Hastings (MH) algorithm [16, 21] is one of the most commonly used MCMC methods.
+In each step, MH generates a proposal θ� from a distribution q(·|θ), and accepts it with probability
+�
+�
+�
+� q(θ|θ� ) �
+� �N
+�
+)q(θ|θ � )
+�
+(U
+(θ)
+−
+U
+(θ
+))
+· q(θ� |θ) .
+a(θ, θ� ) = min 1, π(θ
+=
+min
+1,
+exp
+(1)
+�
+i
+i
+i=1
+π(θ)q(θ |θ)
+If accepted, the chain transitions to θ� ; otherwise, it remains at the current state θ. This accept/reject
+step can be quite costly when N is large, since it entails computing a sum over the entire dataset.
+
+Prior work has proposed many approaches to mitigate the cost of this decision step [5]. One popular
+approach involves introducing stochasticity: instead of computing over the entire dataset, a subsample,
+or minibatch, is used to compute an approximation. These minibatch MH methods can be divided into
+∗
+
+Equal contribution.
+
+34th Conference on Neural Information Processing Systems (NeurIPS 2020), Vancouver, Canada.
+
+

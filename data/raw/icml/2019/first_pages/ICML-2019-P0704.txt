@@ -1,0 +1,78 @@
+SWALP: Stochastic Weight Averaging in Low-Precision Training
+
+Guandao Yang 1 Tianyi Zhang 1 Polina Kirichenko 1 Junwen Bai 1
+Andrew Gordon Wilson 1 Christopher De Sa 1
+
+Abstract
+Low precision operations can provide scalability, memory savings, portability, and energy efficiency. This paper proposes SWALP, an approach to low precision training that averages lowprecision SGD iterates with a modified learning
+rate schedule. SWALP is easy to implement and
+can match the performance of full-precision SGD
+even with all numbers quantized down to 8 bits,
+including the gradient accumulators. Additionally,
+we show that SWALP converges arbitrarily close
+to the optimal solution for quadratic objectives,
+and to a noise ball asymptotically smaller than
+low precision SGD in strongly convex settings.
+
+1. Introduction
+Training deep neural networks (DNNs) usually requires a
+large amount of computational time and power. As model
+sizes grow larger, training DNNs more efficiently and with
+less memory becomes increasingly important. This is especially the case when training on a special-purpose hardware
+accelerator; such ML accelerators are in development and
+used in industry (Jouppi et al., 2017; Burger, 2017). Many
+ML accelerators have limited on-chip memory, and many
+ML applications are memory bounded (Jouppi et al., 2017).
+It is desirable to fit numbers that are frequently used during
+the training process into the on-chip memory. One of the
+useful techniques for doing this is low-precision computation, since using fewer bits to represent numbers reduces
+both memory consumption and computational cost.
+Training a DNN in low-precision usually results in worse
+performance compared to training in full precision. Many
+techniques have been proposed to reduce this performance
+gap (Zhou et al., 2016; Wu et al., 2018; Banner et al., 2018;
+Wang et al., 2018). One useful method is to compute forward and backward propagation with low-precision weights
+1
+Cornell University. Correspondence to: Guandao Yang
+<gy46@cornell.edu>, Tianyi Zhang <tz58@cornell.edu>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+and accumulate gradient information in higher precision
+gradient accumulators (Courbariaux et al., 2015; Wu et al.,
+2018; Wang et al., 2018). Recently, Wang et al. (2018)
+showed that one could eliminate the performance gap between low-precision and high-precision training by quantizing all numbers except the gradient accumulator to 8 bits
+without changing the network structure, establishing the
+state-of-the-art result in low-precision training. Since gradient accumulators are frequently updated during training,
+it would be desirable to also represent and store them in
+low-precision (e.g. 8 bits). In this paper, we will focus on
+the setting where all numbers including the gradient accumulators are represented in low precision during training.
+Independently from low-precision computation, stochastic
+weight averaging (SWA) (Izmailov et al., 2018a) has been
+recently proposed for improved generalization in deep learning. SWA takes an average of SGD iterates with a modified
+learning rate schedule and has been shown to lead to wider
+optima (Izmailov et al., 2018a). Keskar et al. (2016) also
+connect the width of the optimum and generalization performance. A wider optimum is especially relevant in the
+context of low-precision training as it is more likely to contain high-accuracy low-precision solutions. Izmailov et al.
+(2018a) also observed that SWA works well with a relatively
+high learning rate and can tolerate additional noise during
+training. Low-precision training, on the other hand, produces extra quantization noise during training and tends to
+underperform when the learning rate is low. Moreover, by
+averaging, one can combine weights that have been rounded
+up with those that been rounded down during quantization.
+For these reasons, we hypothesize that SWA can boost the
+performance of low-precision training and that performance
+improvement is more significant than in the case of SWA
+applied to full-precision training.
+In this paper, we propose a principled approach using
+stochastic weight averaging while quantizing all numbers
+including the gradient accumulator and the velocity vectors during training. We prove that for quadratic objectives
+SWALP can converge to the optimal solution as well as to a
+smaller asymptotic noise ball than low-precision SGD for
+strongly convex objectives. Figure 1 illustrates the intuition
+behind SWALP. A quantized grid is only able to represent
+certain suboptimal solutions. By averaging we find centred
+
+

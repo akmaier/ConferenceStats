@@ -1,0 +1,78 @@
+Robust Asymmetric Learning in POMDPs
+
+Andrew Warrington * 1 J. Wilder Lavington * 2 3 Adam ´Scibior 2 3 Mark Schmidt 2 4 Frank Wood 2 3 5
+
+Abstract
+Policies for partially observed Markov decision
+processes can be efﬁciently learned by imitating
+expert policies learned using asymmetric information. Unfortunately, existing approaches for
+this kind of imitation learning have a serious ﬂaw:
+the expert does not know what the trainee cannot see, and may therefore encourage actions that
+are sub-optimal or unsafe under partial information. To address this ﬂaw, we derive an update
+that, when applied iteratively to an expert, maximizes the expected reward of the trainee’s policy. Using this update, we construct a computationally efﬁcient algorithm, adaptive asymmetric
+DAgger (A2D), that jointly trains the expert and
+trainee policies. We then show that A2D allows
+the trainee to safely imitate the modiﬁed expert,
+and outperforms policies learned either by imitating a ﬁxed expert or direct reinforcement learning.
+
+1. Introduction
+Consider the stochastic shortest path problem (Bertsekas
+& Tsitsiklis, 1991) where an agent learns to cross a frozen
+lake while avoiding patches of weak ice. The agent can
+either cross the ice directly, or take the longer, safer route
+circumnavigating the lake. The agent is provided with aerial
+images of the lake, which include color variations at patches
+of weak ice. To cross the lake, the agent must learn to
+identify its own position, goal position, and the location of
+weak ice from the images. Even for this simple environment, high-dimensional inputs and sparse rewards can make
+learning a suitable policy computationally expensive and
+sample inefﬁcient. Therefore one might instead efﬁciently
+learn, in simulation, an omniscient expert, conditioned on
+a low-dimensional vector which fully describes the state of
+*
+
+Equal contribution 1 Department of Engineering Science, University of Oxford 2 Department of Computer Science, University
+of British Columbia 3 Inverted AI 4 Alberta Machine Learning Intelligence Institute (AMII) 5 Montréal Institute for Learning Algorithms (MILA). Correspondence to: Andrew Warrington <andreww@robots.ox.ac.uk>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+the world, to complete the task. A trainee, observing only
+images, can then learn to mimic the actions of the expert
+using sample-efﬁcient online imitation learning (Ross et al.,
+2011). This yields a high-performing trainee, conditioned
+on images, learned with fewer environment interactions
+overall compared to direct reinforcement learning (RL).
+While appealing, this approach can fail in environments
+where the expert has access to information unavailable to
+the agent, referred to as asymmetric information. Consider
+instead that the image of the lake does not indicate the location of the weak ice. The trainee now operates under
+increased uncertainty. This results in a different optimal
+partially observing policy, as the agent should now circumnavigate the lake. However, imitating the expert forces the
+trainee to always cross the lake, despite being unable to
+locate and avoid the weak ice. Even though the expert is
+optimal under full information, the supervision provided to
+the trainee through imitation learning is poor and yields a
+policy that is not optimal under partial information. The
+key insight is that the expert has no knowledge of what the
+trainee does not know. Therefore, the expert cannot provide
+suitable supervision, and proposes actions that are not robust
+to the increased uncertainty under partial information. The
+main algorithmic contribution we present follows from this
+insight: the expert must be reﬁned based on the behavior of
+the trainee imitating it.
+Building on this insight, we present a new algorithm: adaptive asymmetric DAgger (A2D), illustrated in Figure 1. A2D
+extends imitation learning by reﬁning the expert policy, such
+that the resulting supervision moves the trainee policy closer
+to the optimal partially observed policy. This allows us to
+safely take advantage of asymmetric information in imitation learning. Crucially, A2D can be easily integrated with
+a variety of different RL algorithms, does not require any
+pretrained artifacts, policies or example trajectories, and
+does not take computationally expensive and high-variance
+RL steps in the trainee policy network.
+We ﬁrst introduce asymmetric imitation learning (AIL). AIL
+uses an expert, conditioned on full state information, to
+supervise learning a trainee, conditioned on partial information. We show that the solution to the AIL objective is a
+posterior inference over the true state; and provide sufﬁcient
+conditions for when the expert is guaranteed to provide cor-
+
+

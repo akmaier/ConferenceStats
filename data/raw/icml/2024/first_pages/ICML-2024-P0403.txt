@@ -1,0 +1,91 @@
+Understanding the Training Speedup from Sampling with Approximate Losses
+
+Rudrajit Das 1 Xi Chen 2 Bertram Ieong 2 Parikshit Bansal 1 Sujay Sanghavi 1 2
+
+Abstract
+
+at w with step-size/learning rate η is:
+w+ = w − η∇f (w, x),
+
+It is well known that selecting samples with large
+losses/gradients can significantly reduce the number of training steps. However, the selection overhead is often too high to yield any meaningful
+gains in terms of overall training time. In this
+work, we focus on the greedy approach of selecting samples with large approximate losses instead
+of exact losses in order to reduce the selection
+overhead. For smooth convex losses, we show
+that such a greedy strategy can converge to a constant factor of the minimum value of the average
+loss in fewer iterations than the standard approach
+of random selection. We also theoretically quantify the effect of the approximation level. We then
+develop SIFT which uses early exiting to obtain
+approximate losses with an intermediate layer’s
+representations for sample selection. We evaluate
+SIFT on the task of training a 110M parameter
+12 layer BERT base model, and show significant
+gains (in terms of training hours and number of
+backpropagation steps) without any optimized implementation over vanilla training. For e.g., to
+reach 64% validation accuracy, SIFT with exit at
+the first layer takes ∼ 43 hours compared to ∼ 57
+hours of vanilla training.
+
+(1)
+
+where the sample/example x is drawn from D. In practice,
+the gradient over a single sample is replaced by the average
+gradient over a mini-batch of samples; for our theoretical
+results, we shall stick to batch-size = 1 (as in Equation (1)).
+The choice of the sample x in Equation (1) significantly
+impacts the speed of convergence. There is copious work on
+selecting “important” samples for speeding up convergence.
+In this paradigm, the seminal idea is that of importance
+sampling which proposes to sample the examples such that
+resulting stochastic gradient is unbiased while having the
+minimum possible variance (Zhao & Zhang, 2015; Alain
+et al., 2015; Needell et al., 2014). It turns out that the optimal solution is to sample the examples with probability
+proportional to their per-sample gradient norms. While this
+has a clean theoretical solution, it is completely infeasible
+from the practical standpoint because of the high cost of
+computing the per-sample gradient norms. To address this
+shortcoming, several approximations to this exact solution
+have been proposed; we discuss these and related ideas in
+Section 2. In this space, one high-level idea is to use the
+per-sample loss valueas a proxy to the per-sample gradient
+norm, favoring samples with high losses for performing the
+update (Loshchilov & Hutter, 2015; Shrivastava et al., 2016;
+Katharopoulos & Fleuret, 2017; Kawaguchi & Lu, 2019;
+Zhang et al., 2019). We discuss the important works based
+on this idea in detail in Section 2. Since exact loss computation is itself expensive especially for large models, some
+works rely on approximate loss values for sample selection;
+for instance, using an auxiliary model to predict loss values
+of the actual model being trained (Katharopoulos & Fleuret,
+2017; Zhang et al., 2019). So in summary, several approximations to the core idea of exact importance sampling have
+been proposed to make it practically usable.
+
+1. Introduction
+Stochastic Gradient Descent (SGD) and its variants are the
+algorithms of choice for solving large-scale optimization
+problems that arise in training machine learning models.
+These are problems of the form minw∈Rd F (w), where
+F (.) is the expected population loss and w ∈ Rd is the
+vector of model parameters. More specifically, if f (w, .)
+is the per-sample loss and D is the data distribution, then
+F (w) = Ex∼D [f (w, x)]. The standard SGD update rule
+
+Despite the myriad sample selection approaches, there is a
+paucity of theoretical results quantifying how much speedup we can obtain over random sampling and their limitations
+– especially for approaches involving the use of approximate
+quantities. In this work, we focus on the approach of choosing the sample with the highest loss for performing the
+gradient-based update. More specifically, suppose we are
+given R > 1 i.i.d. samples drawn from D and their ap-
+
+1
+
+UT Austin 2 Amazon. Correspondence to: Rudrajit Das
+<rdas@utexas.edu>, Xi Chen <xichex@amazon.com>, Sujay
+Sanghavi <sanghavi@mail.utexas.edu>.
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

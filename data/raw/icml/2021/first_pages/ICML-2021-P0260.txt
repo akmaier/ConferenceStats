@@ -1,0 +1,79 @@
+Improved Contrastive Divergence Training of Energy-Based Models
+
+Yilun Du 1 Shuang Li 1 Joshua Tenenbaum 1 Igor Mordatch 2
+
+Abstract
+Contrastive divergence is a popular method of
+training energy-based models, but is known to
+have difficulties with training stability. We propose an adaptation to improve contrastive divergence training by scrutinizing a gradient term that
+is difficult to calculate and is often left out for
+convenience. We show that this gradient term
+is numerically significant and in practice is important to avoid training instabilities, while being
+tractable to estimate. We further highlight how
+data augmentation and multi-scale processing can
+be used to improve model robustness and generation quality. Finally, we empirically evaluate stability of model architectures and show improved
+performance on a host of benchmarks and use
+cases,such as image generation, OOD detection,
+and compositional generation.
+
+1
+
+Introduction
+
+Energy-Based models (EBMs) have received an influx of
+interest recently and have been applied to realistic image
+generation (Han et al., 2019; Du & Mordatch, 2019), 3D
+shapes synthesis (Xie et al., 2018b) , out of distribution
+and adversarial robustness (Lee et al., 2018; Du & Mordatch, 2019; Grathwohl et al., 2019), compositional generation (Hinton, 1999; Du et al., 2020a), memory modeling
+(Bartunov et al., 2019), text generation (Deng et al., 2020),
+video generation (Xie et al., 2017), reinforcement learning
+(Haarnoja et al., 2017; Du et al., 2019), continual learning
+(Li et al., 2020), protein design and folding (Ingraham et al.;
+Du et al., 2020b) and biologically-plausible training (Scellier & Bengio, 2017). Contrastive divergence is a popular
+and elegant procedure for training EBMs proposed by (Hinton, 2002) which lowers the energy of the training data and
+raises the energy of the sampled confabulations generated
+by the model. The model confabulations are generated via
+an MCMC process (commonly Gibbs sampling or Langevin
+1
+
+MIT CSAIL 2 Google Brain. Correspondence to: Yilun Du
+<yilundu@mit.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Figure 1: (Left) 128x128 samples on unconditional CelebA-HQ.
+(Right) 128x128 samples on unconditional LSUN Bedroom.
+dynamics), leveraging the extensive body of research on
+sampling and stochastic optimization. The appeal of contrastive divergence is its simplicity and extensibility. It does
+not require training additional auxiliary networks (Kim &
+Bengio, 2016; Dai et al., 2019) (which introduce additional
+tuning and balancing demands), and can be used to compose
+models zero-shot.
+Despite these advantages, training EBMs with contrastive
+divergence has been challenging due to training instabilities.
+Ensuring training stability required either combinations of
+spectral normalization and Langevin dynamics gradient clipping (Du & Mordatch, 2019), parameter tuning (Grathwohl
+et al., 2019), early stopping of MCMC chains (Nijkamp
+et al., 2019b), or avoiding the use of modern deep learning
+components, such as self-attention or layer normalization
+(Du & Mordatch, 2019). These requirements limit modeling
+power, prevent the compatibility with modern deep learning
+architectures, and prevent long-running training procedures
+required for scaling to larger datasets. With this work, we
+aim to maintain the simplicity and advantages of contrastive
+divergence training, while resolving stability issues and incorporating complementary deep learning advances.
+An often overlooked detail of contrastive divergence formulation is that changes to the energy function change the
+MCMC samples, which introduces an additional gradient
+term in the objective function (see Section 2.1 for details).
+This term was claimed to be empirically negligible in the
+original formulation and is typically ignored (Hinton, 2002;
+Liu & Wang, 2017) or estimated via high-variance likelihood ratio approaches (Ruiz & Titsias, 2019). We show that
+this term can be efficiently estimated for continuous data via
+a combination of auto-differentiation and nearest-neighbor
+entropy estimators. We also empirically show that this term
+contributes significantly to the overall training gradient and
+has the effect of stabilizing training. It enables inclusion
+of self-attention blocks into network architectures, removes
+the need for capacity-limiting spectral normalization, and
+
+

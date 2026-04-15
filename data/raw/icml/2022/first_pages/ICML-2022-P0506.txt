@@ -1,0 +1,98 @@
+Controlling Conditional Language Models without Catastrophic Forgetting
+
+Tomasz Korbak * 1 Hady Elsahar 2 Germán Kruszewski 2 Marc Dymetman 2
+
+Abstract
+Machine learning is shifting towards generalpurpose pretrained generative models, trained in
+a self-supervised manner on large amounts of
+data, which can then be applied to solve a large
+number of tasks. However, due to their generic
+training methodology, these models often fail
+to meet some of the downstream requirements
+(e.g., hallucinations in abstractive summarization or style violations in code generation). This
+raises the important question of how to adapt
+pre-trained generative models to meet all requirements without destroying their general capabilities (“catastrophic forgetting”). Recent work has
+proposed to solve this problem by representing
+task-specific requirements through energy-based
+models (EBMs) and approximating these EBMs
+using distributional policy gradients (DPG). Despite its effectiveness, this approach is however
+limited to unconditional distributions. In this
+paper, we extend DPG to conditional tasks by
+proposing Conditional DPG (CDPG). We evaluate CDPG on four different control objectives
+across three tasks (translation, summarization
+and code generation) and two pretrained models
+(T5 and GPT-Neo). Our results show that finetuning using CDPG robustly moves these pretrained models closer towards meeting control
+objectives and — in contrast with baseline approaches — does not result in catastrophic forgetting.
+
+1. Introduction
+Pretrained generative models are shifting the landscape of
+machine learning research and practice. General purpose
+models such as the GPT family (Radford et al., 2019;
+Brown et al., 2020; Black et al., 2021), T5 (Raffel et al.,
+*Work done during an internship at Naver Labs Europe.
+University of Sussex 2 Naver Labs Europe. Correspondence to:
+Tomasz Korbak <tomasz.korbak@gmail.com>.
+1
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+Step 1: Sample a context c
+
+Two cats are sitting on a mat
+
+Step 2: Define a target distribution for context c
+(a) probabilities given by the original model
+
+0.20
+Deux chats sont assis sur un tapis
+0.10
+Deux chats s'assoient sur une natte
+2 chats sont assis sur un tapis 0.002
+2 chats s'assoient sur une natte 0.001
+
+(b) constraint satisfaction scores
+
+Deux chats sont assis sur un tapis 0
+Deux chats s'assoient sur une natte 0
+2 chats sont assis sur un tapis 1
+2 chats s'assoient sur une natte 1
+
+(a+b) probabilities given by the target distribution
+Deux chats sont assis sur un tapis 0
+Deux chats s'assoient sur une natte 0
+2 chats sont assis sur un tapis
+2 chats s'assoient sur une natte
+
+0.40
+
+0.20
+
+Step 3: Update current model to approximate
+the target distribution when conditioned on c
+
+
+*
+
+0.001
+0.001
+0.19
+
+0.41
+
+Figure 1: An overview of our algorithm for fine-tuning
+conditional language models, illustrated on the terminologyconstrained translation task (see Section 3.2 for details).
+
+2020), CLIP (Radford et al., 2021) and Codex (Chen et al.,
+2021) are trained in a self-supervised manner on large
+amounts of uncurated data and can then be adapted to specific downstream tasks (e.g. generating Python code) or
+control objectives (e.g. controlling the style of generated
+code). Frequently, control objectives are motivated by the
+desire to address the shortcomings of certain pretrained
+models. These can be due to the uncurated nature of the
+original training data (e.g. a large portion of Python source
+code on the Internet violates PEP8 (van Rossum et al.,
+2001), the Python Style Guide) or the difficulty of learning
+a desired behaviour by purely self-supervised training (e.g.
+
+

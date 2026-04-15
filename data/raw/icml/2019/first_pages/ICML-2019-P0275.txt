@@ -1,0 +1,76 @@
+Flow++: Improving Flow-Based Generative Models with Variational
+Dequantization and Architecture Design
+
+Jonathan Ho * 1 Xi Chen * 1 2 Aravind Srinivas 1 Yan Duan 2 Pieter Abbeel 1 2
+
+Abstract
+Flow-based generative models are powerful exact
+likelihood models with efficient sampling and inference. Despite their computational efficiency,
+flow-based models generally have much worse
+density modeling performance compared to stateof-the-art autoregressive models. In this paper,
+we investigate and improve upon three limiting
+design choices employed by flow-based models in
+prior work: the use of uniform noise for dequantization, the use of inexpressive affine flows, and
+the use of purely convolutional conditioning networks in coupling layers. Based on our findings,
+we propose Flow++, a new flow-based model
+that is now the state-of-the-art non-autoregressive
+model for unconditional density estimation on
+standard image benchmarks. Our work has begun to close the significant performance gap that
+has so far existed between autoregressive models and flow-based models. Our implementation is available at: https://github.com/
+aravindsrinivas/flowpp.
+
+1. Introduction
+Deep generative models – latent variable models in the form
+of variational autoencoders (Kingma & Welling, 2013), implicit generative models in the form of GANs (Goodfellow et al., 2014), and exact likelihood models like PixelRNN/CNN (van den Oord et al., 2016b;c), Image Transformer (Parmar et al., 2018), PixelSNAIL (Chen et al.,
+2017), NICE, RealNVP, and Glow (Dinh et al., 2014;
+2016; Kingma & Dhariwal, 2018) – have recently begun
+to successfully model high dimensional raw observations
+from complex real-world datasets, from natural images and
+*
+Equal contribution 1 UC Berkeley, Department of Electrical
+Engineering and Computer Science 2 covariant.ai. Correspondence
+to: Jonathan Ho <jonathanho@berkeley.edu>, Aravind Srinivas
+<aravind srinivas@berkeley.edu>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+videos, to audio signals and natural language (Karras et al.,
+2017; Kalchbrenner et al., 2016b; van den Oord et al., 2016a;
+Kalchbrenner et al., 2016a; Vaswani et al., 2017).
+Autoregressive models, a certain subclass of exact likelihood models, achieve state-of-the-art density estimation
+performance on many challenging real-world datasets, but
+generally suffer from slow sampling time due to their autoregressive structure (van den Oord et al., 2016b; Salimans
+et al., 2017; Chen et al., 2017; Parmar et al., 2018). Inverse
+autoregressive models can sample quickly and potentially
+have strong modeling capacity, but they cannot be trained
+efficiently by maximum likelihood (Kingma et al., 2016).
+Non-autoregressive flow-based models (which we will refer
+to as “flow models”), such as NICE, RealNVP, and Glow,
+are efficient for sampling, but have so far lagged behind
+autoregressive models in density estimation benchmarks
+(Dinh et al., 2014; 2016; Kingma & Dhariwal, 2018).
+In the hope of creating an ideal likelihood-based generative
+model that simultaneously has fast sampling, fast inference,
+and strong density estimation performance, we seek to close
+the density estimation performance gap between flow models and autoregressive models. In subsequent sections, we
+present our new flow model, Flow++, which is powered
+by an improved training procedure for continuous likelihood models and a number of architectural extensions of
+the coupling layer defined by Dinh et al. (2014; 2016).
+
+2. Flow Models
+A flow model f is constructed as an invertible transformation that maps observed data x to a standard Gaussian latent
+variable z = f (x), as in nonlinear independent component
+analysis (Bell & Sejnowski, 1995; Hyvärinen et al., 2004;
+Hyvärinen & Pajunen, 1999). The key idea in the design
+of a flow model is to form f by stacking individual simple
+invertible transformations (Dinh et al., 2014; 2016; Kingma
+& Dhariwal, 2018; Rezende & Mohamed, 2015; Kingma
+et al., 2016; Louizos & Welling, 2017). Explicitly, f is
+constructed by composing a series of invertible flows as
+f (x) = f1 ◦ · · · ◦ fL (x), with each fi having a tractable
+inverse and a tractable Jacobian determinant. This way,
+sampling is efficient, as it can be performed by computing
+
+

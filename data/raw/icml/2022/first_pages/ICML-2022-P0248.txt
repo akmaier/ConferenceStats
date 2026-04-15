@@ -1,0 +1,71 @@
+On the Difficulty of Defending Self-Supervised Learning against Model
+Extraction
+Adam Dziedzic 1 2 Nikita Dhawan 1 2 Muhammad Ahmad Kaleem 1 2 Jonas Guan 1 2 Nicolas Papernot 1 2
+
+Abstract
+Self-Supervised Learning (SSL) is an increasingly
+popular ML paradigm that trains models to transform complex inputs into representations without
+relying on explicit labels. These representations
+encode similarity structures that enable efficient
+learning of multiple downstream tasks. Recently,
+ML-as-a-Service providers have commenced offering trained SSL models over inference APIs,
+which transform user inputs into useful representations for a fee. However, the high cost involved
+to train these models and their exposure over APIs
+both make black-box extraction a realistic security threat. We thus explore model stealing attacks
+against SSL. Unlike traditional model extraction
+on classifiers that output labels, the victim models
+here output representations; these representations
+are of significantly higher dimensionality compared to the low-dimensional prediction scores
+output by classifiers. We construct several novel
+attacks and find that approaches that train directly
+on a victim’s stolen representations are query efficient and enable high accuracy for downstream
+models. We then show that existing defenses
+against model extraction are inadequate and not
+easily retrofitted to the specificities of SSL.
+
+1. Introduction
+Self-Supervised Learning (SSL) trains encoder models to
+transform unlabeled inputs into useful representations that
+are amenable to sample-efficient learning of multiple downstream tasks. The ability of SSL models to learn from unlabeled data has made them increasingly popular in important
+domains like computer vision, natural language processing, and speech recognition, where data are often abundant
+but labeling them is expensive (Chen et al., 2020; Grill
+1
+University of Toronto 2 Vector Institute. Correspondence to:
+Adam Dziedzic <adam.dziedzic@utoronto.ca>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+et al., 2020; He et al., 2020; Radford et al., 2021). Recently,
+ML-as-a-Service providers like OpenAI (Neelakantan et al.,
+2022; Ope) and Cohere (coh) have begun offering trained
+encoders over inference APIs. Users pay a fee to transform
+their input data into intermediate representations, which are
+then used for downstream models. High-performance SSL
+models in these domains are often costly to train; training a
+large BERT model can cost north of 1 million USD (Sharir
+et al., 2020). The value of these models and their exposure over publicly-accessible APIs make black-box model
+extraction attacks a realistic security threat.
+In a model extraction attack (Tramèr et al., 2016), the attacker aims to steal a copy of the victim’s model by submitting carefully selected queries and observing the outputs.
+The attacker uses the query-output pairs to rapidly train a
+local model, often at a fraction of the cost of the victim
+model (Jagielski et al., 2020). The stolen model can be used
+for financial gains or as a reconnaissance stage to mount
+further attacks like extracting private training data or constructing adversarial examples (Papernot et al., 2017b).
+Past work on model extraction focused on the Supervised
+Learning (SL) setting, where the victim model typically
+returns a label or other low-dimensional outputs like confidence scores (Tramèr et al., 2016) or logits (Truong et al.,
+2021). In contrast, SSL encoders return high-dimensional
+representations; the de facto output for a ResNet-50 SimCLR model, a popular architecture in vision, is a 2048dimensional vector. We hypothesize this significantly higher
+information leakage from encoders makes them more vulnerable to extraction attacks than SL models.
+In this paper, we introduce and compare several novel encoder extraction attacks to empirically demonstrate their
+threat to SSL models, and discuss the difficulties in protecting such models with existing defenses.
+The framework of our attacks is inspired by Siamese networks: we query the victim model with inputs from a
+reference dataset similar to the victim’s training set (e.g.
+CIFAR10 against an ImageNet victim), and then use the
+query-output pairs to train a local encoder to output the
+same representations as the victim. We use two methods
+to train the local model during extraction. The first method
+directly minimizes the loss between the output layer of
+
+

@@ -1,0 +1,66 @@
+On Blackbox Backpropagation and Jacobian Sensing
+
+Vikas Sindhwani
+Google Brain
+New York, NY 10011
+sindhwani@google.com
+
+Krzysztof Choromanski
+Google Brain
+New York, NY 10011
+kchoro@google.com
+
+Abstract
+From a small number of calls to a given “blackbox" on random input perturbations,
+we show how to efficiently recover its unknown Jacobian, or estimate the left action
+of its Jacobian on a given vector. Our methods are based on a novel combination of
+compressed sensing and graph coloring techniques, and provably exploit structural
+prior knowledge about the Jacobian such as sparsity and symmetry while being
+noise robust. We demonstrate efficient backpropagation through noisy blackbox
+layers in a deep neural net, improved data-efficiency in the task of linearizing the
+dynamics of a rigid body system, and the generic ability to handle a rich class of
+input-output dependency structures in Jacobian estimation problems.
+
+1
+
+Introduction
+
+Automatic Differentiation (AD) [1, 17] techniques are at the heart of several “end-to-end" machine
+learning frameworks such as TensorFlow [5] and Torch [2]. Such frameworks are organized around
+a library of primitive operators which are differentiable vector-valued functions of data inputs and
+model parameters. A composition of these primitives defines a computation graph - a directed acyclic
+graph whose nodes are operators and whose edges represent dataflows, typically culminating in the
+evaluation of a scalar-valued loss function. For reverse mode automatic differentiation (backpropagation) to work, each operator needs to be paired with a gradient routine which maps gradients of the
+loss function with respect to the outputs of the operator, to gradients with respect to its inputs. In
+this paper, we are concerned with extending the automatic differentiation paradigm to computation
+graphs where some nodes are "blackboxes" [12], that is, opaque pieces of code implemented outside
+the AD framework providing access to an operator only via expensive and potentially noisy function
+evaluation, with no associated gradient routine available. A useful mental model of this setting is
+shown below where f3 is a blackbox.
+f1
+
+x1
+
+x0
+
+f3
+
+f2
+
+x3
+
+f4
+
+x4
+
+x2
+
+Blackboxes, of course, are pervasive - as legacy or proprietary codes or executables, numerical
+optimization routines, physics engines (e.g, Bullet [3] and MujoCo [4]), or even wrappers interfacing
+with a mechanical system as is typically the case in reinforcement learning, robotics and process
+control applications.
+The unknown Jacobian of a blackbox is the central object of study in this paper. Recall that the
+Jacobian ∇f (x0 ) of a differentiable vector-valued map f : Rn 7→ Rm at an input x0 ∈ Rn is the
+31st Conference on Neural Information Processing Systems (NIPS 2017), Long Beach, CA, USA.
+
+

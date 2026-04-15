@@ -1,0 +1,51 @@
+Mixtape: Breaking the Softmax Bottleneck Efficiently
+
+Zhilin Yang1 , Thang Luong2 , Ruslan Salakhutdinov1 , Quoc Le2
+1
+Carnegie Mellon University, 2 Google Brain
+{zhiliny,rsalakhu}@cs.cmu.edu, {thangluong,qvl}@google.com
+
+Abstract
+The softmax bottleneck has been shown to limit the expressiveness of neural language models. Mixture of Softmaxes (MoS) is an effective approach to address
+such a theoretical limitation, but are expensive compared to softmax in terms of
+both memory and time. We propose Mixtape, an output layer that breaks the softmax bottleneck more efficiently with three novel techniques—logit space vector
+gating, sigmoid tree decomposition, and gate sharing. On four benchmarks including language modeling and machine translation, the Mixtape layer substantially
+improves the efficiency over the MoS layer by 3.5x to 10.5x while obtaining similar
+performance. A network equipped with Mixtape is only 20% to 34% slower than a
+softmax-based network with 10-30K vocabulary sizes, and outperforms softmax in
+perplexity and translation quality.
+
+1
+
+Introduction
+
+Softmax has been a standard output layer for a wide variety of neural networks, including the
+majority of neural language models [5, 2, 3, 8, 11]. However, as pointed out by [19], softmax is a
+fundamental limitation of the expressiveness of neural language models, because it constrains the
+output representations to be low-rank, which might not be sufficient for modeling the complexity
+of natural language. Such a limitation is called the softmax bottleneck. To break the softmax
+bottleneck, [19] proposed Mixture of Softmaxes (MoS) that introduces discrete latent variables into
+the output layer so that the log probability matrix is high-rank because of the log-sum-exp nonlinear
+transformation. However, MoS is expensive compared to softmax in terms of both memory and time,
+which makes it less practically useful when computational budgets are limited.
+To reduce the computational cost of MoS, we propose a novel output layer Mixtape to break the
+softmax bottleneck efficiently. Mixtape can be plugged into any existing networks as an additional
+layer before the cross entropy loss. Instead of employing a scalar mixture in the probability space as in
+MoS, Mixtape applies a vector gating mechanism in the logit space to avoid using multiple expensive
+softmaxes. In addition, Mixtape uses two more novel techniques to further reduce the computational
+cost. First, the vector gating mechanism is expensive because we need to compute a softmax gate for
+each word in the vocabulary. We propose sigmoid tree decomposition that decomposes a softmax
+probability gating distribution into a depth-2 binary tree structure, where each branch carries a portion
+of the probability mass determined by a sigmoid function. Sigmoid tree decomposition is much more
+efficient because it avoids the reduction and division operations in softmax. The other technique
+gate sharing is to share the gate values for all infrequent words, resulting in partially high-rank
+representations. This technique saves a considerable amount of memory and computation without
+affecting the performance because the gate values of infrequent words are usually hard to accurately
+estimate even without sharing the gates.
+With all the above techniques combined, Mixtape substantially improves the efficiency of MoS while
+obtaining comparable or even better performances on four benchmarks, including language modeling
+and machine translation. With normal vocabulary sizes (e.g., 10K-30K), the Mixtape layer is 1.6x
+to 11.5x fater than the MoS layer given the same batch size, and is 3.5x to 10.5x faster given the
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

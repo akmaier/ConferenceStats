@@ -1,0 +1,116 @@
+Improving Lossless Compression Rates via Monte Carlo Bits-Back Coding
+
+Yangjun Ruan * 1 2 Karen Ullrich * 2 3 Daniel Severo * 1 2 James Townsend 4 Ashish Khisti 1 Arnaud Doucet 5
+Alireza Makhzani 1 2 Chris J. Maddison 1 2
+
+Abstract
+Latent variable models have been successfully applied in lossless compression with the bits-back
+coding algorithm. However, bits-back suffers
+from an increase in the bitrate equal to the KL divergence between the approximate posterior and
+the true posterior. In this paper, we show how
+to remove this gap asymptotically by deriving
+bits-back coding algorithms from tighter variational bounds. The key idea is to exploit extended
+space representations of Monte Carlo estimators
+of the marginal likelihood. Naively applied, our
+schemes would require more initial bits than the
+standard bits-back coder, but we show how to
+drastically reduce this additional cost with couplings in the latent space. When parallel architectures can be exploited, our coders can achieve better rates than bits-back with little additional cost.
+We demonstrate improved lossless compression
+rates in a variety of settings, especially in out-ofdistribution or sequential data compression.
+
+1. Introduction
+Datasets keep getting bigger; the recent CLIP model was
+trained on 400 million text-image pairs gathered from the
+internet (Radford et al., 2020). With datasets of this size
+coming from ever more heterogeneous sources, we need
+compression algorithms that can store this data efficiently.
+In principle, data compression can be improved with a better
+approximation of the data generating distribution. Luckily, the quality of generative models is rapidly improving
+(van den Oord et al., 2016; Salimans et al., 2017; Razavi
+et al., 2019; Vahdat & Kautz, 2020). From this panoply of
+generative models, latent variable models are particularly
+*
+Equal contribution 1 University of Toronto 2 Vector Institute
+Facebook AI Research 4 University College London 5 University of
+Oxford. Correspondence to: Yangjun Ruan, Daniel Severo, Chris
+Maddison <yjruan@cs.toronto.edu, d.severo@mail.utoronto.ca,
+cmaddis@cs.toronto.edu>.
+3
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+<latexit sha1_base64="B9IsgqvNe5kqEnGEmTvXU6Y7mks=">AAACBHicbVC7TsMwFL3hWcorwNjFokJioUo6AGMlFsYi0YfUVJXjOq1Vx45sBymKOrDwKywMIMTKR7DxN7htBmg5kqWjc+7R9T1hwpk2nvftrK1vbG5tl3bKu3v7B4fu0XFby1QR2iKSS9UNsaacCdoyzHDaTRTFcchpJ5zczPzOA1WaSXFvsoT2YzwSLGIEGysN3EpAqDBUMTFCREmtL4KgbBUlk2zgVr2aNwdaJX5BqlCgOXC/gqEkaWzzhGOte76XmH6OlWGE02k5SDVNMJngEe1ZKnBMdT+fHzFFZ1YZokgq+4RBc/V3Isex1lkc2skYm7Fe9mbif14vNdF1P2ciSQ0VZLEoSjkyEs0aQUOmKDE8swQTxexfERljhYmtRZdtCf7yyaukXa/5lzXvrl5toKKOElTgFM7BhytowC00oQUEHuEZXuHNeXJenHfnYzG65hSZE/gD5/MHq0GX/w==</latexit>
+
+entropy
+
+crossentropy
+
+ideal
+bitrate
+
+approx. gap KL gap
+<latexit sha1_base64="CD1/3L/xZIOXhfMjn2FeSNGTr2w=">AAAB+nicbVA9SwNBEJ2LXzF+XbS0WQyCVbhLoZYBG0GLCOYDkiPsbSbJkr29Y3dPCTE/xcZCEVt/iZ3/xk1yhSY+GHi8N7M788JEcG0879vJra1vbG7ltws7u3v7B27xsKHjVDGss1jEqhVSjYJLrBtuBLYShTQKBTbD0dXMbz6g0jyW92acYBDRgeR9zqixUtctdhhKg4rLAbm5JQOadN2SV/bmIKvEz0gJMtS67lenF7M0su8wQbVu+15igglVhjOB00In1ZhQNqIDbFsqaYQ6mMxXn5JTq/RIP1a2pCFz9ffEhEZaj6PQdkbUDPWyNxP/89qp6V8GEy6T1KBki4/6qSAmJrMcSI8rZEaMLaFMcbsrYUOqKLNh6IINwV8+eZU0KmX/vOzdVUpVksWRh2M4gTPw4QKqcA01qAODR3iGV3hznpwX5935WLTmnGzmCP7A+fwBenCTYA==</latexit>
+
+<latexit sha1_base64="KDQh+k9OcwQBys+xw6iQ9/06Yns=">AAAB/XicbVDLTgIxFL2DL8QXPnZuGomJG8kMC3VJcOMSE0ESIKRT7kBDpzNpOyY4If6KGxca49b/cOffWGAWCp6kyck599Xjx4Jr47rfTm5ldW19I79Z2Nre2d0r7h80dZQohg0WiUi1fKpRcIkNw43AVqyQhr7Ae390PfXvH1BpHsk7M46xG9KB5AFn1FipVzzqMJQGFZcDUuNGn9coG/WKJbfszkCWiZeREmSo94pfnX7EktCOYoJq3fbc2HRTqgxnAieFTqIxtoPpANuWShqi7qaz6yfk1Cp9EkTKPmnITP3dkdJQ63Ho28qQmqFe9Kbif147McFVN+UyTgxKNl8UJIKYiEyjIH2ukBkxtoQyxe2thA2poszmoQs2BG/xy8ukWSl7F2X3tlKqkiyOPBzDCZyBB5dQhRuoQwMYPMIzvMKb8+S8OO/Ox7w052Q9h/AHzucP5YGUvw==</latexit>
+
+Bits-Back
+
+net
+bitrate
+
+total
+bitrate
+
+<latexit sha1_base64="+w9IjCxd4kUEnXESnMW1kwBF/uc=">AAAB/nicbVBNS8NAEN34WetXVDx5WSyCp5L0oB4LXjxWsB/QhrLZTtqlm03YnQglFPwrXjwo4tXf4c1/47bNQVsfLDzem5mdeWEqhUHP+3bW1jc2t7ZLO+Xdvf2DQ/fouGWSTHNo8kQmuhMyA1IoaKJACZ1UA4tDCe1wfDvz24+gjUjUA05SCGI2VCISnKGV+u5pj4NC0EIN6UBonNBQoOm7Fa/qzUFXiV+QCinQ6LtfvUHCs9jO4pIZ0/W9FIOcaRRcwrTcywykjI/ZELqWKhaDCfL5+lN6YZUBjRJtn0I6V3935Cw2ZhKHtjJmODLL3kz8z+tmGN0EuVBphqD44qMokxQTOstidjBwlBNLGNfC7kr5iGnGbSCmbEPwl09eJa1a1b+qeve1Sp0WcZTIGTknl8Qn16RO7kiDNAknOXkmr+TNeXJenHfnY1G65hQ9J+QPnM8fTKGVlw==</latexit>
+
+dirty bits
+
+approx. gap dirty bits
+
+<latexit sha1_base64="CPQ5yREu06we64iChZlwDCIPTG4=">AAAB/nicbVBNS8NAEN34WetXVDx5WSyCp5L0oB4LXjxWsB/QhrLZTtqlm03YnQglFPwrXjwo4tXf4c1/47bNQVsfDDzem9mdeWEqhUHP+3bW1jc2t7ZLO+Xdvf2DQ/fouGWSTHNo8kQmuhMyA1IoaKJACZ1UA4tDCe1wfDvz24+gjUjUA05SCGI2VCISnKGV+u5pj4NC0EINqVACqzQUaPpuxat6c9BV4hekQgo0+u5Xb5DwLLZvccmM6fpeikHONAouYVruZQZSxsdsCF1LFYvBBPl8/Sm9sMqARom2pZDO1d8TOYuNmcSh7YwZjsyyNxP/87oZRjdBLlSaISi++CjKJMWEzrKgA6GBo5xYwrgWdlfKR0wzbgMxZRuCv3zyKmnVqv5V1buvVeq0iKNEzsg5uSQ+uSZ1ckcapEk4yckzeSVvzpPz4rw7H4vWNaeYOSF/4Hz+ANsJlU0=</latexit>
+
+init. bits
+
+<latexit sha1_base64="+w9IjCxd4kUEnXESnMW1kwBF/uc=">AAAB/nicbVBNS8NAEN34WetXVDx5WSyCp5L0oB4LXjxWsB/QhrLZTtqlm03YnQglFPwrXjwo4tXf4c1/47bNQVsfLDzem5mdeWEqhUHP+3bW1jc2t7ZLO+Xdvf2DQ/fouGWSTHNo8kQmuhMyA1IoaKJACZ1UA4tDCe1wfDvz24+gjUjUA05SCGI2VCISnKGV+u5pj4NC0EIN6UBonNBQoOm7Fa/qzUFXiV+QCinQ6LtfvUHCs9jO4pIZ0/W9FIOcaRRcwrTcywykjI/ZELqWKhaDCfL5+lN6YZUBjRJtn0I6V3935Cw2ZhKHtjJmODLL3kz8z+tmGN0EuVBphqD44qMokxQTOstidjBwlBNLGNfC7kr5iGnGbSCmbEPwl09eJa1a1b+qeve1Sp0WcZTIGTknl8Qn16RO7kiDNAknOXkmr+TNeXJenHfnY1G65hQ9J+QPnM8fTKGVlw==</latexit>
+
+McBits
+<latexit sha1_base64="5BMj6MAolR5L5MthriB8QoxoWio=">AAAB+nicbVA9TwJBEJ3DL8SvQ0ubjcTEitxRqCXRxsYEE/lI4EL2lgE27O1ddvc0BPkpNhYaY+svsfPfuMAVCr5kkpf3ZnZnXpgIro3nfTu5tfWNza38dmFnd2//wC0eNnScKoZ1FotYtUKqUXCJdcONwFaikEahwGY4up75zQdUmsfy3owTDCI6kLzPGTVW6rrFDkNpUHE5ILfsihvddUte2ZuDrBI/IyXIUOu6X51ezNLIvsME1brte4kJJlQZzgROC51UY0LZiA6wbamkEepgMl99Sk6t0iP9WNmShszV3xMTGmk9jkLbGVEz1MveTPzPa6emfxlMuExSg5ItPuqngpiYzHIgPa6QGTG2hDLF7a6EDamizIahCzYEf/nkVdKolP3zsndXKVVJFkcejuEEzsCHC6jCDdSgDgwe4Rle4c15cl6cd+dj0Zpzspkj+APn8wf5H5Oz</latexit>
+
+<latexit sha1_base64="CPQ5yREu06we64iChZlwDCIPTG4=">AAAB/nicbVBNS8NAEN34WetXVDx5WSyCp5L0oB4LXjxWsB/QhrLZTtqlm03YnQglFPwrXjwo4tXf4c1/47bNQVsfDDzem9mdeWEqhUHP+3bW1jc2t7ZLO+Xdvf2DQ/fouGWSTHNo8kQmuhMyA1IoaKJACZ1UA4tDCe1wfDvz24+gjUjUA05SCGI2VCISnKGV+u5pj4NC0EINqVACqzQUaPpuxat6c9BV4hekQgo0+u5Xb5DwLLZvccmM6fpeikHONAouYVruZQZSxsdsCF1LFYvBBPl8/Sm9sMqARom2pZDO1d8TOYuNmcSh7YwZjsyyNxP/87oZRjdBLlSaISi++CjKJMWEzrKgA6GBo5xYwrgWdlfKR0wzbgMxZRuCv3zyKmnVqv5V1buvVeq0iKNEzsg5uSQ+uSZ1ckcapEk4yckzeSVvzpPz4rw7H4vWNaeYOSF/4Hz+ANsJlU0=</latexit>
+
+init. bits
+
+Figure 1. Monte Carlo Bits-Back coders reduce the KL gap to zero.
+
+attractive for compression applications, because they are
+typically easy to parallelize; speed is a major concern for
+compression methods. Indeed, some of the most successful
+learned compressors for large scale natural images are based
+on deep latent variable models (see Yang et al. (2020) for
+lossy, and Townsend et al. (2020) for lossless).
+Lossless compression with latent variable models has a complication that must be addressed. Any model-based coder
+needs to evaluate the model’s probability mass function
+p(x). Latent variable models are specified in terms of a
+joint probability mass function p(x, z), where z is a latent,
+unobserved variable. Computing p(x) in these models requires a (typically intractable) summation, and achieving
+the model’s optimal bitrate, − log p(x), is not always feasible. When compressing large datasets of i.i.d. data, it
+is possible to approximate this optimal bitrate using the
+bits-back coding algorithm (Hinton & Van Camp, 1993;
+Townsend et al., 2019). Bits-back coding is based on variational inference (Jordan et al., 1999), which uses an approximation q(z | x) to the true posterior p(z | x). Unfortunately,
+this adds roughly DKL (q(z | x) k p(z | x)) bits to the bitrate.
+This seems unimprovable for a fixed q, which is a problem,
+if approximating p(z | x) is difficult or expensive.
+
+In this paper, we show how to remove (asymptotically) the
+DKL gap of bits-back schemes for (just about) any fixed
+q. Our method is based on recent work that derives tighter
+variational bounds using Monte Carlo estimators of the
+marginal likelihood (e.g., Burda et al., 2015). The idea is
+that q and p can be lifted into an extended latent space (e.g.,
+Andrieu et al., 2010) such that the DKL over the extended
+latent space goes to zero and the overall bitrate approaches
+− log p(x). For example, our simplest extended bits-back
+method, based on importance sampling, introduces N identically distributed particles zi and a categorical random vari-
+
+

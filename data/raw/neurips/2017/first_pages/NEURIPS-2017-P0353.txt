@@ -1,0 +1,56 @@
+Multiresolution Kernel Approximation for
+Gaussian Process Regression
+
+Yi Ding∗ , Risi Kondor∗† , Jonathan Eskreis-Winkler†
+Department of Computer Science, † Department of Statistics
+The University of Chicago, Chicago, IL, 60637
+{dingy,risi,eskreiswinkler}@uchicago.edu
+
+∗
+
+Abstract
+Gaussian process regression generally does not scale to beyond a few thousands
+data points without applying some sort of kernel approximation method. Most
+approximations focus on the high eigenvalue part of the spectrum of the kernel
+matrix, K, which leads to bad performance when the length scale of the kernel is
+small. In this paper we introduce Multiresolution Kernel Approximation (MKA),
+the first true broad bandwidth kernel approximation algorithm. Important points
+about MKA are that it is memory efficient, and it is a direct method, which means
+that it also makes it easy to approximate K −1 and det(K).
+
+1
+
+Introduction
+
+Gaussian Process (GP) regression, and its frequentist cousin, kernel ridge regression, are such natural and canonical algorithms that they have been reinvented many times by different communities
+under different names. In machine learning, GPs are considered one of the standard methods of
+Bayesian nonparametric inference [1]. Meanwhile, the same model, under the name Kriging or
+Gaussian Random Fields, is the de facto standard for modeling a range of natural phenomena from
+geophyics to biology [2]. One of the most appealing features of GPs is that, ultimately, the algorithm reduces to “just” having to compute the inverse of a kernel matrix, K. Unfortunately, this also
+turns out to be the algorithm’s Achilles heel, since in the general case, the complexity of inverting a
+dense n×n matrix scales with O(n3 ), meaning that when the number of training examples exceeds
+104 ∼ 105 , GP inference becomes problematic on virtually any computer1 . Over the course of the
+last 15 years, devising approximations to address this problem has become a burgeoning field.
+The most common approach is to use one of the so-called Nyström methods [3], which select a small
+subset {xi1 , . . . , xim } of the original training data points as “anchors” and approximate K in the
+>
+form K ≈ K∗,I CK∗,I
+, where K∗,I is the submatrix of K consisting of columns {i1 , . . . , im }, and
+C is a matrix such as the pseudo-inverse of KI,I . Nyström methods often work well in practice and
+have a mature literature offering strong theoretical guarantees. Still, Nyström is inherently a global
+low rank approximation, and, as pointed out in [4], a priori there is no reason to believe that K
+should be well approximable by a low rank matrix: for example, in the case of the popular Gaussian
+kernel k(x, x0 ) = exp(−(x − x0 )2 /(2`2 )), as ` decreases and the kernel becomes more and more
+“local” the number of significant eigenvalues quickly increases. This observation has motivated
+alternative types of approximations, including local, hierarchical and distributed ones (see Section
+2). In certain contexts involving translation invariant kernels yet other strategies may be applicable
+[5], but these are beyond the scope of the present paper.
+In this paper we present a new kernel approximation method, Multiresolution Kernel Approximation (MKA), which is inspired by a combination of ideas from hierarchical matrix decomposition
+1
+In the limited case of evaluating a GP with a fixed Gram matrix on a single training set, GP inference
+reduces to solving a linear system in K, which scales better with n, but might be problematic behavior when
+the condition number of K is large.
+
+31st Conference on Neural Information Processing Systems (NIPS 2017), Long Beach, CA, USA.
+
+

@@ -1,0 +1,82 @@
+Gating Dropout: Communication-efficient Regularization for
+Sparsely Activated Transformers
+
+Rui Liu * 1 Young Jin Kim 2 Alexandre Muzio 2 Hany Hassan Awadalla 2
+
+Abstract
+Sparsely activated transformers, such as Mixture
+of Experts (MoE), have received great interest
+due to their outrageous scaling capability which
+enables dramatical increases in model size without significant increases in computational cost.
+To achieve this, MoE models replace the feedforward sub-layer with Mixture-of-Experts sublayer in transformers and use a gating network to
+route each token to its assigned experts. Since
+the common practice for efficient training of such
+models requires distributing experts and tokens
+across different machines, this routing strategy
+often incurs huge cross-machine communication
+cost because tokens and their assigned experts
+likely reside in different machines. In this paper,
+we propose Gating Dropout, which allows tokens
+to ignore the gating network and stay at their local
+machines, thus reducing the cross-machine communication. Similar to traditional dropout, we
+also show that Gating Dropout has a regularization effect during training, resulting in improved
+generalization performance. We validate the effectiveness of Gating Dropout on multilingual machine translation tasks. Our results demonstrate
+that Gating Dropout improves a state-of-the-art
+MoE model (Kim et al., 2021) with faster wallclock time convergence rates and better BLEU
+scores for a variety of model sizes and datasets.
+
+1. Introduction
+Large transformer models have been shown to be effective
+and powerful in many natural language processing tasks
+such as machine translation (Lewis et al., 2019; Conneau
+*
+Work done while a research intern at Microsoft 1 University
+of Michigan, Ann Arbor 2 Microsoft.
+Correspondence
+to:
+Rui Liu <ruixliu@umich.edu>, Young Jin Kim
+<youki@microsoft.com>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+& Lample, 2019) and also language understanding (Devlin
+et al., 2018; Liu et al., 2019; Brown et al., 2020; Radford
+et al., 2019). Sustaining the continued growth in size for
+these dense models requires tremendous compute resources,
+since all the parameters are used for all input examples.
+Seeking better computational efficiency, sparsely activated
+models have gained great interest; since they utilize a subset of the model weights for each input example (Shazeer
+et al., 2017; Lepikhin et al., 2020). This leads to a desirable characteristic: sparsely activated models can scale up
+to an order of magnitude larger than dense models without significant increase in computational cost. However,
+libraries and hardware accelerators widely used by machine
+learning practitioners are much efficient in supporting dense
+matrix operations. Mixture of Experts (MoE) models are
+a specific type of sparsely activated models that have had
+notable success in machine translation (Shazeer et al., 2018;
+Lepikhin et al., 2020) and recently been explored in other
+tasks (Riquelme et al., 2021) while running efficiently on
+top of existing libraries and hardware accelerators. In this
+paper, we focus on multilingual machine translation tasks.
+A dense transformer model consists of a stack of layers
+composed of two sub-layers: a multi-head self-attention
+sub-layer followed by a feedforward network (FFN) sublayer. An MoE model replaces the FFN sub-layer with a
+Mixture-of-Experts (MoE) sub-layer which takes as input a
+token representation and routes this token to the best top-k
+experts. The MoE sub-layer is essentially a group of experts
+with each expert still a FFN sub-layer. Typically, k is a
+very small value. As with (Fedus et al., 2021; Kim et al.,
+2021), we assume k = 1 by default. Note that our method
+can also be extended to the case when k > 1. During
+training and inference, an input token is routed to only one
+expert (k = 1), resulting in constant computational cost for
+one forward pass regardless of the total number of experts.
+The target expert for each token is determined by a gating
+network which is typically a small one-layer FFN.
+To achieve highly efficient training, a combination of data,
+expert, and model parallelism is adopted: (1) the part of
+the model excluding MoE sub-layers is replicated across
+multiple machines in a data-parallel fashion, (2) experts
+from each MoE sub-layer are split across machines (i.e.,
+
+

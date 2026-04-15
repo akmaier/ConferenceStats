@@ -1,0 +1,79 @@
+Progress & Compress: A scalable framework for continual learning
+
+Jonathan Schwarz 1 Jelena Luketina 2 Wojciech M. Czarnecki 1 Agnieszka Grabska-Barwinska 1
+Yee Whye Teh 1 Razvan Pascanu * 1 Raia Hadsell * 1
+
+Abstract
+We introduce a conceptually simple and scalable
+framework for continual learning domains where
+tasks are learned sequentially. Our method is constant in the number of parameters and is designed
+to preserve performance on previously encountered tasks while accelerating learning progress
+on subsequent problems. This is achieved by training a network with two components: A knowledge
+base, capable of solving previously encountered
+problems, which is connected to an active column
+that is employed to efficiently learn the current
+task. After learning a new task, the active column
+is distilled into the knowledge base, taking care
+to protect any previously acquired skills. This
+cycle of active learning (progression) followed by
+consolidation (compression) requires no architecture growth, no access to or storing of previous
+data or tasks, and no task-specific parameters. We
+demonstrate the progress & compress approach on
+sequential classification of handwritten alphabets
+as well as two reinforcement learning domains:
+Atari games and 3D maze navigation.
+
+1. Introduction
+The standard learning process of neural networks is underpinned by the assumption that training examples are drawn
+i.i.d. from some fixed distribution. In many scenarios such a
+restriction is not of major concern. However, it can prove to
+be an important limitation particularly when a system needs
+to continuously adapt to a changing environment, as often
+happens in reinforcement learning and other interactive domains such as robotics or dialogue systems. This ability to
+learn consecutive tasks without forgetting how to perform
+*
+
+Equal contribution 1 DeepMind, London, United Kingdom 2 Department of Computer Science, University of
+Oxford, Oxford, United Kingdom.
+Correspondence to:
+Jonathan Schwarz <schwarzjn@google.com>, Razvan Pascanu
+<razp@google.com>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+previously trained problems is known as continual learning
+(e.g. Ring, 1995).
+A large body of literature recognises the importance of the
+continual learning problem, and there has been some increased interest in the topic recently (e.g. Rusu et al., 2016a;
+Shin et al., 2017; Lopez-Paz et al., 2017; Nguyen et al.,
+2017; Kirkpatrick et al., 2017; Chaudhry et al., 2018). Part
+of the challenge stems from the fact that there are multiple,
+often competing, desiderata for continual learning:
+(i) A continual learning method should not suffer from catastrophic forgetting. That is, it should be able to perform reasonably well on previously learnt tasks. (ii) It should be able
+to learn new tasks while taking advantage of knowledge extracted from previous tasks, thus exhibiting positive forward
+transfer to achieve faster learning and/or better final performance. (iii) It should be scalable, that is, the method should
+be trainable on a large number of tasks. (iv) It should enable
+positive backwards transfer as well, which means gaining
+immediate improved performance on previous tasks after
+learning a new task which is similar or relevant. (v) Finally,
+it should be able to learn without requiring task labels, and
+ideally it should even be applicable in the absence of clear
+task boundaries.
+Many approaches address some of these to the detriment of
+others. For example: Naive finetuning often leads to successful positive transfer, but suffers from catastrophic forgetting; elastic weight consolidation (EWC) (Kirkpatrick et al.,
+2017) focuses on overcoming catastrophic forgetting but
+the accumulation of Fisher regularisers can over-constrain
+the network parameters leading to impaired learning of new
+tasks; Progressive Networks (Rusu et al., 2016a) avoid catastrophic forgetting altogether by construction, however it
+suffers from lack of scalability as the network size scales
+quadratically in the number of tasks.
+This paper presents a step towards unifying these techniques
+in a framework that satisfies multiple desiderata, by taking
+advantage of their complementary strengths while minimising their weaknesses. The proposed method implements two
+neural networks, a knowledge base and an active column,
+which are trained in two distinct, alternating phases. During
+the progress phase, the network is presented with a new
+learning problem, and only parameters in the active column
+
+

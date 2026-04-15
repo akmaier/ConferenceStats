@@ -1,0 +1,75 @@
+Stochastic Regret Minimization in Extensive-Form Games
+
+Gabriele Farina 1 Christian Kroer 2 Tuomas Sandholm 1 3 4 5
+
+Abstract
+Monte-Carlo counterfactual regret minimization
+(MCCFR) is the state-of-the-art algorithm for
+solving sequential games that are too large for
+full tree traversals. It works by using gradient estimates that can be computed via sampling. However, stochastic methods for sequential games
+have not been investigated extensively beyond
+MCCFR. In this paper we develop a new framework for developing stochastic regret minimization methods. This framework allows us to use
+any regret-minimization algorithm, coupled with
+any gradient estimator. The MCCFR algorithm
+can be analyzed as a special case of our framework, and this analysis leads to significantly
+stronger theoretical guarantees on convergence,
+while simultaneously yielding a simplified proof.
+Our framework allows us to instantiate several
+new stochastic methods for solving sequential
+games. We show extensive experiments on five
+games, where some variants of our methods outperform MCCFR.
+
+1. Introduction
+Extensive-form games (EFGs) are a broad class of games
+that can model sequential and simultaneous moves, outcome uncertainty, and imperfect information. This includes
+real-world settings such as negotiation, sequential auctions,
+security games (Lisý et al., 2016; Munoz de Cote et al.,
+2013), cybersecurity games (DeBruhl et al., 2014; Chen
+et al., 2018), recreational games such as poker (Sandholm,
+2010) and billiards (Archibald & Shoham, 2009), and medical treatment (Chen & Bowling, 2012; Sandholm, 2015).
+1
+
+Computer Science Department, Carnegie Mellon University, Pittsburgh PA 15213 2 IEOR Department, Columbia
+University, New York NY 10027 3 Strategic Machine, Inc.
+4
+Strategy Robot, Inc. 5 Optimized Markets, Inc.. Correspondence to: Gabriele Farina <gfarina@cs.cmu.edu>, Christian
+Kroer <christian.kroer@columbia.edu>, Tuomas Sandholm <sandholm@cs.cmu.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Typically, EFG models are operationalized by computing
+either a Nash equilibrium of the game, or an approximate
+Nash equilibrium if the game is large. Approximate Nash
+equilibrium of zero-sum EFGs has been the underlying idea
+of several recent AI milestones, where strong AIs for twoplayer poker were created (Moravčík et al., 2017; Brown
+& Sandholm, 2017b). In principle, a zero-sum EFG can be
+solved in polynomial time using a linear program whose
+size is linear in the size of the game tree (von Stengel, 1996).
+However, for most real-world games this linear program
+is much too large to solve, either because it does not fit in
+memory, or because iterations of the simplex algorithm or
+interior-point methods become prohibitively expensive due
+to matrix inversion. Instead, first-order methods (Hoda et al.,
+2010; Kroer et al., 2020) or regret-based methods (Zinkevich et al., 2007; Tammelin et al., 2015; Brown & Sandholm,
+2019a) are used in practice. These methods work by only
+keeping one or two strategies around for each player (typically the size of a strategy is much smaller than the size
+of the game tree). The game tree is then only accessed for
+computing gradients, which can be done via a single tree
+traversal (which can often be done without storing the tree),
+and sometimes game-specific structure can be exploited to
+speed this up further (Johanson et al., 2011). Finally, these
+gradients are used to update the strategy iterates.
+However, for large games, even these gradient-based methods that require traversing the entire game tree are prohibitively expensive (henceforth referred to as deterministic methods). This was seen in two recent superhuman
+poker AIs: Libratus (Brown & Sandholm, 2017b) and
+Pluribus (Brown & Sandholm, 2019b). Both AIs were generated in a two-stage manner: an offline blueprint strategy was
+computed, and then refinements to the blueprint solution
+were computed online while actually playing against human opponents. The online solutions were computed using
+deterministic methods (since those subgames are significantly smaller than the entire game). However, the original
+blueprint strategies had to be computed without traversing
+the entire game tree, as this game tree is far too large for
+even a moderate amount of traversals.
+When full tree traversals are too expensive, stochastic methods can be used to compute approximate gradients instead.
+The most common stochastic method for solving large EFGs
+is the Monte-Carlo Counterfactual Regret Minimization
+
+

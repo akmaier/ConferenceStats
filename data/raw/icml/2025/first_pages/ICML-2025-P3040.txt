@@ -1,0 +1,77 @@
+Ladder-Residual: Parallelism-Aware Architecture for Accelerating Large Model
+Inference with Communication Overlapping
+
+Muru Zhang * 1 2 Mayank Mishra * 3 Zhongzhu Zhou 1 4 William Brandon 5 Jue Wang 1 Yoon Kim 5
+Jonathan Ragan-Kelley 5 Shuaiwen Leon Song 1 4 Ben Athiwaratkun 1 Tri Dao 1 6
+
+1. Introduction
+
+Abstract
+
+With the rapid scaling of Large Language Models (LLMs)
+(Smith et al., 2022; Workshop et al., 2023; Brown, 2020),
+the compute and memory requirements for training and
+inference have grown significantly. Tensor parallelism
+(TP) (Shoeybi et al., 2020) is a widely used model parallelism technique that partitions the weights and intermediate
+activations across multiple GPUs. In contrast to pipeline
+parallelism (Narayanan et al., 2021) and data parallelism (Li
+et al., 2020), which rely on processing independent batches
+of user requests on each device, TP enables multiple devices
+to cooperate to process a single request, therefore in theory
+allowing infinite scaling given a sufficient number of processors. However, TP requires synchronizing the partitioned
+intermediate activations across the GPUs. This synchronization is a blocking AllReduce operation on the activations
+across the GPUs and is therefore bottlenecked by the network communication latency. Even for GPUs connected
+via fast interconnects (like NVLink (NVIDIA Corporation,
+2024)), the communication costs can account for 38% of the
+latency at inference time when running a 70B transformer
+with batch size 4 and TP world size of 8.
+
+Large language model inference is both memoryintensive and time-consuming, often requiring distributed algorithms to efficiently scale. Various
+model parallelism strategies are used to partition
+computation across multiple devices, reducing
+memory load and computation time. However,
+using model parallelism requires communication
+of information between GPUs, which limits the
+gains obtained by scaling up the number of devices. We introduce Ladder Residual, a simple architectural modification applicable to all residualbased models that enables straightforward overlapping to hide the latency of communication.
+Our insight is that in addition to system optimizations, the model architecture can also be
+redesigned to decouple communication from
+computation. While Ladder Residual can allow
+communication-computation decoupling in conventional parallelism patterns, we focus on Tensor Parallelism in this paper, which is particularly
+bottlenecked by its heavy communication. For a
+Transformer model with 70B parameters, applying Ladder Residual to all its layers can achieve
+29% end-to-end wall clock speedup at inference
+time with sharding over 8 devices. We train a 1.2B
+and 3.5B Ladder Residual based Transformer
+models from scratch and observe comparable performance to a standard dense transformer baseline.
+We also show that it is possible to convert parts of
+the Llama-3.1 8B model to our Ladder Residual
+architecture with minimal accuracy degradation
+by only retraining for 3B tokens.
+
+Past works have attempted to overlap the communication
+latency of TP by overlapping computation and communication. Chang et al. (2024) write fused kernels for
+AllGather followed by matmul and matmul followed
+by ReduceScatter. They break down matmuls into
+tiles hide the latency of communicating a tile with the computation of subsequent tiles. Jangda et al. (2022) propose
+CoCoNet, a domain-specific language to express distributed
+machine learning workloads. They propose to generate efficient GPU kernels for computation and communication
+using a custom compiler for the DSL. This approach has
+limited applicability with existing frameworks like PyTorch
+(Paszke et al., 2019) and JAX (Frostig et al., 2018) since
+the user needs to be well-acquainted with the DSL to generate efficient GPU kernels. Moreover, with the breakneck
+pace of accelerator and interconnect changes, these lowlevel systems optimizations require a rewrite for every new
+generation of hardware. However, there is a fundamental
+limit to how much communication latency can be reduced
+
+1
+
+Together AI 2 University of Southern California 3 MITIBM Watson Lab 4 University of Sydney 5 Massachusetts Institute of Technology 6 Princeton University. Correspondence
+to: Muru Zhang <muruzhan@usc.edu>, Mayank Mishra
+<mayank31398@gmail.com>, Tri Dao <tri@tridao.me>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

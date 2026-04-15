@@ -1,0 +1,73 @@
+Reinforcement Learning with Deep Energy-Based Policies
+
+Tuomas Haarnoja * 1 Haoran Tang * 2 Pieter Abbeel 1 3 4 Sergey Levine 1
+
+Abstract
+We propose a method for learning expressive
+energy-based policies for continuous states and
+actions, which has been feasible only in tabular
+domains before. We apply our method to learning maximum entropy policies, resulting into a
+new algorithm, called soft Q-learning, that expresses the optimal policy via a Boltzmann distribution. We use the recently proposed amortized Stein variational gradient descent to learn
+a stochastic sampling network that approximates
+samples from this distribution. The benefits of
+the proposed algorithm include improved exploration and compositionality that allows transferring skills between tasks, which we confirm in
+simulated experiments with swimming and walking robots. We also draw a connection to actorcritic methods, which can be viewed performing approximate inference on the corresponding
+energy-based model.
+
+1. Introduction
+Deep reinforcement learning (deep RL) has emerged as a
+promising direction for autonomous acquisition of complex behaviors (Mnih et al., 2015; Silver et al., 2016), due
+to its ability to process complex sensory input (Jaderberg
+et al., 2016) and to acquire elaborate behavior skills using
+general-purpose neural network representations (Levine
+et al., 2016). Deep reinforcement learning methods can
+be used to optimize deterministic (Lillicrap et al., 2015)
+and stochastic (Schulman et al., 2015a; Mnih et al., 2016)
+policies. However, most deep RL methods operate on the
+conventional deterministic notion of optimality, where the
+optimal solution, at least under full observability, is always
+a deterministic policy (Sutton & Barto, 1998). Although
+*
+Equal contribution 1 UC Berkeley, Department of Electrical Engineering and Computer Sciences 2 UC Berkeley, Department of Mathematics 3 OpenAI 4 International
+Computer Science Institute.
+Correspondence to: Haoran Tang <hrtang@math.berkeley.edu>, Tuomas Haarnoja
+<haarnoja@berkeley.edu>.
+
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+stochastic policies are desirable for exploration, this exploration is typically attained heuristically, for example by
+injecting noise (Silver et al., 2014; Lillicrap et al., 2015;
+Mnih et al., 2015) or initializing a stochastic policy with
+high entropy (Kakade, 2002; Schulman et al., 2015a; Mnih
+et al., 2016).
+In some cases, we might actually prefer to learn stochastic
+behaviors. In this paper, we explore two potential reasons
+for this: exploration in the presence of multimodal objectives, and compositionality attained via pretraining. Other
+benefits include robustness in the face of uncertain dynamics (Ziebart, 2010), imitation learning (Ziebart et al., 2008),
+and improved convergence and computational properties
+(Gu et al., 2016a). Multi-modality also has application in
+real robot tasks, as demonstrated in (Daniel et al., 2012).
+However, in order to learn such policies, we must define an
+objective that promotes stochasticity.
+In which cases is a stochastic policy actually the optimal
+solution? As discussed in prior work, a stochastic policy
+emerges as the optimal answer when we consider the connection between optimal control and probabilistic inference
+(Todorov, 2008). While there are multiple instantiations of
+this framework, they typically include the cost or reward
+function as an additional factor in a factor graph, and infer the optimal conditional distribution over actions conditioned on states. The solution can be shown to optimize
+an entropy-augmented reinforcement learning objective or
+to correspond to the solution to a maximum entropy learning problem (Toussaint, 2009). Intuitively, framing control
+as inference produces policies that aim to capture not only
+the single deterministic behavior that has the lowest cost,
+but the entire range of low-cost behaviors, explicitly maximizing the entropy of the corresponding policy. Instead
+of learning the best way to perform the task, the resulting policies try to learn all of the ways of performing the
+task. It should now be apparent why such policies might
+be preferred: if we can learn all of the ways that a given
+task might be performed, the resulting policy can serve as
+a good initialization for finetuning to a more specific behavior (e.g. first learning all the ways that a robot could
+move forward, and then using this as an initialization to
+learn separate running and bounding skills); a better exploration mechanism for seeking out the best mode in a multimodal reward landscape; and a more robust behavior in the
+
+

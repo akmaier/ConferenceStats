@@ -1,0 +1,148 @@
+Residual Quantization with Implicit Neural Codebooks
+
+Iris A. M. Huijben 1 2 * Matthijs Douze 1 Matthew Muckley 1 Ruud J. G. van Sloun 2 Jakob Verbeek 1
+�2
+𝒙𝒙
+
+�𝟏𝟏 = 𝒐𝒐
+𝒙𝒙
+
+Abstract
+
+QINCo
+
+Vector quantization is a fundamental operation
+for data compression and vector search. To obtain
+high accuracy, multi-codebook methods represent
+each vector using codewords across several codebooks. Residual quantization (RQ) is one such
+method, which iteratively quantizes the error of
+the previous step. While the error distribution
+is dependent on previously-selected codewords,
+this dependency is not accounted for in conventional RQ as it uses a fixed codebook per quantization step. In this paper, we propose QINCo,
+a neural RQ variant that constructs specialized
+codebooks per step that depend on the approximation of the vector from previous steps. Experiments show that QINCo outperforms state-of-theart methods by a large margin on several datasets
+and code sizes. For example, QINCo achieves
+better nearest-neighbor search accuracy using 12byte codes than the state-of-the-art UNQ using 16
+bytes on the BigANN1M and Deep1M datasets.
+
+RQ
+
+�1
+𝑪𝑪
+
+1
+
+𝑪𝑪
+
+codeword
+assignment
+𝟏𝟏
+
+code 𝑖𝑖1
+
+𝒓𝒓 = 𝒙𝒙
+𝐂𝐂𝐂𝐂𝐂𝐂𝐂𝐂𝐂𝐂𝐂𝐂𝐂𝐂𝐂𝐂𝐂𝐂
+Step 1
+Step 2
+
+�2
+𝑪𝑪
+
+�3
+𝒙𝒙
+𝑓𝑓𝜃𝜃2
+
+2
+
+𝑪𝑪
+
+…
+
+codeword
+assignment
+2
+
+𝒓𝒓
+
+code 𝑖𝑖 2
+RQ
+
+MSE: 0.77
+
+3
+
+𝒓𝒓
+
+�𝑀𝑀
+𝑪𝑪
+
+�
+𝒙𝒙
+𝑪𝑪
+
+𝑓𝑓𝜃𝜃𝑀𝑀
+
+𝑀𝑀
+
+codeword
+assignment
+
+code 𝑖𝑖 𝑀𝑀
+
+𝒓𝒓
+
+QINCo
+
+MSE: 0.50
+
+Figure 1. Top: Given a vector x, RQ iteratively quantizes the residuals of previous quantization steps, using a single codebook C m
+for each step m = 1, . . . , M . QINC O extends RQ by using datadependent codebooks that are implicitly parameterized via a neural
+network fθm that takes as input a base-codebook C̄ m and partial
+reconstruction x̂m of the data vector x. Bottom: Toy data example
+with M = 2 quantization steps, each with K = 2 centroids. In RQ,
+codebook centroids in the 2nd level are independent of the 1st level
+centroids, while QINC O adapts 2nd level centroids to the residuals,
+reducing the mean-squared-error (MSE) by 35%.
+
+1. Introduction
+
+Vector embeddings can be extracted in different ways, e.g.
+by taking the feature representation of a deep learning model.
+After extraction, embeddings are typically compressed into
+fixed-length codes to improve efficiency for storage, transmission, and search. However, a fundamental trade-off exists, where shorter codes introduces higher distortion (Cover
+& Thomas, 1991), measured as the difference between the
+initial vector and its decoded approximation. In our work
+we focus on this vector compression process, and consider
+the data embedding approach itself as fixed.
+
+Vector embedding is a core component of many machine
+learning systems for tasks such as analysis, recognition,
+search, matching, and others. Part of the utility of vector
+embeddings is their adaptivity to different data modalities,
+such as text (Schwenk & Douze, 2017; Devlin et al., 2018;
+Izacard et al., 2022) and images (Radford et al., 2021; Pizzi
+et al., 2022; Ypsilantis et al., 2023). In similarity search and
+recommender systems (Paterek, 2007), representing entities
+as vectors is efficient as it enables simple vector comparison. Many techniques and libraries have, nowadays, been
+developed to search through large collections of embedding vectors (Malkov & Yashunin, 2018; Guo et al., 2020;
+Morozov & Babenko, 2019; Douze et al., 2024).
+
+A widespread technique to compress embeddings is vector
+quantization (VQ) (Gray, 1984), which consists of representing each vector with a nearby “prototype” vector. Effective
+quantizers adapt to the data distribution by learning a codebook of centroids from a representative set of training vectors. The number of distinct centroids grows exponentially
+with the code size. The k-means VQ algorithm represents
+all centroids of the codebook explicitly. It tends to be nearoptimal, but it does not scale to codes larger than a few
+bytes because of this exponential growth. Multi-codebook
+
+*
+
+Work done when interning at Meta. 1 FAIR at Meta 2 Eindhoven
+University of Technology. Correspondence to: Matthijs Douze
+<matthijs@meta.com>, Jakob Verbeek <jjverbeek@meta.com>.
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

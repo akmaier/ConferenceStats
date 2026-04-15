@@ -1,0 +1,56 @@
+AdANNS: A Framework for Adaptive Semantic Search
+
+Aniket Rege∗ † Aditya Kusupati∗† Sharan Ranjit S† Alan Fan† Qingqing Cao† ,
+Sham Kakade‡ Prateek Jain Ali Farhadi†
+†
+University of Washington,  Google Research, ‡ Harvard University
+{kusupati,ali}@cs.washington.edu, prajain@google.com
+
+Abstract
+Web-scale search systems learn an encoder to embed a given query which is then
+hooked into an approximate nearest neighbor search (ANNS) pipeline to retrieve
+similar data points. To accurately capture tail queries and data points, learned
+representations typically are rigid, high-dimensional vectors that are generally
+used as-is in the entire ANNS pipeline and can lead to computationally expensive
+retrieval. In this paper, we argue that instead of rigid representations, different
+stages of ANNS can leverage adaptive representations of varying capacities to
+achieve significantly better accuracy-compute trade-offs, i.e., stages of ANNS that
+can get away with more approximate computation should use a lower-capacity
+representation of the same data point. To this end, we introduce AdANNS
+,
+a novel ANNS design framework that explicitly leverages the flexibility of Matryoshka Representations [31]. We demonstrate state-of-the-art accuracy-compute
+trade-offs using novel AdANNS-based key ANNS building blocks like search
+data structures (AdANNS-IVF) and quantization (AdANNS-OPQ). For example on ImageNet retrieval, AdANNS-IVF is up to 1.5% more accurate than the
+rigid representations-based IVF [48] at the same compute budget; and matches
+accuracy while being up to 90× faster in wall-clock time. For Natural Questions,
+32-byte AdANNS-OPQ matches the accuracy of the 64-byte OPQ baseline [13]
+constructed using rigid representations – same accuracy at half the cost! We further
+show that the gains from AdANNS translate to modern-day composite ANNS
+indices that combine search structures and quantization. Finally, we demonstrate
+that AdANNS can enable inference-time adaptivity for compute-aware search
+on ANNS indices built non-adaptively on matryoshka representations. Code is
+open-sourced at https://github.com/RAIVNLab/AdANNS.
+
+1
+
+Introduction
+
+Semantic search [24] on learned representations [40, 41, 50] is a major component in retrieval
+pipelines [4, 9]. In its simplest form, semantic search methods learn a neural network to embed
+queries as well as a large number (N ) of data points in a d-dimensional vector space. For a given query,
+the nearest (in embedding space) point is retrieved using either an exact search or using approximate
+nearest neighbor search (ANNS) [21] which is now indispensable for real-time large-scale retrieval.
+Existing semantic search methods learn fixed or rigid representations (RRs) which are used as is
+in all the stages of ANNS (data structures for data pruning and quantization for cheaper distance
+computation; see Section 2). That is, while ANNS indices allow a variety of parameters for searching
+the design space to optimize the accuracy-compute trade-off, the provided data dimensionality is
+typically assumed to be an immutable parameter. To make it concrete, let us consider inverted file
+index (IVF) [48], a popular web-scale ANNS technique [16]. IVF has two stages (Section 3) during
+inference: (a) cluster mapping: mapping the query to a cluster of data points [36], and (b) linear
+∗
+
+Equal contribution.
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

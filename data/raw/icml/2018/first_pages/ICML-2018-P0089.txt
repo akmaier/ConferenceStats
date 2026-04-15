@@ -1,0 +1,84 @@
+PixelSNAIL: An Improved Autoregressive Generative Model
+
+Xi Chen 1 2 Nikhil Mishra 1 2 Mostafa Rohaninejad 1 2 Pieter Abbeel 1 2
+
+Abstract
+Autoregressive generative models achieve the best
+results in density estimation tasks involving high
+dimensional data, such as images or audio. They
+pose density estimation as a sequence modeling
+task, where a recurrent neural network (RNN)
+models the conditional distribution over the next
+element conditioned on all previous elements.
+In this paradigm, the bottleneck is the extent to
+which the RNN can model long-range dependencies, and the most successful approaches rely on
+causal convolutions. Taking inspiration from recent work in meta reinforcement learning, where
+dealing with long-range dependencies is also essential, we introduce a new generative model
+architecture that combines causal convolutions
+with self attention. In this paper, we describe
+the resulting model and present state-of-the-art
+log-likelihood results on heavily benchmarked
+datasets: CIFAR-10 (2.85 bits per dim), 32 × 32
+ImageNet (3.80 bits per dim) and 64 × 64 ImageNet (3.52 bits per dim). Our implementation
+will be made available at anonymized.
+
+1. Introduction
+Autoregressive generative models over high-dimensional
+data x = (x1 , . . . , xn ) factor the joint distribution as a
+product of conditionals:
+p(x) = p(x1 , . . . , xn ) =
+
+n
+Y
+
+p(xi |x1 , . . . , xi−1 )
+
+i=1
+
+A recurrent neural network (RNN) is then trained to model
+p(xi |x1:i−1 ). Optionally, the model can be conditioned
+on additional global information h (such as a class label, when applied to images), in which case it in models
+p(xi |x1:i−1 , h). Such methods are highly expressive and
+1
+covariant.ai 2 UC Berkeley, EECS Dept.. Correspondence to:
+Xi Chen <peter@covariant.ai>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+allow modeling complex dependencies. Compared to GANs
+(Goodfellow et al., 2014), neural autoregressive models offer tractable likelihood computation and ease of training,
+and have been shown to outperform latent variable models
+(van den Oord et al., 2016c;b; Salimans et al., 2017).
+The main design consideration is the neural network architecture used to implement the RNN, as it must be able to
+easily refer to earlier parts of the sequence. A number of
+possibilities exist:
+• Traditional RNNs, such as GRUs or LSTMs: these
+propagate information by keeping it in their hidden
+state from one timestep to the next. This temporallylinear dependency significantly inhibits the extent to
+which they can model long-range relationships in the
+data.
+• Causal convolutions (van den Oord et al., 2016b; Salimans et al., 2017): these apply convolutions over the
+sequence (masked or shifted so that the current prediction is only influenced by previous element). They
+offer high-bandwidth access to the earlier parts of the
+sequence. However, their receptive field has a finite
+size, and still experience noticeable attenuation with
+regards to elements far away in the sequence.
+• Self-attention (Vaswani et al., 2017): these models
+turn the sequence into an unordered key-value store
+that can be queried based on content. They feature
+an unbounded receptive field and allow undeteriorated
+access to information far away in the sequence. However, they only offer pinpoint access to small amounts
+of information, and require additional mechanism to
+incorporate positional information.
+Causal convolutions and self-attention demonstrate complementary strengths and weaknesses: the former allow high
+bandwidth access over a finite context size, and the latter
+allow access over an infinitely large context. Interleaving
+the two thus offers the best of both worlds, where the model
+can have high-bandwidth access without constraints on the
+amount of information it can effectively use. The convolutions can be seen as aggregating information to build the
+context over which to perform an attentive lookup. Using this approach (dubbed SNAIL), Mishra et al. (2017)
+demonstrated significant performance improvements on a
+
+

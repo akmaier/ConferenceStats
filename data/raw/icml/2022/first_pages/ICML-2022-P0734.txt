@@ -1,0 +1,71 @@
+Efficient Test-Time Model Adaptation without Forgetting
+
+Shuaicheng Niu * 1 2 Jiaxiang Wu * 3 Yifan Zhang * 4 Yaofo Chen 1
+Shijian Zheng 1 Peilin Zhao 3 Mingkui Tan 1 5
+
+Abstract
+Test-time adaptation (TTA) seeks to tackle potential distribution shifts between training and
+testing data by adapting a given model w.r.t. any
+testing sample. This task is particularly important for deep models when the test environment
+changes frequently. Although some recent attempts have been made to handle this task, we
+still face two practical challenges: 1) existing
+methods have to perform backward computation
+for each test sample, resulting in unbearable prediction cost to many applications; 2) while existing TTA solutions can significantly improve
+the test performance on out-of-distribution data,
+they often suffer from severe performance degradation on in-distribution data after TTA (known
+as catastrophic forgetting). In this paper, we
+point out that not all the test samples contribute
+equally to model adaptation, and high-entropy
+ones may lead to noisy gradients that could disrupt the model. Motivated by this, we propose
+an active sample selection criterion to identify reliable and non-redundant samples, on which the
+model is updated to minimize the entropy loss
+for test-time adaptation. Furthermore, to alleviate
+the forgetting issue, we introduce a Fisher regularizer to constrain important model parameters from
+drastic changes, where the Fisher importance is estimated from test samples with generated pseudo
+labels. Extensive experiments on CIFAR-10-C,
+ImageNet-C, and ImageNet-R verify the effectiveness of our proposed method. Code is available
+at https://github.com/mr-eggplant/EATA.
+*
+
+Equal contribution. This work is done when Shuaicheng Niu
+works as an intern in Tencent AI Lab. 1 School of Software Engineering, South China University of Technology, China 2 Pazhou
+Laboratory, China 3 Tencent AI Lab, China 4 National University of
+Singapore, Singapore 5 Key Laboratory of Big Data and Intelligent
+Robot, Ministry of Education, China. Correspondence to: Mingkui
+Tan <mingkuitan@scut.edu.cn>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+1. Introduction
+Deep neural networks (DNNs) have achieved excellent performance in many challenging tasks, including image classification (He et al., 2016), video recognition (Wang et al.,
+2018; Zeng et al., 2020; 2021; Chen et al., 2021), and many
+other areas (Choi et al., 2018; Fan et al., 2020; Xu et al.,
+2021). One prerequisite behind the success of DNNs is that
+the test samples are drawn from the same distribution as the
+training data, which, however, is often violated in many realworld applications. In practice, test samples may encounter
+natural variations or corruptions (also called distribution
+shift), such as changes in lighting resulting from weather
+change and unexpected noises resulting from sensor degradation (Hendrycks & Dietterich, 2019; Koh et al., 2021).
+Unfortunately, models are often very sensitive to such distribution shifts and suffer severe performance degradation.
+Recently, several attempts (Sun et al., 2020; Wang et al.,
+2021; Liu et al., 2021; Zhang et al., 2021b;c; Wang et al.,
+2022) have been proposed to handle the distribution shifts
+by online adapting a model at test time (called test-time
+adaptation). Test-time training (TTT) (Sun et al., 2020) first
+proposes this pipeline. Given a test sample, TTT first finetunes the model via rotation classification (Gidaris et al.,
+2018) and then makes a prediction using the updated model.
+However, TTT still relies on additional training modifications (adding rotation head into the model), and thus the
+access to original training data is also compulsory. These
+requirements may be infeasible if, e.g., the training data is
+unavailable due to privacy/storage concerns or the training
+involves unexpected heavy computation. To avoid these,
+Tent (Wang et al., 2021) and MEMO (Zhang et al., 2021b)
+propose methods for fully test-time adaptation, in which the
+adaptation only involves test samples and a trained model.
+Although recent test-time adaptation methods are effective
+at handling test shifts, they still suffer the following limitations. First, since we adapt models at test time, the adaptation efficiency is quite important in many latency-sensitive
+scenarios. However, prior methods rely on performing backward computation for each test sample (even multiple backward passes for a single sample, such as TTT (Sun et al.,
+2020) and MEMO (Zhang et al., 2021b)). As performing
+back-propagation too much is time-consuming, these ap-
+
+

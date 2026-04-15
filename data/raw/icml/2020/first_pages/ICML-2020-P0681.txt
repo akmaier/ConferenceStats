@@ -1,0 +1,91 @@
+LP-SparseMAP: Differentiable Relaxed Optimization
+for Sparse Structured Prediction
+
+Vlad Niculae 1 André F. T. Martins 1 2 3
+
+Abstract
+Structured predictors require solving a combinatorial optimization problem over a large number of structures, such as dependency trees or
+alignments. When embedded as structured hidden layers in a neural net, argmin differentiation
+and efficient gradient computation are further required. Recently, SparseMAP has been proposed
+as a differentiable, sparse alternative to maximum a posteriori (MAP) and marginal inference.
+SparseMAP returns an interpretable combination
+of a small number of structures; its sparsity being the key to efficient optimization. However,
+SparseMAP requires access to an exact MAP oracle in the structured model, excluding, e.g., loopy
+graphical models or logic constraints, which generally require approximate inference. In this paper, we introduce LP-SparseMAP, an extension
+of SparseMAP addressing this limitation via a local polytope relaxation. LP-SparseMAP uses the
+flexible and powerful language of factor graphs
+to define expressive hidden structures, supporting coarse decompositions, hard logic constraints,
+and higher-order correlations. We derive the forward and backward algorithms needed for using
+LP-SparseMAP as a structured hidden or output
+layer. Experiments in three structured tasks show
+benefits versus SparseMAP and Structured SVM.
+
+1. Introduction
+The data processed by machine learning systems often has
+underlying structure: for instance, language data has interword dependency trees, or alignments, while image data
+can reveal object segments. As downstream models benefit
+1
+Instituto de Telecomunicações, Lisbon, Portugal 2 Unbabel,
+Lisbon, Portugal 3 Instituto Superior Técnico, University of Lisbon,
+Portugal. Correspondence to: Vlad Niculae <vlad@vene.ro>,
+André F. T. Martins <andre.t.martins@tecnico.ulisboa.pt>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+BUDGET factor
+
+sleep the clock around
+
+TREE factor
+
+sleep→the
+
+sleep→clock
+
+sleep→around
+
+the→sleep
+
+the→clock
+
+the→around
+
+clock→sleep
+
+clock→the
+
+clock→around
+
+around→sleep
+
+around→the
+
+around→clock
+
+fg = TorchFactorGraph()
+u = fg.variable_from(arc_scores)
+fg.add(DepTree(u))
+for k in range(n):
+fg.add(Budget(u[:, k], budget=5))
+fg.solve()
+
+Figure 1: Parsing model with valency constraints: each
+“head” word is constrained to have at most k “modifiers”.
+LP-SparseMAP is the first method for tractable, differentiable decoding in such a model. Below: abridged implementation using our library (more in App. F).
+
+from the hidden structure, practitioners typically resort to
+pipelines, training a structure predictor on labelled data,
+and using its output as features. This approach requires
+annotation, suffers from error propagation, and cannot allow
+the structure predictor to adapt to the downstream task.
+Instead, a promising direction is to treat structure as latent,
+or hidden: learning a structure predictor without supervision, together with the downstream model in an end-to-end
+fashion. Several recent approaches were proposed to tackle
+this, based on differentiating through marginal inference
+(Kim et al., 2017; Liu and Lapata, 2018), noisy gradient
+estimates (Peng et al., 2018; Yogatama et al., 2017), or both
+(Corro and Titov, 2019a;b). The work in this area requires
+specialized, structure-specific algorithms either for comput-
+
+

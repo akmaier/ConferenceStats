@@ -1,0 +1,77 @@
+Batch Normalization: Accelerating Deep Network Training by Reducing
+Internal Covariate Shift
+Sergey Ioffe
+Christian Szegedy
+Google, 1600 Amphitheatre Pkwy, Mountain View, CA 94043
+
+Abstract
+Training Deep Neural Networks is complicated
+by the fact that the distribution of each layer’s
+inputs changes during training, as the parameters of the previous layers change. This slows
+down the training by requiring lower learning
+rates and careful parameter initialization, and
+makes it notoriously hard to train models with
+saturating nonlinearities. We refer to this phenomenon as internal covariate shift, and address the problem by normalizing layer inputs.
+Our method draws its strength from making normalization a part of the model architecture and
+performing the normalization for each training
+mini-batch. Batch Normalization allows us to
+use much higher learning rates and be less careful about initialization, and in some cases eliminates the need for Dropout. Applied to a stateof-the-art image classification model, Batch Normalization achieves the same accuracy with 14
+times fewer training steps, and beats the original
+model by a significant margin. Using an ensemble of batch-normalized networks, we improve
+upon the best published result on ImageNet classification: reaching 4.82% top-5 test error, exceeding the accuracy of human raters.
+
+1. Introduction
+Deep learning has dramatically advanced the state of the art
+in vision, speech, and many other areas. Stochastic gradient
+descent (SGD) has proved to be an effective way of training deep networks, and SGD variants such as momentum
+(Sutskever et al., 2013) and Adagrad (Duchi et al., 2011)
+have been used to achieve state of the art performance.
+SGD optimizes the parameters Θ of the network, so as to
+Proceedings of the 32 nd International Conference on Machine
+Learning, Lille, France, 2015. JMLR: W&CP volume 37. Copyright 2015 by the author(s).
+
+SIOFFE @ GOOGLE . COM
+SZEGEDY @ GOOGLE . COM
+
+minimize the loss
+N
+
+Θ = arg min
+Θ
+
+1 X
+`(xi , Θ)
+N i=1
+
+where x1...N is the training data set. With SGD, the training proceeds in steps, at each step considering a minibatch x1...m of size m. Using mini-batches of examples,
+as opposed to one example at a time, is helpful in several ways. First, the gradient of the loss over a mini-batch
+Pm ∂`(xi ,Θ)
+1
+is an estimate of the gradient over the
+i=1
+m
+∂Θ
+training set, whose quality improves as the batch size increases. Second, computation over a mini-batch can be
+more efficient than m computations for individual examples on modern computing platforms.
+While stochastic gradient is simple and effective, it requires
+careful tuning of the model hyper-parameters, specifically
+the learning rate and the initial parameter values. The training is complicated by the fact that the inputs to each layer
+are affected by the parameters of all preceding layers – so
+that small changes to the network parameters amplify as
+the network becomes deeper.
+The change in the distributions of layers’ inputs presents
+a problem because the layers need to continuously adapt
+to the new distribution. When the input distribution to a
+learning system changes, it is said to experience covariate shift (Shimodaira, 2000). This is typically handled via
+domain adaptation (Jiang, 2008). However, the notion of
+covariate shift can be extended beyond the learning system
+as a whole, to apply to its parts, such as a sub-network or a
+layer. Consider a network computing
+` = F2 (F1 (u, Θ1 ), Θ2 )
+where F1 and F2 are arbitrary transformations, and the
+parameters Θ1 , Θ2 are to be learned so as to minimize
+the loss `. Learning Θ2 can be viewed as if the inputs
+x = F1 (u, Θ1 ) are fed into the sub-network
+` = F2 (x, Θ2 ).
+
+

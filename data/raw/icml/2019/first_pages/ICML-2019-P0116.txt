@@ -1,0 +1,77 @@
+Predictor-Corrector Policy Optimization
+
+Ching-An Cheng 1 2 Xinyan Yan 1 Nathan Ratliff 2 Byron Boots 1 2
+
+Abstract
+We present a predictor-corrector framework,
+called P IC C O LO, that can transform a first-order
+model-free reinforcement or imitation learning algorithm into a new hybrid method that leverages
+predictive models to accelerate policy learning.
+The new “P IC C O LOed” algorithm optimizes a
+policy by recursively repeating two steps: In the
+Prediction Step, the learner uses a model to predict the unseen future gradient and then applies
+the predicted estimate to update the policy; in the
+Correction Step, the learner runs the updated policy in the environment, receives the true gradient,
+and then corrects the policy using the gradient
+error. Unlike previous algorithms, P IC C O LO corrects for the mistakes of using imperfect predicted
+gradients and hence does not suffer from model
+bias. The development of P IC C O LO is made
+possible by a novel reduction from predictable online learning to adversarial online learning, which
+provides a systematic way to modify existing firstorder algorithms to achieve the optimal regret
+with respect to predictable information. We show,
+in both theory and simulation, that the convergence rate of several first-order model-free algorithms can be improved by P IC C O LO.
+
+1. Introduction
+Reinforcement learning (RL) has recently solved a number
+of challenging problems (Mnih et al., 2013; Duan et al.,
+2016; Silver et al., 2018). However, many of these successes
+are confined to games and simulated environments, where
+a large number of agent-environment interactions can be
+cheaply performed. Therefore, they are often unrealistic in
+real-word applications (like robotics) where data collection
+is an expensive and time-consuming process. Improving
+sample efficiency still remains a critical challenge for RL.
+1
+Georgia Tech 2 NVIDIA. Correspondence to: Ching-An Cheng
+<cacheng@gatech.edu>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+Model-based RL methods improve sample efficiency by
+leveraging an accurate model that can cheaply simulate interactions to compute policy updates in lieu of real-world
+interactions (Tan et al., 2018). A classical example of
+pure model-based methods is optimal control (Jacobson
+& Mayne, 1970; Todorov & Li, 2005; Deisenroth & Rasmussen, 2011; Pan & Theodorou, 2014), which has recently
+been extended to model abstract latent dynamics with neural
+networks (Silver et al., 2017; Oh et al., 2017). These methods use a (local) model of the dynamics and cost functions
+to predict cost-to-go functions, policy gradients, or promising improvement direction when updating policies (Levine
+& Koltun, 2013; Sun et al., 2018; Anthony et al., 2017).
+Another way to use model information is the hybrid DYNA
+framework (Sutton, 1991; Sutton et al., 2012), which interleaves model-based and model-free updates, ideally cutting
+learning time in half. However, all of these approaches,
+while potentially accelerating policy learning, suffer from
+a common drawback: when the model is inaccurate, the
+performance of the policy can become biased away from
+the best achievable in the policy class.
+Several strategies have been proposed to remove this performance bias. Learning-to-plan attempts to train the planning
+process end-to-end (Pascanu et al., 2017; Srinivas et al.,
+2018; Amos et al., 2018), so the performance of a given
+planning structure is directly optimized. However, these algorithms are still optimized through standard model-free RL
+techniques; it is unclear as to whether they are more sample
+efficient. In parallel, another class of bias-free algorithms is
+control variate methods (Chebotar et al., 2017; Grathwohl
+et al., 2018; Papini et al., 2018), which use models to reduce
+the variance of sampled gradients to improve convergence.
+In this paper, we provide a novel learning framework that
+can leverage models to improve sample efficiency while
+avoiding performance bias due to modeling errors. Our
+approach is built on techniques from online learning (Gordon, 1999; Zinkevich, 2003). The use of online learning to
+analyze policy optimization was pioneered by Ross et al.
+(2011), who proposed to reduce imitation learning (IL) to
+adversarial online learning problems. This reduction provides a framework for performance analysis, leading to
+algorithms such as DAGGER (Ross et al., 2011) and AG GRE VAT E (Ross & Bagnell, 2014). However, it was recently
+shown that the naı̈ve reduction to adversarial online learning
+
+

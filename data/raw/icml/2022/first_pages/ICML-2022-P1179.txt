@@ -1,0 +1,97 @@
+A Simple yet Universal Strategy for Online Convex Optimization
+
+Lijun Zhang 1 2 Guanghui Wang 1 Jinfeng Yi 3 Tianbao Yang 4
+
+Abstract
+Recently, several universal methods have been
+proposed for online convex optimization, and attain minimax rates for multiple types of convex
+functions simultaneously. However, they need to
+design and optimize one surrogate loss for each
+type of functions, making it difficult to exploit
+the structure of the problem and utilize existing
+algorithms. In this paper, we propose a simple
+strategy for universal online convex optimization,
+which avoids these limitations. The key idea is
+to construct a set of experts to process the original online functions, and deploy a meta-algorithm
+over the linearized losses to aggregate predictions
+from experts. Specifically, the meta-algorithm
+is required to yield a second-order bound with
+excess losses, so that it can leverage strong convexity and exponential concavity to control the
+meta-regret. In this way, our strategy inherits the
+theoretical guarantee of any expert designed for
+strongly convex functions and exponentially concave functions, up to a double logarithmic factor.
+As a result, we can plug in off-the-shelf online
+solvers as black-box experts to deliver problemdependent regret bounds. For general convex
+functions, it maintains the minimax optimality
+and also achieves a small-loss bound.
+
+1. Introduction
+Online convex optimization (OCO) has become a leading
+online learning framework, and is able to model various realworld problems such as online routing and spam filtering
+(Hazan, 2016). OCO can be seen as a structured repeated
+game, with the following protocol. At each round t, the
+online learner chooses xt from a convex set X . After com1
+
+National Key Laboratory for Novel Software Technology, Nanjing University, Nanjing, China 2 Peng Cheng Laboratory, Shenzhen, China 3 Frontis.AI, Beijing, China 4 Department of Computer
+Science, The University of Iowa, Iowa City, USA. Correspondence
+to: Lijun Zhang <zhanglj@lamda.nju.edu.cn>.
+Proceedings of the 39 th International Conference on Machine Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright
+2022 by the author(s).
+
+mitting to this choice, a convex cost function ft : X 7→ R is
+revealed, and the loss incurred by the learner is ft (xt ). The
+learner
+PTaims to minimize the cumulative loss over T rounds,
+i.e., t=1 ft (xt ), which is equivalent to minimizing the
+regret:
+T
+T
+X
+X
+ft (xt ) − min
+ft (x)
+(1)
+t=1
+
+x∈X
+
+t=1
+
+defined as the excess loss suffered by the learner compared
+to the minimum loss of any fixed choice.
+In the literature, there are plenty of algorithms for OCO
+(Cesa-Bianchi & Lugosi, 2006; Shalev-Shwartz, 2011). √
+For
+example, online gradient
+descent
+(OGD)
+with
+O(1/
+t)
+√
+step size achieves O( T ) regret for general convex functions (Zinkevich, 2003); OGD with O(1/t) step size attains O(log T ) regret for strongly convex functions (ShalevShwartz et al., 2007); online Newton step (ONS) enjoys
+O(d log T ) regret for exponentially concave (abbr. expconcave) functions, where d is the dimensionality (Hazan
+et al., 2007). Besides, there exist more powerful online
+algorithms such as ADAGRAD (Duchi et al., 2011) that are
+equipped with problem-dependent regret bounds (Srebro
+et al., 2010; Chiang et al., 2012; Kingma & Ba, 2015; Mukkamala & Hein, 2017; Reddi et al., 2018), which become
+tighter when the problem has special structures. Although
+we have rich theories for OCO, its application requires heavy
+domain knowledge: Users must know the type of functions
+in order to select an appropriate algorithm, and when dealing
+with strongly convex functions and exp-concave functions,
+they also need to estimate the moduli of strong convexity
+and exponential concavity.
+The lack of universality of previous algorithms motivates the
+development of universal methods for OCO (Bartlett et al.,
+2008; Do et al., 2009). One milestone is MetaGrad of van
+Erven & Koolen (2016), which can handle general convex
+functions as well as exp-concave functions. Later, Wang
+et al. (2019) propose Maler, which further supports strongly
+convex functions explicitly. In a subsequent work, Wang
+et al. (2020b) develop UFO, which exploits smoothness
+to deliver small-loss regret bounds, i.e., regret bounds that
+depend on the minimal loss. However, the three aforementioned methods need to design one surrogate loss for each
+possible type of functions, which is both tedious and challenging. Furthermore, because they rely on surrogate losses,
+
+

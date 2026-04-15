@@ -1,0 +1,82 @@
+Detecting and Correcting for Label Shift with Black Box Predictors
+Zachary C. Lipton * 1 2 Yu-Xiang Wang * 2 3 Alexander J. Smola 2
+
+Abstract
+Faced with distribution shift between training and
+test set, we wish to detect and quantify the shift,
+and to correct our classifiers without test set labels.
+Motivated by medical diagnosis, where diseases
+(targets), cause symptoms (observations), we focus on label shift, where the label marginal p(y)
+changes but the conditional p(x|y) does not. We
+propose Black Box Shift Estimation (BBSE) to
+estimate the test distribution p(y). BBSE exploits
+arbitrary black box predictors to reduce dimensionality prior to shift correction. While better
+predictors give tighter estimates, BBSE works
+even when predictors are biased, inaccurate, or uncalibrated, so long as their confusion matrices are
+invertible. We prove BBSE’s consistency, bound
+its error, and introduce a statistical test that uses
+BBSE to detect shift. We also leverage BBSE
+to correct classifiers. Experiments demonstrate
+accurate estimates and improved prediction, even
+on high-dimensional datasets of natural images.
+
+1. Introduction
+Assume that in August we train a pneumonia predictor. Our
+features consist of chest X-rays administered in the previous
+year (distribution P ) and the labels binary indicators of
+whether a physician diagnoses the patient with pneumonia.
+We train a model f to predict pneumonia given an X-ray
+image. Assume that in the training set .1% of patients
+have pneumonia. We deploy f in the clinic and for several
+months, it reliably predicts roughly .1% positive.
+Fast-forward to January (distribution Q): Running f on the
+last week’s data, we find that 5% of patients are predicted
+to have pneumonia! Because f remains fixed, the shift must
+owe to a change in the marginal p(x), violating the familiar
+*
+
+Equal contribution 1 Carnegie Mellon University, Pittsburgh,
+PA 2 Amazon AI, Palo Alto, CA 3 UC Santa Barbara, CA. Correspondence to: Zachary C. Lipton <zlipton@cmu.edu >, YuXiang Wang <yuxiangw@amazon.com>, Alexander J. Smola
+<smola@amazon.com>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+iid assumption. Absent familiar guarantees, we wonder: Is
+f still accurate? What’s the real current rate of pneumonia?
+Shouldn’t our classifier, trained under an obsolete prior,
+underestimate pneumonia when uncertain? Thus, we might
+suspect that the real prevalence is greater than 5%.
+Given only labeled training data, and unlabeled test data,
+we desire to: (i) detect distribution shift, (ii) quantify it, and
+(iii) correct our model to perform well on the new data.
+Absent assumptions on how p(y, x) changes, the task is
+impossible. However, under assumptions about what P and
+Q have in common, we can still make headway. Two candidates are covariate shift (where p(y|x) does not change) and
+label shift (where p(x|y) does not change). Schölkopf et al.
+(2012) observe that covariate shift corresponds to causal
+learning (predicting effects), and label shift to anticausal
+learning (predicting causes).
+We focus on label shift, motivated by diagnosis (diseases
+cause symptoms) and recognition tasks (objects cause sensory observations). During a pneumonia outbreak, p(y|x)
+(e.g. flu given cough) might rise but the manifestations of
+the disease p(x|y) might not change. Formally, under label
+shift, we can factorize the target distribution as
+q(y, x) = q(y)p(x|y).
+By contrast, under the covariate shift assumption, q(y, x) =
+q(x)p(y|x), e.g. the distribution of radiologic findings
+p(x) changes, but the conditional probability of pneumonia
+p(y|x) remains constant. To see how this can go wrong,
+consider: what if our only feature were cough? Normally,
+cough may not (strongly) indicate pneumonia. But during an
+epidemic, P(pneumonia|cough) might go up substantially.
+Despite its importance, label shift is comparatively underinvestigated: perhaps because given samples from both p(x)
+and q(x), quantifying q(x)/p(x) is more intuitive.
+We introduce Black Box Shift Estimation (BBSE) to estimate label shift using a black box predictor f . BBSE estimates the ratios wl = q(yl )/p(yl ) for each label l, requiring
+only that the expected confusion matrix is invertible 1 . We
+estimate ŵ by solving a linear system Ax = b where A is
+the confusion matrix of f estimated on training data (from
+1
+For degenerate confusion matrices, a variant using soft predictions may be preferable.
+
+

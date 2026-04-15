@@ -1,0 +1,86 @@
+Learning Human Objectives by Evaluating Hypothetical Behavior
+Siddharth Reddy 1 Anca D. Dragan 1 Sergey Levine 1 Shane Legg 2 Jan Leike 2
+
+Abstract
+We seek to align agent behavior with a user’s objectives in a reinforcement learning setting with
+unknown dynamics, an unknown reward function,
+and unknown unsafe states. The user knows the
+rewards and unsafe states, but querying the user
+is expensive. We propose an algorithm that safely
+and efficiently learns a model of the user’s reward
+function by posing ‘what if?’ questions about hypothetical agent behavior. We start with a generative model of initial states and a forward dynamics model trained on off-policy data. Our method
+uses these models to synthesize hypothetical behaviors, asks the user to label the behaviors with
+rewards, and trains a neural network to predict the
+rewards. The key idea is to actively synthesize the
+hypothetical behaviors from scratch by maximizing tractable proxies for the value of information,
+without interacting with the environment. We call
+this method reward query synthesis via trajectory
+optimization (ReQueST). We evaluate ReQueST
+with simulated users on a state-based 2D navigation task and the image-based Car Racing video
+game. The results show that ReQueST significantly outperforms prior methods in learning reward models that transfer to new environments
+with different initial state distributions. Moreover,
+ReQueST safely trains the reward model to detect
+unsafe states, and corrects reward hacking before
+deploying the agent.
+
+1. Introduction
+Users typically specify objectives for reinforcement learning (RL) agents through scalar-valued reward functions (Sutton & Barto, 2018). While users can easily define reward functions for tasks like playing games of Go or StarCraft, users may struggle to describe practical tasks like
+1
+
+University of California, Berkeley 2 DeepMind. Correspondence to: Siddharth Reddy <sgr@berkeley.edu>, Jan Leike
+<leike@google.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Hypothetical behavior
+
+Generative model
+
+Dynamics
+model
+(1)
+RL agent
+
+(3)
+
+Reward model
+
+User
+feedback
+
+(2)
+
+Figure 1. Our method learns a reward model from user feedback
+on hypothetical behaviors, then deploys a model-based RL agent.
+
+driving cars or controlling robotic arms in terms of rewards (Hadfield-Menell et al., 2017). Understanding user
+objectives in these settings can be challenging – not only
+for machines, but also for humans modeling each other and
+introspecting on themselves (Premack & Woodruff, 1978).
+For example, consider the trolley problem (Foot, 1967): if
+you were the train conductor in Figure 1, presented with the
+choice of either allowing multiple people to come to harm
+by letting the train continue on its current track, or harming
+one person by diverting the train, what would you do? The
+answer depends on whether your value system leans toward
+consequentialism or deontological ethics – a distinction
+that may not be captured by a reward function designed
+to evaluate common situations, in which ethical dilemmas
+like the trolley problem rarely occur. In complex domains,
+the user may not be able to anticipate all possible agent
+behaviors and specify a reward function that accurately
+describes user preferences over those behaviors.
+We address this problem by actively synthesizing hypothetical behaviors from scratch, and asking the user to label
+them with rewards. Figure 1 describes our algorithm: using
+a generative model of initial states and a forward dynamics
+model trained on off-policy data, we synthesize hypothetical
+behaviors, ask the user to label the behaviors with rewards,
+and train a neural network to predict the rewards. We repeat
+this process until the reward model converges, then deploy
+a model-based RL agent that optimizes the learned rewards.
+The key idea in this paper is synthesizing informative hypo-
+
+Model-based
+RL agent
+
+

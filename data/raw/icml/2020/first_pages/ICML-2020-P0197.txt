@@ -1,0 +1,78 @@
+Boosting Frank-Wolfe by Chasing Gradients
+
+Cyrille W. Combettes 1 Sebastian Pokutta 2 3
+if C = {X ∈ Rm×n | kXknuc ⩽ τ } is a nuclear norm-ball,
+a projection onto C requires computing an SVD, which has
+complexity O(mn min{m, n}), while a linear minimization over C requires only computing the pair of top singular
+vectors, which has complexity O(nnz) where nnz denotes
+the number of nonzero entries. Other examples include the
+flow polytope, the Birkhoff polytope, the matroid polytope,
+or the set of rotations; see, e.g., Hazan & Kale (2012).
+
+Abstract
+The Frank-Wolfe algorithm has become a popular
+first-order optimization algorithm for it is simple
+and projection-free, and it has been successfully
+applied to a variety of real-world problems. Its
+main drawback however lies in its convergence
+rate, which can be excessively slow due to naive
+descent directions. We propose to speed up the
+Frank-Wolfe algorithm by better aligning the descent direction with that of the negative gradient
+via a subroutine. This subroutine chases the negative gradient direction in a matching pursuit-style
+while still preserving the projection-free property. Although the approach is reasonably natural, it produces very significant results. We derive convergence rates O(1/t) to O(e−ωt ) of our
+method and we demonstrate its competitive advantage both per iteration and in CPU time over
+the state-of-the-art in a series of computational
+experiments.
+
+1. Introduction
+Let (H, h·, ·i) be a Euclidean space. In this paper, we address the constrained convex optimization problem
+min f (x)
+x∈C
+
+(1)
+
+where f : H → R is a smooth convex function and C ⊂ H
+is a compact convex set. A natural approach to solving
+Problem (1) is to apply any efficient method that works in
+the unconstrained setting and add projections back onto C
+when the iterates leave the feasible region. However, there
+are situations where projections can be very expensive while
+linear minimizations over C are much cheaper. For example,
+1
+School of Industrial and Systems Engineering, Georgia Institute of Technology, Atlanta, GA, USA 2 Institute of Mathematics,
+Technische Universität Berlin, Berlin, Germany 3 Department for
+AI in Society, Science, and Technology, Zuse Institute Berlin,
+Berlin, Germany. Correspondence to: Cyrille W. Combettes
+<cyrille@gatech.edu>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+In these situations, the Frank-Wolfe algorithm (FW) (Frank
+& Wolfe, 1956), a.k.a. conditional gradient algorithm (Levitin & Polyak, 1966), becomes the method of choice, as
+it is a simple projection-free algorithm relying on a linear minimization oracle over C. At each iteration, it calls
+the oracle vt ← arg minv∈C h∇f (xt ), vi and moves in
+the direction of this vertex, ensuring that the new iterate
+xt+1 ← xt + γt (vt − xt ) is feasible by convex combination, with a step-size γt ∈ [0, 1]. Hence, FW can be
+seen as a projection-free variant of projected gradient descent trading the gradient descent direction −∇f (xt ) for
+the vertex direction vt − xt minimizing the linear approximation of f at xt over C. FW has been applied to traffic
+assignment problems (LeBlanc et al., 1975), low-rank matrix approximation (Shalev-Shwartz et al., 2011), structural
+SVMs (Lacoste-Julien et al., 2013), video co-localization
+(Joulin et al., 2014), infinite RBMs (Ping et al., 2016), and,
+e.g., adversarial learning (Chen et al., 2020).
+The main drawback of FW is that the modified descent direction leads to a sublinear convergence rate O(1/t), which
+cannot be improved upon in general as an asymptotic lower
+bound Ω(1/t1+δ ) holds for any δ > 0 (Canon & Cullum,
+1968). More recently, Jaggi (2013) provided a simple illustration of the phenomenon: if f : x ∈ Rn 7→ kxk22 is the
+squared `2 -norm and C = ∆n is the standard simplex, then
+the primal gap at iteration t ∈ J1, nK is lower bounded by
+1/t−1/n; see also Lan (2013) for a lower bound Ω(LD2 /t)
+on an equivalent setup, exhibiting an explicit dependence
+on the smoothness constant L of f and the diameter D of C.
+Hence, a vast literature has been devoted to the analysis of
+higher convergence rates of FW if additional assumptions
+on the properties of f , the geometry of C, or the location of
+arg minC f are met. Important contributions include:
+(i) O(e−ωt ) if C is strongly convex and inf C k∇f k > 0
+
+

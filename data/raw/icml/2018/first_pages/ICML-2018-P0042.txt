@@ -1,0 +1,141 @@
+Dissecting Adam: The Sign, Magnitude and Variance of Stochastic Gradients
+
+Lukas Balles 1 Philipp Hennig 1
+which is a random variable with E[g(θ)] = ∇L(θ). An
+important quantity for this paper will be the (element-wise)
+variances of the stochastic gradient, which we denote by
+σi2 (θ) := var[g(θ)i ].
+
+Abstract
+The ADAM optimizer is exceedingly popular in
+the deep learning community. Often it works
+very well, sometimes it doesn’t. Why? We interpret ADAM as a combination of two aspects: for
+each weight, the update direction is determined
+by the sign of stochastic gradients, whereas the
+update magnitude is determined by an estimate of
+their relative variance. We disentangle these two
+aspects and analyze them in isolation, gaining
+insight into the mechanisms underlying ADAM.
+This analysis also extends recent results on adverse effects of ADAM on generalization, isolating
+the sign aspect as the problematic one. Transferring the variance adaptation to SGD gives rise
+to a novel method, completing the practitioner’s
+toolbox for problems where ADAM fails.
+
+Widely-used stochastic optimization algorithms are stochastic gradient descent (SGD, Robbins & Monro, 1951) and
+its momentum variants (Polyak, 1964; Nesterov, 1983). A
+number of methods popular in deep learning choose perelement update magnitudes based on past gradient observations. Among these are ADAGRAD (Duchi et al., 2011),
+RMSPROP (Tieleman & Hinton, 2012), ADADELTA (Zeiler,
+2012), and ADAM (Kingma & Ba, 2015).
+Notation: In the following, we occasionally drop θ, writing
+g instead of g(θ), et cetera. We use shorthands like ∇Lt ,
+gt for sequences θt and double indices where needed, e.g.,
+2
+gt,i = g(θt )i , σt,i
+= σi2 (θt ). Divisions, squares and squareroots on vectors are to be understood element-wise. To
+avoid confusion with inner products, we explicitly denote
+element-wise multiplication of vectors by .
+
+1. Introduction
+Many prominent machine learning models pose empirical
+risk minimization problems with objectives of the form
+M
+
+L(θ) =
+
+1 X
+`(θ; xk ),
+M
+
+(1)
+
+k=1
+
+1.1. A New Perspective on Adam
+We start out from a reinterpretation of the widely-used
+ADAM optimizer,2 which maintains moving averages of
+stochastic gradients and their element-wise square,
+
+M
+
+1 X
+∇L(θ) =
+∇`(θ; xk ),
+M
+
+(2)
+
+m̃t = β1 m̃t−1 + (1 − β1 )gt ,
+
+where θ ∈ Rd is a vector of parameters, {x1 , . . . , xM } is
+a training set, and `(θ; x) is a loss quantifying the performance of parameters θ on example x. Computing the exact
+gradient in each step of an iterative optimization algorithm
+becomes inefficient for large M . Instead, we sample a minibatch B ⊂ {1, . . . , M } of size |B|  M with data points
+drawn uniformly and independently from the training set
+and compute an approximate stochastic gradient
+1 X
+∇`(θ; xk ),
+(3)
+g(θ) =
+|B|
+
+ṽt = β2 ṽt−1 + (1 − β2 )gt2 ,
+
+k=1
+
+k∈B
+
+1
+
+Max Planck Institute for Intelligent Systems, Tübingen, Germany.. Correspondence to: Lukas Balles <lballes@tue.mpg.de>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+m̃t
+,
+1 − β1t+1
+ṽt
+vt =
+,
+1 − β2t+1
+
+mt =
+
+with β1 , β2 ∈ (0, 1) and updates
+θt+1 = θt − α √
+
+mt
+vt + ε
+
+(4)
+(5)
+
+(6)
+
+with a small constant ε > 0 preventing division by zero.
+Ignoring ε and assuming |mt,i | > 0 for the moment, we can
+rewrite the update direction as
+v
+u
+mt
+sign(mt ) u
+1
+=t
+sign(mt ), (7)
+√ = qv
+vt −m2t
+t
+vt
+1+
+2
+2
+mt
+
+2
+
+mt
+
+Some of our considerations naturally extend to ADAM’s relatives RMSPROP and ADADELTA, but we restrict our attention to
+ADAM to keep the presentation concise.
+
+

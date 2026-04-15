@@ -1,0 +1,76 @@
+D RACO: Byzantine-resilient Distributed Training via Redundant Gradients
+
+Lingjiao Chen 1 Hongyi Wang 1 Zachary Charles 1 Dimitris Papailiopoulos 1
+
+Abstract
+Distributed model training is vulnerable to byzantine system failures and adversarial compute
+nodes, i.e., nodes that use malicious updates to
+corrupt the global model stored at a parameter
+server (PS). To guarantee some form of robustness, recent work suggests using variants of the geometric median as an aggregation rule, in place of
+gradient averaging. Unfortunately, median-based
+rules can incur a prohibitive computational overhead in large-scale settings, and their convergence
+guarantees often require strong assumptions. In
+this work, we present D RACO, a scalable framework for robust distributed training that uses ideas
+from coding theory. In D RACO, each compute
+node evaluates redundant gradients that are used
+by the parameter server to eliminate the effects of
+adversarial updates. D RACO comes with problemindependent robustness guarantees, and the model
+that it trains is identical to the one trained in the
+adversary-free setup. We provide extensive experiments on real datasets and distributed setups
+across a variety of large-scale models, where we
+show that D RACO is several times, to orders of
+magnitude faster than median-based approaches.
+
+1. Introduction
+Distributed and parallel implementations of stochastic optimization algorithms have become the de facto standard
+in large-scale model training (Li et al., 2014; Recht et al.,
+2011; Zhang et al., 2015; Agarwal et al., 2010; Abadi et al.,
+2016; Chen et al., 2015; Paszke et al., 2017a; Chilimbi et al.,
+2014). Due to increasingly common malicious attacks, hardware and software errors (Castro et al., 1999; Kotla et al.,
+2007; Blanchard et al., 2017; Chen et al., 2017), protecting distributed machine learning against adversarial attacks
+and failures has become increasingly important. Unfortu1
+University of Wisconsin-Madison.
+Lingjiao Chen <lchen@cs.wisc.edu>.
+
+Correspondence to:
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+nately, even a single adversarial node in a distributed setup
+can introduce arbitrary bias and inaccuracies to the end
+model(Blanchard et al., 2017).
+A recent line of work (Blanchard et al., 2017; Chen et al.,
+2017) studies this problem under a synchronous training
+setup, where compute nodes evaluate gradient updates and
+ship them to a parameter server (PS) which stores and updates the global model. Many of the aforementioned work
+use median-based aggregation, including the geometric median (GM) instead of averaging in order to make their computations more robust. The advantage of median-based
+approaches is that they can be robust to up to a constant
+fraction of the compute nodes being adversarial (Chen et al.,
+2017). However, in large data settings, the cost of computing the geometric median can dwarf the cost of computing
+a batch of gradients (Chen et al., 2017), rendering it impractical. Furthermore, proofs of convergence for such systems
+require restrictive assumptions such as convexity, and need
+to be re-tailored to each different training algorithm. A scalable distributed training framework that is robust against
+adversaries and can be applied to a large family of training
+algorithms (e.g., mini-batch SGD, GD, coordinate descent,
+SVRG, etc.) remains an open problem.
+In this paper, we instead use ideas from coding theory to
+ensure robustness during distributed training. We present
+D RACO, a general distributed training framework that is
+robust against adversarial nodes and worst-case compute
+errors. We show that D RACO can resist any s adversarial
+compute nodes during training and returns a model identical
+to the one trained in the adversary-free setup. This allows
+D RACO to come with “black-box” convergence guarantees,
+i.e., proofs of convergence in the adversary-free setup carry
+through to the adversarial setup with no modification, unlike prior median-based approaches (Blanchard et al., 2017;
+Chen et al., 2017). Moreover, in median-based approaches
+such as (Blanchard et al., 2017; Chen et al., 2017), the median computation may dominate the overall training time. In
+D RACO, most of the computational effort is carried through
+by the compute nodes. This key factor allows our framework to offer up to orders of magnitude faster convergence
+in real distributed setups.
+To design D RACO, we borrow ideas from coding theory
+and algorithmic redundancy. In standard adversary-free dis-
+
+

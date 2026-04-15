@@ -1,0 +1,46 @@
+Loki: Low-rank Keys for Efficient Sparse Attention
+
+Prajwal Singhania, Siddharth Singh, Shwai He, Soheil Feizi, Abhinav Bhatele
+Department of Computer Science, University of Maryland
+College Park, MD 20742
+prajwal@umd.edu, bhatele@cs.umd.edu
+
+Abstract
+Inference on large language models (LLMs) can be expensive in terms of the
+compute and memory costs involved, especially when long sequence lengths are
+used. In particular, the self-attention mechanism used in LLM inference contributes
+significantly to these costs, which has sparked an interest in approximating the selfattention computation to reduce such costs. In this work, we propose to approximate
+self-attention by focusing on the dimensionality of key vectors computed in the
+attention block. Our analysis reveals that key vectors lie in a significantly lowerdimensional space, consistently across several datasets and models. Exploiting this
+observation, we propose Loki, a novel sparse attention method that ranks and selects
+tokens in the KV-cache based on attention scores computed in low-dimensional
+space. Our evaluations show that Loki is able to speed up the attention computation
+due to reduced data movement (load/store) and compute costs while maintaining
+the efficacy of the models better than other popular approximation methods.
+
+1
+
+Introduction
+
+As large language models (LLMs) grow in size, deploying them for efficient inference presents
+substantial challenges, largely due to computation and memory access bottlenecks in the self-attention
+block [32], especially when handling long sequences. These challenges stem from the autoregressive
+nature of attention, which generates the output one token at a time. At each step, the entire preceding
+state, stored in the key-value (KV) cache, must be fetched from memory, which can sometimes
+exceed the size of the model parameters itself [18]. This frequent KV-cache access from GPU DRAM
+to registers becomes costly, as it scales quadratically with the output sequence length. In addition,
+matrix multiplications in the attention layers also have a quadratic scaling cost with sequence length,
+compounding the overall computational burden.
+Several strategies [39, 26, 20] have been proposed to address this challenge by reducing the computational complexity and/or memory demands associated with the self-attention mechanism. One
+promising category of approaches focuses on approximating attention, employing techniques such as
+quantization or using a subset of the tokens in the KV-cache [11] (sparse attention).
+In contrast to other sparse attention approaches that either permanently prune tokens from the keyvalue cache [39] or impose a fixed sparsity pattern [35], our proposed method dynamically selects
+key tokens at each generation step based on approximate attention scores and avoids deletions. This
+approach is inspired by a critical observation: across a range of LLMs and datasets, key tensors
+consistently occupy a significantly lower-dimensional space than the full attention head dimension.
+For instance, in Figure 1 (left), we show that across various LLMs [8, 16], 90% of the variance
+explained by PCA is captured at an effective key vector rank of around 80, despite the key tensor
+dimension being much larger (128).
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

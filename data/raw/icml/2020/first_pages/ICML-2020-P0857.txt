@@ -1,0 +1,101 @@
+An EM Approach to Non-autoregressive Conditional Sequence Generation
+
+Zhiqing Sun 1 Yiming Yang 1
+
+Abstract
+
+conditional probability of y given x is factorized as:
+0
+
+Autoregressive (AR) models have been the dominating approach to conditional sequence generation, but are suffering from the issue of high inference latency. Non-autoregressive (NAR) models
+have been recently proposed to reduce the latency
+by generating all output tokens in parallel but
+could only achieve inferior accuracy compared to
+their autoregressive counterparts, primarily due to
+a difficulty in dealing with the multi-modality in
+sequence generation. This paper proposes a new
+approach that jointly optimizes both AR and NAR
+models in a unified Expectation-Maximization
+(EM) framework. In the E-step, an AR model
+learns to approximate the regularized posterior of
+the NAR model. In the M-step, the NAR model
+is updated on the new posterior and selects the
+training examples for the next AR model. This
+iterative process can effectively guide the system
+to remove the multi-modality in the output sequences. To our knowledge, this is the first EM
+approach to NAR sequence generation. We evaluate our method on the task of machine translation.
+Experimental results on benchmark data sets show
+that the proposed approach achieves competitive,
+if not better, performance with existing NAR models and significantly reduces the inference latency.
+
+1. Introduction
+State-of-the-art conditional sequence generation models (Bahdanau et al., 2014; Gehring et al., 2017; Vaswani
+et al., 2017) typically rely on an AutoRegressive (AR) factorization scheme to produce the output sequences. Denoting
+by x = (x1 , . . . , xT ) an input sequence of length T , and
+by y = (y1 , . . . , yT 0 ) a target sequence of length T 0 , the
+1
+Carnegie Mellon University, Pittsburgh, PA 15213 USA. Correspondence to: Zhiqing Sun <zhiqings@cs.cmu.edu>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+pAR (y|x) =
+
+T
+Y
+
+p(yi |x, y1 , y2 , . . . , yi−1 ).
+
+(1)
+
+i=1
+
+As such a sequential factorization cannot take the full advantage of parallel computing, it yields high inference latency
+as a limitation.
+Recently, Non-AutoRegressive (NAR) sequence models (Gu
+et al., 2017; Lee et al., 2018) are proposed to tackle the
+problem of inference latency, by removing the sequential
+dependencies among the output tokens as:
+N AR
+
+p
+
+0
+
+(y|x) = p(T |x)
+
+0
+T
+Y
+
+p(yi |x, T 0 ).
+
+(2)
+
+i=1
+
+This formulation allows each token to be decoded in parallel
+and hence brings a significant reduction of the inference
+latency. However, NAR models also suffer from the conditional independence assumption among the output tokens,
+and usually do not perform as well as their AR counterparts.
+Such a performance gap is particularly evident when the output distributions exhibit a multi-modality phenomenon (Gu
+et al., 2017). which means that the input sequence can
+be mapped to multiple correct output sequences. Such a
+multi-modal output distribution cannot be represented as the
+product of conditionally independent distributions for each
+position in NAR models (See 3.2 for a detailed discussion).
+How to overcome the multi-modality issue has been a central focus in recent efforts for improving NAR models. A
+standard approach is to use sequence-level knowledge distillation (Hinton et al., 2015; Kim & Rush, 2016), which
+means to replace the target part y of each training instance
+(x, y) with the system-predicted ŷ from a pre-trained AR
+model (a.k.a. the ”teacher model”). Such a replacement
+strategy removes the one-to-many mappings from the original dataset. The justification for doing so is that in practice
+we do not really need the sequence generation models to
+mimic a diverse output distribution for sequence generation
+tasks such as machine translation1 and text summarization.
+Such a knowledge distillation strategy has shown to be effective for improving the performance of NAR models in
+1
+For example, Google Translate only provide one translation
+for the input text.
+
+

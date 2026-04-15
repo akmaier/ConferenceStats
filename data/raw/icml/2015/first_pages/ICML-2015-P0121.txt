@@ -1,0 +1,76 @@
+Exponential Integration for Hamiltonian Monte Carlo
+
+Wei-Lun Chao1
+WEILUNC @ USC . EDU
+Justin Solomon2
+JUSTIN . SOLOMON @ STANFORD . EDU
+Dominik L. Michels2
+MICHELS @ CS . STANFORD . EDU
+Fei Sha1
+FEISHA @ USC . EDU
+1
+Department of Computer Science, University of Southern California, Los Angeles, CA 90089
+2
+Department of Computer Science, Stanford University, 353 Serra Mall, Stanford, California 94305 USA
+
+Abstract
+We investigate numerical integration of ordinary
+differential equations (ODEs) for Hamiltonian
+Monte Carlo (HMC). High-quality integration is
+crucial for designing efficient and effective proposals for HMC. While the standard method is
+leapfrog (Störmer-Verlet) integration, we propose
+the use of an exponential integrator, which is
+robust to stiff ODEs with highly-oscillatory components. This oscillation is difficult to reproduce
+using leapfrog integration, even with carefully
+selected integration parameters and preconditioning. Concretely, we use a Gaussian distribution
+approximation to segregate stiff components of
+the ODE. We integrate this term analytically for
+stability and account for deviation from the approximation using variation of constants. We consider various ways to derive Gaussian approximations and conduct extensive empirical studies
+applying the proposed “exponential HMC” to several benchmarked learning problems. We compare to state-of-the-art methods for improving
+leapfrog HMC and demonstrate the advantages of
+our method in generating many effective samples
+with high acceptance rates in short running times.
+
+1. Introduction
+Markov chain Monte Carlo (MCMC) is at the core of many
+methods in computational statistics (Gelman et al., 2004;
+Robert & Casella, 2004) to sample from complex probability
+distributions for inference and learning.
+Metropolis-Hastings MCMC obtains such samples by constructing a Markov chain with help from proposal distriProceedings of the 32 nd International Conference on Machine
+Learning, Lille, France, 2015. JMLR: W&CP volume 37. Copyright 2015 by the author(s).
+
+butions that generate random walks in sample space. A
+fraction of these walks aligned with the target distribution is
+kept, while the remainder is discarded. Sampling efficiency
+and quality depends critically on the proposal distribution.
+For this reason, designing good proposals has long been a
+subject of intensive research.
+For distributions over continuous variables, Hamiltonian
+Monte Carlo (HMC) is a state-of-the-art sampler using classical mechanics to generate proposal distributions (Neal,
+2011). The method starts by introducing auxiliary sampling variables. It then treats the negative log density of
+the variables’ joint distribution as the Hamiltonian of particles moving in sample space. Final positions on the motion
+trajectories are used as proposals.
+The equations of motion are ordinary differential equations
+(ODEs) requiring numerical integration. Several factors
+affect the choice of integrators. Time reversibility is needed
+for the Markov chain to converge to the target distribution,
+and volume preservation ensures that the sample acceptance
+test is tractable. The acceptance rate of HMC is determined
+by how well the integrator preserves the energy of the physical system, and hence high-fidelity numerical solutions are
+preferable. In the rare case that the ODE can be integrated
+exactly, no samples would be rejected. More realistically,
+however, when the ODE is integrated approximately, especially over a long time period to encourage exploration
+of the sample space, integration error can impede energy
+conservation, slowing convergence. Thus, the time period
+for integration usually is subdivided into many shorter steps.
+Despite its relevance to sampling efficiency, investigation
+of sophisticated numerical integrators for HMC has been
+scarce in the current machine learning literature. The
+standard HMC integrator is the leapfrog (Störmer-Verlet)
+method. Leapfrog integration, however, is sensitive to
+stiff ODEs with highly-oscillatory dynamical components
+(Hairer et al., 2006). When the target density yields a stiff
+ODE, e.g. a multivariate Gaussian distribution with small
+variances in certain dimensions, the time step for leapfrog
+
+

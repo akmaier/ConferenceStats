@@ -1,0 +1,88 @@
+Competitive Caching with Machine Learned Advice
+
+Thodoris Lykouris 1 Sergei Vassilvitskii 2
+
+Abstract
+We develop a framework for augmenting online algorithms with a machine learned oracle to achieve
+competitive ratios that provably improve upon unconditional worst case lower bounds when the oracle has low error. Our approach treats the oracle
+as a complete black box, and is not dependent on
+its inner workings, or the exact distribution of its
+errors. We apply this framework to the traditional
+caching problem creating an eviction strategy for
+a cache of size k. We demonstrate that naively
+following the oracle’s recommendations may lead
+to very poor performance, even when the average
+error is quite low. Instead we show how to modify the Marker algorithm to take into account the
+oracle’s predictions, and prove that this combined
+approach achieves a competitive ratio that both
+(i) decreases as the oracle’s error decreases, and
+(ii) is always capped by O(log k), which can be
+achieved without any oracle input. We complement our results with an empirical evaluation of
+our algorithm on real world datasets, and show
+that it performs well empirically even using simple off-the-shelf predictions.
+
+1. Introduction
+Despite the success and prevalence of machine learned systems across many application domains, there are still a lot of
+hurdles that one needs to overcome to deploy an ML system
+in practice (Sculley et al., 2015). As these systems are rarely
+100% perfect, a key challenge is dealing with errors that
+inevitably arise.
+There are many reasons that learned systems may exhibit
+errors when deployed. First, most of them are trained to
+be good on average, minimizing some expected loss. In
+*
+Equal contribution 1 Cornell University, Ithaca, NY, USA
+Google Research, New York, NY, USA. Correspondence to:
+Thodoris Lykouris <teddlyk@cs.cornell.edu>, Sergei Vassilvitskii <sergeiv@google.com>.
+2
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+doing so, the system may invest its efforts on reducing the
+error on the majority of inputs, at the expense of increased
+error on a handful of outliers. Another problem is that
+generalization error guarantees only apply when the train
+and test examples are drawn from the same distribution. If
+this assumption is violated, either due to distribution drift
+or adversarial examples (Szegedy et al., 2014), the machine
+learned predictions may be very far from the truth. In all
+cases, any system backed by machine learning needs to be
+robust enough to handle occasional errors.
+While machine learning is in the business of predicting the
+unknown, online algorithms provide guidance on how to
+act without any knowledge of the future. These powerful
+methods show how to hedge decisions so that, regardless of
+what the future holds, the online algorithm performs nearly
+as well as the optimal offline algorithm. However these
+guarantees come at a cost: since they protect against the
+worst case, online algorithms may be overly cautious, which
+leads to high competitive ratios even for seemingly simple
+problems.
+In this work, we ask: What if the online algorithm is
+equipped with a machine learned oracle? How can one
+use this oracle to combine the predictive power of machine
+learning with the robustness of online algorithms?
+We focus on a prototypical example of this area: the online
+paging, or caching problem. In this setting, requests arrive
+one at a time to a server equipped with a small amount of
+memory. Upon processing a request, the server places the
+answer in the memory (in case an identical request comes
+in the future). Since the local memory has limited size,
+the server must decide which of the current elements to
+evict. It is well known that if the local memory or cache
+has size k, then any deterministic algorithm has competitive
+ratio Ω(k). However, an O(k) bound can be also achieved
+by almost any reasonable strategy, thus this metric fails to
+distinguish between algorithms that perform well in practice
+and those that perform poorly. The competitive ratio of the
+best randomized algorithm is Θ(log k) which, despite far
+from trivial, is also much higher than observed in practice.
+In contrast, we show how to use machine learned predictions to achieve
+a competitive ratio of approximately
+p
+2 + O(min( η/O PT, log k), when using a hypothesis with
+total absolute loss η (see Section 3 for a precise statement of
+
+

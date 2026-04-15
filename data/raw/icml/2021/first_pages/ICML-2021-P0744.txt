@@ -1,0 +1,75 @@
+Improved Denoising Diffusion Probabilistic Models
+
+Alex Nichol * 1 Prafulla Dhariwal * 1
+
+Abstract
+Denoising diffusion probabilistic models (DDPM)
+are a class of generative models which have recently been shown to produce excellent samples. We show that with a few simple modifications, DDPMs can also achieve competitive
+log-likelihoods while maintaining high sample
+quality. Additionally, we find that learning variances of the reverse diffusion process allows sampling with an order of magnitude fewer forward
+passes with a negligible difference in sample quality, which is important for the practical deployment of these models. We additionally use precision and recall to compare how well DDPMs
+and GANs cover the target distribution. Finally,
+we show that the sample quality and likelihood
+of these models scale smoothly with model capacity and training compute, making them easily
+scalable. We release our code and pre-trained
+models at https://github.com/openai/
+improved-diffusion.
+
+1. Introduction
+Sohl-Dickstein et al. (2015) introduced diffusion probabilistic models, a class of generative models which match a
+data distribution by learning to reverse a gradual, multi-step
+noising process. More recently, Ho et al. (2020) showed
+an equivalence between denoising diffusion probabilistic
+models (DDPM) and score based generative models (Song
+& Ermon, 2019; 2020), which learn a gradient of the logdensity of the data distribution using denoising score matching (Hyvärinen, 2005). It has recently been shown that this
+class of models can produce high-quality images (Ho et al.,
+2020; Song & Ermon, 2020; Jolicoeur-Martineau et al.,
+2020) and audio (Chen et al., 2020b; Kong et al., 2020),
+but it has yet to be shown that DDPMs can achieve loglikelihoods competitive with other likelihood-based models
+such as autoregressive models (van den Oord et al., 2016)
+*
+Equal contribution 1 OpenAI, San Francisco, USA. Correspondence to: Alex Nichol <alex@openai.com>, Prafulla Dhariwal
+<prafulla@openai.com>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+and VAEs (Kingma & Welling, 2013). This raises various
+questions, such as whether DDPMs are capable of capturing
+all the modes of a distribution. Furthermore, while Ho et al.
+(2020) showed extremely good results on the CIFAR-10
+(Krizhevsky, 2009) and LSUN (Yu et al., 2015) datasets, it
+is unclear how well DDPMs scale to datasets with higher diversity such as ImageNet. Finally, while Chen et al. (2020b)
+found that DDPMs can efficiently generate audio using a
+small number of sampling steps, it has yet to be shown that
+the same is true for images.
+In this paper, we show that DDPMs can achieve loglikelihoods competitive with other likelihood-based models,
+even on high-diversity datasets like ImageNet. To more
+tightly optimise the variational lower-bound (VLB), we
+learn the reverse process variances using a simple reparameterization and a hybrid learning objective that combines the
+VLB with the simplified objective from Ho et al. (2020).
+We find surprisingly that, with our hybrid objective, our
+models obtain better log-likelihoods than those obtained
+by optimizing the log-likelihood directly, and discover that
+the latter objective has much more gradient noise during
+training. We show that a simple importance sampling technique reduces this noise and allows us to achieve better
+log-likelihoods than with the hybrid objective.
+After incorporating learned variances into our model, we
+surprisingly discovered that we could sample in fewer steps
+from our models with very little change in sample quality.
+While DDPM (Ho et al., 2020) requires hundreds of forward passes to produce good samples, we can achieve good
+samples with as few as 50 forward passes, thus speeding
+up sampling for use in practical applications. In parallel to
+our work, Song et al. (2020a) develops a different approach
+to fast sampling, and we compare against their approach,
+DDIM, in our experiments.
+While likelihood is a good metric to compare against other
+likelihood-based models, we also wanted to compare the
+distribution coverage of these models with GANs. We use
+the improved precision and recall metrics (Kynkäänniemi
+et al., 2019) and discover that diffusion models achieve
+much higher recall for similar FID, suggesting that they do
+indeed cover a much larger portion of the target distribution.
+Finally, since we expect machine learning models to con-
+
+

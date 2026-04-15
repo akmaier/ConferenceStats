@@ -1,0 +1,77 @@
+Active Learning for Accurate Estimation of Linear Models
+Carlos Riquelme 1 Mohammad Ghavamzadeh 2 Alessandro Lazaric 3
+
+Abstract
+We explore the sequential decision-making problem where the goal is to estimate a number of linear models uniformly well, given a shared budget
+of random contexts independently sampled from
+a known distribution. For each incoming context,
+the decision-maker selects one of the linear models and receives an observation that is corrupted
+by the unknown noise level of that model. We
+present Trace-UCB, an adaptive allocation algorithm that learns the models’ noise levels while
+balancing contexts accordingly across them, and
+prove bounds for its simple regret in both expectation and high-probability. We extend the algorithm and its bounds to the high dimensional setting, where the number of linear models times
+the dimension of the contexts is more than the
+total budget of samples. Simulations with real
+data suggest that Trace-UCB is remarkably robust, outperforming a number of baselines even
+when its assumptions are violated.
+
+1. Introduction
+We study the problem faced by a decision-maker whose
+goal is to estimate a number of regression problems equally
+well (i.e., with a small prediction error for each of them),
+and has to adaptively allocate a limited budget of samples
+to the problems in order to gather information and improve
+its estimates. Two aspects of the problem formulation are
+key and drive the algorithm design: 1) The observations
+Y collected from each regression problem depend on side
+information (i.e., contexts X 2 Rd ) and we model the relationship between X and Y in each problem i as a linear
+function with unknown parameters i 2 Rd , and 2) The
+“hardness” of learning each parameter i is unknown in advance and may vary across the problems. In particular, we
+1
+Stanford University, Stanford, CA, USA. 2 DeepMind, Mountain View, CA, USA (The work was done when the author was
+with Adobe Research). 3 Inria Lille, France. Correspondence to:
+Carlos Riquelme <rikel@stanford.edu>.
+
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+assume that the observations are corrupted by noise levels
+that are problem-dependent and must be learned as well.
+This scenario may arise in a number of different domains
+where a fixed experimentation budget (number of samples)
+should be allocated to different problems. Imagine a drug
+company that has developed several treatments for a particular form of disease. Now it is interested in having an accurate estimate of the performance of each of these treatments
+for a specific population of patients (e.g., at a particular
+geographical location). Given the budget allocated to this
+experiment, a number of patients n can participate in the
+clinical trial. Volunteered patients arrive sequentially over
+time and they are represented by a context X 2 Rd summarizing their profile. We model the health status of patient X
+after being assigned to treatment i by scalar Yi 2 R, which
+depends on the specific drug through a linear function with
+parameter i (i.e., Yi ⇡ X T i ). The goal is to assign each
+incoming patient to a treatment in such a way that at the end
+of the trial, we have an accurate estimate for all i ’s. This
+will allow us to reliably predict the expected health status
+of each new patient X for any treatment i. Since the parameters i and the noise levels are initially unknown, achieving this goal requires an adaptive allocation strategy for the
+n patients. Note that while n may be relatively small, as
+the ethical and financial costs of treating a patient are high,
+the distribution of the contexts X (e.g., the biomarkers of
+cancer patients) can be precisely estimated in advance.
+This setting is clearly related to the problem of pure exploration and active learning in multi-armed bandits (Antos et al., 2008), where the learner wants to estimate the
+mean of a finite set of arms by allocating a finite budget
+of n pulls. Antos et al. (2008) first introduced this setting
+where the objective is to minimize the largest mean square
+error (MSE) in estimating the value of each arm. While
+the optimal solution is trivially to allocate the pulls proportionally to the variance of the arms, when the variances
+are unknown an exploration-exploitation dilemma arises,
+where variance and value of the arms must be estimated at
+the same time in order to allocate pulls where they are more
+needed (i.e., arms with high variance). Antos et al. (2008)
+proposed
+p a forcing algorithm where all arms are pulled at
+least n times before allocating pulls proportionally to the
+estimated variances. They derived bounds on the regret,
+measuring the difference between the MSEs of the learn-
+
+

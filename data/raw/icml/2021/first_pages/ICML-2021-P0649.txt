@@ -1,0 +1,97 @@
+Optimal Complexity in Decentralized Training
+Yucheng Lu 1 Christopher De Sa 1
+
+Abstract
+Decentralization is a promising method of scaling up parallel machine learning systems. In this
+paper, we provide a tight lower bound on the iteration complexity for such methods in a stochastic
+non-convex setting. Our lower bound reveals a
+theoretical gap in known convergence rates of
+many existing decentralized training algorithms,
+such as D-PSGD. We prove by construction this
+lower bound is tight and achievable. Motivated
+by our insights, we further propose DeTAG, a
+practical gossip-style decentralized algorithm that
+achieves the lower bound with only a logarithm
+gap. Empirically, we compare DeTAG with other
+decentralized algorithms on image classiﬁcation
+tasks, and we show DeTAG enjoys faster convergence compared to baselines, especially on
+unshufﬂed data and in sparse networks.
+
+1. Introduction
+Parallelism is a ubiquitous method to accelerate model training (Abadi et al., 2016; Alistarh, 2018; Alistarh et al., 2020;
+Lu et al., 2020). A parallel learning system usually consists
+of three layers (Table 1): an application to solve, a communication protocol deciding how parallel workers coordinate,
+and a network topology determining how workers are connected. Traditional design for these layers usually follows a
+centralized setup: in the application layer, training data is
+required to be shufﬂed and shared among parallel workers;
+while in the protocol and network layers, workers either
+communicate via a fault-tolerant single central node (e.g.
+Parameter Server) (Li et al., 2014a;b; Ho et al., 2013) or
+a fully-connected topology (e.g. AllReduce) (Gropp et al.,
+1999; Patarasuk & Yuan, 2009). This centralized design limits the scalability of learning systems in two aspects. First,
+in many scenarios, such as Federated Learning (Koloskova
+et al., 2019a; McMahan et al., 2016) and Internet of Things
+1
+Department of Computer Science, Cornell University, Ithaca,
+New York, United States. Correspondence to: Yucheng Lu
+<yl2967@cornell.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Table 1. Design choice of centralization and decentralization in
+different layers of a parallel machine learning system. The protocol
+speciﬁes how workers communicate. The topology refers to the
+overlay network that logically connects all the workers.
+Layer
+
+Centralized
+
+Decentralized
+
+Application
+
+Shufﬂed Data
+
+Unshufﬂed Data
+(Federated Learning)
+
+Protocol
+
+AllReduce/AllGather
+Parameter Server
+
+Gossip
+
+Network
+Topology
+
+Complete(Bipartite) Graph
+
+Arbitrary Graph
+
+(IOT) (Kanawaday & Sane, 2017), a shufﬂed dataset or a
+complete (bipartite) communication graph is not possible or
+affordable to obtain. Second, a centralized communication
+protocol can signiﬁcantly slow down the training, especially
+with a low-bandwidth or high-latency network (Lian et al.,
+2017b; Tang et al., 2019b; Yu et al., 2018).
+The rise of decentralization. To mitigate these limitations,
+decentralization comes to the rescue. Decentralizing the
+application and network allows workers to learn with unshufﬂed local datasets (Li et al., 2019) and arbitrary topologies (Seaman et al., 2017; Shanthamallu et al., 2017). Furthermore, the decentralized protocol, i.e. Gossip, helps to
+balance load, and has been shown to outperform centralized
+protocols in many cases (Lian et al., 2017a; Yu et al., 2019;
+Nazari et al., 2019; Lu & De Sa, 2020).
+Understanding decentralization with layers. Many decentralized training designs have been proposed, which can
+lead to confusion as the term “decentralization” is used
+inconsistently in the literature. Some works use “decentralized” to refer to approaches that can tolerate non-iid or
+unshufﬂed datasets (Li et al., 2019), while others use it to
+mean gossip communication (Lian et al., 2017a), and still
+others use it to mean a sparse topology graph (Wan et al.,
+2020). To eliminate this ambiguity, we formulate Table 1,
+which summarizes the different “ways” a system can be
+decentralized. Note that the choices to decentralize different
+layers are independent, e.g., the centralized protocol AllReduce can still be implemented on a decentralized topology
+like the Ring graph (Wan et al., 2020).
+
+

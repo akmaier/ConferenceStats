@@ -1,0 +1,76 @@
+Accurate Post Training Quantization With Small Calibration Sets
+
+Itay Hubara * 1 2 Yury Nahshan * 1 Yair Hanani 1 Ron Banner 1 Daniel Soudry 2
+
+Abstract
+Lately, post-training quantization methods have
+gained considerable attention, as they are simple
+to use, and require only a small unlabeled calibration set. This small dataset cannot be used
+to fine-tune the model without significant overfitting. Instead, these methods only use the calibration set to set the activations’ dynamic ranges.
+However, such methods always resulted in significant accuracy degradation, when used below
+8-bits (except on small datasets). Here we aim
+to break the 8-bit barrier. To this end, we minimize the quantization errors of each layer or block
+separately by optimizing its parameters over the
+calibration set. We empirically demonstrate that
+this approach is: (1) much less susceptible to overfitting than the standard fine-tuning approaches,
+and can be used even on a very small calibration
+set; and (2) more powerful than previous methods,
+which only set the activations’ dynamic ranges.
+We suggest two flavors for our method, parallel
+and sequential aim for a fixed and flexible bitwidth allocation. For the latter, we demonstrate
+how to optimally allocate the bit-widths for each
+layer, while constraining accuracy degradation or
+model compression by proposing a novel integer
+programming formulation. Finally, we suggest
+model global statistics tuning, to correct biases
+introduced during quantization. Together, these
+methods yield state-of-the-art results for both vision and text models. For instance, on ResNet50,
+we obtain less than 1% accuracy degradation —
+with 4-bit weights and activations in all layers, but
+first and last. The suggested methods are two orders of magnitude faster than the traditional Quantize Aware Training approach used for lower than
+8-bit quantization. We open-sourced our code
+https://github.com/papers-submission/CalibTIP.
+*
+
+Equal contribution 1 Habana Labs – An Intel company,
+Caesarea, Israel 2 Department of Electrical Engineering - Technion, Haifa, Israel. Correspondence to: Itay Hubara <itayhubara@gmail.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+1. Introduction
+The pursuit of advanced Deep Neural Networks (DNNs)
+causes researchers to construct deeper and wider networks,
+making them expensive to use in terms of power and time.
+This increases the need for efficient implementations of
+these networks. Efficient networks reduce cloud-vendor
+costs and make it possible to run them on low-power devices
+such as smartphones and wearable devices. The most common off-the-shelf approach to improving network efficiency
+is quantization, which reduces the numerical precision of
+the network and its complexity and memory footprint.
+DNN quantization techniques can be classified as either
+post-training or quantization-aware training (QAT) techniques (Han et al., 2015; Courbariaux et al., 2015; Hubara
+et al., 2017; Zhou et al., 2016). Although QAT techniques,
+in general, achieve better results, there are important realworld scenarios in which they are not applicable. These
+are the cases where the training data is sensitive or simply
+unavailable at the time of deployment. For instance, when
+off-the-shelf or legacy models are being used, or when medical records are involved. Therefore, much attention has recently been dedicated to post-training quantization methods
+(Nagel et al., 2019; Banner et al., 2018; Zhao et al., 2019),
+which can be more easily applied in practice. These methods allow for network quantization to happen seamlessly
+when deployed, without requiring additional information
+from the user except a small unlabeled calibration set.
+Unfortunately, post-training quantization below 8-bit usually incurs significant accuracy degradation, and in some
+cases even higher numerical precision is required. In this
+paper, our goal is to break this barrier by distilling all the
+information the pre-trained model and calibration set encode. Our goal is to find an optimal scheme for the current
+state of the art hardware which usually supports 16,8,4 bits
+data types with per-channel quantization of the weights. To
+that end, we suggest a three-stage pipeline that consists of
+methods applied solely on a small calibration set to reduce
+the local error introduced during the quantization process
+(e.g., round-off errors) followed by integer programming
+to determine the bit-width of different layers so that the
+overall accuracy degradation is minimized. Even without
+using mixed-precision, the suggested method is much less
+prone to over-fitting than current methods and yields best in
+
+

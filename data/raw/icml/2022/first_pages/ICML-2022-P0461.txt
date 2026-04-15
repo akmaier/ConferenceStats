@@ -1,0 +1,89 @@
+Efficient Approximate Inference for Stationary Kernel on Frequency Domain
+
+Yohan Jung 1 Kyungwoo Song 2 Jinkyoo Park 1
+
+Abstract
+Based on the Fourier duality between a stationary kernel and its spectral density, modeling the
+spectral density using a Gaussian mixture density
+enables one to construct a flexible kernel, known
+as a Spectral Mixture kernel, that can model any
+stationary kernel. However, despite its expressive
+power, training this kernel is typically difficult
+because scalability and overfitting issues often
+arise due to a large number of training parameters.
+To resolve these issues, we propose an approximate inference method for estimating the Spectral
+mixture kernel hyperparameters. Specifically, we
+approximate this kernel by using the finite random
+spectral points based on Random Fourier Feature
+and optimize the parameters for the distribution of
+spectral points by sampling-based variational inference. To improve this inference procedure, we
+analyze the training loss and propose two special
+methods: a sampling method of spectral points to
+reduce the error of the approximate kernel in training, and an approximate natural gradient to accelerate the convergence of parameter inference.
+
+1. Introduction
+In constructing a Gaussian process (GP) model, selecting a
+proper kernel function is vital because the selected kernel
+determines the overall structure of the target function by
+specifying the covariance of GP, a prior for the target function. In general, under the assumption that the covariance of
+two target function values is related to the distance between
+two inputs, a stationary kernel whose output is a function
+of the difference between two inputs, is commonly used.
+One of the main characteristics of the stationary kernel is
+that it has Fourier duality with its spectral density. That is,
+1
+
+Department of Industrial & Systems Engineering, Korea Advanced Institute of Science and Technology, Daejeon , South Korea 2 Department of Artificial Intelligence, University of Seoul,
+Seoul, South Korea. Correspondence to: Yohan Jung <becre1776@kaist.ac.kr>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+stationary kernel k(x1 − x2 ) for inputs x1 and x2 can be
+expressed by an inverse Fourier transform of its spectral
+density p(s) as
+Z
+T
+k(x1 − x2 ) = ei2πs (x1 −x2 ) p(s)ds.
+(1)
+For example, the RBF kernel, which is defined as k(x1 −
+2
+
+x2 ) = exp(− 12 ∥ 2π(x1l−x2 ) ∥ ), is obtained when specifying
+p(s) = N (s; 0, l−2 I) with RBF hyperparameter l in Eq. (1).
+Based on the Fourier duality, selecting a specific kernel
+is equivalent to modeling the form of p(s). If the model
+assumption for the spectral density is not flexible enough
+to express the spectral density of the true kernel, the GP
+model with the induced kernel may not explain the dataset
+well. Thus, a flexible model for p(s) is necessary in order
+to find a stationary kernel that can describe the dataset well.
+As an attempt to construct a flexible kernel, Wilson &
+Adams (2013) represent p(s) as a Gaussian mixture denPQ
+D
+2
+sity
+and
+q=1 wq N (s; µq , diag(σq )), where µq ∈ R
+2
+D×D
+diag(σq ) ∈ R
+are the mean and the diagonal covariance matrix, respectively. The Gaussian mixture density
+can represent any p(s) flexibly based on the universal approximation theorem (Kostantinos, 2000) and thus, it can
+induce the flexible kernel (SM kernel) by Eq. (1). In fact,
+Wilson & Adams (2013); Wilson et al. (2014) demonstrate
+that the SM kernel can find the suitable stationary kernel
+that captures the covariance structure of the given datasets.
+SM kernel has been employed in many applications: for
+example, prediction on the time-series datasets (Ploysuwan,
+2014; Kupilik & Witmer, 2018; Chen et al., 2021), analysis the brain states (Ulrich et al., 2014; 2015), Bayesian
+optimization (Wu et al., 2017; Raj et al., 2020).
+However, the improved expressive power also incurs two
+challenges at the cost of kernel flexibility: high computational cost and overfitting issue. Specifically, given N data
+points, training the SM kernel requires O((Q + 2QD)N 2 )
+computations per iteration in addition to O(N 3 ) computations for the inversion of N × N kernel matrix (Rasmussen,
+2004). When N is large, training the SM kernel is generally difficult due to high computational cost. In addition,
+training the SM kernel by conventional approach, i.e. the
+maximization of the marginal likelihood, may induce overfitting because of its many parameters (Q + 2QD) (Warnes
+& Ripley, 1987; Simpson et al., 2021b).
+
+

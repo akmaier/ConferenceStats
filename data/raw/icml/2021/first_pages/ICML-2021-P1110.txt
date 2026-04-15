@@ -1,0 +1,70 @@
+Large Scale Private Learning via Low-rank Reparametrization
+
+Da Yu 1 2 Huishuai Zhang 2 Wei Chen 2 Jian Yin 1 Tie-Yan Liu 2
+
+Abstract
+We propose a reparametrization scheme to address the challenges of applying differentially
+private SGD on large neural networks, which
+are 1) the huge memory cost of storing individual gradients, 2) the added noise suffering notorious dimensional dependence. Specifically,
+we reparametrize each weight matrix with two
+gradient-carrier matrices of small dimension and
+a residual weight matrix. We argue that such
+reparametrization keeps the forward/backward
+process unchanged while enabling us to compute
+the projected gradient without computing the gradient itself. To learn with differential privacy,
+we design reparametrized gradient perturbation
+(RGP) that perturbs the gradients on gradientcarrier matrices and reconstructs an update for
+the original weight from the noisy gradients. Importantly, we use historical updates to find the
+gradient-carrier matrices, whose optimality is rigorously justified under linear regression and empirically verified with deep learning tasks. RGP
+significantly reduces the memory cost and improves the utility. For example, we are the first
+able to apply differential privacy on the BERT
+model and achieve an average accuracy of 83.9%
+on four downstream tasks with ǫ = 8, which is
+within 5% loss compared to the non-private baseline but enjoys much lower privacy leakage risk.
+
+1. Introduction
+A recent line of works (Shokri et al., 2017; Carlini et al.,
+2019; 2020) have exposed the potential privacy risks of
+trained models, e.g., data extraction from language model.
+Theoretically, learning with differential privacy (Dwork
+1
+
+The School of Data and Computer Science & Guangdong
+Key Laboratory of Big Data Analysis and Processing, Sun Yatsen University, Guangdong, China. The work was done when
+D. Yu was an intern at Microsoft Research Asia. 2 Microsoft Research Asia, Beijing, China. Corresponding authors: Wei Chen
+<wche@microsoft.com>, Jian Yin <issjyin@mail.sysu.edu.cn>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Figure 1. The proposed reparametrization scheme. The residual
+weight makes the reparametrized output the same as the normal
+output and ∂L, ∂R naturally connected with the normal gradient.
+
+et al., 2006) is guaranteed to prevent such information leakage because differential privacy imposes an upper bound on
+the influence of any individual sample. Empirically, differential privacy also makes learning more resistant to attacks
+(Rahman et al., 2018; Bernau et al., 2019; Zhu et al., 2019;
+Carlini et al., 2019; Ma et al., 2019; Lecuyer et al., 2019).
+To learn with differential privacy, many algorithms have
+been proposed under different settings over the past decade,
+e.g., Chaudhuri & Monteleoni (2009); Song et al. (2013);
+Agarwal et al. (2018); Wang & Gu (2019); Wang et al.
+(2019a); Yu et al. (2020); Phan et al. (2020); Vietri et al.
+(2020), to name a few. Among them, gradient perturbation is a popular choice because of its simplicity and wide
+applicability (Abadi et al., 2016). In terms of simplicity,
+gradient perturbation only makes two simple modifications
+to the standard learning process. It first clips the gradients
+of individual samples, referred to as individual gradients,
+to bound the sensitivity and then perturbs the aggregated
+gradient with random noise. In terms of wide applicability,
+it does not assume the objective to be convex and hence
+applies to deep neural networks.
+Despite its advantages, there are two challenges when applying gradient perturbation to cutting-edge deep models. First,
+one needs to compute and store individual gradients. Recent
+works (Dangel et al., 2019; Opacus, 2020) have developed
+toolkits to compute individual gradients for a mini-batch of
+data through a single forward/backward pass, but storing
+individual gradients consumes a huge amount of memory
+as each individual gradient requires the same amount of
+memory as the model itself. Second, both theoretical and
+
+

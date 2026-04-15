@@ -1,0 +1,54 @@
+Kernelized Bayesian Softmax for Text Generation
+
+Ning Miao
+
+Hao Zhou Chengqi Zhao Wenxian Shi Lei Li
+ByteDance AI lab
+{miaoning,zhouhao.nlp,zhaochengqi.d,shiwenxian,lileilab}@bytedance.com
+
+Abstract
+Neural models for text generation require a softmax layer with proper word embeddings during the decoding phase. Most existing approaches adopt single point
+embedding for each word. However, a word may have multiple senses according
+to different context, some of which might be distinct. In this paper, we propose
+KerBS, a novel approach for learning better embeddings for text generation. KerBS
+embodies two advantages: a) it employs a Bayesian composition of embeddings
+for words with multiple senses; b) it is adaptive to semantic variances of words and
+robust to rare sentence context by imposing learned kernels to capture the closeness
+of words (senses) in the embedding space. Empirical studies show that KerBS
+significantly boosts the performance of several text generation tasks.
+
+1
+
+Introduction
+
+Text generation has been significantly improved with deep learning approaches in tasks such as
+language modeling [Bengio et al., 2003, Mikolov et al., 2010], machine translation [Sutskever et al.,
+2014, Bahdanau et al., 2015, Vaswani et al., 2017], and dialog generation [Sordoni et al., 2015]. All
+these models include a softmax final layer to yield words. The softmax layer takes a context state (h)
+from an upstream network such as RNN cells as the input, and transforms h into the word probability
+with a linear projection (W · h) and an exponential activation. Each row of W can be viewed as the
+embedding of a word. Essentially, softmax conducts embedding matching with inner-product scoring
+between a calculated context vector h and word embeddings W in the vocabulary.
+The above commonly adopted setting for softmax imposes a strong hypothesis on the embedding
+space — it assumes that each word corresponds to a single vector and the context vector h from the
+decoding network must be indiscriminately close to the desired word embedding vector in certain
+distance metric. We discover that such an assumption does not coincide with practical cases. Fig. 1
+visualizes examples of the context vectors for utterances containing the examined words, calculated
+from the BERT model Devlin et al. [2019]. We make three interesting observations. a) Multi-sense:
+Not every word’s context vectors form a single cluster. There are words with multiple clusters
+(Fig. 1b). b) Varying-variance: The variances of context vectors vary significantly across clusters.
+Some words correspond to smaller variances while others to larger variances (Fig. 1c). c) Robustness:
+There are outliers in the context space (Fig. 1b). These observations explain the ineffectiveness during
+training with the traditional softmax. The traditional way brings word embedding W ill-centered
+with all context vectors of the same word – even though they might belong to multiple clusters. At
+the same time, the variances of different words are completely ignored in the plain softmax with
+inner-product as the similarity score. It is also vulnerable to outliers since a single anomally would
+lead the word embedding to be far from the main cluster. In short, the softmax layer doesn’t have
+sufficient expressiveness capacity.
+Yang et al. [2018] propose Mixture-of-Softmax (MoS) to enhance the expressiveness of softmax. It
+replaces a single softmax layer with a weighted average of M softmax layers. However, all words
+share the same fixed number of components M and averaging weights, which heavily restrict MoS’s
+capacity. Furthermore, the variances of context vectors are not taken into the consideration.
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

@@ -1,0 +1,66 @@
+GENIE: Higher-Order Denoising Diffusion Solvers
+
+Tim Dockhorn1,2,3,∗
+1
+
+NVIDIA
+
+Arash Vahdat1
+2
+
+University of Waterloo
+
+tim.dockhorn@uwaterloo.ca,
+
+Karsten Kreis1
+3
+
+Vector Institute
+
+{avahdat,kkreis}@nvidia.com
+
+Abstract
+Denoising diffusion models (DDMs) have emerged as a powerful class of
+generative models. A forward diffusion process slowly perturbs the data, while a
+deep model learns to gradually denoise. Synthesis amounts to solving a differential
+equation (DE) defined by the learnt model. Solving the DE requires slow iterative
+solvers for high-quality generation. In this work, we propose Higher-Order Denoising Diffusion Solvers (GENIE): Based on truncated Taylor methods, we derive a
+novel higher-order solver that significantly accelerates synthesis. Our solver relies
+on higher-order gradients of the perturbed data distribution, that is, higher-order
+score functions. In practice, only Jacobian-vector products (JVPs) are required and
+we propose to extract them from the first-order score network via automatic differentiation. We then distill the JVPs into a separate neural network that allows us to
+efficiently compute the necessary higher-order terms for our novel sampler during
+synthesis. We only need to train a small additional head on top of the first-order
+score network. We validate GENIE on multiple image generation benchmarks and
+demonstrate that GENIE outperforms all previous solvers. Unlike recent methods
+that fundamentally alter the generation process in DDMs, our GENIE solves the
+true generative DE and still enables applications such as encoding and guided
+sampling. Project page and code: https://nv-tlabs.github.io/GENIE.
+
+1
+
+Introduction
+
+Denoising diffusion models (DDMs) offer both state-of-the-art synthesis quality and sample diversity
+in combination with a robust and scalable learning objective. DDMs have been used for image [1–5]
+and video [6, 7] synthesis, super-resolution [8, 9], deblurring [10, 11], image editing and inpainting [5,
+12–14], text-to-image synthesis [15–17], conditional and semantic image generation [18–22], imageto-image translation [14, 23, 24] and for inverse problems in medical imaging [25–31]. They also
+enable high-quality speech synthesis [32–37], 3D shape generation [38–42], molecular modeling [43–
+46], maximum likelihood training [47–50], and more [51–56]. In DDMs, a diffusion process gradually
+perturbs the data towards random noise, while a deep neural network learns to denoise. Formally, the
+problem reduces to learning the score function, i.e., the gradient of the log-density of the perturbed
+data. The (approximate) inverse of the forward diffusion can be described by an ordinary or a
+stochastic differential equation (ODE or SDE, respectively), defined by the learned score function,
+and can therefore be used for generation when starting from random noise [47, 57].
+A crucial drawback of DDMs is that the generative ODE or SDE is typically difficult to solve,
+due to the complex score function. Therefore, efficient and tailored samplers are required for
+fast synthesis. In this work, building on the generative ODE [47, 57, 58], we rigorously derive a
+novel second-order ODE solver using truncated Taylor methods [59]. These higher-order methods
+require higher-order gradients of the ODE—in our case this includes higher-order gradients of the
+∗
+
+Work done during internship at NVIDIA.
+
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+

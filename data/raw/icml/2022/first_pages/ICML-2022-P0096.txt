@@ -1,0 +1,82 @@
+Improving Language Models by Retrieving from Trillions of Tokens
+
+Sebastian Borgeaud * Arthur Mensch * Jordan Hoffmann * Trevor Cai Eliza Rutherford Katie Millican
+George van den Driessche Jean-Baptiste Lespiau Bogdan Damoc Aidan Clark Diego de Las Casas
+Aurelia Guy Jacob Menick Roman Ring Tom Hennigan Saffron Huang Loren Maggiore Chris Jones
+Albin Cassirer Andy Brock Michela Paganini Geoffrey Irving Oriol Vinyals Simon Osindero
+Karen Simonyan Jack W. Rae † Erich Elsen † Laurent Sifre * †
+
+Abstract
+We enhance auto-regressive language models by
+conditioning on document chunks retrieved from
+a large corpus, based on local similarity with preceding tokens. With a 2 trillion token database,
+our Retrieval-Enhanced Transformer (R ETRO)
+obtains comparable performance to GPT-3 and
+Jurassic-1 on the Pile, despite using 25× fewer parameters. After fine-tuning, R ETRO performance
+translates to downstream knowledge-intensive
+tasks such as question answering. R ETRO combines a frozen B ERT retriever, a differentiable encoder and a chunked cross-attention mechanism
+to predict tokens based on an order of magnitude more data than what is typically consumed
+during training. We typically train R ETRO from
+scratch, yet can also rapidly R ETROfit pre-trained
+transformers with retrieval and still achieve good
+performance. Our work opens up new avenues
+for improving language models through explicit
+memory at unprecedented scale.
+Language modelling is an unsupervised task that consists
+of modelling the probability of text, usually by factorising
+it into conditional next-token predictions p(x1 , . . . , xn ) =
+Q
+i p(xi |x<i ). Neural networks have proven to be powerful language models, first in the form of recurrent models
+(Mikolov et al., 2010; Graves, 2013; Jozefowicz et al., 2016)
+and more recently in the form of Transformers (Vaswani
+et al., 2017), that use attention to contextualise the past.
+Large performance improvements have come from increasing the amount of data, training compute, or model pa†
+Equal contribution.
+Equal senior authorship.
+All
+work done at DeepMind.
+Correspondence to: Sebastian Borgeaud <sborgeaud@deepmind.com>, Arthur Mensch
+<amensch@deepmind.com>, Jordan Hoffmann <jordanhoffmann@deepmind.com>, Laurent Sifre <sifre@deepmind.com>.
+*
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+rameters. Transformers have been scaled from millions of
+parameter models in seminal work to over hundred billion
+parameters (Brown et al., 2020), which has led to models
+that do well on a wide array of tasks in a zero or few-shot
+formulation. Increasing model size predictably improves
+performance on downstream tasks (Kaplan et al., 2020). Increasing the number of parameters is beneficial in two ways:
+additional computations at training and inference time, and
+increased memorization of the training data.
+We endeavor to decouple these improvements, by efficiently
+augmenting language models with a massive-scale memory
+without significantly increasing computations. Specifically,
+we suggest retrieval from a large text database as a complementary path to scaling language models. Instead of increasing the model size and training on more data, we equip
+models with the ability to directly access a large database
+to perform predictions—a semi-parametric approach. At a
+high level, our Retrieval Transformer (R ETRO) model splits
+the input sequence into chunks and retrieves text similar to
+the previous chunk to improve the predictions in the current
+chunk. Existing retrieval for language modelling work only
+considers small transformers (100 millions parameters) and
+databases of limited size (up to billions of tokens) (Khandelwal et al., 2020; Yogatama et al., 2021; Guu et al., 2020;
+Lewis et al., 2020). To our knowledge, our work is the
+first to show the benefits of scaling the retrieval database
+to trillions of tokens for large parametric language models.
+Our main contributions are the following:
+• We introduce R ETRO, a retrieval-enhanced autoregressive
+language model (§2.2). We use a chunked cross-attention
+module to incorporate the retrieved text (§2.4), with time
+complexity linear in the amount of retrieved data. We show
+that retrieving based on a pre-trained frozen B ERT model
+(§2.3) works at scale, removing the need for training and
+updating a retriever network.
+• We show that our method scales well with model size
+and database size (Fig. 1): R ETRO provides a constant gain
+for models ranging from 150M to 7B parameters; it can be
+improved at evaluation time by increasing the database size
+and the number of retrieved neighbours. Our largest model
+
+

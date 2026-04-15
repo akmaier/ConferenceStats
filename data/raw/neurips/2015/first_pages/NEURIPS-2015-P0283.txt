@@ -1,0 +1,56 @@
+Parallel Correlation Clustering on Big Graphs
+Xinghao Pan↵,✏ , Dimitris Papailiopoulos↵,✏ , Samet Oymak↵,✏ ,
+Benjamin Recht↵,✏, , Kannan Ramchandran✏ , and Michael I. Jordan↵,✏,
+↵
+AMPLab, ✏ EECS at UC Berkeley, Statistics at UC Berkeley
+
+Abstract
+Given a similarity graph between items, correlation clustering (CC) groups similar
+items together and dissimilar ones apart. One of the most popular CC algorithms
+is KwikCluster: an algorithm that serially clusters neighborhoods of vertices, and
+obtains a 3-approximation ratio. Unfortunately, in practice KwikCluster requires
+a large number of clustering rounds, a potential bottleneck for large graphs.
+We present C4 and ClusterWild!, two algorithms for parallel correlation clustering that run in a polylogarithmic number of rounds, and provably achieve nearly
+linear speedups. C4 uses concurrency control to enforce serializability of a parallel clustering process, and guarantees a 3-approximation ratio. ClusterWild! is
+a coordination free algorithm that abandons consistency for the benefit of better
+scaling; this leads to a provably small loss in the 3 approximation ratio.
+We demonstrate experimentally that both algorithms outperform the state of the
+art, both in terms of clustering accuracy and running time. We show that our
+algorithms can cluster billion-edge graphs in under 5 seconds on 32 cores, while
+achieving a 15⇥ speedup.
+
+1
+
+Introduction
+
+Clustering items according to some notion of similarity is a major primitive in machine learning.
+Correlation clustering serves as a basic means to achieve this goal: given a similarity measure
+between items, the goal is to group similar items together and dissimilar items apart. In contrast to
+other clustering approaches, the number of clusters is not determined a priori, and good solutions
+aim to balance the tension between grouping all items together versus isolating them.
+The simplest CC variant can be described on a
+complete signed graph. Our input is a graph
+G on n vertices, with +1 weights on edges between similar items, and 1 edges between dissimilar ones. Our goal is to generate a partition
+of vertices into disjoint sets that minimizes the
+number of disagreeing edges: this equals the
+number of “+” edges cut by the clusters plus
+the number of “ ” edges inside the clusters.
+This metric is commonly called the number of
+disagreements. In Figure 1, we give a toy example of a CC instance.
+
+cluster 1
+
+cluster 2
+
+cost = (#“ ” edges inside clusters) + (#“+” edges across clusters) = 2
+
+Figure 1: In the above graph, solid edges denote similarity and dashed dissimilarity. The number of disagreeing edges in the above clustering clustering is 2; we
+color the bad edges with red.
+
+Entity deduplication is the archetypal motivating example for correlation clustering, with applications in chat disentanglement, co-reference resolution, and spam detection [1, 2, 3, 4, 5, 6]. The
+input is a set of entities (say, results of a keyword search), and a pairwise classifier that indicates—
+with some error—similarities between entities. Two results of a keyword search might refer to the
+same item, but might look different if they come from different sources. By building a similarity
+1
+
+

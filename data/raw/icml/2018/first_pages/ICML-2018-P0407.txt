@@ -1,0 +1,83 @@
+Analyzing Uncertainty in Neural Machine Translation
+
+Myle Ott 1 Michael Auli 1 David Grangier 1 Marc’Aurelio Ranzato 1
+
+Abstract
+Machine translation is a popular test bed for research in neural sequence-to-sequence models
+but despite much recent research, there is still a
+lack of understanding of these models. Practitioners report performance degradation with large
+beams, the under-estimation of rare words and
+a lack of diversity in the final translations. Our
+study relates some of these issues to the inherent
+uncertainty of the task, due to the existence of
+multiple valid translations for a single source sentence, and to the extrinsic uncertainty caused by
+noisy training data. We propose tools and metrics
+to assess how uncertainty in the data is captured
+by the model distribution and how it affects search
+strategies that generate translations. Our results
+show that search works remarkably well but that
+models tend to spread too much probability mass
+over the hypothesis space. Next, we propose tools
+to assess model calibration and show how to easily fix some shortcomings of current models. As
+part of this study, we release multiple human reference translations for two popular benchmarks.
+
+1. Introduction
+Machine translation (MT) is an interesting task not only
+for its practical applications but also for the formidable
+learning challenges it poses, from how to transduce variable
+length sequences, to searching for likely sequences in an
+intractably large hypothesis space, to dealing with the multimodal nature of the prediction task, since typically there are
+several correct ways to translate a given sentence.
+The research community has made great advances on this
+task, recently focusing the effort on the exploration of several variants of neural models (Bahdanau et al., 2014; Luong
+et al., 2015; Gehring et al., 2017; Vaswani et al., 2017) that
+have greatly improved the state of the art performance on
+1
+Facebook AI Research, USA. Correspondence to: Myle Ott
+<myleott@fb.com>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+public benchmarks. However, several open questions remain (Koehn & Knowles, 2017). In this work, we analyze
+top-performing trained models in order to answer some of
+these open questions. We target better understanding to help
+prioritize future exploration towards important aspects of
+the problem and therefore speed up progress.
+For instance, according to conventional wisdom neural
+machine translation (NMT) systems under-estimate rare
+words (Koehn & Knowles, 2017), why is that? Is the model
+poorly calibrated? Is this due to exposure bias (Ranzato
+et al., 2016), i.e., the mismatch between the distribution of
+words observed at training and test time? Or is this due
+to the combination of uncertainty in the prediction of the
+next word and inference being an arg max selection process, which always picks the most likely/frequent word?
+Similarly, it has been observed (Koehn & Knowles, 2017)
+that performance degrades with large beams. Is this due
+to poor fitting of the model which assigns large probability
+mass to bad sequences? Or is this due to the heuristic nature
+of this search procedure which fails to work for large beam
+values? In this paper we will provide answers and solutions
+to these and other related questions.
+The underlying theme of all these questions is uncertainty,
+i.e. the one-to-many nature of the learning task. In other
+words, for a given source sentence there are several target
+sequences that have non negligible probability mass. Since
+the model only observes one or very few realizations from
+the data distribution, it is natural to ask the extent to which
+an NMT model trained with token-level cross-entropy is
+able to capture such a rich distribution, and whether the
+model is calibrated. Also, it is equally important to understand the effect that uncertainty has on search and whether
+there are better and more efficient search strategies.
+Unfortunately, NMT models have hundreds of millions of
+parameters, the search space is exponentially large and we
+typically observe only one reference for a given source sentence. Therefore, measuring fitness of a NMT model to
+the data distribution is a challenging scientific endeavor,
+which we tackle by borrowing and combining tools from
+the machine learning and statistics literature (Kuleshov &
+Liang, 2015; Guo et al., 2017). With these tools, we show
+that search works surprisingly well, yielding highly likely
+sequences even with relatively narrow beams. Even if we
+
+

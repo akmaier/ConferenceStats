@@ -1,0 +1,79 @@
+Label-Only Membership Inference Attacks
+Christopher A. Choquette-Choo 1 Florian Tramèr 2 Nicholas Carlini 3 Nicolas Papernot 1
+
+Abstract
+Membership inference is one of the simplest privacy threats faced by machine learning models
+that are trained on private sensitive data. In this
+attack, an adversary infers whether a particular
+point was used to train the model, or not, by observing the model’s predictions. Whereas current
+attack methods all require access to the model’s
+predicted confidence score, we introduce a labelonly attack that instead evaluates the robustness
+of the model’s predicted (hard) labels under perturbations of the input, to infer membership. Our
+label-only attack is not only as-effective as attacks requiring access to confidence scores, it
+also demonstrates that a class of defenses against
+membership inference, which we call “confidence
+masking” because they obfuscate the confidence
+scores to thwart attacks, are insufficient to prevent
+the leakage of private information. Our experiments show that training with differential privacy
+or strong `2 regularization are the only current
+defenses that meaningfully decrease leakage of
+private information, even for points that are outliers of the training distribution.
+
+1. Introduction
+Machine learning algorithms are often trained on sensitive
+or private user information, e.g., medical records (Stanfill
+et al., 2010), conversations (Devlin et al., 2018), or financial
+information (Ngai et al., 2011). Trained models can inadvertently leak information about their training data (Shokri
+et al., 2016; Carlini et al., 2019)—violating users’ privacy.
+In perhaps the simplest form of information leakage, membership inference (MI) (Shokri et al., 2016) attacks enable
+an adversary to determine whether or not a data point was
+used in the training data. Revealing just this information can
+1
+
+University of Toronto and Vector Institute 2 Stanford University
+3
+Google. Correspondence to: Christopher A. Choquette-Choo
+<choquette.christopher@gmail.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+cause harm—it leaks information about specific individuals
+instead of the entire population. Consider a model trained
+to learn the link between a cancer patient’s morphological
+data and their reaction to some drug. An adversary with a
+victim’s morphological data and query access to the trained
+model cannot directly infer if the victim has cancer. However, inferring that the victim’s data was part of the model’s
+training set reveals that the victim indeed has cancer.
+Existing MI attacks exploit the higher confidence that models exhibit on their training data (Pyrgelis et al., 2017; Truex
+et al., 2018; Hayes et al., 2019; Salem et al., 2018). An
+adversary queries the model on a candidate data point to
+obtain the model’s confidence and infers the candidate’s
+membership in the training set based on a decision rule. The
+difference in prediction confidence is largely attributed to
+overfitting (Shokri et al., 2016; Yeom et al., 2018).
+A large body of work has been devoted to understanding
+and mitigating MI leakage in ML models. Existing defense
+strategies fall into two broad categories and either
+(1) reduce overfitting (Truex et al., 2018; Shokri et al.,
+2016; Salem et al., 2018); or,
+(2) perturb a model’s predictions so as to minimize the success of known membership attacks (Nasr et al., 2018a;
+Jia et al., 2019; Yang et al., 2020).
+Defenses in (1) use regularization techniques or increase the
+amount of training data to reduce overfitting. In contrast, the
+adversary-aware defenses of (2) explicitly aim to minimize
+the MI advantage of a particular attack. They do so either
+by modifying the training procedure (e.g., an additional loss
+penalty) or the inference procedure after training. These defenses implicitly or explicitly rely on a strategy that we call
+confidence-masking1 , where the MI signal in the model’s
+confidence scores is masked to thwart existing attacks.
+We introduce label-only MI attacks. Our attacks are more
+general: an adversary need only obtain (hard) labels—
+without prediction confidences—of the trained model. This
+threat model is more realistic, as ML models deployed in
+user-facing products need not expose raw confidence scores.
+Thus, our attacks can be mounted on any ML classifier.
+1
+
+Similar to gradient masking from the adversarial examples literature (Papernot et al., 2017).
+
+

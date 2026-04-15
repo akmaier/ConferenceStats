@@ -1,0 +1,78 @@
+FR-Train: A Mutual Information-Based Approach to Fair and Robust Training
+
+Yuji Roh 1 Kangwook Lee 2 Steven Euijong Whang 1 Changho Suh 1
+
+Abstract
+Trustworthy AI is a critical issue in machine learning where, in addition to training a model that is
+accurate, one must consider both fair and robust
+training in the presence of data bias and poisoning.
+However, the existing model fairness techniques
+mistakenly view poisoned data as an additional
+bias to be fixed, resulting in severe performance
+degradation. To address this problem, we propose FR-Train, which holistically performs fair
+and robust model training. We provide a mutual
+information-based interpretation of an existing adversarial training-based fairness-only method, and
+apply this idea to architect an additional discriminator that can identify poisoned data using a clean
+validation set and reduce its influence. In our experiments, FR-Train shows almost no decrease in
+fairness and accuracy in the presence of data poisoning by both mitigating the bias and defending
+against poisoning. We also demonstrate how to
+construct clean validation sets using crowdsourcing, and release new benchmark datasets1 .
+
+1. Introduction
+As machine learning becomes widespread in the Software
+2.0 era (Karpathy, 2017), trustworthy AI is becoming increasingly critical. In addition to simply training accurate
+models, there is an urgent need to address multiple requirements including fairness, robustness, explainability, transparency, and accountability altogether (IBM, 2020). In
+particular, we focus on fairness and robustness, which are
+closely related issues that are affected by the same training
+data. For sensitive applications like healthcare, finance, and
+self-driving cars, a trained model must not discriminate cus1
+
+School of Electrical Engineering, Korea Advanced Institute of
+Science and Technology (KAIST), Daejeon, Korea 2 Department
+of Electrical and Computer Engineering, University of WisconsinMadison, Madison, Wisconsin, USA. Correspondence to: Steven
+Euijong Whang <swhang@kaist.ac.kr>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+1
+https://github.com/yuji-roh/fr-train
+
+tomers based on sensitive attributes including age, sex, or
+religion. In addition, as applications often rely on external
+datasets for their training data, the model training must be
+resilient against noisy, subjective, or even adversarial data.
+Traditionally, model fairness research (Venkatasubramanian,
+2019; Chouldechova & Roth, 2018; Verma & Rubin, 2018)
+has focused on developing metrics such as disparate impact (Feldman et al., 2015), equalized odds (Hardt et al.,
+2016), and equal opportunity (Hardt et al., 2016), which capture various notions of discrimination. More recently, there
+has been a surge in unfairness mitigation techniques (Bellamy et al., 2018b), which improve the model fairness by
+either fixing the training data, training process, or trained
+model. Unfairness mitigation usually involves some tradeoff
+between the model’s accuracy and fairness. Most recently,
+generative adversarial networks (GANs) are being adapted
+to a fairness setting (Zhang et al., 2018a). The architecture
+of GANs is suitable because accuracy and fairness are not
+always aligned, and it makes sense to simultaneously train
+two models: a classifier that predicts labels using input features and an adversary that predicts sensitive attributes using
+the classifier’s predicted labels.
+Robust model training is also important and needs to be
+concurrently taken into consideration. As dataset publishing
+is becoming mainstream as demonstrated by systems like
+Kaggle and Google Dataset Search (Noy et al., 2019), it is
+easy to publish data that is noisy, subjective, and even adversarial, which we hereafter refer to as poisoned data. As a
+result, there has been a proliferation of algorithms that make
+model training resilient to data poisoning as well (Natarajan et al., 2013; Biggio et al., 2011; Frénay & Verleysen,
+2014). However, data poisoning attacks have become increasingly sophisticated, and defending against all of them
+is difficult (Koh et al., 2018).
+Solving model fairness without addressing data poisoning
+may lead to a worse tradeoff between accuracy and fairness.
+For example, consider a banking system that is giving out
+loans where there are two sensitive groups: men and women.
+Suppose we use disparate impact (Feldman et al., 2015) as
+the fairness measure. If the model’s positive prediction rate
+is M for men and W for women, the disparate impact is
+M W
+min{ W
+, M } where a value of 1 is considered perfectly fair.
+Figure 1 shows a toy example of five men and five women
+
+

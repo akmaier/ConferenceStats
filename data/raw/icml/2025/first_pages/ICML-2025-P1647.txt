@@ -1,0 +1,80 @@
+ToMA: Token Merge with Attention for Diffusion Models
+
+Wenbo Lu * 1 Shaoyi Zheng * 1 Yuxuan Xia 1 Shengjie Wang 1
+
+Abstract
+
+gories: attention optimization (e.g., Flash Attention (Dao,
+2023), xformers (Lefaudeux et al., 2022)) and token reduction. While there is extensive research on token reduction
+for discriminative tasks, including Token Merge (Bolya
+et al., 2023), AdaViT (Yin et al., 2022b), and later improvements like Diffrate (Chen et al., 2023), these approaches
+often employ irreversible token pruning or merging, which
+is unsuitable for generative tasks.
+
+Diffusion models excel in high-fidelity image generation but face scalability limits due to transformers’ quadratic attention complexity. Plug-andplay token reduction methods like ToMeSD and
+ToFu reduce FLOPs by merging redundant tokens
+in generated images but rely on GPU-inefficient
+operations (e.g., sorting, scattered writes),
+introducing overheads that negate theoretical
+speedups when paired with optimized attention
+implementations (e.g., FlashAttention). To bridge
+this gap, we propose Token Merge with Attention
+(ToMA), an off-the-shelf method that redesigns
+token reduction for GPU-aligned efficiency, with
+three key contributions: 1) a reformulation of token merge as a submodular optimization problem
+to select diverse tokens; 2) merge/unmerge as
+an attention-like linear transformation via GPUfriendly matrix operations; and 3) exploiting
+latent locality and sequential redundancy (pattern
+reuse) to minimize overhead. ToMA reduces
+SDXL/Flux generation latency by 24%/23% (with
+DINO ∆ < 0.07), outperforming prior methods.
+This work bridges the gap between theoretical and
+practical efficiency for transformers in diffusion.
+
+Generative architectures like diffusion models impose
+stricter constraints: token counts must be restored after
+merging (i.e., “unmerging”) to preserve spatial consistency for iterative refinement. Earlier attempts, including
+ToMeSD (Bolya & Hoffman, 2023), Token Pruning (Kim
+et al., 2022), and ToFu (Kim et al., 2023) adapt token
+reduction to this setting but suffer from a critical flaw:
+their merge/prune (and unmerge/fill) operations rely on
+GPU-inefficient primitives (e.g., sorting, scattered memory writes). This problem intensifies when paired with
+highly optimized attention implementations like those in the
+diffusers framework (von Platen et al., 2022).
+In such scenarios, the attention mechanism, once the primary bottleneck, is streamlined to approach hardware efficiency limits, leaving only marginal time reductions attainable. Consequently, these potential gains are dwarfed by
+the computation costs of unoptimized merging logic, which
+now dominates the computation time. In other words, the
+overhead introduced by previous token merging methods
+becomes negligible only when applied with fast implementations of attention, thereby preventing practical speed-ups.
+
+1. Introduction
+Diffusion models (Ho et al., 2020; Song et al., 2021; Dhariwal & Nichol, 2021) have revolutionized high-fidelity image generation. Yet, their reliance on transformer architectures—notably in U-ViT (Bao et al., 2023) and DiT (Peebles & Xie, 2023)—introduces a bottleneck: the quadratic
+complexity of self-attention scales prohibitively with token
+counts, exacerbating latency across denoising steps.
+
+In this paper, we propose Token Merge with Attention
+(ToMA), a training-free framework that bridges this gap
+by rethinking token merge for GPU-aligned operation. To
+achieve practical speed-up without image degradation, we
+reformulate token merge as a submodular optimization problem, leveraging its theoretical guarantees and algorithmic
+toolkit. Specifically, ToMA uses our GPU-optimized facility
+location algorithm to select a diverse and representative set
+of “destination” tokens. Merge is then formulated as an
+attention-like linear transformation for efficient aggregation
+of non-destination tokens, with unmerge implemented via its
+inverse transformation, making full use of hardware-friendly
+matrix multiplications. This approach down-projects the latent space while preserving critical information, accelerating
+
+Efforts to accelerate transformers broadly fall into two cate*
+Equal contribution 1 Department of Computer Science,
+New York University.
+Correspondence to: Wenbo Lu
+<wenbo.lu@nyu.edu>, Shaoyi Zheng <sz3684@nyu.edu>, Yuxuan Xia <yx2432@nyu.edu>, Shenji Wan <sw5973@nyu.edu>.
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

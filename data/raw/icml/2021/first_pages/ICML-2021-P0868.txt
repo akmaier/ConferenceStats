@@ -1,0 +1,79 @@
+State Relevance for Off-Policy Evaluation
+
+Simon P. Shen 1 Yecheng Jason Ma 2 Omer Gottesman 3 Finale Doshi-Velez 1
+
+Abstract
+Importance sampling-based estimators for offpolicy evaluation (OPE) are valued for their simplicity, unbiasedness, and reliance on relatively
+few assumptions. However, the variance of these
+estimators is often high, especially when trajectories are of different lengths. In this work, we introduce Omitting-States-Irrelevant-to-Return Importance Sampling (OSIRIS), an estimator which
+reduces variance by strategically omitting likelihood ratios associated with certain states. We
+formalize the conditions under which OSIRIS is
+unbiased and has lower variance than ordinary
+importance sampling, and we demonstrate these
+properties empirically.
+
+1. Introduction
+In the context of reinforcement learning, our work focuses
+on the off-policy evaluation (OPE) problem, where the goal
+is to estimate the value of a given policy using historical
+data collected under a different policy (Sutton & Barto,
+2018). OPE is often a necessary step in many real-world
+applications of reinforcement learning whenever running
+evaluation policies is costly or risky, for example, in healthcare and education settings (Murphy et al., 2001; Mandel
+et al., 2014). In particular, we focus on the OPE approaches
+based on importance sampling (IS), which correct the historical data to account for the difference between the policies
+(Precup et al., 2000). IS-based estimators are popular for
+their appealing statistical properties (Thomas & Brunskill,
+2016; Jiang & Li, 2016; Farajtabar et al., 2018; Thomas,
+2015).
+However, current IS-based estimators struggle in scenarios
+involving trajectories of different lengths. In these settings,
+IS-based estimators have large variance that increases with
+trajectory length because IS weights are products of likelihood ratios (Doroudi et al., 2018). Resolving this issue is
+1
+Harvard University, Cambridge, MA 2 University of Pennsylvania, Philadelphia, PA 3 Brown University, Providence, RI. Correspondence to: Simon P. Shen <simonshen@fas.harvard.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+important as many domains have trajectories with different
+lengths: in health settings, patients’ length of stays may
+vary drastically; in education settings, students may spend
+different amounts of time using various online tools.
+Motivated by the observation that IS variance is driven
+by a large and varying number of likelihood ratios, we
+present a new estimator, Omitting-States-Irrelevant-toReturn Importance Sampling (OSIRIS), which strategically
+omits likelihood ratios associated with certain states. The
+goal of the estimator is to reduce IS variance while introducing minimal bias. We first identify the variance contributed
+to ordinary IS by likelihood ratios that would be omitted
+by OSIRIS. This analysis motivates the method’s idea to
+omit likelihood ratios corresponding to “irrelevant” states,
+where the action taken does not affect the trajectory return,
+and this omission criterion keeps OSIRIS unbiased. Based
+on this criterion, we describe a practical algorithm using a
+statistical test to estimate state relevance. Finally, we experimentally validate this implementation of OSIRIS on a suite
+of discrete- and continuous-state environments. Because
+the estimator’s procedure is to set “irrelevant” likelihood
+ratios to 1, it can be easily used alongside other variants of
+importance sampling estimators.
+
+2. Background
+Markov Decision Process We consider a standard reinforcement learning framework in which an agent, characterized by a policy π, interacts with a finite Markov decision
+process (MDP), characterized by a tuple (S, A, P, R, γ). S
+and A represent the state and action spaces, respectively;
+P (s0 | s, a) and R(s, a) represent the transition distribution
+and the reward function, respectively; and γ ∈ [0, 1] is the
+temporal discount factor. The agent starts at an initial state
+s1 drawn from the initial state distribution P (s1 ). At each
+time step t, the agent performs an action at ∼ π(· | st ),
+observes reward rt = R(st , at ), and transitions to state
+st+1 ∼ P (· | st , at ). Once the agent reaches a terminal state
+(e.g. at time T + 1), the trajectory is complete and is defined
+as τ = (s1 , a1 , r1 , . . . , sT , aT , rT , sT +1 ). The discounted
+rewards collected between anyPtimes t1 and t2 in traject2
+tory τ is defined as gt1 :t2 (τ ) ≡ t=t
+γ t−t1 rt , and the full
+1
+trajectory return is simply denoted by g(τ ) ≡ g1:T (τ ).
+
+

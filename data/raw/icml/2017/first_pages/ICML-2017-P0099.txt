@@ -1,0 +1,64 @@
+Distributed Batch Gaussian Process Optimization
+
+Erik A. Daxberger 1 Bryan Kian Hsiang Low 2
+
+Abstract
+This paper presents a novel distributed batch
+Gaussian process upper confidence bound
+(DB-GP-UCB) algorithm for performing batch
+Bayesian optimization (BO) of highly complex,
+costly-to-evaluate black-box objective functions.
+In contrast to existing batch BO algorithms, DBGP-UCB can jointly optimize a batch of inputs
+(as opposed to selecting the inputs of a batch
+one at a time) while still preserving scalability
+in the batch size. To realize this, we generalize
+GP-UCB to a new batch variant amenable to a
+Markov approximation, which can then be naturally formulated as a multi-agent distributed constraint optimization problem in order to fully exploit the efficiency of its state-of-the-art solvers
+for achieving linear time in the batch size. Our
+DB-GP-UCB algorithm offers practitioners the
+flexibility to trade off between the approximation quality and time efficiency by varying the
+Markov order. We provide a theoretical guarantee for the convergence rate of DB-GP-UCB
+via bounds on its cumulative regret. Empirical evaluation on synthetic benchmark objective
+functions and a real-world optimization problem
+shows that DB-GP-UCB outperforms the stateof-the-art batch BO algorithms.
+
+1. Introduction
+Bayesian optimization (BO) has recently gained considerable traction due to its capability of finding the global maximum of a highly complex (e.g., non-convex, no closedform expression nor derivative), noisy black-box objective
+1
+
+Ludwig-Maximilians-Universität, Munich, Germany. A substantial part of this research was performed during his student exchange program at the National University of Singapore under
+the supervision of Bryan Kian Hsiang Low and culminated in his
+Bachelor’s thesis. 2 Department of Computer Science, National
+University of Singapore, Republic of Singapore. Correspondence
+to: Bryan Kian Hsiang Low <lowkh@comp.nus.edu.sg>.
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+function with a limited budget of (often costly) function
+evaluations, consequently witnessing its use in an increasing diversity of application domains such as robotics, environmental sensing/monitoring, automatic machine learning, among others (Brochu et al., 2010; Shahriari et al.,
+2016). A number of acquisition functions (e.g., probability of improvement or expected improvement (EI) over the
+currently found maximum (Brochu et al., 2010), entropybased (Villemonteix et al., 2009; Hennig & Schuler, 2012;
+Hernández-Lobato et al., 2014), and upper confidence
+bound (UCB) (Srinivas et al., 2010)) have been devised
+to perform BO: They repeatedly select an input for evaluating/querying the black-box function (i.e., until the budget is depleted) that intuitively trades off between sampling
+where the maximum is likely to be given the current, possibly imprecise belief of the function modeled by a Gaussian process (GP) (i.e., exploitation) vs. improving the GP
+belief of the function over the entire input domain (i.e., exploration) to guarantee finding the global maximum.
+The rapidly growing affordability and availability of hardware resources (e.g., computer clusters, sensor networks,
+robot teams/swarms) have motivated the recent development of BO algorithms that can repeatedly select a batch
+of inputs for querying the black-box function in parallel instead. Such batch/parallel BO algorithms can be classified
+into two types: On one extreme, batch BO algorithms like
+multi-points EI (q-EI) (Chevalier & Ginsbourger, 2013),
+parallel predictive entropy search (PPES) (Shah & Ghahramani, 2015), and the parallel knowledge gradient method
+(q-KG) (Wu & Frazier, 2016) jointly optimize the batch of
+inputs and hence scale poorly in the batch size. On the
+other extreme, greedy batch BO algorithms (Azimi et al.,
+2010; Contal et al., 2013; Desautels et al., 2014; González
+et al., 2016) boost the scalability by selecting the inputs of
+the batch one at a time. We argue that such a highly suboptimal approach to gain scalability is an overkill: In practice, each function evaluation is often much more computationally and/or economically costly (e.g., hyperparameter
+tuning for deep learning, drug testing on human subjects),
+which justifies dedicating more time to obtain better BO
+performance. In this paper, we show that it is in fact possible to jointly optimize the batch of inputs and still preserve
+scalability in the batch size by giving practitioners the flexibility to trade off BO performance for time efficiency.
+
+

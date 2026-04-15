@@ -1,0 +1,88 @@
+SpeCache: Speculative Key-Value Caching for Efficient Generation of LLMs
+
+Shibo Jie 1 Yehui Tang 2 Kai Han 2 Zhi-Hong Deng 1 Jing Han 3
+
+Abstract
+Transformer-based large language models (LLMs)
+have already achieved remarkable results on longtext tasks, but the limited GPU memory (VRAM)
+resources struggle to accommodate the linearly
+growing demand for key-value (KV) cache as the
+sequence length increases, which has become a
+bottleneck for the application of LLMs on long
+sequences. Existing KV cache compression methods, including eviction, merging, or quantization
+of the KV cache to reduce its size, result in irreversible information forgetting and potentially
+affect the accuracy of subsequent decoding. In
+this paper, we propose S PE C ACHE, which takes
+full advantage of the large and easily expandable CPU memory to offload the complete KV
+cache, and dynamically fetches KV pairs back
+in each decoding step based on their importance
+measured by low-bit KV cache copy in VRAM.
+To avoid inference latency caused by CPU-GPU
+communication, S PE C ACHE speculatively predicts the KV pairs that the next token might attend to, allowing us to prefetch them before the
+next decoding step which enables parallelization
+of prefetching and computation. Experiments
+on LongBench and Needle-in-a-Haystack benchmarks verify that S PE C ACHE effectively reduces
+VRAM usage while avoiding information forgetting for long sequences without re-training, even
+with a 10× high KV cache compression ratio.
+
+CPU
+RAM
+
+LLM
+
+LLM
+
+Top-k score
+
+Full KV cache
+16-bit cache
+
+Low-bit cache
+
+SpeCache
+Output token
+
+Speculative token
+
+Figure 1. S PE C ACHE use low-bit KV cache and speculative token
+to “guess” the top-k most relevant 16-bit KV pairs for the next
+token, and prefetch them before the next decoding step.
+
+performance in tasks such as document processing, retrievalaugmented generation, and in-context learning. The commonly used transformer architecture in LLMs relies on keyvalue (KV) caches to avoid redundant computations during
+decoding. However, the size of the KV cache grows linearly
+with the sequence length, introducing significant memory
+overhead. For example, in the case of LLaMA 2-7B (Touvron et al., 2023) processing sequences of length 2k with a
+batch size of 16, the KV cache size reaches 8.4B, which exceeds the model’s own parameter count. Since the memory
+of computing units (e.g., GPU VRAM) is often limited, the
+KV cache becomes a bottleneck restricting the deployment
+of LLMs, especially on edge devices.
+To alleviate the memory pressure caused by the KV cache,
+existing solutions, include using attention layers with slower
+KV cache growth (e.g., grouped query attention (Ainslie
+et al., 2023)) or attention mechanisms that do not require
+a KV cache (e.g., linear attention (Katharopoulos et al.,
+2020)). However, these methods alter the model architecture, necessitating re-pretraining of the LLMs. Another
+approach is post-training KV cache compression, including techniques like eviction (Zhang et al., 2023; Ge et al.,
+2024), merging (Zhang et al., 2024), and quantization (Liu
+et al., 2024b), but these methods are applied greedily during
+decoding and may result in the loss of crucial information
+for subsequent steps. Alternatively, KV cache can be offloaded to larger, more scalable memory (e.g., CPU memory
+or even disk), but this introduces frequent and substantial
+CPU-GPU communication, significantly increasing inference latency (Sheng et al., 2023).
+
+1. Introduction
+The ability to handle long sequences is critical for large
+language models (LLMs), as it substantially impacts their
+1
+State Key Laboratory of General Artificial Intelligence,
+School of Intelligence Science and Technology, Peking University 2 Huawei Noah’s Ark Lab 3 School of Artificial Intelligence,
+Beijing University of Posts and Telecommunications. Correspondence to: Zhi-Hong Deng <zhdeng@pku.edu.cn>, Jing Han
+<hanj@bupt.edu.cn>.
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

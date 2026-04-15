@@ -1,0 +1,72 @@
+Differentially Private Matrix Completion Revisited
+
+Prateek Jain 1 Om Thakkar 2 Abhradeep Thakurta 3
+
+Abstract
+We provide the first provably joint differentially
+private algorithm with formal utility guarantees
+for the problem of user-level privacy-preserving
+collaborative filtering. Our algorithm is based on
+the Frank-Wolfe method, and it consistently estimates the underlying preference matrix as long
+as the number of users m is ω(n5/4 ), where n
+is the number of items, and
+√ each user provides
+her preference for at least n randomly selected
+items. Along the way, we provide an optimal
+differentially private algorithm for singular vector computation, based on the celebrated Oja’s
+method, that provides significant savings in terms
+of space and time while operating on sparse matrices. We also empirically evaluate our algorithm on a suite of datasets, and show that it consistently outperforms the state-of-the-art private
+algorithms.
+
+1. Introduction
+Collaborative filtering (or matrix completion) is a popular
+approach for modeling the recommendation system problem, where the goal is to provide personalized recommendations about certain items to a user (Koren & Bell, 2015).
+In other words, the objective of a personalized recommendation system is to learn the entire users-items preference
+matrix Y ∗ ∈ <m×n using a small number of user-item
+preferences Yij∗ , (i, j) ∈ [m] × [n], where m is the number of users and n is the number of items. Naturally, in
+absence of any structure in Y ∗ , the problem is ill-defined
+as the unknown entries of Y ∗ can be arbitrary. Hence, a
+popular modeling hypothesis is that the underlying preference matrix Y ∗ is low-rank, and thus, the collaborative
+filtering problem reduces to that of low-rank matrix com1
+
+Microsoft Research. Email: prajain@microsoft.com
+Department of Computer Science, Boston University. Email:
+omthkkr@bu.edu 3 Computer Science Department, University
+of California Santa Cruz. Email: aguhatha@ucsc.edu. Correspondence to: Om Thakkar <omthkkr@bu.edu>.
+2
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+pletion (Recht, 2011; Candes & Recht, 2012). One can also
+enhance this formulation using side-information like userfeatures or item-features (Yu et al., 2014).
+Naturally, personalization problems require collecting and
+analyzing sensitive customer data like their preferences for
+various items, which can lead to serious privacy breaches
+(Korolova, 2010; Narayanan & Shmatikov, 2010; Calandrino et al., 2011). In this work, we attempt to address this
+problem of privacy-preserving recommendations using collaborative filtering (McSherry & Mironov, 2009; Liu et al.,
+2015). We answer the following question in the affirmative: Can we design a matrix completion algorithm which
+keeps all the ratings of a user private, i.e., guarantees userlevel privacy while still providing accurate recommendations? In particular, we provide the first differentially private (Dwork et al., 2006b) matrix completion algorithms
+with provable accuracy guarantees. Differential privacy
+(DP) is a rigorous privacy notion which formally protects
+the privacy of any user participating in a statistical computation by controlling her influence to the final output.
+Most of the prior works on DP matrix completion (and lowrank approximation) (Blum et al., 2005; Chan et al., 2011;
+Hardt & Roth, 2012; 2013; Kapralov & Talwar, 2013;
+Dwork et al., 2014b) have provided guarantees which are
+non-trivial only in the entry-level privacy setting, i.e., they
+preserve privacy of only a single rating of a user. Hence,
+they are not suitable for preserving a user’s privacy in practical recommendation systems. In fact, their trivial extension to user-level privacy leads to vacuous bounds (see Table 1). Some works (McSherry & Mironov, 2009; Liu et al.,
+2015) do serve as an exception, and directly address the
+user-level privacy problem. However, they only show empirical evidences of their effectiveness; they do not provide
+formal error bounds.1 In contrast, we provide an efficient
+algorithm based on the classic Frank-Wolfe (FW) procedure (Frank & Wolfe, 1956), and show that it gives strong
+utility guarantees while preserving user-level privacy. Furthermore, we empirically demonstrate its effectiveness on
+various benchmark datasets.
+Our private FW procedure needs to compute the top right
+singular vector of a sparse user preference matrix, while
+1
+In case of (Liu et al., 2015), the DP guarantee itself might
+require an exponential amount of computation.
+
+

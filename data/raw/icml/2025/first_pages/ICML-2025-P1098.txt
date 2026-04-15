@@ -1,0 +1,80 @@
+Mixture of Lookup Experts
+
+Shibo Jie 1 Yehui Tang 2 Kai Han 2 Yitong Li 3 Duyu Tang 3 Zhi-Hong Deng 1 Yunhe Wang 2
+
+Abstract
+Mixture-of-Experts (MoE) activates only a subset
+of experts during inference, allowing the model
+to maintain low inference FLOPs and latency
+even as the parameter count scales up. However, since MoE dynamically selects the experts,
+all the experts need to be loaded into VRAM.
+Their large parameter size still limits deployment,
+and offloading, which load experts into VRAM
+only when needed, significantly increase inference latency. To address this, we propose Mixture
+of Lookup Experts (MoLE), a new MoE architecture that is efficient in both communication
+and VRAM usage. In MoLE, the experts are
+Feed-Forward Networks (FFNs) during training,
+taking the output of the embedding layer as input. Before inference, these experts can be reparameterized as lookup tables (LUTs) that retrieves expert outputs based on input ids, and
+offloaded to storage devices. Therefore, we do
+not need to perform expert computations during inference. Instead, we directly retrieve the
+expert’s computation results based on input ids
+and load them into VRAM, and thus the resulting communication overhead is negligible. Experiments show that, with the same FLOPs and
+VRAM usage, MoLE achieves inference speeds
+comparable to dense models and significantly
+faster than MoE with experts offloading, while
+maintaining performance on par with MoE. Code:
+https://github.com/JieShibo/MoLE.
+
+42
+44
+0.0 0.5 1.0
+0
+100
+200
+Average Accuracy # Parameter in VRAM (B) Latency (ms/step)
+Dense
+
+MoE
+
+MoE (Expert Offloading)
+
+MoLE (Ours)
+
+Figure 1. With the same 410M activated parameters, MoE outperforms the dense model in terms of performance, but it comes with
+significant VRAM usage. If experts are offloaded, inference latency will increase. Our MoLE maintains competitive performance
+without increasing the model’s VRAM usage or decoding latency.
+
+1. Introduction
+Scaling laws indicate that, with sufficient data for training,
+the performance of large language models (LLMs) improves
+as the model size increases (Kaplan et al., 2020). However,
+larger LLMs also result in slower inference speeds, which
+can degrade the user experience. For this reason, the architecture of LLMs has increasingly focused on Mixture of
+Experts (MoE) (Jiang et al., 2024; Dai et al., 2024). MoE
+models use several Feed-Forward Networks (FFNs) as experts and employ a router to determine which subset of experts needs to be activated, rather than activating the entire
+model. This allows the model to maintain a large number of
+parameters while keeping the computational cost low.
+Although MoE reduces the computational cost, the number of parameters does not decrease. This means that the
+VRAM requirements during inference remain unaffordable.
+For example, although the Mixtral-8×7B (Jiang et al., 2024)
+model only has 13B parameters activated at a time, its total parameter count reaches 46B, making it impossible to
+load into a single 80GB GPU with FP16. Existing methods (Eliseev & Mazur, 2023; Xue et al., 2024; Shen et al.,
+2022) reduce VRAM usage by offloading experts to larger
+storage devices (e.g., CPU RAM, disk, or cloud storage),
+and loading the selected experts into VRAM at each inference step. However, there are two drawbacks to this
+approach: i) Since the selection of experts is dynamically
+
+1
+State Key Laboratory of General Artificial Intelligence, School of Intelligence Science and Technology,
+Peking University 2 Huawei Noah’s Ark Lab 3 Consumer
+Business Group, Huawei.
+Correspondence to: Yunhe
+Wang <yunhe.wang@huawei.com>, Zhi-Hong Deng <zhdeng@pku.edu.cn>, Yehui Tang <yehui.tang@huawei.com>.
+
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

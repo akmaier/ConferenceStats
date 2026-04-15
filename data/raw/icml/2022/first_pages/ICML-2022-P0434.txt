@@ -1,0 +1,79 @@
+Sequential Covariate Shift Detection Using Classifier Two-Sample Tests
+
+Sooyong Jang 1 Sangdon Park 1 2 Insup Lee 1 Osbert Bastani 1
+
+Abstract
+A standard assumption in supervised learning is
+that the training data and test data are from the
+same distribution. However, this assumption often fails to hold in practice, which can cause the
+learned model to perform poorly. We consider
+the problem of detecting covariate shift, where
+the covariate distribution shifts but the conditional
+distribution of labels given covariates remains the
+same. This problem can naturally be solved using
+a two-sample test—i.e., test whether the current
+test distribution of covariates equals the training
+distribution of covariates. Our algorithm builds on
+classifier tests, which train a discriminator to distinguish train and test covariates, and then use the
+accuracy of this discriminator as a test statistic. A
+key challenge is that classifier tests assume given a
+fixed set of test covariates. In practice, test covariates often arrive sequentially over time—e.g., a
+self-driving car observes a stream of images while
+driving. Furthermore, covariate shift can occur
+multiple times—i.e., shift and then shift back later
+or gradually shift over time. To address these challenges, our algorithm trains the discriminator online. Additionally, it evaluates test accuracy using
+each new covariate before taking a gradient step;
+this strategy avoids constructing a held-out test set,
+which can improve sample efficiency. We prove
+that this optimization preserves the correctness—
+i.e., our algorithm achieves a desired bound on
+the false positive rate. In our experiments, we
+show that our algorithm efficiently detects covariate shifts on multiple datasets—ImageNet, IWildCam, and Py150.
+
+1
+PRECISE Center, University of Pennsylvania, USA.
+School of Cybersecurity and Privacy, Georgia Institute of
+Technology, USA. Correspondence to: Sooyong Jang <sooyong@seas.upenn.edu>.
+2
+
+th
+
+Proceedings of the 39 International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+1. Introduction
+A key challenge facing deep neural networks is their sensitivity to changes in the data distribution. In particular,
+supervised learning traditionally assumes that the training
+and test data are from the same distribution (Vapnik, 1998),
+but this assumption often fails in practice. For example,
+an autonomous car using perception to identify obstacles
+needs to be robust to shifts such as changes in the weather
+and lighting conditions. We focus on covariate shift (Shimodaira, 2000), where there is a shift in the covariate distribution p(x), and the conditional label distribution p(y | x)
+remains unchanged. Covariate shift can reduce model performance (Sugiyama & Müller, 2005), invalidate uncertainty
+estimates (Ovadia et al., 2019; Park et al., 2020), and affect
+model selection (Sugiyama et al., 2007).
+One strategy is to devise an algorithm to detect covariate
+shift; if detected, the algorithm can alert the user that predictions may be unreliable. Covariate shift detection can
+be formulated as two-sample hypothesis test (Gretton et al.,
+2012a; Rabanser et al., 2018; Liu et al., 2020), where the
+goal is to determine whether two sets of examples are from
+the same distribution. To test for covariate shift, we choose
+the first sample to be the data used to train the model and
+the second sample to be recent test data given as input to
+the model. Then, the detector returns “covariate shift” if
+the hypothesis test indicates that the two samples are from
+different distributions and “no shift” otherwise.
+We propose a detection algorithm based on classifier
+tests (Lopez-Paz & Oquab, 2017; Cheng & Cloninger, 2019;
+Kim et al., 2021), which use the accuracy of a classifier
+trained to distinguish the two samples as the test statistic. In
+particular, if the two samples are from the same distribution,
+then the accuracy should be 1/2; otherwise, it should be
+> 1/2. Since the test statistic follows a binomial distribution, we use the Clopper-Pearson interval (Clopper & Pearson, 1934) (an exact confidence interval for the unknown
+success probability of the Binomial distribution) to derive
+the cutoff. In contrast, prior work relies on asymptotics to
+derive the cutoff, which results in approximations.
+A key challenge is that the test examples are typically obtained over time—e.g., an autonomous robot continuously
+perceives its environment, and we want to detect if its distribution of observations shifts at any time. There are two
+
+

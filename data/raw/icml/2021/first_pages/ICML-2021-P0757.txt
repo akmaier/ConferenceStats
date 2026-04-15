@@ -1,0 +1,166 @@
+Vector Quantized Models for Planning
+
+Sherjil Ozair * 1 2 Yazhe Li * 1 Ali Razavi 1 Ioannis Antonoglou 1 Aäron van den Oord 1 Oriol Vinyals 1
+
+Abstract
+Recent developments in the field of model-based
+RL have proven successful in a range of environments, especially ones where planning is essential. However, such successes have been limited to deterministic fully-observed environments.
+We present a new approach that handles stochastic and partially-observable environments. Our
+key insight is to use discrete autoencoders to capture the multiple possible effects of an action in
+a stochastic environment. We use a stochastic
+variant of Monte Carlo tree search to plan over
+both the agent’s actions and the discrete latent
+variables representing the environment’s response.
+Our approach significantly outperforms an offline
+version of MuZero on a stochastic interpretation
+of chess where the opponent is considered part of
+the environment. We also show that our approach
+scales to DeepMind Lab, a first-person 3D environment with large visual observations and partial
+observability.
+
+1. Introduction
+Making predictions about the world may be a necessary
+ingredient towards building intelligent agents, as humans
+use these predictions to devise and enact plans to reach
+complex goals (Lake et al., 2017). However, in the field of
+reinforcement learning (RL), a tension still exists between
+model-based and model-free RL. Model-based RL and planning have been key ingredients in many successes such as
+games like chess (Shannon, 1950; Silver et al., 2017a), Go
+(Silver et al., 2016b; 2017b), and Poker (Moravčík et al.,
+2017; Brown et al.). However, their applicability to richer
+environments with larger action and state spaces remains
+limited due to some of the key assumptions made in such
+approaches. Other notable results have not used any form
+of model or planning, such as playing complex video games
+*
+
+Equal contribution 1 DeepMind, London, United Kingdom 2 Mila, University of Montreal.
+Correspondence
+to: Sherjil Ozair <sherjilozair@deepmind.com>, Yazhe Li
+<yazhe@deepmind.com>.
+th
+
+Proceedings of the 38 International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Dota 2 (OpenAI et al., 2019) and StarCraft II (Vinyals et al.,
+2019), or robotics (OpenAI et al., 2018).
+In this work we are motivated by widening the applicability
+of model-based planning by devising a solution which removes some of the key assumptions made by the MuZero
+algorithm (Schrittwieser et al., 2019). Table 1 and Figure 1
+summarize the key features of model-based planning algorithms discussed in this paper. MuZero lifts the crucial
+requirement of having access to a perfect simulator of the
+environment dynamics found in previous model-based planning approaches (Silver et al., 2017a; Anthony et al., 2017).
+In many cases such a simulator is not available (eg., weather
+forecasting), is expensive (eg., scientific modeling), or is
+cumbersome to run (e.g. for complex games such as Dota 2
+or StarCraft II).
+However, MuZero still makes a few limiting assumptions. It
+assumes the environment to be deterministic, limiting which
+environments can be used. It assumes full access to the state,
+also limiting which environments can be used. The search
+and planning is over future agent(s) actions, which could be
+millions in environments with complex action spaces. The
+search occurs at every agent-environment interaction step,
+which may be too fine grained and wasteful.
+Largely inspired by both MuZero and the recent successes of
+VQVAEs (van den Oord et al., 2017; Razavi et al., 2019) and
+large language models (Radford et al.; Brown et al., 2020),
+we devise VQ models for planning, which in principle can
+remove most of these assumptions.
+Our approach uses a state VQVAE and a transition model.
+The state VQVAE encodes future observations into discrete
+latent variables. This allows the use of Monte Carlo tree
+search (MCTS, (Coulom, 2006)) for planning not only over
+Table 1. Key features of different planning algorithms.
+Method
+
+Learned
+Model
+
+Agent
+Perspective
+
+Stochastic
+
+Abstract
+Actions
+
+Temporal
+Abstraction
+
+AlphaZero
+
+7
+
+7
+
+7
+
+7
+
+7
+
+Two-player
+MuZero
+
+3
+
+7
+
+7
+
+7
+
+7
+
+Single-player
+MuZero
+
+3
+
+3
+
+7
+
+7
+
+7
+
+VQHybrid
+
+3
+
+3
+
+3
+
+7
+
+7
+
+VQPure
+
+3
+
+3
+
+3
+
+3
+
+7
+
+VQJumpy
+
+3
+
+3
+
+3
+
+3
+
+3
+
+

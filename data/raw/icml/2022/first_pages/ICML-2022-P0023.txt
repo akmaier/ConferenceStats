@@ -1,0 +1,79 @@
+Scalable First-Order Bayesian Optimization
+via Structured Automatic Differentiation
+Sebastian Ament 1
+
+Abstract
+Bayesian Optimization (BO) has shown great
+promise for the global optimization of functions
+that are expensive to evaluate, but despite many
+successes, standard approaches can struggle in
+high dimensions. To improve the performance of
+BO, prior work suggested incorporating gradient
+information into a Gaussian process surrogate of
+the objective, giving rise to kernel matrices of
+size nd × nd for n observations in d dimensions.
+Naïvely multiplying with (resp. inverting) these
+matrices requires O(n2 d2 ) (resp. O(n3 d3 )) operations, which becomes infeasible for moderate
+dimensions and sample sizes. Here, we observe
+that a wide range of kernels gives rise to structured
+matrices, enabling an exact O(n2 d) matrix-vector
+multiply for gradient observations and O(n2 d2 )
+for Hessian observations. Beyond canonical kernel classes, we derive a programmatic approach
+to leveraging this type of structure for transformations and combinations of the discussed kernel
+classes, which constitutes a structure-aware automatic differentiation algorithm. Our methods
+apply to virtually all canonical kernels and automatically extend to complex kernels, like the
+neural network, radial basis function network, and
+spectral mixture kernels without any additional
+derivations, enabling flexible, problem-dependent
+modeling while scaling first-order BO to high d.
+
+1. Introduction
+Bayesian Optimization (BO) has demonstrated tremendous
+promise for the global optimization of functions, in particular those that are expensive to evaluate (Shahriari et al.,
+2016; Frazier, 2018). Instantiations of BO can be found in
+1
+
+Department of Computer Science, Cornell University, Ithaca,
+NY, 14850, USA. Correspondence to:
+Sebastian Ament
+<ament@cs.cornell.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+Carla Gomes 1
+Active Learning (AL) (Settles, 2009; Tuia et al., 2011; Fu
+et al., 2013), the optimal design of experiments (Chaloner
+and Verdinelli, 1995; Foster et al., 2019; Zheng et al., 2020),
+and Optimal Learning (Powell and Ryzhov, 2012). Its applications range widely from the optimization of hyperparameters of complex machine learning models (Snoek
+et al., 2012) to the sciences and engineering as Attia et al.
+(2020), who optimized charging protocols to maximize battery life. Li et al. (2018) reported that random search with
+only twice as many samples can outperform standard BO
+methods on a certain hyper-parameter optimization task.
+This lead Ahmed et al. (2016) to advocate for first-order
+BO (FOBO) as a critical improvement, a call that recently
+received theoretical heft due to Shekhar and Javidi (2021),
+who proved that FOBO achieves an exponential improvement on the expected regret of standard BO for multi-armed
+bandit problems as a function of the number of observations
+n and dimensionality d of the input.
+At the same time, differentiable programming and automatic
+differentiation (AD), which enable the calculation of gradients through complex numerical programs, have become
+an integral part of machine learning research (Innes et al.,
+2017; Wang et al., 2018; Baydin et al., 2018) and practice,
+perhaps best illustrated by PyTorch (Paszke et al., 2019)
+and Tensorflow (Abadi et al., 2015), both of which include
+AD engines. Certainly, AD has powered an increasing pace
+of model development by automating the error-prone writing of derivative code and is thus a natural complement to
+FOBO, if only to compute the gradients of the objective.
+On a high level, most BO approaches build a surrogate
+model of an objective with a few potentially noisy observations and make informed choices about further queries
+based on predictive values and uncertainties of the surrogate.
+In principle, any functional form could be employed as a
+surrogate, and indeed Wang and Shang (2014), Snoek et al.
+(2015), and Gal et al. (2017) use deep neural networks for
+AL and BO. However, Gaussian Processes (GP) are currently the most commonly used models for research and applications of BO because they work well with little data and
+permit closed-form posterior inference. Fortunately, GPs
+are closed under differentiation with benign assumptions,
+see Section A, and maintain their analytical properties when
+conditioned on gradient information (Solak et al., 2003).
+
+

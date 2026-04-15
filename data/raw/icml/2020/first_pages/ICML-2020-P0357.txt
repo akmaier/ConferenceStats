@@ -1,0 +1,83 @@
+Recurrent Hierarchical Topic-Guided RNN for Language Generation
+
+Dandan Guo 1 Bo Chen 1 Ruiying Lu 1 Mingyuan Zhou 2
+
+Abstract
+To simultaneously capture syntax and global semantics from a text corpus, we propose a new
+larger-context recurrent neural network (RNN)
+based language model, which extracts recurrent
+hierarchical semantic structure via a dynamic
+deep topic model to guide natural language generation. Moving beyond a conventional RNN-based
+language model that ignores long-range word
+dependencies and sentence order, the proposed
+model captures not only intra-sentence word dependencies, but also temporal transitions between
+sentences and inter-sentence topic dependencies.
+For inference, we develop a hybrid of stochasticgradient Markov chain Monte Carlo and recurrent
+autoencoding variational Bayes. Experimental
+results on a variety of real-world text corpora
+demonstrate that the proposed model not only
+outperforms larger-context RNN-based language
+models, but also learns interpretable recurrent
+multilayer topics and generates diverse sentences
+and paragraphs that are syntactically correct and
+semantically coherent.
+
+1. Introduction
+Both topic and language models are widely used for text
+analysis. Topic models, such as latent Dirichlet allocation
+(LDA) (Blei et al., 2003; Griffiths & Steyvers, 2004; Hoffman et al., 2013) and its nonparametric Bayesian generalizations (Teh et al., 2006; Zhou & Carin, 2015), are well
+suited for extracting document-level word concurrence patterns into latent topics from a text corpus. Their modeling
+power has been further enhanced by introducing multilayer
+deep representation (Srivastava et al., 2013; Mnih & Gregor,
+2014; Gan et al., 2015; Zhou et al., 2016; Zhao et al., 2018;
+Zhang et al., 2018). While having semantically meaningful
+1
+National Laboratory of Radar Signal Processing, Xidian University, Xi’an, China. 2 McCombs School of Business, The University of Texas at Austin, Austin, TX 78712, USA. Correspondence
+to: Bo Chen <bchen@mail.xidian.edu.cn>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+latent representation, they typically treat each document
+as a bag of words (BoW), ignoring word order (Griffiths
+et al., 2004; Wallach, 2006). To take the word order into
+consideration, Wang et al. (2019a) introduce a customized
+convolutional operator and probabilistic pooling into a topic
+model, which successfully captures local dependencies and
+forms phrase-level topics but has limited ability in modeling
+sequential dependencies and generating word sequences.
+Language models have become key components of various
+natural language processing tasks, such as text summarization (Rush et al., 2015; Gehrmann et al., 2018), speech
+recognition (Mikolov et al., 2010; Graves et al., 2013), machine translation (Sutskever et al., 2014; Cho et al., 2014),
+and image captioning (Vinyals et al., 2015; Mao et al., 2015;
+Xu et al., 2015; Gan et al., 2017; Rennie et al., 2017; Fan
+et al., 2020). The primary purpose of a language model is to
+capture the distribution of a word sequence, commonly with
+a recurrent neural network (RNN) (Mikolov et al., 2011;
+Graves, 2013) or a Transformer-based model (Vaswani et al.,
+2017; Dai et al., 2019; Devlin et al., 2019; Radford et al.,
+2018; 2019). In this paper, utilizing a deep dynamic model
+for sequentially observed count vectors and introducing a
+recurrent variational inference network, we focus on improving RNN-based language models that often have much fewer
+parameters and are easier to perform end-to-end training.
+While RNN-based language models do not ignore word
+order, they often assume that the sentences of a document
+are independent of each other. This simplifies the modeling
+task to independently assigning probabilities to individual
+sentences, ignoring their order and document context (Tian
+& Cho, 2016). Such language models may consequently fail
+to capture the long-range dependencies and global semantic
+meaning of a document (Dieng et al., 2017; Wang et al.,
+2018). While a naive solution to explore richer contextual
+information is to concatenate all previous sentences into a
+single “sentence” and use it as the input of an RNN-based
+language model, in practice, the length of that sentence is
+limited given the constraint of memory and computation
+resource. Even if making the length very long, this naive
+solution rarely works well enough to satisfactorily address
+the long-standing research problem of capturing long-range
+dependencies, motivating a variety of more sophisticated
+methods to improve existing language models (Dieng et al.,
+2017; Lau et al., 2017; Wang et al., 2018; 2019b; Dai et al.,
+
+

@@ -1,0 +1,92 @@
+Monarch: Expressive Structured Matrices for Efficient and Accurate Training
+
+Arjun Desai
+
+1
+
+Michael Poli
+
+1
+
+Tri Dao 1 Beidi Chen 1 2 Nimit Sohoni 1
+Jessica Grogan 3 Alexander Liu 4 Aniruddh Rao 4 Atri Rudra 3 Christopher Ré 1
+
+Abstract
+Large neural networks excel in many domains, but
+they are expensive to train and fine-tune. A popular approach to reduce their compute/memory
+requirements is to replace dense weight matrices with structured ones (e.g., sparse, low-rank,
+Fourier transform). These methods have not seen
+widespread adoption (1) in end-to-end training due
+to unfavorable efficiency–quality tradeoffs, and
+(2) in dense-to-sparse fine-tuning due to lack of
+tractable algorithms to approximate a given dense
+weight matrix. To address these issues, we propose
+a class of matrices (Monarch) that is hardwareefficient (they are parameterized as products of two
+block-diagonal matrices for better hardware utilization) and expressive (they can represent many
+commonly used transforms). Surprisingly, the
+problem of approximating a dense weight matrix
+with a Monarch matrix, though nonconvex, has an
+analytical optimal solution. These properties of
+Monarch matrices unlock new ways to train and
+fine-tune sparse and dense models. We empirically validate that Monarch can achieve favorable
+accuracy–efficiency tradeoffs in several end-toend sparse training applications: speeding up ViT
+and GPT-2 training on ImageNet classification and
+Wikitext-103 language modeling by 2× with comparable model quality, and reducing the error on
+PDE solving and MRI reconstruction tasks by 40%.
+In sparse-to-dense training, with a simple technique called “reverse sparsification,” Monarch matrices serve as a useful intermediate representation
+to speed up GPT-2 pretraining on OpenWebText
+by 2× without quality drop. The same technique
+brings 23% faster BERT pretraining than even the
+very optimized implementation from Nvidia that
+set the MLPerf 1.1 record. In dense-to-sparse fine1
+
+Stanford University, USA 2 Carnegie Mellon University, USA
+University at Buffalo, SUNY, USA 4 University of Michigan, USA.
+Correspondence to: Tri Dao <trid@cs.stanford.edu>.
+3
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright
+2022 by the author(s).
+
+tuning, as a proof-of-concept, our Monarch approximation algorithm speeds up BERT fine-tuning on
+GLUE by 1.7× with comparable accuracy.
+
+1
+
+Introduction
+
+Large neural networks excel in many domains, but their
+training and fine-tuning demand extensive computation
+and memory (Kaplan et al., 2020). A natural approach to
+mitigate this cost is to replace dense weight matrices with
+structured ones, such as sparse & low-rank matrices and
+the Fourier transform. However, structured matrices (which
+can be viewed as a general form of sparsity) have not yet
+seen wide adoption to date, due to two main challenges.
+(1) In the end-to-end (E2E) training setting, they have
+shown unfavorable efficiency–quality tradeoffs. Model
+efficiency refers how efficient these structured matrices
+are on modern hardware (e.g., GPUs). Model quality
+(performance on tasks) is determined by how expressive
+they are (e.g., can they represent commonly used transforms
+such as convolution or Fourier/cosine transforms that encode
+domain-specific knowledge). Existing structured matrices
+are either not hardware-efficient, or not expressive enough.
+(2) In the setting of dense-to-sparse (D2S) fine-tuning of
+pretrained models, a long-standing problem for most classes
+of structured matrices is the lack of tractable algorithms to
+approximate dense pretrained weight matrices (Pan, 2012).
+Sparse matrices have seen advances in training deep learning
+models (e.g., pruning (Han et al., 2015a), lottery tickets (Frankle & Carbin, 2018)), but most work on (entrywise) sparsification focuses on reducing training or inference FLOPs,
+which do not necessarily map to E2E training time on modern hardware (e.g., GPUs). In fact, most sparse training
+methods slow down training in wall-clock time (Gale et al.,
+2019; Hooker, 2020). Moreover, sparse matrices are not able
+to represent commonly used transforms such as convolution
+and the Fourier transform. Another class of structured matrices, such as Fourier, sine/cosine, Chebyshev, are used in
+specialized domains such as PDE solving (Trefethen, 2000)
+and medical imaging (Hsieh, 2003). However, they are difficult to use in E2E training since only specific instances of
+these structured matrices have fast GPU implementations
+(e.g., FFT). Moreover, their applications requires domain expertise to hand-pick the right transforms. Generalizations of
+
+

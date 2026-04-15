@@ -1,0 +1,103 @@
+SparseMAP: Differentiable Sparse Structured Inference
+
+Vlad Niculae 1 André F. T. Martins 2 Mathieu Blondel 3 Claire Cardie 1
+⋆
+
+Abstract
+Structured prediction requires searching over a
+combinatorial number of structures. To tackle
+it, we introduce SparseMAP: a new method for
+sparse structured inference, and its natural loss
+function. SparseMAP automatically selects only
+a few global structures: it is situated between
+MAP inference, which picks a single structure,
+and marginal inference, which assigns nonzero
+probability to all structures, including implausible ones. SparseMAP can be computed using
+only calls to a MAP oracle, making it applicable
+to problems with intractable marginal inference,
+e.g., linear assignment. Sparsity makes gradient
+backpropagation efficient regardless of the structure, enabling us to augment deep neural networks
+with generic and sparse structured hidden layers. Experiments in dependency parsing and natural language inference reveal competitive accuracy, improved interpretability, and the ability to
+capture natural language ambiguities, which is
+attractive for pipeline systems.
+
+1. Introduction
+Structured prediction involves the manipulation of discrete, combinatorial structures, e.g., trees and alignments
+(Bakır et al., 2007; Smith, 2011; Nowozin et al., 2014). Such
+structures arise naturally as machine learning outputs, and
+as intermediate representations in deep pipelines. However,
+the set of possible structures is typically prohibitively large.
+As such, inference is a core challenge, often sidestepped
+by greedy search, factorization assumptions, or continuous
+relaxations (Belanger & McCallum, 2016).
+1
+
+Cornell University, Ithaca, NY 2 Unbabel & Instituto
+de Telecomunicações, Lisbon, Portugal 3 NTT Communication Science Laboratories, Kyoto, Japan.
+Correspondence to:
+Vlad Niculae <vlad@vene.ro>, André
+MathF. T.
+Martins
+<andre.martins@unbabel.com>,
+ieu Blondel <mathieu@mblondel.org>, Claire Cardie
+<cardie@cs.cornell.edu>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+argmax
+
+MAP
+SparseMAP
+
+(1, 0, 0)
+
+Marginal
+(.6, .4, 0)
+
+⋆
+
+⋆
+
+sparsemax
+softmax
+(.5, .3, .2)
+
+△
+
+M
+
+Figure 1. Left: in the unstructured case, softmax and sparsemax
+can be interpreted as regularized, differentiable arg max approximations; softmax returns dense solutions while sparsemax favors
+sparse ones. Right: in this work, we extend this view to structured
+inference, which consists of optimizing over a polytope M, the
+convex hull of all possible structures (depicted: the arborescence
+polytope, whose vertices are trees). We introduce SparseMAP as a
+structured extension of sparsemax: it is situated in between MAP
+inference, which yields a single structure, and marginal inference,
+which returns a dense combination of structures.
+
+In this paper, we propose an appealing alternative: a new
+inference strategy, dubbed SparseMAP, which encourages
+sparsity in the structured representations. Namely, we seek
+solutions explicitly expressed as a combination of a small,
+enumerable set of global structures. Our framework departs
+from the two most common inference strategies in structured prediction: maximum a posteriori (MAP) inference,
+which returns the highest-scoring structure, and marginal
+inference, which yields a dense probability distribution over
+structures. Neither of these strategies is fully satisfactory:
+for latent structure models, marginal inference is appealing,
+since it can represent uncertainty and, unlike MAP inference,
+it is continuous and differentiable, hence amenable for use
+in structured hidden layers in neural networks (Kim et al.,
+2017). It has, however, several limitations. First, there are
+useful problems for which MAP is tractable, but marginal inference is not, e.g., linear assignment (Valiant, 1979; Taskar,
+2004). Even when marginal inference is available, case-bycase derivation of the backward pass is needed, sometimes
+producing fairly complicated algorithms, e.g., second-order
+expectation semirings (Li & Eisner, 2009). Finally, marginal
+inference is dense: it assigns nonzero probabilities to all
+structures and cannot completely rule out irrelevant ones.
+This can be statistically and computationally wasteful, as
+well as qualitatively harder to interpret.
+
+

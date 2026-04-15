@@ -1,0 +1,74 @@
+Contrastive Mixture of Posteriors for Counterfactual Inference, Data
+Integration and Fairness
+
+Adam Foster 1 Árpi Vezér 2 Craig A. Glastonbury 2 3 Páidı́ Creed 2 Sam Abujudeh 2 Aaron Sim 2
+
+Abstract
+Learning meaningful representations of data that
+can address challenges such as batch effect correction and counterfactual inference is a central problem in many domains including computational
+biology. Adopting a Conditional VAE framework,
+we show that marginal independence between the
+representation and a condition variable plays a key
+role in both of these challenges. We propose the
+Contrastive Mixture of Posteriors (CoMP) method
+that uses a novel misalignment penalty defined in
+terms of mixtures of the variational posteriors to
+enforce this independence in latent space. We
+show that CoMP has attractive theoretical properties compared to previous approaches, and we
+prove counterfactual identifiability of CoMP under additional assumptions. We demonstrate stateof-the-art performance on a set of challenging
+tasks including aligning human tumour samples
+with cancer cell-lines, predicting transcriptomelevel perturbation responses, and batch correction
+on single-cell RNA sequencing data. We also
+find parallels to fair representation learning and
+demonstrate that CoMP is competitive on a common task in the field.
+
+1. Introduction
+Large scale datasets describing the molecular properties of
+cells, tissues and organs in a state of health and disease are
+commonplace in computational biology. Referred to collectively as ‘omics data, thousands of features are measured per
+sample and, as single-cell methodologies have developed, it
+1
+
+Microsoft Research, Cambridge, UK. This work was
+completed when AF was an intern at BenevolentAI and
+a DPhil student at the Department of Statistics, Univer2
+sity of Oxford.
+BenevolentAI, 4–8 Maple Street, London, UK 3 Human Technopole, V.le Rita Levi-Montalcini, 1,
+20157 Milano, Italy.
+Correspondence to: Adam Foster
+<adam.e.foster@microsoft.com>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+is now typical to measure such features across 105 –106 observations (Svensson et al., 2018; Regev et al., 2017). Given
+these two properties of ‘omics data, the need for scalable
+algorithms to learn meaningful low-dimensional representations that capture the variability of the data has grown. As
+such, Variational Autoencoders (VAEs) (Kingma & Welling,
+2013; Rezende et al., 2014) have become an important tool
+for solving a range of modelling problems in the biological
+sciences (Lopez et al., 2018; Way & Greene, 2018; Wang &
+Gu, 2018; Grønbech et al., 2020; Lotfollahi et al., 2019a;b).
+One such problem is utilising representations for counterfactual inference, e.g. predicting how a certain cell or cell-type,
+observed in the control group, would have behaved when
+exposed to a drug (Lotfollahi et al., 2019a;b; Amodio et al.,
+2018). Another key problem is removing batch effects—
+spurious shifts in observations due to differing experimental
+conditions—from data in order to integrate or compare multiple datasets (Lopez et al., 2018; Johnson et al., 2007; Leek
+& Storey, 2007; Haghverdi et al., 2018; Warren et al., 2021).
+Our approach to these problems is to learn a VAE representation that is marginally independent of a condition variable
+(e.g. experimental batch, stimulated vs. control). Figure 1
+[CoMP] illustrates what this looks like in practice: the complete overlap of the cell populations from different conditions in the latent space. For data integration, the resulting
+representation perfectly integrates distinct batches, assuming there are no population-level differences between them.
+To predict the effects of interventions, following Lotfollahi et al. (2019a), we encode control data to representation
+space, and decode it back to the original space under the
+stimulated condition. Alignment of control and stimulated
+cells in representation space isolates the effects of interventions to the decoder network, and is a necessary condition
+for the encode–swap–decode algorithm to provide correct
+predictions. This same independence constraint also occurs
+in fair representation learning, where we seek a representation that cannot be used to recover a sensitive attribute
+(Zemel et al., 2013; Louizos et al., 2015).
+Neither the standard VAE nor the conditional VAE
+(CVAE) (Sohn et al., 2015) are typically successful at learning representations that achieve this desired independence,
+as shown in Figure 1. Existing methods use a penalty to
+
+

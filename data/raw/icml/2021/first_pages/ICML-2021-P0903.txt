@@ -1,0 +1,78 @@
+AutoSampling: Search for Effective Data Sampling Schedules
+
+Ming Sun 1 Haoxuan Dou 1 Baopu Li 2 Lei Cui 1 Junjie Yan 1 Wanli Ouyang 3
+
+Abstract
+Data sampling acts as a pivotal role in training
+deep learning models. However, an effective sampling schedule is difficult to learn due to the inherently high dimension of parameters in learning the
+sampling schedule. In this paper, we propose an
+AutoSampling method to automatically learn sampling schedules for model training, which consists
+of the multi-exploitation step aiming for optimal
+local sampling schedules and the exploration step
+for the ideal sampling distribution. More specifically, we achieve sampling schedule search with
+shortened exploitation cycle to provide enough
+supervision. In addition, we periodically estimate
+the sampling distribution from the learned sampling schedules and perturb it to search in the distribution space. The combination of two searches
+allows us to learn a robust sampling schedule. We
+apply our AutoSampling method to a variety of
+image classification tasks illustrating the effectiveness of the proposed method.
+
+1. Introduction
+Data sampling policies can greatly influence the performance of model training in computer vision tasks, and
+therefore finding robust sampling policies can be important.
+Handcrafted rules, e.g. data resampling, reweighting, and
+importance sampling, promote better model performance by
+adjusting the training data frequency and order (Estabrooks
+et al., 2004; Weiss et al., 2007; Bengio et al., 2009; Johnson
+& Guestrin, 2018; Katharopoulos & Fleuret, 2018; Shrivastava et al., 2016; Jesson et al., 2017). But they heavily rely
+on the assumption over the dataset and cannot adapt well to
+datasets with their own characteristics. To handle this issue,
+learning-based methods (Li et al., 2019; Jiang et al., 2017;
+Fan et al., 2017) were designed to automatically reweight
+or select training data utilizing meta-learning techniques or
+a policy network.
+1
+
+SenseTime Research 2 Baidu USA LLC 3 The University of
+Sydney. Correspondence to: Baopu Li <baopuli@baidu.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+However, existing learning-based sampling methods still
+rely on human priors as proxies to optimize sampling policies, which may fail in practice. Such priors often include assumptions on policy network design for data selection (Fan
+et al., 2017), or dataset conditions like noisiness (Li et al.,
+2019; Loshchilov & Hutter, 2015) or imbalance (Wang et al.,
+2019). These approaches take image features, losses, importance or their representations as inputs and apply the policy
+network or other learning approaches with small amount of
+parameters for estimating the sampling probability. However, for example, images with similar visual features can
+be redundant in training, and their losses or features fed into
+the policy network are more likely to be close, causing the
+same probability to be sampled for redundant samples if
+we rely on aforementioned priors. Therefore, we propose
+to directly optimize the sampling schedule itself so that no
+prior knowledge is required for the dataset. Specifically, the
+sampling schedule refers to order by which data are selected
+for the entire training course. In this way, we only rely on
+data themselves to determine the optimal sampling schedule
+without any prior.
+Directly optimizing a sampling schedule is challenging due
+to its inherent high dimension. For example, for the ImageNet classification dataset (Deng et al., 2009) with around
+one million samples, the dimension of parameters would
+be in the same order. While popular approaches such as
+deep reinforcement learning (Cubuk et al., 2018; Zhang
+et al., 2020), Bayesian optimization (Snoek et al., 2015),
+population-based training (Jaderberg et al., 2017) or simple random search (Bergstra & Bengio, 2012) have already
+been utilized to tune low-dimensional hyper-parameters like
+augmentation schedules, their applications in data sampling
+schedules remain unexploited. For instance, the dimension
+of a data augmentation policy is generally only in dozens,
+and it needs thousands of training runs (Cubuk et al., 2018)
+to sample enough rewards to find an optimal augmentation
+policy because high-quality rewards require many epochs of
+training to obtain. As such, optimizing a sampling schedule
+may require orders of magnitude more rewards than data
+augmentation to gather and hence training runs, which results in prohibitively slow convergence. To overcome the
+aforementioned challenge, we propose a data sampling policy search framework, named AutoSampling, to sufficiently
+learn an optimal sampling schedule in a population-based
+
+

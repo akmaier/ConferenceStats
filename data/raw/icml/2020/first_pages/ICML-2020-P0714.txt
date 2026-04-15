@@ -1,0 +1,77 @@
+WaveFlow: A Compact Flow-based Model for Raw Audio
+
+Wei Ping 1
+
+Kainan Peng 1 Kexin Zhao 1 Zhao Song 1
+
+Abstract
+In this work, we propose WaveFlow, a smallfootprint generative flow for raw audio, which
+is directly trained with maximum likelihood. It
+handles the long-range structure of 1-D waveform with a dilated 2-D convolutional architecture, while modeling the local variations using
+expressive autoregressive functions. WaveFlow
+provides a unified view of likelihood-based models for 1-D data, including WaveNet and WaveGlow as special cases. It generates high-fidelity
+speech as WaveNet, while synthesizing several
+orders of magnitude faster as it only requires a
+few sequential steps to generate very long waveforms with hundreds of thousands of time-steps.
+Furthermore, it can significantly reduce the likelihood gap that has existed between autoregressive
+models and flow-based models for efficient synthesis. Finally, our small-footprint WaveFlow has
+only 5.91M parameters, which is 15× smaller
+than WaveGlow. It can generate 22.05 kHz highfidelity audio 42.6× faster than real-time (at a rate
+of 939.3 kHz) on a V100 GPU without engineered
+inference kernels.
+
+1. Introduction
+Deep generative models have obtained noticeable successes
+for modeling raw audio in high-fidelity speech synthesis and
+music generation (e.g., van den Oord et al., 2016; Dieleman
+et al., 2018). Autoregressive models are among the best performing generative models for raw waveforms, providing
+the highest likelihood scores and generating high-fidelity
+audios (van den Oord et al., 2016; Mehri et al., 2017; Kalchbrenner et al., 2018). One of the most successful examples
+is WaveNet (van den Oord et al., 2016), an autoregressive
+model for waveform synthesis. It operates at the high temporal resolution (e.g., 24 kHz) of raw audio and sequentially
+1
+
+Baidu Research, 1195 Bordeaux Dr, Sunnyvale, CA.
+Project page: https://waveflow-demo.github.io/.
+Correspondence to: Wei Ping <weiping.thu@gmail.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+generates 1-D waveform samples at inference. As a result,
+WaveNet is prohibitively slow for speech synthesis and one
+has to develop highly engineered kernels (Arık et al., 2017a;
+Pharris, 2018) for real-time inference, which is a requirement for most production text-to-speech systems.
+Flow-based models (Dinh et al., 2014; Rezende & Mohamed, 2015) are a family of generative models, in which a
+simple initial density is transformed into a complex one by
+applying a series of invertible transformations. One group
+of models are based on autoregressive transformation, including autoregressive flow (AF) and inverse autoregressive
+flow (IAF) as the “dual” of each other (Kingma et al., 2016;
+Papamakarios et al., 2017; Huang et al., 2018). AF is analogous to autoregressive models, which performs parallel
+density evaluation and sequential synthesis. In contrast, IAF
+performs parallel synthesis but sequential density evaluation, making likelihood-based training very slow. Parallel
+WaveNet (van den Oord et al., 2018) distills an IAF from a
+pretrained autoregressive WaveNet, which gets the best of
+both worlds. However, one has to apply the Monte Carlo
+method to approximate the intractable KL divergence in
+distillation. Instead, ClariNet (Ping et al., 2019) simplifies
+the probability density distillation by computing a regularized KL divergence in closed-form. Both of them require
+a pretrained WaveNet teacher and a set of auxiliary losses
+for high-fidelity synthesis, which complicates the training
+pipeline and increases the cost of development.
+Another group of flow-based models are based on bipartite transformation (Dinh et al., 2017; Kingma & Dhariwal,
+2018), which provide likelihood-based training and parallel
+synthesis. Most recently, WaveGlow (Prenger et al., 2019)
+and FloWaveNet (Kim et al., 2019) apply Glow (Kingma &
+Dhariwal, 2018) and RealNVP (Dinh et al., 2017) for waveform synthesis, respectively. However, the bipartite flows
+require more layers, larger hidden size, and huge number of
+parameters to reach comparable capacities as autoregressive
+models. In particular, WaveGlow and FloWaveNet have
+87.88M and 182.64M parameters with 96 layers and 256
+residual channels, respectively, whereas a typical 30-layer
+WaveNet has 4.57M parameters with 128 residual channels.
+Moreover, both of them squeeze the time-domain samples on
+the channel dimension before applying the bipartite transformation, which may lose the temporal order information and
+make them less efficient at modeling waveform sequence.
+
+

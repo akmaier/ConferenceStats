@@ -1,0 +1,89 @@
+Efficient Optimization of Loops and Limits with Randomized Telescoping Sums
+
+Alex Beatson 1 Ryan P. Adams 1
+
+Abstract
+We consider optimization problems in which the
+objective requires an inner loop with many steps
+or is the limit of a sequence of increasingly costly
+approximations. Meta-learning, training recurrent
+neural networks, and optimization of the solutions to differential equations are all examples
+of optimization problems with this character. In
+such problems, it can be expensive to compute
+the objective function value and its gradient, but
+truncating the loop or using less accurate approximations can induce biases that damage the overall
+solution. We propose randomized telescope (RT)
+gradient estimators, which represent the objective as the sum of a telescoping series and sample
+linear combinations of terms to provide cheap unbiased gradient estimates. We identify conditions
+under which RT estimators achieve optimization
+convergence rates independent of the length of
+the loop or the required accuracy of the approximation. We also derive a method for tuning RT
+estimators online to maximize a lower bound on
+the expected decrease in loss per unit of computation. We evaluate our adaptive RT estimators on a
+range of applications including meta-optimization
+of learning rates, variational inference of ODE parameters, and training an LSTM to model long
+sequences.
+
+1. Introduction
+Many important optimization problems consist of objective
+functions that can only be computed iteratively or as the
+limit of an approximation. Machine learning and scientific
+computing provide many important examples. In metalearning, evaluation of the objective typically requires the
+training of a model, a case of bi-level optimization. When
+training a model on sequential data or to make decisions
+1
+
+Department of Computer Science, Princeton University,
+Princeton, NJ, USA. Correspondence to: Alex Beatson <abeatson@cs.princeton.edu>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+over time, each learning step requires looping over time
+steps. More broadly, in many scientific and engineering
+applications one wishes to optimize an objective that is
+defined as the limit of a sequence of approximations with
+both fidelity and computational cost increasing according
+to a natural number n ≥ 1. Inner-loop examples include:
+integration by Monte Carlo or quadrature with n evaluation
+points; solving ordinary differential equations (ODEs) with
+an Euler or Runge Kutta method with n steps and O( n1 ) step
+size; and solving partial differential equations (PDEs) with
+a finite element basis with size or order increasing with n.
+Whether the task is fitting parameters to data, identifying
+the parameters of a natural system, or optimizing the design
+of a mechanical part, in this work we seek to more rapidly
+solve problems in which the objective function demands
+a tradeoff between computational cost and accuracy. We
+formalize this by considering parameters θ ∈ RD and a loss
+function L(θ) that is the uniform limit of a sequence Ln (θ):
+min L(θ) = min lim Ln (θ) .
+θ
+
+θ
+
+n→H
+
+(1)
+
+Some problems may involve a finite horizon H, in
+other cases H = ∞. We also introduce a cost function C : N+ → R that is nondecreasing in n to represent the
+cost of computing Ln and its gradient.
+A principal challenge of optimization problems with the
+form in Eq. 1 is selecting a finite N such that the minimum
+of the surrogate LN is close to that of L, but without LN (or
+its gradients) being too expensive. Choosing a large N can
+be computationally prohibitive, while choosing a small N
+may bias optimization. Meta-optimizing learning rates with
+truncated horizons can choose wrong hyperparameters by
+orders of magnitude (Wu et al., 2018). Truncating backpropogation through time for recurrent neural networks (RNNs)
+favors short term dependencies (Tallec & Ollivier, 2017).
+Using too coarse a discretization to solve an ODE or PDE
+can cause error in the solution and bias outer-loop optimization. These optimization problems thus experience a sharp
+trade-off between efficient computation and bias.
+We propose randomized telescope (RT) gradient estimators,
+which provide cheap unbiased gradient estimates to allow
+efficient optimization of these objectives. RT estimators
+represent the objective or its gradients as a telescoping series of differences between intermediate values, and draw
+
+

@@ -1,0 +1,92 @@
+Phasic Self-Imitative Reduction for
+Sparse-Reward Goal-Conditioned Reinforcement Learning
+
+Yunfei Li * 1 Tian Gao * 1 Jiaqi Yang 2 Huazhe Xu 3 Yi Wu 1 4
+Online
+
+Abstract
+It has been a recent trend to leverage the power of
+supervised learning (SL) towards more effective
+reinforcement learning (RL) methods. We propose a novel phasic approach by alternating online RL and offline SL for tackling sparse-reward
+goal-conditioned problems. In the online phase,
+we perform RL training and collect rollout data
+while in the offline phase, we perform SL on those
+successful trajectories from the dataset. To further
+improve sample efficiency, we adopt additional
+techniques in the online phase including task reduction to generate more feasible trajectories and
+a value- difference-based intrinsic reward to alleviate the sparse-reward issue. We call this overall algorithm, PhAsic self-Imitative Reduction (PAIR).
+PAIR substantially outperforms both non-phasic
+RL and phasic SL baselines on sparse-reward
+goal-conditioned robotic control problems, including a challenging stacking task. PAIR is the first
+RL method that learns to stack 6 cubes with only
+0/1 success rewards from scratch.
+
+1. Introduction
+Despite great advances achieved by deep reinforcement
+learning (RL) in a wide range of application domains such
+as playing games (Mnih et al., 2015; Schrittwieser et al.,
+2020), controlling robots (Lillicrap et al., 2016; Hwangbo
+et al., 2019; Akkaya et al., 2019), and solving scientific
+problems (Jeon & Kim, 2020), deep RL methods have been
+empirically shown to be brittle and extremely sensitive to
+hyper-parameter tuning (Tucker et al., 2018; Ilyas et al.,
+*
+
+Equal contribution 1 Institute for Interdisciplinary Information Sciences, Tsinghua University, Beijing, China 2 Department
+of Electrical Engineering and Computer Sciences, University
+of California, Berkeley, CA, USA 3 Stanford University, CA,
+USA 4 Shanghai Qi Zhi Institute, Shanghai, China. Correspondence to: Yunfei Li <liyf20@mails.tsinghua.edu.cn>, Yi Wu
+<jxwuyi@gmail.com>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+𝒂𝒕
+
+Success
+
+Offline
+
+Offline
+dataset
+
+𝒓𝒊𝒏𝒕
+𝒕
+𝒔𝒕+𝟏 , 𝒓𝒕
+
+𝒓𝒊𝒏𝒕
+Data
+𝒕 ≔
+Failure
+𝑽 𝒔𝒕+𝟏 − 𝑽(𝒔𝒕 )
+augmentation
+On-policy
+update
+
+Task reduction
+Supervised
+Learning
+Start Subgoal Goal
+
+Figure 1. Overall workflow of PAIR. PAIR iteratively alternates
+between online RL and offline SL phases. During online phases,
+the agent is trained using both environment reward and a valuedifference-based intrinsic reward. Meantime, it collects trajectories
+and augments them with task reduction into successful demonstrations for offline training. In the offline phases, the agent runs supervised learning to improve its policy using the generated dataset.
+
+2020; Engstrom et al., 2020; Yu et al., 2021a; Andrychowicz et al., 2021), which largely limits the practice use of
+deep RL in many real-world scenarios. On the contrary, supervised learning (SL) provides another learning paradigm
+by imitating given demonstrations, which is much simpler
+for tuning and typically results in a much more steady optimization process (Lynch et al., 2020; Ghosh et al., 2020).
+Inspired by the success of training powerful fundamental
+models by SL (Brown et al., 2020; Dosovitskiy et al., 2020;
+Jumper et al., 2021), it has also been a recent trend in RL
+to leverage the power of SL to develop more powerful and
+stable deep RL algorithms (Levine, 2021).
+One representative line of research that incorporates SL
+into RL is offline RL, which assumes that a large offline
+dataset of transition data is available and solely performs
+learning on the dataset without interacting with the environment (Lange et al., 2012; Wu et al., 2019; Levine et al., 2020;
+Kumar et al., 2020; Fujimoto & Gu, 2021). However, both
+empirical (Yu et al., 2021b) and theoretical (Rashidinejad
+et al., 2021) evidence suggests that the success of recent offline RL methods rely on the quality of the dataset. Accord-
+
+

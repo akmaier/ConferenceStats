@@ -1,0 +1,59 @@
+Backpropagation-Friendly Eigendecomposition
+Wei Wang1 , Zheng Dang2 , Yinlin Hu1 , Pascal Fua1 , and Mathieu Salzmann1
+1
+
+CVLab, EPFL, CH-1015 Lausanne, Switzerland {first.last}@epfl.ch
+2
+Xi’an Jiaotong University, China {dangzheng713@stu.xjtu.edu.cn}
+
+Abstract
+Eigendecomposition (ED) is widely used in deep networks. However, the backpropagation of its results tends to be numerically unstable, whether using ED directly
+or approximating it with the Power Iteration method, particularly when dealing
+with large matrices. While this can be mitigated by partitioning the data in small
+and arbitrary groups, doing so has no theoretical basis and makes its impossible to
+exploit the power of ED to the full.
+In this paper, we introduce a numerically stable and differentiable approach to
+leveraging eigenvectors in deep networks. It can handle large matrices without
+requiring to split them. We demonstrate the better robustness of our approach over
+standard ED and PI for ZCA whitening, an alternative to batch normalization, and
+for PCA denoising, which we introduce as a new normalization strategy for deep
+networks, aiming to further denoise the network’s features.
+
+1
+
+Introduction
+
+In recent years, Eigendecomposition (ED) has been incorporated in deep learning algorithms to
+perform PCA whitening [1], ZCA whitening [2], second-order pooling [3], generative modeling [4, 5],
+keypoint detection and matching [6–8], pose estimation [9], camera self-calibration [10], and graph
+matching [11]. This requires backpropagating the loss through the ED, which can be done but is
+often unstable. This is because, as shown in [3], the partial derivatives of an ED-based loss depend
+e with elements
+on a matrix K
+
+1/(λi −λj ), i 6= j
+e
+Kij =
+,
+(1)
+0,
+i=j
+where λi denotes the ith eigenvalue of the matrix being processed. Thus, when two eigenvalues are
+very close, the partial derivatives become very large, causing arithmetic overflow.
+The Power Iteration (PI) method [12] is one way around this problem. In its standard form, PI
+relies on an iterative procedure to approximate the dominant eigenvector of a matrix starting from an
+initial estimate of this vector. This has been successfully used for graph matching [11] and spectral
+normalization in generative models [4], which only require the largest eigenvalue. In theory, PI can
+be used in conjunction with a deflation procedure [13] to find all eigenvalues and eigenvectors. This
+involves computing the dominant eigenvector, removing the projection of the input matrix on this
+vector, and iterating. Unfortunately, two eigenvalues being close to each other or one being close to
+zero can trigger large round-off errors that eventually accumulate and result in inaccurate eigenvector
+estimates. The results are also sensitive to the number of iterations and to how the vector is initialized
+at the start of each deflation step. Finally, the convergence speed decreases significantly when the
+ratio between the dominant eigenvalue and others becomes close to one.
+In short, both SVD [3] and PI [11] are unsuitable for use in a deep network that requires the
+computation of gradients to perform back-propagation. This is particularly true when dealing with
+large matrices for which the chances of two eigenvalues being almost equal is larger than for small
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

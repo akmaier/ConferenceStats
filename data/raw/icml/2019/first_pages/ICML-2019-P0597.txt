@@ -1,0 +1,79 @@
+Compressing Gradient Optimizers via Count-Sketches
+
+Ryan Spring 1 * Anastasios Kyrillidis 1 Vijai Mohan 2 Anshumali Shrivastava 1 2
+
+Abstract
+Many popular first-order optimization methods
+accelerate the convergence rate of deep learning
+models. However, these algorithms require auxiliary variables, which cost additional memory
+proportional to the number of parameters in the
+model. The problem is becoming more severe as
+models grow larger to learn from complex, largescale datasets. Our proposed solution is to maintain a linear sketch to compress the auxiliary variables. Our approach has the same performance as
+the full-sized baseline, while using less space for
+the auxiliary variables. Theoretically, we prove
+that count-sketch optimization maintains the SGD
+convergence rate, while gracefully reducing memory usage for large-models. We show a rigorous evaluation on popular architectures such as
+ResNet-18 and Transformer-XL. On the 1-Billion
+Word dataset, we save 25% of the memory used
+during training (7.7 GB instead of 10.8 GB) with
+minimal accuracy and performance loss. For an
+Amazon extreme classification task with over 49.5
+million classes, we also reduce the training time
+by 38%, by increasing the mini-batch size 3.5×
+using our count-sketch optimizer.
+
+1. Introduction
+An emerging trend in natural language processing is to train
+a language model in an unsupervised fashion on a large
+text corpus, and then to fine-tune the model for a specific
+task (Radford et al., 2018; Puri et al., 2018; Devlin et al.,
+2018). The language model often takes the form of an
+LSTM (Jozefowicz et al., 2016) or a Transformer (Vaswani
+et al., 2017). These models already contain millions of
+parameters and will continue to grow even larger to achieve
+better performance.
+*
+Work completed during an internship at Amazon Search.
+Department of Computer Science, Rice University, Houston, TX,
+USA 2 Amazon Search, Palo Alto, CA, USA. Correspondence to:
+Ryan Spring <rdspring1@rice.edu>.
+
+1
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+Training large-scale models efficiently is a challenging task.
+There are numerous publications that describe how to leverage multi-GPU data parallelism and mixed precision training effectively (Hoffer et al., 2017; Ott et al., 2018; Micikevicius et al., 2018). A key tool for improving training time
+is to increase the batch size, taking advantage of the massive
+parallelism provided by GPUs. However, increasing the
+batch size also requires significant amounts of memory. A
+practitioner will sometimes sacrifice their batch size for a
+larger, more expressive model. For example, (Puri et al.,
+2018) showed that doubling the dimensionality of a multiplicative LSTM (Krause et al., 2016) from 4096 to 8192
+forced them to reduce the batch size per GPU by 4×.
+One culprit that aggravates the memory capacity issue is
+the auxiliary parameters used by first-order optimization
+algorithms. (e.g., Momentum, AdaGrad, Adam) Our proposed solution is to compress the auxiliary parameters of the
+optimizer using the count-sketch data structure (Charikar
+et al., 2002), freeing up memory for either a more expressive
+model or a larger batch size for faster training.
+Why Count-Sketches? Here are the two main reasons that
+make count-sketches a natural choice for this problem.
+1. The update operations for auxiliary variables are linear.
+2. We empirically observe that at any iteration, the distribution of magnitudes for the gradients and their auxiliary
+variables satisfy power law like behavior. (See Appendix A)
+The count-sketch data structure is ideally suited for compressing the auxiliary variables. We can easily tune the capacity of the count-sketch to maintain the optimizer’s performance without increasing the cost of updating or querying
+the structure. In Section 4, we formally prove this graceful
+memory trade-off by analyzing the convergence rate of our
+count-sketch optimizer. Furthermore, the computational
+cost associated with the count-sketch scales with gradient
+sparsity. We can insert sparse gradients directly into the
+count-sketch, and then retrieve the corresponding approximation without accessing the entire auxiliary variable.
+Leveraging gradient sparsity is useful for saving additional
+memory during training. When the gradient tensor is extremely sparse, majority of the values are zero, which is
+an unnecessary waste of memory. Moreover, several algorithms impose sparsity on the Softmax layer to improve
+training time significantly. For example, (Shrivastava & Li,
+
+

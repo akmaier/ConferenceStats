@@ -1,0 +1,76 @@
+Making Deep Q-learning Methods Robust to Time Discretization
+
+Corentin Tallec 1 Léonard Blier 1 2 Yann Ollivier 2
+
+Abstract
+Despite remarkable successes, Deep Reinforcement Learning (DRL) is not robust to hyperparameterization, implementation details, or small environment changes (Henderson et al. 2017, Zhang
+et al. 2018). Overcoming such sensitivity is key
+to making DRL applicable to real world problems.
+In this paper, we identify sensitivity to time discretization in near continuous-time environments
+as a critical factor; this covers, e.g., changing the
+number of frames per second, or the action frequency of the controller. Empirically, we find that
+Q-learning-based approaches such as Deep Qlearning (Mnih et al., 2015) and Deep Deterministic Policy Gradient (Lillicrap et al., 2015) collapse
+with small time steps. Formally, we prove that
+Q-learning does not exist in continuous time. We
+detail a principled way to build an off-policy RL
+algorithm that yields similar performances over
+a wide range of time discretizations, and confirm
+this robustness empirically.
+
+1. Introduction
+In recent years, Deep Reinforcement Learning (DRL) approaches have provided impressive results in a variety of
+domains, achieving superhuman performance with no expert
+knowledge in perfect information zero-sum games (Silver
+et al., 2017), reaching top player level in video games (OpenAI 2018b, Mnih et al. 2015), or learning dexterous manipulation from scratch without demonstrations (OpenAI,
+2018a). In spite of those successes, DRL approaches are
+sensitive to a number of factors, including hyperparameterization, implementation details or small changes in the
+environment parameters (Henderson et al. 2017, Zhang et al.
+2018). This sensitivity, along with sample inefficiency,
+largely prevents DRL from being applied in real world settings. Notably, high sensitivity to environment parameters
+1
+
+TAckling the Underspecified, Université Paris Sud 2 Facebook
+Artificial Intelligence Research. Correspondence to: Corentin
+Tallec <corentin.tallec@inria.fr>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+prevents transfer from imperfect simulators to real world
+scenarios.
+In this paper we focus on the sensitivity to time discretization of DRL approaches, such as what happens when an
+agent receives 50 observations and is expected to take 50
+actions per second instead of 10. In principle, decreasing
+time discretization, or equivalently shortening reaction time,
+should only improve agent performance. Robustness to
+time discretization is especially relevant in near-continuous
+environments, which includes most continuous control environments, robotics, and many video games.
+Standard approaches based on estimation of state-action
+value functions, such as Deep Q-learning (DQN, Mnih et al.
+2015) and Deep deterministic policy gradient (DDPG, Lillicrap et al. 2015) are not at all robust to changes in time
+discretization. This is shown experimentally in Sec. 5. Intuitively, as the discretization timestep decreases, the effect of
+individual actions on the total return decreases too: Q∗ (s, a)
+is the value of playing action a then playing optimally, and if
+a is only maintained for a very short time its advantage over
+other actions will be accordingly small. (This occurs even
+with a suitably adjusted decay factor γ.) If the discretization
+timestep becomes infinitesimal, the effect of every individual action vanishes: there is no continuous-time Q-function
+(Thm. 2), hence the poor performance of Q-learning with
+small time steps. These statements can be fully formalized
+in the framework of continuous-time reinforcement learning
+(Sec. 3) (Doya, 2000; Baird, 1994).
+We focus on continuous time because this leads to a clear
+theoretical framework, but our observations make sense in
+any setting in which the value results from taking a large
+number of small individual actions. Our results suggest standard Q-learning will fail in such settings without a delicate
+balance of hyperparameter scalings and reparameterizations.
+We are looking for an algorithm that would be as invariant
+as possible to changing the discretization timestep. Such an
+algorithm should remain viable, in the sense that it should
+still learn, when this timestep is small, and in particular admit a continuous-time limit when the discretization timestep
+goes to 0. This leads to precise design choices in terms
+of agent architecture, exploration policy, and learning rates
+scalings. The resulting algorithm is shown to provide better
+invariance to time discretization than vanilla DQN or DDPG,
+
+

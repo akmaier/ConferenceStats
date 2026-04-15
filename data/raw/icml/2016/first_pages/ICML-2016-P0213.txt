@@ -1,0 +1,71 @@
+Persistent RNNs: Stashing Recurrent Weights On-Chip
+
+Gregory Diamos
+GREGDIAMOS @ BAIDU . COM
+Shubho Sengupta
+SSENGUPTA @ BAIDU . COM
+Bryan Catanzaro
+BCATANZARO @ BAIDU . COM
+Mike Chrzanowski
+MIKECHRZANOWSKI @ BAIDU . COM
+Adam Coates
+ADAMCOATES @ BAIDU . COM
+Erich Elsen
+ERICHELSEN @ BAIDU . COM
+Jesse Engel
+JENGEL @ BAIDU . COM
+Awni Hannun
+AWNIHANNUN @ BAIDU . COM
+Sanjeev Satheesh
+SANJEEVSATHEESTH @ BAIDU . COM
+Baidu Silicon Valley AI Lab, 1195 Bordeaux Drive, Sunnyvale, CA 94089, UNITED STATES
+
+Abstract
+This paper introduces a new technique for mapping Deep Recurrent Neural Networks (RNN) efficiently onto GPUs. We show how it is possible to achieve substantially higher computational
+throughput at low mini-batch sizes than direct
+implementations of RNNs based on matrix multiplications. The key to our approach is the use of
+persistent computational kernels that exploit the
+GPU’s inverted memory hierarchy to reuse network weights over multiple timesteps. Our initial
+implementation sustains 2.8 TFLOP/s at a minibatch size of 4 on an NVIDIA TitanX GPU. This
+provides a 16x reduction in activation memory
+footprint, enables model training with 12x more
+parameters on the same hardware, allows us to
+strongly scale RNN training to 128 GPUs, and allows us to efficiently explore end-to-end speech
+recognition models with over 100 layers.
+
+1. Introduction
+Recurrent Neural Networks (RNNs) have been shown to
+be powerful tools for solving general sequence to sequence
+mapping problems in domains ranging from speech recognition (Sainath et al., 2015) to natural language processing (Gao et al., 2015)(Sutskever et al., 2014).
+In this paper, we explore techniques for mapping RNNs to
+throughput optimized processors such as GPUs. We use the
+Multi-Bulk-Synchronous-Parallel (Valiant, 2008) (MBSP)
+Proceedings of the 33 rd International Conference on Machine
+Learning, New York, NY, USA, 2016. JMLR: W&CP volume
+48. Copyright 2016 by the author(s).
+
+model to analyze the computation, communication, and
+synchronization operations performed by a RNN. We focus on mapping strategies that carefully manage data movement through the processor’s memory hierarchy to balance
+these costs. These changes enable RNN implementations
+on GPUs that are very efficient at small mini-batch sizes,
+even on mini-batch sizes of just 4 examples. We exploit
+this reduction in batch size to decrease the memory footprint of our networks by 16x, allowing us to explore deeper
+networks without exceeding GPU memory.
+We exploit the largest source of on-chip memory on the
+GPU—the collective register files of 6144 hardware thread
+contexts on a TitanX GPU—to cache the RNN parameters
+and reuse them over multiple timesteps during training. We
+attack the cost of inter-processor synchronization with an
+optimized assembly level barrier implementation, demonstrating that such barriers implemented in software can reduce latency by approximately 10x compared to relying on
+repeated kernel launches.
+To make our results relevant for deployment, we only consider models with a hard constraint of 800ms of future context. We find that accuracy improves with deeper models
+using batch normalization and skip connections (He et al.,
+2015; Srivastava et al., 2015), reinforcing the trend towards
+deeper models in vision applications. We present evidence
+that accuracy continues to improve with increased depth.
+
+2. Related Work
+This work is motivated by recent advances in speech recognition and natural language processing using deep RNNs.
+It draws insight from related work on performance optimization of DNN and dense linear algebra libraries, distributed training of DNNs, work on general purpose GPU
+
+

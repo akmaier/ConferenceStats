@@ -1,0 +1,79 @@
+Stochastic Generative Hashing
+Bo Dai* 1 Ruiqi Guo* 2 Sanjiv Kumar 2 Niao He 3 Le Song 1
+
+Abstract
+Learning-based binary hashing has become a
+powerful paradigm for fast search and retrieval
+in massive databases. However, due to the requirement of discrete outputs for the hash functions, learning such functions is known to be
+very challenging. In addition, the objective functions adopted by existing hashing techniques are
+mostly chosen heuristically. In this paper, we
+propose a novel generative approach to learn
+hash functions through Minimum Description
+Length principle such that the learned hash codes
+maximally compress the dataset and can also
+be used to regenerate the inputs. We also develop an efficient learning algorithm based on the
+stochastic distributional gradient, which avoids
+the notorious difficulty caused by binary output
+constraints, to jointly optimize the parameters
+of the hash function and the associated generative model. Extensive experiments on a variety
+of large-scale datasets show that the proposed
+method achieves better retrieval results than the
+existing state-of-the-art methods.
+
+1. Introduction
+Search for similar items in web-scale datasets is a fundamental step in a number of applications, especially in image and document retrieval. Formally, given a reference
+d
+dataset X = {xi }N
+i=1 with x 2 X ⇢ R , we want to retrieve similar items from X for a given query y according
+to some similarity measure sim(x, y). When the negative
+Euclidean distance is used, i.e., sim(x, y) = kx yk2 ,
+this corresponds to L2 Nearest Neighbor Search (L2NNS)
+problem; when the inner product is used, i.e., sim(x, y) =
+x> y, it becomes a Maximum Inner Product Search (MIPS)
+problem. In this work, we focus on L2NNS for simplicity,
+however our method handles MIPS problems as well, as
+*
+Equal contribution . This work was done during internship at
+Google Research NY. 1 Georgia Institute of Technology. 2 Google
+Research, NYC 3 University of Illinois at Urbana-Champaign.
+Correspondence to: Bo Dai <bodai@gatech.edu>.
+
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+shown in the supplementary material D. Brute-force linear
+search is expensive for large datasets. To alleviate the time
+and storage bottlenecks, two research directions have been
+studied extensively: (1) partition the dataset so that only
+a subset of data points is searched; (2) represent the data
+as codes so that similarity computation can be carried out
+more efficiently. The former often resorts to search-tree or
+bucket-based lookup; while the latter relies on binary hashing or quantization. These two groups of techniques are
+orthogonal and are typically employed together in practice.
+In this work, we focus on speeding up search via binary
+hashing. Hashing for similarity search was popularized by
+influential works such as Locality Sensitive Hashing (Indyk
+and Motwani, 1998; Gionis et al., 1999; Charikar , 2002).
+The crux of binary hashing is to utilize a hash function,
+f (·) : X ! {0, 1}l , which maps the original samples in
+X 2 Rd to l-bit binary vectors h 2 {0, 1}l while preserving the similarity measure, e.g., Euclidean distance or inner product. Search with such binary representations can
+be efficiently conducted using Hamming distance computation, which is supported via POPCNT on modern CPUs
+and GPUs. Quantization based techniques (Babenko and
+Lempitsky, 2014; Jegou et al., 2011; Zhang et al., 2014b)
+have been shown to give stronger empirical results but
+tend to be less efficient than Hamming search over binary
+codes (Douze et al., 2015; He et al., 2013).
+Data-dependent hash functions are well-known to perform
+better than randomized ones (Wang et al., 2014). Learning hash functions or binary codes has been discussed in
+several papers, including spectral hashing (Weiss et al.,
+2009), semi-supervised hashing (Wang et al., 2010), iterative quantization (Gong and Lazebnik, 2011), and others (Liu et al., 2011; Gong et al., 2013; Yu et al., 2014; Shen
+et al., 2015; Guo et al., 2016). The main idea behind these
+works is to optimize some objective function that captures
+the preferred properties of the hash function in a supervised
+or unsupervised fashion.
+Even though these methods have shown promising performance in several applications, they suffer from two main
+drawbacks: (1) the objective functions are often heuristically constructed without a principled characterization of
+goodness of hash codes, and (2) when optimizing, the binary constraints are crudely handled through some relaxation, leading to inferior results (Liu et al., 2014). In this
+
+

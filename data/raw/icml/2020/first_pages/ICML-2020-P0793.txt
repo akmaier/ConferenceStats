@@ -1,0 +1,80 @@
+Discriminative Adversarial Search for Abstractive Summarization
+Thomas Scialom 1 2 Paul-Alexis Dray 1 Sylvain Lamprier 2 Benjamin Piwowarski 2 3 Jacopo Staiano 1
+
+Abstract
+We introduce a novel approach for sequence
+decoding, Discriminative Adversarial Search
+(DAS), which has the desirable properties of alleviating the effects of exposure bias without requiring external metrics. Inspired by Generative
+Adversarial Networks (GANs), wherein a discriminator is used to improve the generator, our
+method differs from GANs in that the generator
+parameters are not updated at training time and
+the discriminator is only used to drive sequence
+generation at inference time. We investigate the
+effectiveness of the proposed approach on the
+task of Abstractive Summarization: the results
+obtained show that DAS improves over the stateof-the-art methods, with further gains obtained
+via discriminator retraining. Moreover, we show
+how DAS can be effective for cross-domain adaptation. Finally, all results reported are obtained
+without additional rule-based filtering strategies,
+commonly used by the best performing systems
+available: this indicates that DAS can effectively
+be deployed without relying on post-hoc modifications of the generated outputs.
+
+1. Introduction
+In the context of Natural Language Generation (NLG), a
+majority of approaches propose sequence to sequence models trained via maximum likelihood estimation; a Teacher
+Forcing (Williams & Zipser, 1989) strategy is applied during training: ground-truth tokens are sequentially fed into
+the model to predict the next token. Conversely, at inference
+time, ground-truth tokens are not available: the model can
+only have access to its previous outputs. In the literature
+(Bengio et al., 2015; Ranzato et al., 2015), such mismatch
+is referenced to as exposure bias: as mistakes accumulate,
+this can lead to a divergence from the distribution seen at
+1
+
+reciTAL, Paris, France 2 Sorbonne Université, CNRS, LIP6, F75005 Paris, France 3 CNRS, France. Correspondence to: Thomas
+Scialom <thomas@recital.ai>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+training time, resulting in poor generation outputs.
+Several works have focused on alleviating this issue, proposing to optimize a sequence level metric such as BLEU or
+ROUGE: Wiseman & Rush (2016) used beam search optimisation while Ranzato et al. (2015) framed text generation as
+a reinforcement learning problem, using the chosen metric
+as reward. Still, these automated metrics suffer from known
+limitations: Sulem et al. (2018) showed how BLEU metrics
+do not reflect meaning preservation, while Novikova et al.
+(2017) pointed out that, for NLG tasks, they do not map
+well to human judgements.
+Similar findings have been reported for ROUGE, in the
+context of abstractive summarization (Paulus et al., 2017):
+for the same input, several correct outputs are possible;
+nonetheless, the generated output is often compared to a
+single human reference, given the lack of annotated data.
+Complementary metrics have been proposed to evaluate
+NLG tasks, based on Question Answering (Scialom et al.,
+2019) or learned from human evaluation data (Böhm et al.,
+2019). Arguably, though, the correlation of such metrics to
+human judgments is still unsatisfactory.
+To tackle exposure bias, Generative Adversarial Networks
+(GANs) (Goodfellow et al., 2014) represent a natural alternative to the proposed approaches: rather than learning
+from a specific metric, the model learns to generate text that
+a discriminator cannot differentiate from human-produced
+content. However, the discrete nature of text makes the
+classifier signal non-differentiable. A solution would be
+to use reinforcement learning with the classifier prediction
+as a reward signal. However, due to reward sparsity and
+mode collapse (Zhou et al., 2020), text GANs failed so far
+to be competitive with state-of-the-art models trained with
+teacher forcing on NLG tasks (Caccia et al., 2018; Clark
+et al., 2019), and are mostly evaluated on synthetic datasets.
+Inspired by Generative Adversarial Networks, we propose
+an alternative approach for sequence decoding: first, a discriminator is trained to distinguish human-produced texts
+from machine-generated ones. Then, this discriminator is
+integrated into a beam search: at each decoding step, the
+generator output probabilities are refined according to the
+likelihood that the candidate sequence is human-produced.
+This is equivalent to optimize the search for a custom and
+dynamic metric, learnt to fit the human examples.
+
+

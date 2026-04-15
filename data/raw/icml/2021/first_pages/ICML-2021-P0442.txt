@@ -1,0 +1,95 @@
+DeepReDuce: ReLU Reduction for Fast Private Inference
+
+Abstract
+The recent rise of privacy concerns has led researchers to devise methods for private neural
+inference—where inferences are made directly on
+encrypted data, never seeing inputs. The primary
+challenge facing private inference is that computing on encrypted data levies an impractically-high
+latency penalty, stemming mostly from non-linear
+operators like ReLU. Enabling practical and private inference requires new optimization methods
+that minimize network ReLU counts while preserving accuracy. This paper proposes DeepReDuce: a set of optimizations for the judicious
+removal of ReLUs to reduce private inference
+latency. The key insight is that not all ReLUs
+contribute equally to accuracy. We leverage this
+insight to drop, or remove, ReLUs from classic
+networks to significantly reduce inference latency
+and maintain high accuracy. Given a network architecture, DeepReDuce outputs a Pareto frontier
+of networks that tradeoff the number of ReLUs
+and accuracy. Compared to the state-of-the-art for
+private inference DeepReDuce improves accuracy
+and reduces ReLU count by up to 3.5% (iso-ReLU
+count) and 3.5× (iso-accuracy), respectively.
+
+1. Introduction
+Concerns surrounding data privacy continue to rise and are
+beginning to affect technology. Companies are changing the
+way they use and store users’ data while lawmakers are passing legislation to improve users’ privacy rights (Act, 1996;
+Regulation, 2016). Deep learning is the core driver of many
+applications impacted by privacy concerns. It provides high
+utility in classifying, recommending, and interpreting user
+data to build user experiences and requires large amounts of
+private user data to do so. Private inference is a solution that
+simultaneously provides strong privacy guarantees while
+preserving the utility of neural networks to power applica1
+
+New York University, New York, USA. Correspondence to:
+Nandan Kumar Jha <nj2049@nyu.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Test (top-1) accuracy (%)
+
+Nandan Kumar Jha 1 Zahra Ghodsi 1 Siddharth Garg 1 Brandon Reagen 1
+
+80 DeepReDuce
+75
+70
+
+SAFENet
+CryptoNAS
+DELPHI
+ResNet
+
+65
+60
+8
+
+16
+
+32
+64
+#ReLUs (in K)
+
+128
+
+256
+
+Figure 1. DeepReDuce Pareto frontier of ReLU counts versus accuracy for CIFAR-100. We show DeepReDuce outperforms the
+state-of-the-art (SAFENet (Lou et al., 2021), CryptoNAS (Ghodsi
+et al., 2020) and DELPHI (Mishra et al., 2020)).
+
+tion experiences users enjoy. Today, in a typical inference
+pipeline, a client encrypts data (ciphertexts) and sends it
+to the cloud, the cloud decrypts the data and performs inferences on the data (plaintext), and returns the encrypted
+results. With private inference, the same inference is executed without the cloud ever decrypting the client’s data;
+that is, inferences are processed directly on ciphertexts.
+Prior work has established two methods for private inference.
+The primary difference between them is how linear layers
+are computed, either with secret-sharing (SS), a type of secure multi-party computation (MPC) (Goldreich et al., 2019;
+Shamir, 1979), or homomorphic encryption (HE), an encryption scheme that enables computation on ciphertexts (Gentry
+et al., 2009; Brakerski & Vaikuntanathan, 2014). For example, Gazelle (Juvekar et al., 2018) and Cheetah (Reagen
+et al., 2021) use HE for convolution and fully-connected layers whereas MiniONN (Liu et al., 2017), DELPHI (Mishra
+et al., 2020), and CryptoNAS (Ghodsi et al., 2020) use SS.
+While distinct, both offer limited functional support and
+cannot readily process non-linear operations, e.g., ReLUs.
+To overcome this limitation, private inference protocols use
+Garbled circuits (GCs), another form of MPC (Yao, 1982;
+1986), to process ReLU privately. However, GCs are several
+orders of magnitude more expensive than the linear layer
+protocols in terms of communication and computational,
+rendering private inference impractical (Ghodsi et al., 2020).
+For example, ReLUs account for 93% of ResNet32’s online
+private inference time using the DELPHI protocol (Mishra
+et al., 2020). Therefore, enabling low-latency private inference is a matter of minimizing a network’s ReLU count.
+
+

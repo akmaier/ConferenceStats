@@ -1,0 +1,68 @@
+On Proximal Policy Optimization’s Heavy-tailed Gradients
+
+Saurabh Garg 1 Joshua Zhanson 2 Emilio Parisotto 1 Adarsh Prasad 1 J. Zico Kolter 2 Zachary C. Lipton 1
+Sivaraman Balakrishnan 3 Ruslan Salakhutdinov 1 Pradeep Ravikumar 1
+
+Abstract
+Modern policy gradient algorithms such as Proximal Policy Optimization (PPO) rely on an arsenal
+of heuristics, including loss clipping and gradient clipping, to ensure successful learning. These
+heuristics are reminiscent of techniques from robust statistics, commonly used for estimation in
+outlier-rich (“heavy-tailed”) regimes. In this paper, we present a detailed empirical study to characterize the heavy-tailed nature of the gradients
+of the PPO surrogate reward function. We demonstrate that the gradients, especially for the actor
+network, exhibit pronounced heavy-tailedness and
+that it increases as the agent’s policy diverges
+from the behavioral policy (i.e., as the agent goes
+further off policy). Further examination implicates the likelihood ratios and advantages in the
+surrogate reward as the main sources of the observed heavy-tailedness. We then highlight issues
+arising due to the heavy-tailed nature of the gradients. In this light, we study the effects of the
+standard PPO clipping heuristics, demonstrating
+that these tricks primarily serve to offset heavytailedness in gradients. Thus motivated, we propose incorporating G MOM, a high-dimensional
+robust estimator, into PPO as a substitute for three
+clipping tricks. Despite requiring less hyperparameter tuning, our method matches the performance of PPO (with all heuristics enabled) on a
+battery of MuJoCo continuous control tasks.
+
+1. Introduction
+As Deep Reinforcement Learning (DRL) methods have
+made strides on such diverse tasks as game playing and
+continuous control (Berner et al., 2019; Silver et al., 2017;
+1
+Machine Learning Department, Carnegie Mellon University 2 Computer Science Department, Carnegie Mellon University 3 Department of Statistics and Data Science, Carnegie
+Mellon University.
+Correspondence to: Saurabh Garg
+<sgarg2@andrew.cmu.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Mnih et al., 2015), policy gradient methods (Williams, 1992;
+Sutton et al., 2000; Mnih et al., 2016) have risen as a popular alternative to dynamic programming approaches. Since
+Mnih et al. (2016)’s breakthrough results demonstrated the
+applicability of policy gradients in DRL, a number of popular variants have emerged (Schulman et al., 2017; Espeholt
+et al., 2018). Proximal Policy Optimization (PPO) (Schulman et al., 2017)—one of the most popular policy gradient
+methods—introduced the clipped importance sampling update, an effective heuristic for off-policy learning. However,
+while their stated motivation for clipping draws upon trustregion enforcement, the updates in practice tend to deviate
+from such trust regions (Ilyas et al., 2018). and exhibit
+sensitivity to implementation details such as random seeds
+and hyperparameter choices (Engstrom et al., 2019). This
+brittleness characterizes not just PPO, but policy gradient
+methods more generally (Ilyas et al., 2018; Henderson et al.,
+2017; 2018; Islam et al., 2017), raising a broader concern
+about our understanding of these methods.
+In this work, we take a step towards understanding the workings of PPO, the most prominent and widely used deep
+policy gradient method. Noting that the heuristics implemented in PPO are evocative of estimation techniques from
+robust statistics in outlier-rich and heavy-tailed settings, we
+conjecture that the heavy-tailed distribution of gradients is
+the main obstacle addressed by these heuristics. We perform a rigorous empirical study to confirm the existence
+of heavy-tailedness in PPO gradients and to investigate its
+causes and consequences.
+Our first contribution is to analyze the role played by each
+component of the PPO objective in the heavy-tailedness of
+the gradients. We observe that as training proceeds, gradients of both the actor and the critic loss grow more heavytailed. Our findings show that during on-policy gradient
+steps the advantage estimates are the primary contributors
+to the heavy-tailed nature of the gradients. Moreover, as offpolicyness increases during training (i.e. as the behavioral
+and actor policy diverge), the likelihood ratios that appear
+in the surrogate objective exacerbate the heavy-tailedness.
+Second, we highlight the consequences of the heavytailedness of PPO’s gradients. Empirically, we find that
+heavy-tailedness in likelihood ratios induced during off-
+
+

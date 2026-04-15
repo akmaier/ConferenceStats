@@ -1,0 +1,115 @@
+TSPipe: Learn from Teacher Faster with Pipelines
+
+Hwijoon Lim 1 Yechan Kim 2 Sukmin Yun 1 Jinwoo Shin 1 2 Dongsu Han 1 2
+
+Pipeline Idle
+
+1. Introduction
+Knowledge distillation (KD) (Hinton et al., 2015) has shown
+remarkable success with the teacher-student (TS) framework
+in transferring knowledge from a teacher network to a student network. Motivated by this, the TS framework has been
+1
+School of Electrical Engineering, KAIST, Daejeon, Republic of Korea 2 Kim Jaechul Graduate School of AI, KAIST, Daejeon, Republic of Korea. Correspondence to: Dongsu Han
+<dhan.ee@kaist.ac.kr>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+1
+The source code is available at https://github.com/
+kaist-ina/TSPipe.
+
+GPU 0
+GPU 1
+GPU 2
+GPU 3
+
+Bubble
+Forward
+
+Backward
+
+student+teacher
+
+TSPipe
+
+The teacher-student (TS) framework, training a
+(student) network by utilizing an auxiliary superior (teacher) network, has been adopted as a popular training paradigm in many machine learning
+schemes, since the seminal work—Knowledge
+distillation (KD) for model compression and transfer learning. Many recent self-supervised learning (SSL) schemes also adopt the TS framework,
+where teacher networks are maintained as the
+moving average of student networks, called the
+momentum networks. This paper presents TSPipe,
+a pipelined approach to accelerate the training process of any TS frameworks including KD and SSL.
+Under the observation that the teacher network
+does not need a backward pass, our main idea is
+to schedule the computation of the teacher and
+student network separately, and fully utilize the
+GPU during training by interleaving the computations of the two networks and relaxing their dependencies. In case the teacher network requires
+a momentum update, we use delayed parameter
+updates only on the teacher network to attain high
+model accuracy. Compared to existing pipeline
+parallelism schemes, which sacrifice either training throughput or model accuracy, TSPipe provides better performance trade-offs, achieving up
+to 12.15x higher throughput. 1
+
+GPipe
+
+Abstract
+
+student Update
+
+GPU 0
+GPU 1
+GPU 2
+GPU 3
+
+Forward Forward Forward
+teacher student teacher
+
+0
+
+0.25
+
+Backward
+student
+
+0.5
+
+Forward Forward Backward
+
+Update
+
+student teacher student
+
+0.75
+
+time
+
+Figure 1. TSPipe achieves high training throughput by eliminating
+pipeline bubbles. Top: With GPipe, GPUs are idle, exhibiting
+pipeline bubbles. Gray blocks indicate the forward pass, and
+orange blocks indicate the backward pass. Bottom: Timeline for
+TSPipe. Green, blue, and orange blocks indicate the forward pass
+of the teacher network, the forward pass of the student network,
+and the backward pass of the student network, respectively. Note
+two figures share the same time axis, which is normalized.
+
+used in a broader range of applications—vision (Pham et al.,
+2021), natural language processing (Sanh et al., 2019), and
+deep reinforcement learning (Yin & Pan, 2017). In particular, many recent studies in self-supervised learning (SSL) for
+vision (He et al., 2020; Chen et al., 2021; Grill et al., 2020;
+Li et al., 2021a; Zhou et al., 2021) have successfully learned
+visual representations from a large number of unlabeled data
+using the TS framework.
+However, both KD and SSL often suffer from the extensive
+amounts of resource requirements (e.g., GPU memory and
+computation) for training. For example, KD often leverages large teacher networks—in Natural Language processing (NLP), the state-of-the-art pre-trained language models
+have up to 175B parameters (Brown et al., 2020; Zhang et al.,
+2022), which requires 700 GB of GPU memory only for the
+model itself. Many recent SSL methods also employ a largescale of architectures for better representation learning, e.g.,
+MoCo-v3 (Chen et al., 2021) adopting ViT (Dosovitskiy
+et al., 2020), a transformer-based model, takes 128 GPUdays with ViT-B (86 M parameters) to converge. In addition,
+SSL methods often require extensive training epochs for
+model convergence—BYOL (Grill et al., 2020) needs an
+order of magnitude more training epochs to achieve the
+
+

@@ -1,0 +1,84 @@
+Efficient Rematerialization for Deep Networks
+
+Ravi Kumar
+Google Research
+Mountain View, CA 94043
+ravi.k53@gmail.com
+
+Manish Purohit
+Google Research
+Mountain View, CA 94043
+mpurohit@google.com
+
+Erik Vee
+Google Research
+Mountain View, CA 94043
+erikvee@google.com
+
+Zoya Svitkina
+Google Research
+Mountain View, CA 94043
+zoya@google.com
+
+Joshua R. Wang
+Google Research
+Mountain View, CA 94043
+joshuawang@google.com
+
+Abstract
+When training complex neural networks, memory usage can be an important
+bottleneck. The question of when to rematerialize, i.e., to recompute intermediate
+values rather than retaining them in memory, becomes critical to achieving the best
+time and space efficiency. In this work we consider the rematerialization problem
+and devise efficient algorithms that use structural characterizations of computation
+graphs—treewidth and pathwidth—to obtain provably efficient rematerialization
+schedules. Our experiments demonstrate the performance of these algorithms on
+many common deep learning models.
+
+1
+
+Introduction
+
+The world of deep learning is moving toward bigger model architectures. The recent successes in
+speech, language understanding, vision, and others have repeatedly demonstrated that bigger and
+deeper models yield the best results for a task, thereby advancing the state of the art. In addition to
+the size, the models themselves and the methods to train them are becoming increasingly complex
+and intricate in terms of data dependencies, gradient propagation, optimization steps, etc. Specialized
+hardware such as GPUs and AI accelerators have been vastly influential in training these complex
+models. They are particularly helpful from a computational point of view, but are limited by memory
+capacity that falls short of the peak demands of training these large models. Since memory turns out
+to be a bottleneck, it becomes an issue of feasibility—can a given model be trained at all?
+While the growing model complexity is the root cause
+of severe demands on memory, the actual schedule in
+which the computation is carried out also plays a critical role in determining peak memory requirements.
+To see why, it is helpful to view the computational
+steps in training these models as a directed acyclic
+graph (e.g., Figure 1) whose nodes represent operations and directed edges represent data dependencies.
+(In TensorFlow parlance, this is a dataflow graph.)
+Each node consumes a set of inputs from its incoming edges, does some computation, and outputs the
+result of this computation on its outgoing edges; it is
+assumed that both inputs and outputs of this computation are to be held in memory. The order in which the
+nodes are computed, i.e., the schedule, will determine
+
+A
+
+B
+
+C
+
+D
+
+E
+
+Figure 1: The schedule hA, B, C, D, Ei needs
+four units of memory—while computing D, two
+units are needed for inputs to D, one for output
+from D, and one unit to keep the output of A as
+an input to E. The schedule hA, B, C, D, A, Ei
+needs three units of memory—at node D the output
+of A need not be retained in memory since it will
+be recomputed right after computing D.
+
+33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+
+

@@ -1,0 +1,80 @@
+Accelerating Iterative Retrieval-augmented Language Model Serving with
+Speculation
+
+Zhihao Zhang 1 Alan Zhu 1 Lijie Yang 1 Yihua Xu 2 Lanting Li 1 Phitchaya Mangpo Phothilimthana 3
+Zhihao Jia 1
+
+Abstract
+
+model with a non-parametric knowledge base through retrieval augmentation (Khandelwal et al., 2019; Shi et al.,
+2023; Ram et al., 2023; Khattab et al., 2022).
+
+This paper introduces RaLMSpec, a framework
+that accelerates iterative retrieval-augmented language model (RaLM) with speculative retrieval
+and batched verification. RaLMSpec further introduces several important systems optimizations,
+including prefetching, optimal speculation stride
+scheduler, and asynchronous verification. The
+combination of these techniques allows RaLMSPec to significantly outperform existing systems.
+For document-level iterative RaLM serving, evaluation over three LLMs on four QA datasets
+shows that RaLMSpec improves over existing approaches by 1.75-2.39×, 1.04-1.39×, and 1.311.77× when the retriever is an exact dense retriever, approximate dense retriever, and sparse
+retriever respectively. For token-level iterative
+RaLM (KNN-LM) serving, RaLMSpec is up to
+7.59× and 2.45× faster than existing methods
+for exact dense and approximate dense retrievers,
+respectively.
+
+Existing RaLM methods can be categorized into two classes
+based on the interaction between the knowledge base and
+language model. First, one-shot RaLM performs retrieval
+once for each request and combines the retrieved documents
+with the original request to assist generation. On the other
+hand, iterative RaLM enables iterative interactions between
+the language model and knowledge base for a request so
+that the language model can opportunistically query the
+knowledge base to retrieve more relevant documents during
+generation. Compared to iterative RaLM, one-shot RaLM
+introduces less retrieval overhead but is inherently limited
+when the required information varies from time to time
+during the generation process. On the other hand, iterative RaLM achieves better generative performance while
+suffering from frequent retrievals and, thus, high retrieval
+overhead. This paper answers the following research question: can we reduce the overhead of iterative RaLM without
+affecting generative quality?
+We propose RaLMSpec, a framework that employs speculative retrieval with batched verification to reduce the serving
+overhead for iterative RaLM while provably preserving the
+model output. A critical bottleneck of existing iterative
+RaLM methods is the inefficiency of retrieval. In particular,
+due to the auto-regressive nature of generative language
+models, the retrieval step is usually performed with a single
+query summarizing the current context. As shown in Figure 1(a), existing iterative RaLM approaches interleave the
+retrieval step and the generation step by constantly retrieving
+from the knowledge base with the latest context-dependent
+queries (i.e., q0 , q1 , and q2 ). The corresponding retrieved
+contents (A, B, C) can then assist the generation process
+by contributing relevant information to the language model
+through a prompt or attention-level combination. However,
+issuing these queries for knowledge base retrieval sequentially is inefficient.
+
+1. Introduction
+Recent advancements in large language models such as
+LLaMA-2, GPT-3, and PaLM have shown promising results
+in diverse NLP tasks (Touvron et al., 2023; Brown et al.,
+2020; Chowdhery et al., 2022). However, encoding a massive amount of knowledge into a fully parametric model
+requires excessive effort in both training and deployment.
+The situation can be further exacerbated when the foundation model is required to adapt to new data or various
+downstream tasks (Asai et al., 2023). To address this challenge, recent work introduces retrieval-augmented language
+models (RaLM), which integrate the parametric language
+1
+
+Carnegie Mellon University 2 University of California, Berkeley Google DeepMind. Correspondence to: Zhihao Zhang <zhihaoz3@cs.cmu.edu>.
+3
+
+The idea of speculative retrieval is conceptually similar to
+speculative execution from the computer architecture literature (Burton, 1985). More specifically, RaLMSpec replaces
+
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+1
+
+

@@ -1,0 +1,78 @@
+Set Based Stochastic Subsampling
+
+Bruno Andreis 1 Seanie Lee 1 A. Tuan Nguyen 2 Juho Lee 1 3 Eunho Yang 1 3 Sung Ju Hwang 1 3
+
+Abstract
+Deep models are designed to operate on huge
+volumes of high dimensional data such as images. In order to reduce the volume of data these
+models must process, we propose a set-based twostage end-to-end neural subsampling model that
+is jointly optimized with an arbitrary downstream
+task network (e.g. classifier). In the first stage,
+we efficiently subsample candidate elements using conditionally independent Bernoulli random
+variables by capturing coarse grained global information using set encoding functions, followed by
+conditionally dependent autoregressive subsampling of the candidate elements using Categorical
+random variables by modeling pair-wise interactions using set attention networks in the second
+stage. We apply our method to feature and instance selection and show that it outperforms the
+relevant baselines under low subsampling rates
+on a variety of tasks including image classification, image reconstruction, function reconstruction and few-shot classification. Additionally, for
+nonparametric models such as Neural Processes
+that require to leverage the whole training data
+at inference time, we show that our method enhances the scalability of these models.
+
+1. Introduction
+Deep models operate on large volumes of high-dimensional
+dense inputs such as the pixels of an image (Deng et al.,
+2009; Krizhevsky et al., 2009; Liu et al., 2015). Training or evaluating models with such data is computationally
+expensive and several works (Balın et al., 2019; Huijben
+et al., 2019; Yoon et al., 2019) have proposed subsampling
+techniques to subsample such dense inputs. Subsampling
+1
+
+Graduate School of AI, Korea Advanced Institute of Science
+and Technology (KAIST), Seoul, South Korea 2 University of Oxford, Oxford, United Kingdom 3 AITRICS, Seoul, South Korea.
+Correspondence to: Bruno Andreis <andries@kaist.ac.kr>, Sung
+Ju Hwang <sjhwang82@kaist.ac.kr>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+methods have the potential to drastically reduce the data acquisition effort and reduce the inference time of algorithms
+that operate on dense inputs. Additionally, subsampling
+techniques have found applications in medical research for
+the purpose of interpretation (Ribeiro et al., 2016).
+However, these methods have a major drawback in that they
+require a fixed input structure. For instance, some of these
+methods are only applicable when each feature (e.g. a pixel)
+of the input is 1-dimensional. This restriction is imposed by
+the way the subsampling methods are designed: the input
+(e.g. an image) is flattened to a single vector and a model
+predicts a binary mask for each feature (e.g. pixels). This
+becomes problematic when we consider a 3-channel image.
+Flattening out the image results in ambiguities as to which
+pixels to select since channels are treated independently. For
+instance, in order to perform subsampling on CIFAR10 images, INVASE (Yoon et al., 2019) and DPS (Huijben et al.,
+2019) convert the images into single channel images (e.g.
+grey-scaled images) before subsampling pixels. In more
+extreme cases such as subsampling of training instances
+(different from instance-wise feature selection), each feature
+is itself an image (each possibly multi-channel) and hence
+those subsampling techniques are inapplicable. Finally, we
+show in our experiments that most of these methods fail under extremely low subsampling rates and their performance
+is similar to random sampling in this setting.
+In order to tackle these limitation, we propose to consider
+each feature or instance as an element of a set. We formulate
+the subsampling problem as selecting a subset of features or
+instances that minimizes the performance degradation of an
+arbitrary model on an arbitrary task such as image classification, regression or instance subsampling for target tasks
+such as few-shot classification. As a result, there are several
+advantages compared to the previous works. First, we can
+handle arbitrary input structure using set functions (Zaheer
+et al., 2017; Lee et al., 2019) parameterized with expressive
+neural networks. Second, a subsampling model with set
+functions can process arbitrary number of elements. As a
+result, the model is robust to a wide range of subsampling
+rates at test time even when trained with a fixed sampling
+rate. Lastly, the set-based formulation unifies the feature
+and instance subsampling tasks under a single framework.
+However, it is prohibitively expensive to process all the
+
+

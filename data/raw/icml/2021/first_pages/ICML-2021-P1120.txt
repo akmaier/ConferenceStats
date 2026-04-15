@@ -1,0 +1,73 @@
+You Only Sample (Almost) Once: Linear Cost Self-Attention Via Bernoulli
+Sampling
+
+Zhanpeng Zeng 1 Yunyang Xiong 1 Sathya N. Ravi 2 Shailesh Acharya 3 Glenn Fung 3 Vikas Singh 1
+
+Abstract
+Transformer-based models are widely used in natural language processing (NLP). Central to the
+transformer model is the self-attention mechanism, which captures the interactions of token
+pairs in the input sequences and depends quadratically on the sequence length. Training such models on longer sequences is expensive. In this paper, we show that a Bernoulli sampling attention
+mechanism based on Locality Sensitive Hashing (LSH), decreases the quadratic complexity
+of such models to linear. We bypass the quadratic
+cost by considering self-attention as a sum of
+individual tokens associated with Bernoulli random variables that can, in principle, be sampled
+at once by a single hash (although in practice,
+this number may be a small constant). This
+leads to an efficient sampling scheme to estimate
+self-attention which relies on specific modifications of LSH (to enable deployment on GPU architectures). We evaluate our algorithm on the
+GLUE benchmark with standard 512 sequence
+length where we see favorable performance relative to a standard pretrained Transformer. On
+the Long Range Arena (LRA) benchmark, for
+evaluating performance on long sequences, our
+method achieves results consistent with softmax
+self-attention but with sizable speed-ups and memory savings and often outperforms other efficient
+self-attention methods. Our code is available at
+https://github.com/mlpen/YOSO.
+
+1. Introduction
+The Transformer model (Vaswani et al., 2017) is incredibly
+effective across natural language processing (NLP) applications including machine translation (Vaswani et al., 2017),
+1
+University of Wisconsin, Madison, USA 2 University of Illinois, Chicago, USA 3 American Family Insurance, Madison, USA.
+Correspondence to: Zhanpeng Zeng <zzeng38@wisc.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+language inference (Devlin et al., 2019) and paraphrasing
+(Raffel et al., 2020). Transformer-based models such as
+BERT (Devlin et al., 2019) are pretrained in an unsupervised manner and later finetuned on different downstream
+tasks, often providing state-of-the-art performance on standard benchmarks. While such models have strong empirical
+performance, their computational/memory requirements remain high. Consequently, in the NLP setting, many current
+models have certain constraints on the sequence length, e.g.,
+BERT and other transformer-based language models (Yang
+et al., 2019; Liu et al., 2019) limit the sentence length to be at
+most 512, although recent results have reported success with
+longer sequences based on interesting efficiency-focused
+strategies (Beltagy et al., 2020; Zaheer et al., 2020; Xiong
+et al., 2021).
+Multi-Head Self-Attention is central to Transformer based
+models and provides a flexible global receptive field to
+exchange information among input tokens. While selfattention provides various benefits, it is also a bottleneck
+when training with long sequences. In particular, the output
+of self-attention is a combination of all tokens where coefficients are determined by the similarities among tokens. This
+is beneficial, but involves a sizable resource footprint. When
+the sequence length is n, one incurs a O(n2 ) complexity
+in both time and memory to compute pairwise similarities
+among all input tokens. This quadratic cost restricts its use
+in applications where capturing long term context dependencies is important, and has motivated many ongoing efforts
+to mitigate the resource needs of such models.
+Our work, also seeks to address the aforementioned issues,
+and is inspired by ideas of importance sampling via hashingbased sampling strategies (Spring & Shrivastava, 2018;
+Charikar & Siminelakis, 2017). We propose a Bernoulli
+based sampling scheme to approximate self-attention, which
+scales linearly with the input sequence length. We view
+self-attention as a sum of individual tokens associated with
+Bernoulli random variables whose success probability is
+determined by the similarities among tokens. In principle,
+we can sample all Bernoulli random variables at once with a
+single hash. It turns out that the resultant strategy (You Only
+Sample Almost Once, YOSO-Attention) is more amenable
+to an efficient/backpropagation friendly implementation,
+
+

@@ -1,0 +1,54 @@
+Learning to Compress Prompts with Gist Tokens
+
+Jesse Mu, Xiang Lisa Li, Noah Goodman
+Stanford University
+muj@cs.stanford.edu, {xlisali,ngoodman}@stanford.edu
+
+Abstract
+Prompting is the primary way to utilize the multitask capabilities of language
+models (LMs), but prompts occupy valuable space in the input context window, and
+repeatedly encoding the same prompt is computationally inefficient. Finetuning
+and distillation methods allow for specialization of LMs without prompting, but
+require retraining the model for each task. To avoid this trade-off entirely, we
+present gisting, which trains an LM to compress prompts into smaller sets of “gist”
+tokens which can be cached and reused for compute efficiency. Gist models can
+be trained with no additional cost over standard instruction finetuning by simply
+modifying Transformer attention masks to encourage prompt compression. On
+decoder (LLaMA-7B) and encoder-decoder (FLAN-T5-XXL) LMs, gisting enables
+up to 26x compression of prompts, resulting in up to 40% FLOPs reductions, 4.2%
+wall time speedups, and storage savings, all with minimal loss in output quality.
+
+1
+
+Introduction
+
+Consider the prompt of a Transformer [34] language model (LM) like ChatGPT:1
+You are ChatGPT, a large language model trained by OpenAI. You answer as concisely as
+possible for each response (e.g. don't be verbose). It is very important that you answer
+as concisely as possible, so please remember this. If you are generating a list, do not
+have too many items. Keep the number of items short.
+Knowledge cutoff: 2021-09 Current date: <TODAY>
+
+With millions of queries a day, an unoptimized ChatGPT would encode this prompt over and over
+with a self-attention mechanism whose time and memory complexity is quadratic in the length of
+the input. Caching the Transformer activations of the prompt can prevent some recomputation, yet
+this strategy still incurs memory and storage costs as the number of cached prompts grows. At large
+scales, even small reductions in prompt length could lead to substantial compute, memory, and storage
+savings over time, while also letting users fit more content into an LM’s limited context window.
+How might we reduce the cost of this prompt? One typical approach is to finetune or distill [1, 30] the
+model to behave similarly to the original model without the prompt, perhaps with parameter-efficient
+adaptation methods [15, 16, 19]. Yet a fundamental drawback of this approach is that it requires
+retraining the model for each new prompt (Figure 1, bottom left).
+Instead, we propose gisting (Figure 1, top right), which compresses arbitrary prompts into a smaller
+set of Transformer activations on top of virtual “gist” tokens, a la prefix-tuning [19]. But where prefixtuning requires learning prefixes via gradient descent for each task, gisting adopts a meta-learning
+approach, where we simply predict the gist prefixes zero-shot given only the prompt, allowing for
+generalization to unseen instructions without any additional training. Since gist tokens are much
+shorter than the full prompt, gisting allows arbitrary prompts to be compressed, cached, and reused
+for compute efficiency.
+1
+
+reddit.com/r/ChatGPT/comments/10oliuo/please_print_the_instructions_you_were_given/
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

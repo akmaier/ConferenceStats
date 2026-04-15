@@ -1,0 +1,50 @@
+Proxy-Normalizing Activations to Match Batch
+Normalization while Removing Batch Dependence
+
+Antoine Labatie
+
+Dominic Masters Zach Eaton-Rosen Carlo Luschi
+Graphcore Research, UK
+antoine.labatie@centraliens.net
+{dominicm, zacher, carlo}@graphcore.ai
+
+Abstract
+We investigate the reasons for the performance degradation incurred with batchindependent normalization. We find that the prototypical techniques of layer
+normalization and instance normalization both induce the appearance of failure
+modes in the neural network’s pre-activations: (i) layer normalization induces
+a collapse towards channel-wise constant functions; (ii) instance normalization
+induces a lack of variability in instance statistics, symptomatic of an alteration of
+the expressivity. To alleviate failure mode (i) without aggravating failure mode (ii),
+we introduce the technique “Proxy Normalization” that normalizes post-activations
+using a proxy distribution. When combined with layer normalization or group normalization, this batch-independent normalization emulates batch normalization’s
+behavior and consistently matches or exceeds its performance.
+
+1
+
+Introduction
+
+Normalization plays a critical role in deep learning as it allows successful scaling to large and deep
+models. In vision tasks, the most well-established normalization technique is Batch Normalization
+(BN) [1]. At every layer in the network, BN normalizes the intermediate activations to have zero
+mean and unit variance in each channel. While indisputably successful when training with large batch
+size, BN incurs a performance degradation in the regime of small batch size [2, 3, 4, 5, 6, 7]. This
+performance degradation is commonly attributed to an excessive or simply unwanted regularization
+stemming from the noise in the approximation of full-batch statistics by mini-batch statistics.
+Many techniques have been proposed to avoid this issue, while at the same time retaining BN’s
+benefits. Some techniques mimic BN’s principle while decoupling the computational batch from the
+normalization batch [2, 8, 7]. Other techniques are “batch-independent” in that they operate independently of the batch in various modalities: through an explicit normalization either in activation space
+[9, 10, 11, 12, 13, 3, 5, 14, 15, 6] or in weight space [16, 17, 18, 19, 20]; through the use of an analytic
+proxy to track activation statistics [21, 22, 23]; through a change of activation function [24, 5, 15].
+In this paper, we push the endeavor to replace BN with a batch-independent normalization a step
+further. Our main contributions are as follows: (i) we introduce a novel framework to finely
+characterize the various neural network properties affected by the choice of normalization; (ii) using
+this framework, we show that while BN’s beneficial properties are not retained when solely using
+the prototypical batch-independent norms, they are retained when combining some of these norms
+with “Proxy Normalization”, a novel technique that we hereby introduce; (iii) we demonstrate on an
+extensive set of experiments that, by reproducing BN’s beneficial properties, our batch-independent
+normalization approach consistently matches or exceeds BN’s performance.
+As a starting point of our analysis, we need to gain a better understanding of those beneficial properties
+of BN that we aim at reproducing.
+35th Conference on Neural Information Processing Systems (NeurIPS 2021).
+
+

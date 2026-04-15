@@ -1,0 +1,82 @@
+RieszNet and ForestRiesz: Automatic Debiased
+Machine Learning with Neural Nets and Random Forests
+
+Victor Chernozhukov 1 Whitney Newey 1 Vı́ctor Quintas-Martı́nez 1 Vasilis Syrgkanis 2
+
+Abstract
+Many causal and policy effects of interest are defined by linear functionals of high-dimensional
+√
+or non-parametric regression functions.
+nconsistent and asymptotically normal estimation
+of the object of interest requires debiasing to reduce the effects of regularization and/or model
+selection on the object of interest. Debiasing is
+typically achieved by adding a correction term
+to the plug-in estimator of the functional, which
+leads to properties such as semi-parametric efficiency, double robustness, and Neyman orthogonality. We implement an automatic debiasing procedure based on automatically learning the Riesz
+representation of the linear functional using Neural Nets and Random Forests. Our method only
+relies on black-box evaluation oracle access to the
+linear functional and does not require knowledge
+of its analytic form. We propose a multitasking
+Neural Net debiasing method with stochastic gradient descent minimization of a combined Riesz
+representer and regression loss, while sharing representation layers for the two functions. We also
+propose a Random Forest method which learns a
+locally linear representation of the Riesz function.
+Even though our method applies to arbitrary functionals, we experimentally find that it performs
+well compared to the state of art neural net based
+algorithm of Shi et al. (2019) for the case of the
+average treatment effect functional. We also evaluate our method on the problem of estimating
+average marginal effects with continuous treatments, using semi-synthetic data of gasoline price
+changes on gasoline demand. Code available at
+github.com/victor5as/RieszLearning.
+*
+
+1
+
+Equal contribution Department of Economics, Massachusetts
+Institute of Technology, Cambridge MA, USA 2 Microsoft Research New England, Cambridge MA, USA. Correspondence to:
+Vı́ctor Quintas-Martı́nez <vquintas@mit.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+1. Introduction
+A large number of problems in causal inference, off-policy
+evaluation and optimization and interpretable machine learning can be viewed as estimating the average value of a moment functional that depends on an unknown regression
+function:
+θ0 = E[m(W ; g0 )],
+(1)
+where W := (Y, Z) and g0 (Z) := E[Y | Z]. In most
+cases, Y will be the outcome of interest, and inputs Z =
+(T, X) will include a binary or continuous treatment T and
+covariates X. Prototypical examples include the estimation
+of average treatment effects, average policy effects, average
+derivatives and incremental policy effects.
+Example 1.1 (Average treatment effect). Here Z = (T, X)
+where T is a binary treatment indicator, and X are covariates. The object of interest is:
+θ0 = E[g0 (1, X) − g0 (0, X)]
+If Y = T · Y (1) + (1 − T ) · Y (0), where potential outcomes
+(Y (1), Y (0)) are conditionally independent of treatment T
+given covariates X, then this object is the average treatment
+effect (Rosenbaum & Rubin, 1983).
+Example 1.2 (Average policy effect). In the context of
+offline policy evaluation and optimization, our goal is to
+optimize over a space of assignment policies π : X →
+{0, 1}, when having access to observational data collected
+by some unknown treatment policy. The policy value can
+also be formulated as the average of a linear moment:
+θ0 = E[π(X)(g0 (1, X) − g0 (0, X)) + g0 (0, X)]
+
+A long-line of prior work has considered doubly-robust
+approaches to optimizing over a space of candidate policies
+from observational data (see, e.g., Dudı́k et al., 2011; Athey
+& Wager, 2021).
+Example 1.3 (Average marginal effect / derivative). Here
+Z = (T, X), where T is a continuously distributed policy
+variable of interest, X are covariates, and:
+
+
+∂g0 (T, X)
+θ0 = E
+∂t
+This object has received previous attention in the econometrics literature (e.g., Imbens & Newey, 2009), and it is
+
+

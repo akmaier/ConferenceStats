@@ -1,0 +1,74 @@
+Approximation Algorithms for Cascading Prediction Models
+
+Matthew Streeter 1
+
+Abstract
+We present an approximation algorithm that
+takes a pool of pre-trained models as input and
+produces from it a cascaded model with similar
+accuracy but lower average-case cost. Applied
+to state-of-the-art ImageNet classification models, this yields up to a 2x reduction in floating
+point multiplications, and up to a 6x reduction
+in average-case memory I/O. The auto-generated
+cascades exhibit intuitive properties, such as using lower-resolution input for easier images and
+requiring higher prediction confidence when using a computationally cheaper model.
+
+1. Introduction
+In any machine learning task, some examples are harder
+than others, and intuitively we should be able to get away
+with less computation on easier examples. Doing so has
+the potential to reduce serving costs in the cloud as well
+as energy usage on-device, which is important in a wide
+variety of applications (Guan et al., 2017).
+Following the tremendous empirical success of deep learning, much recent work has focused on making deep neural networks adaptive, typically via an end-to-end training
+approach in which the network learns to make exampledependent decisions as to which computations are performed during inference. At the same time, recent work on
+neural architecture search has demonstrated that optimizing
+over thousands of candidate model architectures can yield
+results that improve upon state-of-the-art architectures designed by humans (Zoph et al., 2017). It is natural to think
+that combining these ideas should lead to even better results, but how best to do so remains an open problem.
+One of the motivations for our work is that for many problems, there are order-of-magnitude differences between the
+cost of a reasonably accurate model and that of a model
+1
+
+Google Research. Correspondence to: Matthew Streeter
+<mstreeter@google.com>.
+th
+
+Proceedings of the 35 International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+with state-of-the-art accuracy. For example, the most accurate NasNet model achieves 82.7% accuracy on ImageNet using 23 billion multiplies per example, while a MobileNet model achieves 70.6% accuracy with only 569 million multiplies per example (Howard et al., 2017; Zoph
+et al., 2017). If we could identify the images on which the
+smaller model’s prediction is (with high probability) no less
+accurate than the larger one’s, we could use fewer multiplications on those images without giving up much accuracy.
+In this work, we present a family of algorithms that can be
+used to create a cascaded model with the same accuracy as
+a specified reference model, but potentially lower averagecase cost, where cost is user-defined. This family is defined
+by a meta-algorithm with various pluggable components.
+In its most basic instantiation, the algorithm takes a pool of
+pre-trained models as input and produces a cascaded model
+in two steps:
+1. It equips each model with a set of possible rules for returning “don’t know” (denoted ⊥) on examples where
+it is not confident. Each (model, rule) combination is
+called an abstaining model.
+2. It selects a sequence of abstaining models to try, in
+order, when making a prediction (stopping once we
+find a model that does not return ⊥).
+We also present instantiations of the meta-algorithm that
+generate new prediction models on-the-fly, either using
+lightweight training of ensemble models or a full architecture search. We also discuss a variant that produces an
+adaptive policy tree rather than a fixed sequence of models.
+An important feature of our algorithms is that they scale
+efficiently to a large number of models and (model, rule)
+combinations. They also allow for computations performed
+by one stage of the cascade to be re-used in later stages
+when possible (e.g., if two successive stages of the cascade
+are neural networks that share the same first k layers).
+
+2. Abstaining models
+Our cascade-generation algorithm requires as input a set of
+abstaining models, which are prediction models that return
+“don’t know” (denoted ⊥) on certain examples. For classification problems, such models are known as classifiers
+
+

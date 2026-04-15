@@ -1,0 +1,89 @@
+A Scalable Second Order Method for Ill-Conditioned Matrix Completion from
+Few Samples
+
+Christian Kümmerle 1 Claudio Mayrink Verdun 2
+
+Abstract
+We propose an iterative algorithm for low-rank
+matrix completion that can be interpreted as an
+iteratively reweighted least squares (IRLS) algorithm, a saddle-escaping smoothing Newton
+method or a variable metric proximal gradient
+method applied to a non-convex rank surrogate.
+It combines the favorable data-efficiency of previous IRLS approaches with an improved scalability
+by several orders of magnitude. We establish the
+first local convergence guarantee from a minimal
+number of samples for that class of algorithms,
+showing that the method attains a local quadratic
+convergence rate. Furthermore, we show that the
+linear systems to be solved are well-conditioned
+even for very ill-conditioned ground truth matrices. We provide extensive experiments, indicating
+that unlike many state-of-the-art approaches, our
+method is able to complete very ill-conditioned
+matrices with a condition number of up to 1010
+from few samples, while being competitive in its
+scalability.
+
+1. Introduction
+In different areas of machine learning and signal processing,
+low-rank models have turned out to be a powerful tool for
+the acquisition, storage and computation of information. In
+many of these applications, an important sub-problem is to
+infer the low-rank model from partial or incomplete data
+(Davenport & Romberg, 2016; Chi et al., 2019).
+This problem is called low-rank matrix completion: Given
+a matrix X0 ∈ Rd1 ×d2 of rank-r and an index set Ω ⊂
+[d1 ] × [d2 ], the task is to reconstruct X0 just from the knowl1
+
+Department of Applied Mathematics & Statistics, Johns Hopkins University, Baltimore, USA 2 Department of Mathematics
+and Department of Electrical and Computer Engineering, Technical University of Munich, Munich, Germany, e-mail: claudio.verdun@tum.de. Correspondence to: Christian Kümmerle
+<kuemmerle@jhu.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+edge of Ω and PΩ (X0 ), where PΩ : Rd1 ×d2 → Rm is the
+subsampling operator that maps a matrix to the set of entries
+indexed by Ω. It is well-known that this can be reformulated (Recht et al., 2010) as the NP-hard rank minimization
+problem
+min
+
+X∈Rd1 ×d2
+
+rank(X)
+
+subject to PΩ (X) = PΩ (X0 ). (1)
+
+From an optimization point of view, (1) is particularly difficult to handle due to two properties: its non-convexity and
+its non-smoothness. A widely studied approach in the literature replaces the rank(X) by the (convex) nuclear norm
+Pd
+kXk∗ = i=1 σi (X) (Fazel et al., 2003), which is the tightest convex envelope of the rank, as an objective. For this
+approach, a mature theory has been developed that includes
+performance guarantees for a near-optimal sample complexity (Candès & Tao, 2010; Chen, 2015) and robustness to
+noise (Candès & Plan, 2010; Chen et al., 2020b).
+However, from a practical point of view, using such a convex relaxation to find a low-rank completion is computationally very demanding, as even first-order solvers have
+an per-iteration arithmetic complexity that is at least cubic
+in the dimensions of X0 (Chi et al., 2019). Thus, convex
+relaxations are of little use in large-scale applications of
+the model such as in recommender systems (Koren et al.,
+2009), where even storing the dense matrix X0 ∈ Rd1 ×d2 is
+prohibitive. Another important, but less well-known issue is
+that a convex relaxation is typically not as data efficient as
+certain other algorithms (Tanner & Wei, 2013; Bauch et al.,
+2021), i.e., nuclear norm minimization typically necessitates
+a larger amount of samples m than other methods, measured
+by the quotient ρ := m/(d1 + d2 − r) (oversampling ratio)
+between m and the number of degrees of freedom of X0 , to
+identify X0 correctly (Amelunxen et al., 2014).
+To overcome these drawbacks, a variety of alternative approaches have been proposed and studied. Among the most
+popular ones are “non-convex” algorithms based on matrix
+factorization (Burer & Monteiro, 2003) with objective
+
+λ
+kUk2F +kVk2F
+2
+(2)
+for λ ≥ 0, which use (projected) gradient descent on the
+2
+
+J(U, V):= PΩ (UV∗ )−PΩ (X0 ) F +
+
+

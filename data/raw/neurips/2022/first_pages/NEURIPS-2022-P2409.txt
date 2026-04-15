@@ -1,0 +1,59 @@
+Block-Recurrent Transformers
+DeLesley Hutchins∗1 , Imanol Schlag∗3† , Yuhuai Wu1 , Ethan Dyer2 , Behnam Neyshabur2
+1
+
+2
+Google Research
+Google Research, Blueshift Team
+3
+The Swiss AI Lab IDSIA, SUPSI & USI
+{delesley, yuhuai, edyer, neyshabur}@google.com
+imanol@idsia.ch
+
+Abstract
+We introduce the Block-Recurrent Transformer, which applies a transformer layer
+in a recurrent fashion along a sequence, and has linear complexity with respect to
+sequence length. Our recurrent cell operates on blocks of tokens rather than single
+tokens during training, and leverages parallel computation within a block in order
+to make efficient use of accelerator hardware. The cell itself is strikingly simple. It
+is merely a transformer layer: it uses self-attention and cross-attention to efficiently
+compute a recurrent function over a large set of state vectors and tokens. Our design
+was inspired in part by LSTM cells, and it uses LSTM-style gates, but it scales
+the typical LSTM cell up by several orders of magnitude. Our implementation
+of recurrence has the same cost in both computation time and parameter count
+as a conventional transformer layer, but offers dramatically improved perplexity
+in language modeling tasks over very long sequences. Our model out-performs
+a long-range Transformer XL baseline by a wide margin, while running twice as
+fast. We demonstrate its effectiveness on PG19 (books), arXiv papers, and GitHub
+source code. Our code has been released as open source [1].
+
+1
+
+Introduction
+
+Transformers have mostly replaced recurrent neural networks (RNNs), such as LSTMs [2], on tasks
+that involve sequential data, especially natural language. There are several reasons for their success.
+First, transformers process all elements of the sequence in parallel, and are thus faster to train on
+modern accelerator hardware. In contrast, an RNN must process tokens sequentially, which leads to
+slow step times during training, and large batch sizes in order to fully saturate GPUs or TPUs.
+Second, an RNN must summarize and compress the entire previous sequence into a single state
+vector which is passed from one token to the next. The size of the state vector limits the amount
+of information that the RNN can encode about the previous tokens in the sequence. In contrast, a
+transformer can attend directly to past tokens, and does not suffer from this limitation.
+Third, attention operates effectively over longer distances. The forget gate in an LSTM discards
+information moving forward, and causes vanishing gradients during backpropagation. In practice,
+this means that LSTMs struggle to send a clear signal over more than a few hundred tokens, far less
+than the typical size of the attention window in a transformer [3].
+Despite these advantages, transformers also have a disadvantage. The computational complexity
+of self-attention is quadratic with respect to the sequence length, which is a limiting factor when
+attempting to process long documents, such as books, technical articles, or source code repositories.
+Moreover, a transformer has no memory of past context; any tokens that it cannot attend to are
+“invisible” to the model.
+∗
+Equal Contribution
+† Work done partially while interning at Google Research (Blueshift Team) and
+partially funded by ERC Advanced grant no: 742870 to J.Schmidhuber.
+
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+

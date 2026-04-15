@@ -1,0 +1,71 @@
+OptiDICE: Offline Policy Optimization via
+Stationary Distribution Correction Estimation
+
+Jongmin Lee 1 * Wonseok Jeon 2 3 * Byung-Jun Lee 4 Joelle Pineau 2 3 5 Kee-Eung Kim 1 6
+
+Abstract
+We consider the offline reinforcement learning
+(RL) setting where the agent aims to optimize
+the policy solely from the data without further
+environment interactions. In offline RL, the distributional shift becomes the primary source of difficulty, which arises from the deviation of the target
+policy being optimized from the behavior policy
+used for data collection. This typically causes
+overestimation of action values, which poses severe problems for model-free algorithms that use
+bootstrapping. To mitigate the problem, prior
+offline RL algorithms often used sophisticated
+techniques that encourage underestimation of action values, which introduces an additional set of
+hyperparameters that need to be tuned properly.
+In this paper, we present an offline RL algorithm
+that prevents overestimation in a more principled
+way. Our algorithm, OptiDICE, directly estimates
+the stationary distribution corrections of the optimal policy and does not rely on policy-gradients,
+unlike previous offline RL algorithms. Using an
+extensive set of benchmark datasets for offline RL,
+we show that OptiDICE performs competitively
+with the state-of-the-art methods.
+
+1. Introduction
+The availability of large-scale datasets has been one of the
+important factors contributing to the recent success in machine learning for real-world tasks such as computer vision (Deng et al., 2009; Krizhevsky et al., 2012) and natural
+language processing (Devlin et al., 2019). The standard
+workflow in developing systems for typical machine learning tasks is to train and validate the model on the dataset,
+*
+Equal contribution 1 School of Computing, KAIST 2 Mila,
+Quebec AI Institute 3 School of Computer Science, McGill University 4 Gauss Labs Inc. 5 Facebook AI Research 6 Graduate
+School of AI, KAIST. Correspondence to: Jongmin Lee <jmlee@ai.kaist.ac.kr>, Wonseok Jeon <jeonwons@mila.quebec>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+and then to deploy the model with its parameter fixed when
+we are satisfied with training. This offline training allows
+us to address various operational requirements of the system without actual deployment, such as acceptable level of
+prediction accuracy rate once the system goes online.
+However, this workflow is not straightforwardly applicable
+to the standard setting of reinforcement learning (RL) (Sutton & Barto, 1998) because of the online learning assumption: the RL agent needs to continuously explore the environment and learn from its trial-and-error experiences to
+be properly trained. This aspect has been one of the fundamental bottlenecks for the practical adoption of RL in
+many real-world domains, where the exploratory behaviors
+are costly or even dangerous, e.g. autonomous driving (Yu
+et al., 2020b) and clinical treatment (Yu et al., 2020a).
+Offline RL (also referred to as batch RL) (Ernst et al., 2005;
+Lange et al., 2012; Fujimoto et al., 2019; Levine et al.,
+2020) casts the RL problem in the offline training setting.
+One of the most relevant areas of research in this regard
+is the off-policy RL (Lillicrap et al., 2016; Haarnoja et al.,
+2018; Fujimoto et al., 2018), since we need to deal with the
+distributional shift resulting from the trained policy being
+deviated from the policy used to collect the data. However, without the data continuously collected online, this
+distributional shift cannot be reliably corrected and poses
+a significant challenge to RL algorithms that employ bootstrapping together with function approximation: it causes
+compounding overestimation of the action values for modelfree algorithms (Fujimoto et al., 2019; Kumar et al., 2019),
+which arises from computing the bootstrapped target using
+the predicted values of out-of-distribution actions. To mitigate the problem, most of the current offline RL algorithms
+have proposed sophisticated techniques to encourage underestimation of action values, introducing an additional set of
+hyperparameters that needs to be tuned properly (Fujimoto
+et al., 2019; Kumar et al., 2019; Jaques et al., 2019; Lee
+et al., 2020; Kumar et al., 2020).
+In this paper, we present an offline RL algorithm that essentially eliminates the need to evaluate out-of-distribution
+actions, thus avoiding the problematic overestimation of
+values. Our algorithm, Offline Policy Optimization via Stationary DIstribution Correction Estimation (OptiDICE),
+
+

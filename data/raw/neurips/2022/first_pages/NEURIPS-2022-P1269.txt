@@ -1,0 +1,69 @@
+Confident Adaptive Language Modeling
+Tal Schuster1,⇤ Adam Fisch2,⇤
+Mostafa Dehghani1
+
+Dara Bahri1
+1
+
+Jai Gupta1
+
+Vinh Q. Tran1
+
+Google Research
+
+2
+
+Yi Tay1
+
+Donald Metzler1
+
+CSAIL, MIT
+
+Abstract
+Recent advances in Transformer-based large language models (LLMs) have led
+to significant performance improvements across many tasks. These gains come
+with a drastic increase in the models’ size, potentially leading to slow and costly
+use at inference time. In practice, however, the series of generations made by
+LLMs is composed of varying levels of difficulty. While certain predictions truly
+benefit from the models’ full capacity, other continuations are more trivial and can
+be solved with reduced compute. In this work, we introduce Confident Adaptive
+Language Modeling (CALM), a framework for dynamically allocating different
+amounts of compute per input and generation timestep. Early exit decoding involves
+several challenges that we address here, such as: (1) what confidence measure to
+use; (2) connecting sequence-level constraints to local per-token exit decisions; and
+(3) attending back to missing hidden representations due to early exits in previous
+tokens. Through theoretical analysis and empirical experiments on three diverse
+text generation tasks, we demonstrate the efficacy of our framework in reducing
+compute—speedup of up to ⇥3—while provably maintaining high performance.1
+
+1
+
+Introduction
+
+Recent advances in Large Language Models (LLMs) have led to breakthroughs in language understanding and language generation across almost every widely-used Natural Language Processing
+(NLP) task considered in the field today [5; 15; 17; 20; 51; 52; 53; 75; 89; 73]. Autoregressive
+language modeling provides a flexible framework for solving complex tasks with a unified natural
+language input and output format, while also relaxing the need for large-scale task-specific data
+collection and training [67; 15; 17; 58; 80]. The large size of LLMs, however, results in massive
+computational load that might be limiting for certain real-world applications (e.g., machine translation) [9; 30; 42; 49; 59; 63; 71]. This is especially pronounced in the autoregressive decoding process
+where the full stack of Transformer layers is repeatedly computed for each output token [37; 40; 86].
+While large models do better in general, the same amount of computation may not be required for
+every input to achieve similar performance (e.g., depending on if the input is easy or hard) [66]. Early
+exiting is a promising approach to decreasing the computational cost of multilayered architectures
+such as those used in Transformer-based LLMs, where the number of layers used by the model is
+dynamically decided on an input-by-input basis [18; 23; 57; 60; 70]. In this setting, an LLM can
+choose to generate a new token based off the representation at an intermediate layer instead of using
+the full model, and save computation as a result. A natural question that arises, however, is when is it
+a good decision to exit early, as opposed to wait? Naively choosing when to exit can be suboptimal in
+terms of saving computation time, and also result in unpredictable degradations to model performance,
+especially when predictions depend on each other, as in autoregressive language generation.
+⇤
+
+1
+
+Project leads. Correspondence to: talschuster@google.com
+Code: https://github.com/google-research/t5x/tree/main/t5x/contrib/calm
+
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+

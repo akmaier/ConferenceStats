@@ -1,0 +1,63 @@
+Distributed Stochastic Optimization via Adaptive
+SGD
+Ashok Cutkosky
+Stanford University, USA⇤
+cutkosky@google.com
+
+Róbert Busa-Fekete
+Yahoo! Research, New York, USA
+busafekete@oath.com
+
+Abstract
+Stochastic convex optimization algorithms are the most popular way to train machine learning models on large-scale data. Scaling up the training process of these
+models is crucial, but the most popular algorithm, Stochastic Gradient Descent
+(SGD), is a serial method that is surprisingly hard to parallelize. In this paper,
+we propose an efficient distributed stochastic optimization method by combining
+adaptivity with variance reduction techniques. Our analysis yields a linear speedup
+in the number of machines, constant memory footprint, and only a logarithmic
+number of communication rounds. Critically, our approach is a black-box reduction
+that parallelizes any serial online learning algorithm, streamlining prior analysis
+and allowing us to leverage the significant progress that has been made in designing
+adaptive algorithms. In particular, we achieve optimal convergence rates without
+any prior knowledge of smoothness parameters, yielding a more robust algorithm
+that reduces the need for hyperparameter tuning. We implement our algorithm
+in the Spark distributed framework and exhibit dramatic performance gains on
+large-scale logistic regression problems.
+
+1
+
+Setup
+
+We consider a fundamental problem in machine learning, stochastic convex optimization:
+min F (w) := E [f (w)]
+
+w2W
+
+f ⇠D
+
+(1)
+
+Here, W is a convex subset of Rd and D is a distribution over L-smooth convex functions W ! R.
+We do not have direct access to F , and the distribution D is unknown, but we do have the ability
+to generate i.i.d. samples f ⇠ D through some kind of stream or oracle. In practice, each function
+f ⇠ D corresponds to a new datapoint in some learning problem. Algorithms for this problem are
+widely applicable: for example, in logistic regression the goal is to optimize F (w) = E[f (w)] =
+E[log(1 + exp( ywT x))] when the (x, y) pairs are the (feature vector, label) pairs coming from a
+fixed data distribution. Given a budget of N oracle calls (e.g. a dataset of size N ), we wish to find a
+ŵ such that F (ŵ) F (w? ) (called the suboptimality) is as small as possible as fast as possible using
+as little memory as possible, where w? 2 argmin F .
+The most popular algorithm
+p for solving (1) is Stochastic Gradient Descent (SGD), which achieves
+statistically optimal O(1/ N ) suboptimality in O(N ) time and constant memory. However, in
+modern large-scale machine learning problems the number of data points N is often gigantic, and so
+even the linear time-complexity of SGD becomes onerous. We need a parallel algorithm that runs in
+only O(N/m) time using m machines. We address this problem in this paper, evaluating solutions on
+three metrics: time complexity, space complexity, and communication complexity. Time complexity
+is the total time taken to process the data points. Space complexity is the amount of space required per
+⇤
+
+now at Google
+
+32nd Conference on Neural Information Processing Systems (NeurIPS 2018), Montréal, Canada.
+
+

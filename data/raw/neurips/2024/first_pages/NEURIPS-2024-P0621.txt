@@ -1,0 +1,55 @@
+LookHere: Vision Transformers with Directed
+Attention Generalize and Extrapolate
+
+Anthony Fuller, Daniel G. Kyrollos, Yousef Yassin, James R. Green
+Department of Systems and Computer Engineering
+Carleton University
+Ottawa, Ontario, Canada
+∗
+anthony.fuller@carleton.ca
+
+Abstract
+High-resolution images offer more information about scenes that can improve
+model accuracy. However, the dominant model architecture in computer vision, the
+vision transformer (ViT), cannot effectively leverage larger images without finetuning — ViTs poorly extrapolate to more patches at test time, although transformers
+offer sequence length flexibility. We attribute this shortcoming to the current patch
+position encoding methods, which create a distribution shift when extrapolating.
+We propose a drop-in replacement for the position encoding of plain ViTs that
+restricts attention heads to fixed fields of view, pointed in different directions, using
+2D attention masks. Our novel method, called LookHere, provides translationequivariance, ensures attention head diversity, and limits the distribution shift
+that attention heads face when extrapolating. We demonstrate that LookHere
+improves performance on classification (avg.↑ 1.6%), against adversarial attack
+(avg.↑ 5.4%), and decreases calibration error (avg.↓ 1.5%) — on ImageNet without
+extrapolation. With extrapolation, LookHere outperforms the current SoTA position
+encoding method, 2D-RoPE, by 21.7% on ImageNet when trained at 2242 px and
+tested at 10242 px. Additionally, we release a high-resolution test set to improve
+the evaluation of high-resolution image classifiers, called ImageNet-HR.
+
+1
+
+Introduction
+
+There is a decades-long trend in computer vision towards higher-resolution imagery, which contains
+more detailed scene information. Increasing resolution is a reliable way to improve model accuracy
+[13, 14, 15, 16, 17, 18, 19, 20], but this comes at a cost; training models for hundreds of epochs
+on large-scale datasets is expensive, especially at high-resolutions. There are two ways to reduce
+this cost and still see accuracy benefits from high-resolutions: 1 high-resolution finetuning, which
+pretrains models at a lower resolution, like 2242 px, then finetunes them at a higher resolution, like
+3842 px; and 2 extrapolating, which deploys models at a higher resolution, without further training.
+Of these two options, we should aim for models that can effectively extrapolate, as it presents a
+zero-cost solution that does not require finetuning at every target resolution. Finetuning costs aside,
+improvements to extrapolation should benefit high-resolution finetuning since models that are better
+at extrapolating can adapt to higher resolutions more easily. Although extrapolation is a significant
+and exciting challenge, state-of-the-art (SoTA) model architectures extrapolate poorly.
+Vision transformers (ViTs [9]) offer SoTA performance on many computer vision tasks. ViTs
+are simple; they split images into non-overlapping patches, linearly project pixels to form patch
+embeddings, and process these “tokens” with a stack of architecturally identical transformer layers —
+maintaining a constant feature map size throughout. This non-hierarchical design enables learning
+patch representations, which are useful for dense prediction tasks [21, 22, 23] and are fundamental
+∗
+AF, DGK, and YY made significant technical contributions. AF and DGK initiated the project. AF and JRG
+led the project. Code and data are available at: https://github.com/GreenCUBIC/lookhere
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

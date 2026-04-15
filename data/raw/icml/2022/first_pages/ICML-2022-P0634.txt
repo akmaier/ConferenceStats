@@ -1,0 +1,192 @@
+Maximum Likelihood Training for Score-Based Diffusion ODEs
+by High-Order Denoising Score Matching
+
+Cheng Lu 1 Kaiwen Zheng 1 Fan Bao 1 Jianfei Chen 1 Chongxuan Li 2 Jun Zhu 1
+
+1. Introduction
+Score-based generative models (SGMs) have shown promising performance in both sample quality and likelihood evaluation (Song et al., 2020; Vahdat et al., 2021; Dockhorn et al.,
+1
+
+Dept. of Comp. Sci. & Tech., Institute for AI, Tsinghua-Bosch
+Joint Center for ML, BNRist Center, State Key Lab for Intell. Tech.
+& Sys., Tsinghua University; Peng Cheng Laboratory 2 Gaoling
+School of AI, Renmin University of China; Beijing Key Lab of
+Big Data Management and Analysis Methods , Beijing, China.
+Correspondence to: Jianfei Chen <jianfeic@tsinghua.edu.cn>,
+Jun Zhu <dcszj@tsinghua.edu.cn>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+1.6
+
+1.6
+
+1.4
+
+1.4
+
+1.4
+
+1.2
+
+1.2
+
+1.2
+
+1.0
+
+1.0
+
+1.0
+
+0.8
+
+0.8
+
+0.8
+
+p(x)
+
+1.6
+
+p(x)
+
+Score-based generative models have excellent performance in terms of generation quality and likelihood. They model the data distribution by matching a parameterized score network with first-order
+data score functions. The score network can be
+used to define an ODE (“score-based diffusion
+ODE”) for exact likelihood evaluation. However,
+the relationship between the likelihood of the
+ODE and the score matching objective is unclear.
+In this work, we prove that matching the firstorder score is not sufficient to maximize the likelihood of the ODE, by showing a gap between the
+maximum likelihood and score matching objectives. To fill up this gap, we show that the negative
+likelihood of the ODE can be bounded by controlling the first, second, and third-order score matching errors; and we further present a novel highorder denoising score matching method to enable
+maximum likelihood training of score-based diffusion ODEs. Our algorithm guarantees that the
+higher-order matching error is bounded by the
+training error and the lower-order errors. We empirically observe that by high-order score matching, score-based diffusion ODEs achieve better
+likelihood on both synthetic data and CIFAR-10,
+while retaining the high generation quality.
+
+p(x)
+
+Abstract
+
+0.6
+
+0.6
+
+0.6
+
+0.4
+
+0.4
+
+0.4
+
+0.2
+
+0.2
+
+0.2
+
+0.0
+
+0.0
+1.00
+
+0.75
+
+0.50
+
+0.25
+
+0.00
+x
+
+0.25
+
+(a) Data
+
+0.50
+
+0.75
+
+1.00
+
+0.0
+1.00
+
+0.75
+
+0.50
+
+0.25
+
+0.00
+x
+
+0.25
+
+0.50
+
+0.75
+
+(b) ScoreODE
+(first-order SM)
+
+1.00
+
+1.00
+
+0.75
+
+0.50
+
+0.25
+
+0.00
+x
+
+0.25
+
+0.50
+
+0.75
+
+1.00
+
+(c) ScoreODE
+(third-order SM)
+
+Figure 1. An 1-D mixture-of-Gaussians data distribution (a) and
+ScoreODE’s density (b,c). (b): ScoreODE trained by minimizing the first-order score matching (SM) objective in (Song et al.,
+2021), which fails to estimate the density around x = −0.25. (c):
+ScoreODE trained by minimizing our proposed third-order SM
+objective, which approximates the data density well.
+
+2021; Kingma et al., 2021), with applications on many tasks,
+such as image generation (Dhariwal & Nichol, 2021; Meng
+et al., 2021b), speech synthesis (Chen et al., 2020; Kong
+et al., 2020), shape generation (Luo & Hu, 2021; Zhou
+et al., 2021) and lossless compression (Kingma et al., 2021).
+SGMs define a forward diffusion process by a stochastic
+differential equation (SDE) that gradually perturbs the data
+distribution to a simple noise distribution. The forward diffusion process has an equivalent reverse-time process with
+analytical form (Anderson, 1982), which depends on the
+score function (the gradient of the log probability density)
+of the forward process at each time step. SGMs learn a
+parameterized neural network (called “score model”) (Song
+& Ermon, 2019; 2020; Song et al., 2020) to estimate the
+score functions, and further define probabilistic models by
+the score model.
+Two types of probabilistic models are proposed with the
+learned score model. One is the score-based diffusion SDE
+(Song et al. (2020), “ScoreSDE” for short), which is defined
+by approximately reversing the diffusion process from the
+noise distribution by the score model and it can generate
+high-quality samples. The other is the score-based diffusion ordinary differential equation (Song et al. (2020; 2021),
+“ScoreODE” for short), which is defined by approximating
+the probability flow ODE (Song et al., 2020) of the forward
+process whose marginal distribution is the same as the forward process at each time. ScoreODEs can be viewed as
+continuous normalizing flows (Chen et al., 2018). Thus,
+
+

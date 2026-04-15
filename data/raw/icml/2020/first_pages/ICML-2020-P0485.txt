@@ -1,0 +1,80 @@
+Private Outsourced Bayesian Optimization
+
+Dmitrii Kharkovskii 1 Zhongxiang Dai 1 Bryan Kian Hsiang Low 1
+
+Abstract
+This paper presents the private-outsourcedGaussian process-upper confidence bound (POGP-UCB) algorithm, which is the first algorithm for privacy-preserving Bayesian optimization (BO) in the outsourced setting with a provable performance guarantee. We consider the
+outsourced setting where the entity holding the
+dataset and the entity performing BO are represented by different parties, and the dataset cannot
+be released non-privately. For example, a hospital holds a dataset of sensitive medical records
+and outsources the BO task on this dataset to an
+industrial AI company. The key idea of our approach is to make the BO performance of our
+algorithm similar to that of non-private GP-UCB
+run using the original dataset, which is achieved
+by using a random projection-based transformation that preserves both privacy and the pairwise
+distances between inputs. Our main theoretical
+contribution is to show that a regret bound similar
+to that of the standard GP-UCB algorithm can be
+established for our PO-GP-UCB algorithm. We
+empirically evaluate the performance of our POGP-UCB algorithm with synthetic and real-world
+datasets.
+
+1. Introduction
+Bayesian optimization (BO) has become an increasingly
+popular method for optimizing highly complex black-box
+functions mainly due to its impressive sample efficiency.
+Such optimization problems appear frequently in various
+applications such as automated machine learning (ML),
+robotics, sensor networks, among others (Shahriari et al.,
+2016). However, despite its popularity, the classical setting
+of BO does not account for privacy issues, which arise due
+to the widespread use of ML models in applications dealing
+1
+
+Department of Computer Science, National University of Singapore, Republic of Singapore. Correspondence to: Bryan Kian
+Hsiang Low <lowkh@comp.nus.edu.sg>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+with sensitive datasets such as health care (Yu et al., 2013),
+insurance (Chong et al., 2005) and fraud detection (Ngai
+et al., 2011). A natural solution is to apply the cryptographic
+framework of differential privacy (DP) (Dwork et al., 2016),
+which has become the state-of-the-art technique for private
+data release and has been widely adopted in ML (Sarwate &
+Chaudhuri, 2013).
+To this end, a recent work (Kusner et al., 2015) proposed
+a DP variant of the Gaussian process-upper confidence
+bound (GP-UCB) algorithm, which is a well-known BO
+algorithm with theoretical performance guarantee (Srinivas
+et al., 2010). Kusner et al. (2015) consider the common BO
+task of hyperparameter tuning for ML models and introduce
+methods for privatizing the outputs of the GP-UCB algorithm (the optimal input hyperparameter setting found by the
+algorithm and the corresponding output measurement) by
+releasing them using standard DP mechanisms. However, in
+many scenarios, BO is performed in the outsourced setting,
+in which the entity holding the sensitive dataset (referred
+to as the curator hereafter) and the entity performing BO
+(referred to as the modeler hereafter) are represented by different parties with potentially conflicting interests. In recent
+years, such modelers (i.e., commercial companies) providing general-purpose optimization as a service have become
+increasingly prevalent, such as SigOpt which uses BO as
+a commercial service for black-box global optimization by
+providing query access to the users (Dewancker et al., 2016),
+and Google Cloud AutoML which offers the optimization
+of the architectures of neural networks as a cloud service.
+Unfortunately, the approach of Kusner et al. (2015) requires
+the modeler and the curator to be represented by the same
+entity and therefore both parties must have complete access
+to the sensitive dataset and full understanding of the BO
+algorithm, thus rendering it inapplicable in the outsourced
+setting. Some examples of such settings are given below:
+(a) A hospital is trying to find out which patients are likely to
+be readmitted soon based on the result of an expensive medical test (Yu et al., 2013). Due to cost and time constraints,
+the hospital (curator) is only able to perform the test for
+a limited number of patients, and thus outsources the task
+of selecting candidate patients for testing to an industrial
+AI company (modeler). In this case, the inputs to BO are
+medical records of individual patients and the function to
+maximize (the output measurement) is the outcome of the
+
+

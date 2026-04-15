@@ -1,0 +1,173 @@
+MuxServe: Flexible Spatial-Temporal Multiplexing for Multiple LLM Serving
+
+Jiangfei Duan 1 2 Runyu Lu 3 Haojie Duanmu 2 4 Xiuhong Li 5 Xingcheng Zhang 2 Dahua Lin 1 2
+Ion Stoica 6 Hao Zhang 7
+2 Requests of LLM A
+
+Abstract
+
+1 Request of LLM B
+𝐼𝑛𝑐𝑟𝑒𝑚𝑒𝑛𝑡𝑎𝑙 𝑑𝑒𝑐𝑜𝑑𝑖𝑛𝑔 phase
+
+Large language models (LLMs) have demonstrated remarkable performance, and organizations are racing to serve LLMs of varying sizes
+as endpoints for use-cases like chat, programming and search. However, efficiently serving
+multiple LLMs poses significant challenges for
+existing approaches due to varying popularity
+of LLMs. In the paper, we present MuxServe,
+a flexible spatial-temporal multiplexing system
+for efficient multiple LLM serving. The key insight behind is to colocate LLMs considering
+their popularity to multiplex memory resources,
+and leverage the characteristics of prefill and
+decoding phases to separate and flexibly colocate them to multiplex computation resources.
+MuxServe formally formulates the multiplexing
+problem, and proposes a novel placement algorithm and adaptive batch scheduling strategy to
+identify optimal colocations and maximize utilization. MuxServe designs a unified resource
+manager to enable flexible and efficient multiplexing. Evaluation results show that MuxServe can
+achieves up to 1.8× higher throughput or processes 2.9× more requests within 99% SLO attainment. The code is available at: https://
+github.com/hao-ai-lab/MuxServe.
+
+GPU 0
+
+LLM A
+
+R1P
+
+R2P
+
+GPU 1
+
+LLM B
+
+𝑃𝑟𝑒𝑓𝑖𝑙𝑙 phase
+
+GPU 0
+
+A.0 B.0
+
+R1P
+
+R2P
+
+GPU 1
+
+A.1 B.1
+
+R1P
+
+R2P
+
+R1
+R3P
+
+R2
+
+R1
+
+R2
+
+R1
+
+R3
+
+R3
+
+R3
+
+R3
+
+R2
+
+R1
+
+Time
+
+(a) Spatial Partition
+R1 R2 R1 R2 R1 R2 R1 R2
+
+R3p
+
+R3 R3 R3 R3
+
+R1 R2 R1 R2 R1 R2 R1 R2
+
+R3p
+
+R3 R3 R3 R3
+Time
+
+(b) Temporal multiplexing
+GPU 0
+
+A.0 B.0
+
+R1P
+
+R2P
+
+GPU 1
+
+A.1 B.1
+
+R1P
+
+R2P
+
+R3P R3 R3 R3 R3
+R1 R2 R1 R2 R1 R2 R1 R2
+R3P R3 R3 R3 R3
+R1 R2 R1 R2 R1 R2 R1 R2
+
+(c) MuxServe
+
+R2
+
+Latency
+Utilization
+
+Time
+
+Figure 1. Three multiplexing strategies and GPU utilization of
+serving two LLMs on two GPUs.
+
+and search. Many organizations, such as Google, OpenAI,
+Huggingface, are racing to serve these LLMs as endpoints
+to their users. However, the unprecedented capabilities of
+LLMs come at a significant inference cost – serving a single
+175B LLM (Brown et al., 2020) requires eight A100 (80GB)
+GPUs; efficiently serving multiple LLMs, each catering to
+different group of users and needs, are even costlier and
+have emerged as a crucial and time-sensitive demand within
+the community, especially for LLM endpoint providers.
+To serve multiple LLMs with a cluster of resources, existing
+systems (Huggingface, 2023; NVIDIA, 2023a; Kwon et al.,
+2023) typically use spatial partitioning (Figure 1a), which
+involves allocating separate groups of GPUs for each LLM
+to accommodate their large model size and the key-value
+cache (KV cache) generated during inference. However, this
+spatial partition approach often leads to significant underutilization of GPUs. Figure 2 shows real traffic observed
+by an LLM endpoint provider in 20 days: Different LLMs
+typically exhibit varying levels of popularity among users
+influenced by factors such as output quality, response speed,
+and usage patterns. Spatial partitioning disregards the varying popularity of different LLMs – LLMs with low arrival
+rates tend to receive sparse requests, resulting in idle GPUs
+for extended periods (as illustrated by GPU 1 in Figure 1a).
+Conversely, popular LLMs experience a substantial burden
+in handling incoming requests (GPU 0 in Figure 1a), leading
+to a potential performance bottleneck.
+
+1. Introduction
+Recent advances in large language models (LLMs) are transforming the AI industry (Brown et al., 2020; Bommasani
+et al., 2021; Chowdhery et al., 2023). A variety of versions and scales of LLMs have been pretrained and finetuned for various use cases, such as chat, programming,
+1
+
+The Chinese University of Hong Kong 2 Shanghai AI Laboratory 3 Huazhong University of Science and Technology 4 Shanghai
+Jiao Tong University 5 Peking University 6 UC Berkeley 7 University
+of California San Diego. Correspondence to: Hao Zhang
+<haozhang@ucsd.edu>, Xiuhong Li <lixiuhong@pku.edu.cn>.
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+
+Another line of work explores temporal multiplexing (Fig1
+
+

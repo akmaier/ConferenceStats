@@ -1,0 +1,83 @@
+Conformal Prediction Sets with Limited False Positives
+Adam Fisch 1 Tal Schuster 2 Tommi Jaakkola 1 Regina Barzilay 1
+
+Abstract
+We develop a new approach to multi-label conformal prediction in which we aim to output a precise set of promising prediction candidates with a
+bounded number of incorrect answers. Standard
+conformal prediction provides the ability to adapt
+to model uncertainty by constructing a calibrated
+candidate set in place of a single prediction, with
+guarantees that the set contains the correct answer with high probability. In order to obey this
+coverage property, however, conformal sets can
+become inundated with noisy candidates—which
+can render them unhelpful in practice. This is particularly relevant to practical applications where
+there is a limited budget, and the cost (monetary or
+otherwise) associated with false positives is nonnegligible. We propose to trade coverage for a
+notion of precision by enforcing that the presence
+of incorrect candidates in the predicted conformal
+sets (i.e., the total number of false positives) is
+bounded according to a user-specified tolerance.
+Subject to this constraint, our algorithm then optimizes for a generalized notion of set coverage
+(i.e., the true positive rate) that allows for any
+number of true answers for a given query (including zero). We demonstrate the effectiveness of
+this approach across a number of classification
+tasks in natural language processing, computer
+vision, and computational chemistry.
+
+1
+
+Introduction
+
+For many classification problems, returning a set of plausible responses instead of a single prediction is a useful way of
+representing uncertainty (Gammerman and Vovk, 2007; Lei,
+2014; Romano et al., 2020). Conformal prediction (Vovk
+et al., 2005) is an increasingly popular method for creating
+confident prediction sets that provably contain the correct answer with high probability. Unfortunately, these guarantees
+1
+CSAIL, Massachusetts Institute of Technology. 2 Google Research. Correspondence to: Adam Fisch <fisch@csail.mit.edu>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+do not come for free; in order to achieve proper coverage on
+difficult tasks, conformal prediction can often be unable to
+rule out an overwhelming number of candidates—making
+their prediction sets large and inefficient. This can make
+conformal predictors unusable in settings in which the cost
+of returning false positive predictions is substantial.
+As an example, consider in-silico screening for drug discovery (see Figure 1). In-silico screening uses computational
+tools to search over millions of molecular compounds to
+identify candidates with desired properties. Any identified
+candidates are then verified experimentally. While it is often
+not necessary to return all possible viable candidates (e.g.,
+even identifying just one effective drug can suffice), it is
+important to respect budgetary constraints by avoiding false
+positive predictions. Too many false positives can quickly
+consume available resources (e.g., time, materials, funding,
+or other assets). This is especially relevant when a valid
+answer, in this case, an effective drug, might not even exist.
+In this work, we develop an approach to creating confident
+prediction sets that trades off standard coverage guarantees
+for practical, provable constraints on the total number of
+false positives (FP). In other words, we shift the focus of
+our conformal guarantees to be on limiting the number of
+incorrect answers in our outputs, with the understanding that
+we can potentially fail to recover some proportion of the
+true answers—i.e., we may obtain a lower true positive rate
+(TPR), which we assume is acceptable for the application.
+Concretely, we are interested in a set prediction setting
+where we have been given n multi-label classification examples (Xi , Zi ) ∈ X × 2Y , i = 1, . . . n as calibration data,
+that have been drawn exchangeably from some underlying
+distribution PXZ . Under our assumptions, each observation
+Xi can be associated with any number of correct labels (including zero, in the case of having no answer at all, or one,
+like standard classification). That is, the response variable
+Zi is a subset of the full label space Y. For example, in
+the above in-silico screening task, Xi would be the current
+property being screened for, Y the space of all molecular
+candidates that might have this property, and Zi ⊆ Y the set
+of molecules that do have it. Let Xn+1 ∈ X be a new exchangeable test example for which we would like to predict
+the set of correct labels, Zn+1 ⊆ Y. Our goal is to construct
+a set predictor Ck (Xn+1 ) that maximizes recall of Zn+1
+(i.e., TPR), while limiting the expected number of false
+
+

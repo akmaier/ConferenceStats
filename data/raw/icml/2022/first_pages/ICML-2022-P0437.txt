@@ -1,0 +1,74 @@
+HyperImpute:
+Generalized Iterative Imputation with Automatic Model Selection
+
+Daniel Jarrett * 1 Bogdan Cebere * 1 Tennison Liu 1 Alicia Curth 1 Mihaela van der Schaar 1 2
+
+Abstract
+Consider the problem of imputing missing values
+in a dataset. On the one hand, conventional approaches using iterative imputation benefit from the
+simplicity and customizability of learning conditional distributions directly, but suffer from the
+practical requirement for appropriate model specification of each and every variable. On the other
+hand, recent methods using deep generative modeling benefit from the capacity and efficiency of
+learning with neural network function approximators, but are often difficult to optimize and rely on
+stronger data assumptions. In this work, we study
+an approach that marries the advantages of both:
+We propose HyperImpute, a generalized iterative
+imputation framework for adaptively and automatically configuring column-wise models and their
+hyperparameters. Practically, we provide a concrete implementation with out-of-the-box learners, optimizers, simulators, and extensible interfaces. Empirically, we investigate this framework
+via comprehensive experiments and sensitivities
+on a variety of public datasets, and demonstrate its
+ability to generate accurate imputations relative
+to a strong suite of benchmarks. Contrary to recent work, we believe our findings constitute a strong defense of the iterative imputation paradigm.
+https://github.com/vanderschaarlab/hyperimpute.
+
+1. Introduction
+Missing data is a ubiquitous problem in real-life data collection. For instance, certain characteristics of a patient
+may not have been recorded properly during their visit, but
+we may nevertheless be interested in knowing the values
+those variables most likely took on [1–4]. Here, we consider
+precisely this problem of imputing the missing values in a
+*
+
+Equal contribution. 1 Department of Applied Mathematics & Theoretical Physics, University of Cambridge, UK. 2 Department of Electrical Engineering, University of California, Los Angeles, USA.
+Correspondence to: Bogdan Cebere <bcc38@cam.ac.uk>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+dataset. Specifically, consider the general case where different records in a dataset may contain missing values for different variables, so no columns are assumed to be complete.
+Most popular approaches fall into two main categories. On
+the one hand, conventional approaches using iterative imputation operate by estimating the conditional distributions of
+each feature on the basis of all the others, and missing values
+are imputed using such univariate models in a round-robin
+fashion until convergence [5–10]. In theory, this approach
+affords great customizability in creating multivariate models:
+by simply specifying univariate models, one can easily and
+implicitly work with joint models outside any known parametric multivariate density [10–12]. In practice, however,
+this strategy often suffers from the requirement that models
+for every single variable be properly specified. In particular,
+for each column with missing values, one needs to choose
+the functional form for the model, select the set of regressors
+as input, include any interaction terms of interest, add appropriate regularization, or handle derived variables separately
+to prevent collinearity in the common case of linear models;
+this is time-consuming and dependent on human expertise.
+On the other hand, recent methods using deep generative
+models operate by estimating a joint model of all features
+together, from which missing values can be queried [13–22].
+In theory, these approaches more readily take advantage of
+the capacity and efficiency of learning using deep function
+approximators and the ability to capture correlations among
+covariates by amortizing the parameters [19,23]. In practice,
+however, this strategy comes at the price of much more challenging optimization—GAN-based imputers [16–18,24] are
+often prone to the usual difficulties in adversarial training
+[25, 26], and VAE-based imputers [19, 20] are subject to the
+usual limitations of training latent-variable models through
+variational bounds [27, 28]; empirically, these methods may
+often be outperformed by iterative imputation [29, 30]. Further, most of such techniques—with the notable exception
+to [22]—either separately require fully-observed datasets
+during training [13–15], or operate on the strong assumption
+that missingness patterns are entirely independent of both
+observed and unobserved data [16–21], which is not realistic.
+Three Desiderata Can we do better? In light of the preceding discussion, we argue that a good baseline solution to
+the imputation problem should satisfy the following criteria:
+
+

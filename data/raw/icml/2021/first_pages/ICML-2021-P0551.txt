@@ -1,0 +1,85 @@
+Improved Regret Bound and Experience Replay in Regularized Policy Iteration
+
+Nevena Lazić 1 Dong Yin 1 Yasin Abbasi-Yadkori 1 Csaba Szepesvári 1 2
+
+Abstract
+In this work, we study algorithms for learning
+in infinite-horizon undiscounted Markov decision
+processes (MDPs) with function approximation.
+We first show that the regret analysis of the P O LITEX algorithm (a version of regularized policy iteration)
+can be sharpened from O(T 3/4 )
+√
+to O( T ) under nearly identical assumptions,
+and instantiate the bound with linear function approximation. Our
+√ result provides the first highprobability O( T ) regret bound for a computationally efficient algorithm in this setting. The
+exact implementation of P OLITEX with neural
+network function approximation is inefficient in
+terms of memory and computation. Since our
+analysis suggests that we need to approximate
+the average of the action-value functions of past
+policies well, we propose a simple efficient implementation where we train a single Q-function on
+a replay buffer with past data. We show that this
+often leads to superior performance over other
+implementation choices, especially in terms of
+wall-clock time. Our work also provides a novel
+theoretical justification for using experience replay within policy iteration algorithms.
+
+1. Introduction
+Model-free reinforcement learning (RL) algorithms combined with powerful function approximation have achieved
+impressive performance in a variety of application domains
+over the last decade. Unfortunately, the theoretical understanding of such methods is still quite limited. In this work,
+we study single-trajectory learning in infinite-horizon undiscounted Markov decision processes (MDPs), also known as
+average-reward MDPs, which capture tasks such as routing
+and the control of physical systems.
+One line of works with performance guarantees for the
+average-reward setting follows the “online MDP” approach
+1
+
+DeepMind 2 University of Alberta. Correspondence to: Nevena
+Lazic <nevena@google.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+proposed by Even-Dar et al. (2009), where the agent selects policies by running an online learning algorithm in
+each state, typically mirror descent. The resulting algorithm is a version of approximate policy iteration (API),
+which alternates between (1) estimating the state-action
+value function (or Q-function) of the current policy and
+(2) setting the next policy to be optimal w.r.t. the sum of
+all previous Q-functions plus a regularizer. Note that, by
+contrast, standard API sets the next policy only based on
+the most recent Q-function. The policy update can also be
+written as maximizing the most recent Q-function minus
+KL-divergence to the previous policy, which is somewhat
+similar to recently popular versions of API (Schulman et al.,
+2015; 2017; Achiam et al., 2017; Abdolmaleki et al., 2018;
+Song et al., 2019a).
+The original work of Even-Dar et al. (2009) studied this
+scheme with known dynamics, tabular representation, and
+adversarial reward functions. More recent works (AbbasiYadkori et al., 2019; Hao et al., 2020; Wei et al., 2020a)
+have adapted the approach to the case of unknown dynamics,
+stochastic rewards, and value function approximation. With
+linear value functions, the P OLITEX algorithm of AbbasiYadkori et al. (2019) achieves O(T 3/4 ) high-probability
+regret in ergodic MDPs, and the results only scale in the
+number of features
+√ rather than states. Wei et al. (2020a)
+later show an O( T ) bound on expected regret for a similar
+algorithm named MDP-EXP2. In this work, we revisit the
+analysis
+of P OLITEX and show that it can be sharpened to
+√
+O( T )√under nearly identical assumptions, resulting in the
+first O( T ) high-probability regret bound for a computationally efficient algorithm in this setting.
+In addition to improved analysis, our work also addresses
+practical implementation of P OLITEX with neural networks.
+The policies produced by P OLITEX in each iteration require
+access to the sum of all previous Q-function estimates. With
+neural network function approximation, exact implementation requires us to keep all past networks in memory and
+evaluate them at each step, which is inefficient in terms of
+memory and computation. Some practical implementation
+choices include subsampling Q-functions and/or optimizing
+a KL-divergence regularized objective w.r.t. a parametric
+policy at each iteration. We propose an alternative approach,
+where we approximate the average of all past Q-functions
+by training a single network on a replay buffer with past
+
+

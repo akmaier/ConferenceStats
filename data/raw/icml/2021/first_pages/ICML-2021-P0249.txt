@@ -1,0 +1,96 @@
+ARMS: Antithetic-REINFORCE-Multi-Sample Gradient for Binary Variables
+
+Alek Dimitriev 1 Mingyuan Zhou 1
+
+Abstract
+Estimating the gradients for binary variables is
+a task that arises frequently in various domains,
+such as training discrete latent variable models.
+What has been commonly used is a REINFORCE
+based Monte Carlo estimation method that uses
+either independent samples or pairs of negatively
+correlated samples. To better utilize more than
+two samples, we propose ARMS, an Antithetic
+REINFORCE-based Multi-Sample gradient estimator. ARMS uses a copula to generate any number of mutually antithetic samples. It is unbiased,
+has low variance, and generalizes both DisARM,
+which we show to be ARMS with two samples,
+and the leave-one-out REINFORCE (LOORF)
+estimator, which is ARMS with uncorrelated samples. We evaluate ARMS on several datasets for
+training generative models, and our experimental
+results show that it outperforms competing methods. We also develop a version of ARMS for
+optimizing the multi-sample variational bound,
+and show that it outperforms both VIMCO and
+DisARM. The code is publicly available1 .
+
+1. Introduction
+At the heart of many optimization problems is optimizing
+an expectation of a function with respect to the parameters of the distribution, such as E(φ) = Eb [f (b)], where
+b ∼ pφ (b). There are several approaches to estimate the
+gradient ∇φ Eb [f (b)]. Most commonly used is the reparameterization gradient (Kingma & Welling, 2014; Rezende
+et al., 2014). If f is differentiable, and b can be expressed
+as a differentiable deterministic transformation b = Tφ ()
+of a variable  ∼ p() not dependent on φ, then:
+h
+h
+i
+i
+∇φ E(φ) = ∇φ E f Tφ () = E ∇φ f Tφ () .
+1
+McCombs School of Business, The University of Texas
+at Austin, Austin, Texas 78712, USA. Correspondence to:
+Alek Dimitriev <alekdimi@utexas.edu>, Mingyuan Zhou
+<mingyuan.zhou@mccombs.utexas.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+1
+https://github.com/alekdimi/arms
+
+If b is discrete, however, Tφ is not differentiable, and f is not
+always differentiable, e.g., if it corresponds to the reward
+function in reinforcement learning. This has inspired work
+into replacing Tφ (and f ) with a continuous relaxation for
+the discrete case, using the Gumbel-Softmax trick (Maddison et al., 2017; Jang et al., 2017). Some are biased (Bengio
+et al., 2013; Lorberbom et al., 2019), and others, such as
+REBAR (Tucker et al., 2017) and RELAX (Grathwohl et al.,
+2018), contain a debiasing term. However, a relaxation
+could require much more computation, e.g., in best subset
+selection (Yin et al., 2020) where f (b) is the loss function,
+and b is a (sparse) binary vector that selects a subset of
+features on which to train the model. Evaluating a relaxed
+version of f for any input would train the model with all
+features at considerable computational cost if the number of
+features is large.
+A second, less well-known approach, is the measure valued
+gradient (Rosca et al., 2019; Mohamed et al., 2020). If
+possible, it expresses the dth element of the gradient as
+a difference of two measures: ∇φd pφ (b) = cd (pd+ (b) −
+pd− (b)) This allows us to estimate ∇φd E(φ) using as few
+as two f evaluations per dimension:
+
+
+
+
+
+∇φd E(φ) = cd Eb∼pd+ f (b) − Eb0 ∼pd− f (b) ,
+but this needs to be done for each dimension separately,
+which is not scalable for a large number of dimensions,
+requiring twice as many function evaluations as dimensions.
+The most widely applicable approach is the score function
+estimator (Glynn, 1990; Fu, 2006), also known as REINFORCE (Williams, 1992). Using the log derivative trick
+∇φ p(b) = p(b)∇φ ln p(b), it expresses the gradient as an
+expectation with respect to the original distribution:
+
+
+
+
+∇φ E(φ) = ∇φ Eb f (b) = Eb f (b)∇φ ln p(b) ,
+which results in a simple form, only requiring the ability to
+sample from the original distribution. Unlike the reparameterization trick, it is directly applicable to discrete variables,
+but usually suffers from high variance in the form presented
+above. Recent work has focused on various mechanisms
+for variance reduction, applied either to general variational
+inference tasks (Paisley et al., 2012; Ranganath et al., 2014;
+Ruiz et al., 2016; Kucukelbir et al., 2017) or focusing on discrete (Mnih & Gregor, 2014; Gu et al., 2016) cases. Leveraging the specific structure of the distribution pφ (b), while
+
+

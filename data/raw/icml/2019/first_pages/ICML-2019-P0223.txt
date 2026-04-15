@@ -1,0 +1,90 @@
+Recursive Sketches for Modular Deep
+Learning
+
+Badih Ghazi * 1 Rina Panigrahy * 1
+Joshua R. Wang * 1
+
+Abstract
+We present a mechanism to compute a sketch (succinct summary) of how a complex modular deep
+network processes its inputs. The sketch summarizes essential information about the inputs and
+outputs of the network and can be used to quickly
+identify key components and summary statistics
+of the inputs. Furthermore, the sketch is recursive
+and can be unrolled to identify sub-components of
+these components and so forth, capturing a potentially complicated DAG structure. These sketches
+erase gracefully; even if we erase a fraction of
+the sketch at random, the remainder still retains
+the “high-weight” information present in the original sketch. The sketches can also be organized
+in a repository to implicitly form a “knowledge
+graph”; it is possible to quickly retrieve sketches
+in the repository that are related to a sketch of
+interest; arranged in this fashion, the sketches can
+also be used to learn emerging concepts by looking for new clusters in sketch space. Finally, in
+the scenario where we want to learn a ground
+truth deep network, we show that augmenting
+input/output pairs with these sketches can theoretically make it easier to do so.
+
+1. Introduction
+Machine learning has leveraged our understanding of how
+the brain functions to devise better algorithms. Much of
+classical machine learning focuses on how to correctly compute a function; we utilize the available data to make more
+accurate predictions. More recently, lines of work have
+considered other important objectives as well: we might
+*
+
+Equal contribution 1 Google Research, Mountain View,
+CA, USA..
+Correspondence to: Rina Panigrahy <rinap@google.com>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+like our algorithms to be small, efficient, and robust. This
+work aims to further explore one such sub-question: can we
+design a system on top of neural nets that efficiently stores
+information?
+Our motivating example is the following everyday situation.
+Imagine stepping into a room and briefly viewing the objects
+within. Modern machine learning is excellent at answering
+immediate questions about this scene: “Is there a cat? How
+big is said cat?” Now, suppose we view this room every day
+over the course of a year. Humans can reminisce about the
+times they saw the room: “How often did the room contain
+a cat? Was it usually morning or night when we saw the
+room?”; can we design systems that are also capable of
+efficiently answering such memory-based questions?
+Our proposed solution works by leveraging an existing (already trained) machine learning model to understand individual inputs. For the sake of clarity of presentation, this
+base machine learning model will be a modular deep network.1 We then augment this model with sketches of its
+computation. We show how these sketches can be used to
+efficiently answer memory-based questions, despite the fact
+that they take up much less memory than storing the entire
+original computation.
+A modular deep network consists of several independent
+neural networks (modules) which only communicate via
+one’s output serving as another’s input. Figure 1 presents
+a cartoon depiction of a modular network for our example. Modular networks have both a biological basis (Azam,
+2000) and evolutionary justification (Clune et al., 2013).
+They have inspired several practical architectures such as
+neural module networks (Andreas et al., 2016; Hu et al.,
+2017), capsule neural networks (Hinton et al., 2000; 2011;
+Sabour et al., 2017), and PathNet (Fernando et al., 2017)
+and have connections to suggested biological models of intelligence such as hierarchical temporal memory (Hawkins
+& Blakeslee, 2007). We choose them as a useful abstraction
+to avoid discussing specific network architectures.
+What do these modules represent in the context of our room
+task? Since we are searching for objects in the room, we
+think of each module as attempting to identify a particular
+type of object, from the low level edge to the high level cat.
+For the reader familiar with convolutional neural networks,
+it may help to think of each module as a filter or kernel.
+We denote the event where a module produces output as
+an object, the produced output vector as an attribute vector,
+and all objects produced by a module as a class. In fact, our
+sketching mechanism will detail how to sketch each object,
+and these sketches will be recursive, taking into account the
+sketches corresponding to the inputs of the module.
+1
+Of course, it is possible to cast many models as deep modular
+networks by appropriately separating them into modules.
+
+

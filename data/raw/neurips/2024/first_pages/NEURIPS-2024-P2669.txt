@@ -1,0 +1,57 @@
+Toward Efficient Inference for Mixture of Experts
+
+Haiyang Huang1∗ Newsha Ardalani2 Anna Sun2 Liu Ke3∗
+Hsien-Hsin S. Lee4∗ Shruti Bhosale2 Carole-Jean Wu2 Benjamin Lee5∗
+1
+Duke University 2 FAIR at Meta 3 Washington University in St. Louis
+4
+Intel Corporation 5 University of Pennsylvania
+hyhuang@cs.duke.edu
+{new, annaysun, shru, carolejeanwu}@meta.com
+ke.l@wustl.edu
+lee.sean@gmail.com
+leebcc@seas.upenn.edu
+
+Abstract
+Mixture-of-Experts (MoE) models have recently gained steam in achieving the
+state-of-the-art performance in a wide range of tasks in computer vision and natural
+language processing. They effectively expand the model capacity while incurring
+a minimal increase in computation cost during training. However, deploying
+such models for inference is difficult due to their large model size and complex
+communication pattern. In this work, we provide a characterization of two MoE
+workloads, namely Language Modeling (LM) and Machine Translation (MT)
+and identify their sources of inefficiencies at deployment. We propose three
+optimization techniques to mitigate sources of inefficiencies, namely (1) Dynamic
+gating, (2) Expert Buffering, and (3) Expert load balancing. We show that dynamic
+gating improves maximum throughput by 6.21-11.55× for LM, 5.75-10.98× for
+MT Encoder and 2.58-5.71× for MT Decoder. It also reduces memory usage by
+up to 1.36× for LM and up to 1.1× for MT. We further propose Expert Buffering,
+a new caching mechanism that only keeps hot, active experts in GPU memory
+while buffering the rest in CPU memory. This reduces static memory allocation by
+1.47×. Finally, we propose a load balancing methodology that provides additional
+robustness to the workload. Our code is available at https://github.com/
+hyhuang00/moe_inference.
+
+1
+
+Introduction
+
+A machine learning model’s predictive ability increases with the number of parameters. Model
+capacity has grown at an exponential rate of 10× per year [1], which in turn has driven demand for
+computation. Mixture of Experts (MoEs) decouple model capacity from computational demands by
+using conditionally, sparsely activated neural networks. They can reduce training costs yet improve
+accuracy [2–4] for language modeling [5–8], machine translation [9], and image recognition [10, 11].
+But training is only half the story. MoE inference is important yet challenging as large language
+models are deployed for production services. Our experiments show MoE inference is relatively
+inefficient, requiring much more time to perform the same number of calculations. In Section 3, we
+show that MoEs are 15× slower for language models and 3× slower for machine translation compared
+to their FLOP-equivalent dense counterparts. Distillation could shrink models and reduce latency but
+harm model quality [6, 8, 2]. Optimizations could increase parallelism and GPU utilization, but they
+narrowly target specific kernels for communication collectives and GPU computation [12, 13]. They
+∗
+
+Work done while interning/working/visiting FAIR at Meta.
+
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+
+

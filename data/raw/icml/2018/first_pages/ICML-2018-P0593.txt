@@ -1,0 +1,104 @@
+High Performance Zero-Memory Overhead Direct Convolutions
+
+Jiyuan Zhang 1 Franz Franchetti 1 Tze Meng Low 1
+
+Abstract
+The computation of convolution layers in deep
+neural networks typically rely on high performance routines that trade space for time by using
+additional memory (either for packing purposes or
+required as part of the algorithm) to improve performance. The problems with such an approach
+are two-fold. First, these routines incur additional
+memory overhead which reduces the overall size
+of the network that can fit on embedded devices
+with limited memory capacity. Second, these high
+performance routines were not optimized for performing convolution, which means that the performance obtained is usually less than conventionally expected. In this paper, we demonstrate
+that direct convolution, when implemented correctly, eliminates all memory overhead, and yields
+performance that is between 10% to 400% times
+better than existing high performance implementations of convolution layers on conventional and
+embedded CPU architectures. We also show that
+a high performance direct convolution exhibits
+better scaling performance, i.e. suffers less performance drop, when increasing the number of
+threads.
+
+1. Introduction
+Conventional wisdom suggests that computing convolution
+layers found in deep neural nets via direct convolution is
+not efficient. As such, many existing methods for computing convolution layers (Jia et al., 2014; Cho & Brand,
+2017) in deep neural networks are based on highly optimized routines (e.g. matrix-matrix multiplication) found
+in computational libraries such as the Basic Linear Algebra Subprograms (BLAS) (Dongarra et al., 1990). In order
+to utilize the matrix-matrix multiplication routine, these
+frameworks reshape and selectively duplicate parts of the
+1
+
+Department of Electrical and Computer Engineering, Carnegie
+Mellon University, Pittsburgh, USA. Correspondence to: Jiyuan
+Zhang <jiyuanz@andrew.cmu.edu>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+Performance normalized to OpenBLAS GEMM on AMD PileDriver
+4.0 GHz, 4/4 cores/threads
+Normalized Performance [Gflop/s]
+1.8
+1.6
+
+OpenBLAS+Packing
+
+Direct CNN
+
+1.4
+
+1.2
+1
+
+Packing
+0.6 overheads
+0.8
+
+0.4
+0.2
+0
+
+Conv1
+
+Conv2
+
+Conv3
+
+Conv4
+
+Conv5
+
+Alexnet Layers
+
+Figure 1. High performance direct convolution implementation
+achieves higher performance than a high performance matrix multiplication routine, whereas matrix-multiplication based convolution
+implementations suffers from packing overheads and is limited by
+the performance of the matrix multiplication routine
+
+original input data (collectively known as packing); thereby
+incurring additional memory space for performance.
+There are two problems with this approach: First, the additional work of reshaping and duplicating elements of the
+input data is a bandwidth-bounded operation that incurs
+an additional, and non-trivial time penalty on the overall
+system performance. Second, and more importantly, matrices arising from convolution layers often have dimensions
+that are dissimilar from matrices arising from traditional
+high performance computing (HPC) application. As such,
+the matrix-matrix multiplication routine typically does not
+achieve as good a performance on convolution matrices as
+compared to HPC matrices.
+To illustrate these drawbacks of existing methods, consider
+the 4-thread performance attained on various convolution
+layers in AlexNet using an AMD Piledriver architecture
+shown in Figure 1. In this plot, we present performance
+of 1) a traditional matrix-multiply based convolution implementation linked to OpenBLAS1 (OpenBLAS) (blue) and
+2) our proposed high performance direct convolution implementation (yellow). Performance of both implementations
+are normalized to the performance of only the matrix-matrix
+multiplication routine (dashed line). This dashed line is
+1
+
+OpenBLAS is an open-source implementation of the GotoBLAS algorithm, the de-facto algorithm for matrix multiplication
+on CPUs (Goto & van de Geijn, 2008).
+
+

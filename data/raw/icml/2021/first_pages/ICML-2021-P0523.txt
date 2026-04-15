@@ -1,0 +1,81 @@
+Boosting the Throughput and Accelerator Utilization of Specialized CNN
+Inference Beyond Increasing Batch Size
+
+Jack Kosaian 1 * Amar Phanishayee 2 Matthai Philipose 2 Debadeepta Dey 2 K. V. Rashmi 1
+
+Abstract
+Datacenter vision systems widely use small, specialized convolutional neural networks (CNNs)
+trained on speciﬁc tasks for high-throughput inference. These settings employ accelerators with
+massive computational capacity, but which specialized CNNs underutilize due to having low
+arithmetic intensity. This results in suboptimal
+application-level throughput and poor returns on
+accelerator investment. Increasing batch size is
+the only known way to increase both applicationlevel throughput and accelerator utilization for
+inference, but yields diminishing returns; specialized CNNs poorly utilize accelerators even
+with large batch size. We propose FoldedCNNs,
+a new approach to CNN design that increases inference throughput and utilization beyond large
+batch size. FoldedCNNs rethink the structure of
+inputs and layers of specialized CNNs to boost
+arithmetic intensity: in FoldedCNNs, f images
+with C channels each are concatenated into a single input with f C channels and jointly classiﬁed
+by a wider CNN. Increased arithmetic intensity in
+FoldedCNNs increases the throughput and GPU
+utilization of specialized CNN inference by up to
+2.5× and 2.8×, with accuracy close to the original
+CNN in most cases.
+
+1. Introduction
+Convolutional neural networks (CNNs) are widely deployed
+for high-throughput vision tasks. Many such tasks target
+highly speciﬁc events for which general-purpose CNNs
+trained on diverse data (e.g., ResNet-50 on ImageNet) are
+overkill; an application detecting red trucks does not need
+a CNN capable of classifying animals. It has thus become
+popular to employ small specialized CNNs trained only for
+such focused tasks (Shen et al., 2017; Kang et al., 2017;
+*
+Work done in part as an intern at Microsoft Research.
+Carnegie Mellon University 2 Microsoft Research. Correspondence to: Jack Kosaian <jkosaian@cs.cmu.edu>.
+
+1
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Hsieh et al., 2018; Kang et al., 2020). In being trained for
+highly speciﬁc tasks, specialized CNNs can typically be
+much smaller than general-purpose CNNs, and thus operate
+at higher application-level throughput (e.g., images/sec).
+Specialized CNNs are heavily used for inference in both
+datacenters and edge clusters (Kang et al., 2017; Hsieh et al.,
+2018; Mullapudi et al., 2019; Bhardwaj et al., 2020), and
+occasionally on constrained devices (e.g., cameras) (Canel
+et al., 2019). We focus on specialized CNNs used for highthroughput vision in datacenters/clusters. A popular usecase
+in this setting is ofﬂine video analytics, in which all video
+frames are processed by a specialized CNN, and only frames
+for which the specialized CNN is uncertain are processed
+by a slower, general-purpose CNN (Kang et al., 2017). The
+throughput of the specialized CNN is critical to that of the
+overall system, as all frames are processed by the specialized
+CNN and only a small fraction by the general-purpose CNN.
+Aiding the case for high-throughput CNNs, server-grade
+deep learning hardware accelerators offer unprecedented
+performance in FLOPs/sec, and thus are used for inference
+in datacenters (e.g., V100 and T4 GPUs, TPUs) and edge
+clusters (e.g., AWS Outposts and Azure Stack Edge with
+T4 GPUs). It is critical that these accelerators be highly
+utilized, with software running on an accelerator ideally
+achieving FLOPs/sec near the accelerator’s theoretical peak
+FLOPs/sec. Given the high cost of accelerators and the operational costs incurred in deploying them (e.g., power) (Barroso et al., 2013), poorly utilizing an accelerator leads to a
+poor return on investment. Furthermore, underutilization
+results in suboptimal application-level throughput.
+However, current specialized CNNs signiﬁcantly underutilize server-grade accelerators: we ﬁnd that specialized
+CNNs used in production at Microsoft achieve less than
+20% of the peak FLOPs/sec of GPUs employed in datacenters, even with large batch sizes (which are common for
+high-throughput inference), and when using techniques that
+improve throughput, such as reduced precision (see Fig. 1).
+While specialized CNNs might better utilize weaker devices,
+we ﬁnd that server-grade GPUs, such as V100 and T4, offer the highest cost-normalized throughput for the CNNs
+described above, motivating their deployment in production.
+
+

@@ -1,0 +1,74 @@
+Zeno++: Robust Fully Asynchronous SGD
+
+Cong Xie 1 Oluwasanmi Koyejo 1 Indranil Gupta 1
+
+Abstract
+We propose Zeno++, a new robust asynchronous
+Stochastic Gradient Descent (SGD) procedure,
+intended to tolerate Byzantine failures of workers. In contrast to previous work, Zeno++ removes several unrealistic restrictions on workerserver communication, now allowing for fully
+asynchronous updates from anonymous workers,
+for arbitrarily stale worker updates, and for the
+possibility of an unbounded number of Byzantine
+workers. The key idea is to estimate the descent
+of the loss value after the candidate gradient is
+applied, where large descent values indicate that
+the update results in optimization progress. We
+prove the convergence of Zeno++ for non-convex
+problems under Byzantine failures. Experimental results show that Zeno++ outperforms existing Byzantine-tolerant asynchronous SGD algorithms.
+
+1. Introduction
+Synchronous training and asynchronous training are the two
+most common paradigms of distributed machine learning.
+On the one hand, synchronous training requires the global
+updates at the server to be blocked until all the workers
+respond (after each period). In contrast, for asynchronous
+training, the server can update the global model immediately
+after each worker’s response. Theoretical and experimental analysis (Dutta et al., 2018) suggests that synchronous
+training is more stable and has lower noise, but is slower
+due to the global barrier across all the workers (after each
+period). Since asynchronous training is comparatively faster
+especially for heterogeneous systems with stragglers, in this
+paper, we focus on asynchronous training. Doing so requires
+us to tackle challenges including instability and noisiness
+that arise from asynchony.
+1
+
+Department of Computer Science, University of Illinois, Urbana-Champaign, USA. Correspondence to: Cong Xie
+<cx2@illinois.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+Concretely, we study the security of distributed asynchronous Stochastic Gradient Descent (SGD) in a centralized worker-server architecture, also known as the
+Parameter Server (or PS) architecture. In the PS architecture, there are server nodes and worker nodes. Each worker
+pulls the global model from the servers, estimates the gradients using the local portion of the training data, then sends
+the gradient estimates to the servers. The servers update the
+model asynchronously, as soon as a new gradient is received
+from any worker.
+The security of machine learning has gained increasing attention in recent years. In particular, tolerance to Byzantine
+failures (Blanchard et al., 2017; Chen et al., 2017; Yin et al.,
+2018; Feng et al., 2014; Su & Vaidya, 2016; 2018; Xie
+et al., 2019b; Alistarh et al., 2018; Cao & Lai, 2018; Xie
+et al., 2019c) has become an important topic in the distributed machine learning literature. Byzantine nodes can
+behave arbitrarily, capturing behavior ranging from crash
+failures to malicious and arbitrary or compromised actions.
+In brief, the goal of Byzantine workers is to prevent convergence of the model training. By construction, Byzantine
+failures (Lamport et al., 1982) assume the worst case, i.e.,
+the Byzantine workers can behave arbitrarily. Such failures
+may be caused by a variety of reasons including but not
+limited to: hardware/software bugs, vulnerable communication channels, poisoned datasets, or malicious attackers.
+To make things worse, groups of Byzantine workers may
+collude, resulting in more harmful attacks.
+Byzantine failures have been well-studied for classical distributed systems, especially for consensus (Lamport et al.,
+1982). These results include well-known bounds on how
+many Byzantine workers can be tolerated. Yet, in distributed
+machine learning, Byzantine failures have a different impact
+than in classical consensus (Damaskinos et al., 2018). Unlike previous work, we consider Byzantine tolerance with
+minimal assumptions—an unbounded number of Byzantine
+workers, and full asynchrony with unbounded delay.
+Byzantine tolerance of asynchronous SGD is challenging
+due to several reasons:
+• Full asynchrony. Lack of synchrony introduces additional noise into the stochastic gradients. This makes it
+more difficult to distinguish gradients sent by Byzantine
+workers from gradients sent by benign ones, especially
+
+

@@ -1,0 +1,94 @@
+LEGO: Latent Execution-Guided Reasoning
+for Multi-Hop Question Answering on Knowledge Graphs
+
+Hongyu Ren 1 Hanjun Dai 2 Bo Dai 2 Xinyun Chen 3 Michihiro Yasunaga 1 Haitian Sun 4 Dale Schuurmans 2
+Jure Leskovec 1 Denny Zhou 2
+
+Abstract
+Answering complex natural language questions
+on knowledge graphs (KGQA) is a challenging
+task. It requires reasoning with the input natural language questions as well as a massive, incomplete heterogeneous KG. Prior methods obtain an abstract structured query graph/tree from
+the input question and traverse the KG for answers following the query tree. However, they
+inherently cannot deal with missing links in the
+KG. Here we present LEGO, a Latent ExecutionGuided reasOning framework to handle this challenge in KGQA. LEGO works in an iterative way,
+which alternates between (1) a Query Synthesizer,
+which synthesizes a reasoning action and grows
+the query tree step-by-step, and (2) a Latent Space
+Executor that executes the reasoning action in
+the latent embedding space to combat against the
+missing information in KG. To learn the synthesizer without step-wise supervision, we design a
+generic latent execution guided bottom-up search
+procedure to find good execution traces efficiently
+in the vast query space. Experimental results on
+several KGQA benchmarks demonstrate the effectiveness of our framework compared with previous state of the art.
+
+1. Introduction
+Answering complex natural language questions with multihop reasoning steps on incomplete knowledge graphs (KGs)
+is a fundamental, yet challenging task (KGQA) (Sun et al.,
+2019a; Saxena et al., 2020; Bordes et al., 2014; Xu et al.,
+2016; Yu et al., 2017; Liang et al., 2017). KGQA takes a
+question in natural language as an input, with the goal to
+identify a set of KG entities that form the answer. There are
+1
+Stanford University 2 Google Brain 3 UC Berkeley 4 Carnegie
+Mellon University.
+Correspondence to: Hongyu Ren
+<hyren@cs.stanford.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+Answer entities on KG
+Termination
+
+Updated Query 𝑔𝑡+1
+
+Query
+Synthesizer
+
+Reasoning
+Action 𝑎𝑡
+
+Natural Language Question 𝑞
+
+LEGO
+KG
+
+Latent
+Executor
+
+Initial Query 𝑔0
+
+Figure 1. L EGO answers a question by iteratively performing
+execution-guided query synthesis and latent query execution.
+
+two important subproblems that need to be addressed: (1)
+bridging the gap between natural language question and the
+entities in the KG as structured query needs to be generated
+and (2) a robust reasoning algorithm that efficiently locates
+the answer entities with missing links in KGs.
+Previous neural KGQA models that are based on semantic
+parsing (Lan & Jiang, 2020; Chen et al., 2019b; Yih et al.,
+2015; Bao et al., 2016; Luo et al., 2018) first synthesize
+a tree-structured query by parsing the questions, and then
+execute the query on KG, i.e., traverse the KG for answers.
+Compared with non-parsing methods (Sun et al., 2019a;
+Saxena et al., 2020), these models achieve better empirical
+results and interpretability since the underlying structured
+query captures the reasoning process. However, the performance of these parsing-based methods is hindered by three
+major challenges. The first challenge is the scale and incomplete nature of KGs. Real-world KGs (Bollacker et al.,
+2008; Suchanek et al., 2007; Liu & Singh, 2004) often have
+millions of entities, and multi-hop traversal on a KG leads
+to an exponential growth in computation time and space.
+Since KGs are often noisy and incomplete, executing even
+the ground truth query may still not return the fully correct
+answer set. Another challenge is that the query synthesis
+process and the execution process are separate and disjoint,
+leading to a combinatorial search space, especially for multihop reasoning. It is currently addressed by KG context-free
+beam search (Lan & Jiang, 2020; Chen et al., 2019b). Finally, these parsing-based models mostly require ground
+truth queries for supervision in training. However, such
+supervision is hard to obtain in practice.
+
+Hongyu Ren, Stanfo
+
+

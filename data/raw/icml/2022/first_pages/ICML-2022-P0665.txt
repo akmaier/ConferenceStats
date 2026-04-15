@@ -1,0 +1,74 @@
+Continual Repeated Annealed Flow Transport Monte Carlo
+
+Alexander G. D. G. Matthews 1 Michael Arbel 2 Danilo J. Rezende 1 Arnaud Doucet 1
+
+Abstract
+We propose Continual Repeated Annealed Flow
+Transport Monte Carlo (CRAFT), a method that
+combines a sequential Monte Carlo (SMC) sampler (itself a generalization of Annealed Importance Sampling) with variational inference using normalizing flows. The normalizing flows
+are directly trained to transport between annealing temperatures using a KL divergence for each
+transition. This optimization objective is itself
+estimated using the normalizing flow/SMC approximation. We show conceptually and using multiple empirical examples that CRAFT
+improves on Annealed Flow Transport Monte
+Carlo (Arbel et al., 2021), on which it builds
+and also on Markov chain Monte Carlo (MCMC)
+based Stochastic Normalizing Flows (Wu et al.,
+2020). By incorporating CRAFT within particle
+MCMC, we show that such learnt samplers can
+achieve impressively accurate results on a challenging lattice field theory example.
+
+1. Introduction
+There are few algorithmic problems richer or more fundamental than the task of drawing samples from an unnormalized distribution and approximating its normalizing constant. In this paper we combine two important methods
+for this task specifically Sequential Monte Carlo (SMC)
+(Del Moral et al., 2006) and variational inference with Normalizing flows (NFs) (Rezende and Mohamed, 2015).
+The first of these components, SMC samplers, are an importance sampling based algorithm. They are a principled
+way to combine annealing, resampling and Markov chain
+Monte Carlo (MCMC) and as such enjoy continuing popularity (Dai et al., 2020). One potential disadvantage of
+1
+DeepMind 2 Université Grenoble Alpes, Inria, CNRS.
+Correspondence to:
+Alexander G. D. G. Matthews
+<alexmatthews@google.com>, Arnaud Doucet <arnauddoucet@google.com>.
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+SMC samplers is that at each successive temperature step
+in a SMC sampler there is importance sampling- albeit between adjacent distributions. For high dimensional target
+distributions this can lead either to estimators with high error or require many temperatures. Another potential disadvantage is that for finite particle numbers, SMC estimates
+of expectation w.r.t. the target distribution are biased. This
+can be mitigated by using the SMC sampler inside a Particle MCMC outer loop (Andrieu et al., 2010) at the cost
+of adding repeated SMC sampler calls. It is particularly
+desirable in this Particle MCMC context for the base SMC
+sampler to be fast and output low variance estimates of the
+normalizing constant.
+The other component of our method is variational inference
+with NFs. Flow methods learn a differentiable invertible
+transformation (diffeomorphism) typically with a tractable
+Jacobian (Papamakarios et al., 2021). The learnt mappings
+are both flexible and fast to evaluate but there are still some
+challenges around using flows. The tractability of training
+with reverse Kullback–Leibler divergence comes at the cost
+of its well known mode seeking behaviour. Further placing
+the full burden of modelling on a parameterized flow can
+lead to high memory usage in contrast to non-parametric
+sampling algorithms. Finally, as diffeomorphisms, flows
+preserve topological properties of their input. This property can represent a challenge whenever there is topological
+mismatch between the, typically, simple base distribution
+and the complex target (Cornish et al., 2020).
+Methods combining annealed samplers with normalizing
+flows have the potential to fix the limitations of each component part. The use of flows can reduce the variance
+from importance sampling. The MCMC steps can reduce
+the topological and representational burden on the flows.
+Used correctly, annealing can reduce the mode seeking behaviour of the variational objective. Resampling can be
+used to focus computation on promising samples. The idea
+of combining fixed transformations with annealing goes
+back as far as (Vaikuntanathan and Jarzynski, 2011). It
+is the training of the flows that still presents a challenge
+and the reason that such combined approaches have not met
+their full potential. Two recent papers target this problem
+(Wu et al., 2020; Arbel et al., 2021), but as we shall relate,
+neither is entirely satisfactory or as well suited to the task
+as the algorithm we propose.
+
+

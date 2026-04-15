@@ -1,0 +1,75 @@
+Learning to Route in Similarity Graphs
+
+Dmitry Baranchuk 1 2 Dmitry Persiyanov 3 Anton Sinitsin 1 4 Artem Babenko 1 4
+
+Abstract
+Recently similarity graphs became the leading
+paradigm for efficient nearest neighbor search,
+outperforming traditional tree-based and LSHbased methods. Similarity graphs perform the
+search via greedy routing: a query traverses the
+graph and in each vertex moves to the adjacent
+vertex that is the closest to this query. In practice, similarity graphs are often susceptible to local minima, when queries do not reach its nearest
+neighbors, getting stuck in suboptimal vertices. In
+this paper we propose to learn the routing function
+that overcomes local minima via incorporating information about the graph global structure. In particular, we augment the vertices of a given graph
+with additional representations that are learned
+to provide the optimal routing from the start vertex to the query nearest neighbor. By thorough
+experiments, we demonstrate that the proposed
+learnable routing successfully diminishes the local minima problem and significantly improves
+the overall search performance.
+
+1. Introduction
+Nearest neighbor search (NNS) is an extensively used subroutine in a whole range of machine learning systems for
+non-parametric classification/regression, language modeling, information retrieval, recommendations and others.
+Modern applications have to work with vast data volumes,
+hence the scalability of the NNS approaches became a problem of great interest for the machine learning community.
+Formally the NNS problem is stated as follows. Given the
+database S = {v1 , . . . , vN } ⊂ RD and a query q ∈ RD ,
+one needs to find the datapoint v ∈ S that is the closest to
+the query in terms of some metric (e.g. Euclidean distance).
+1
+
+Yandex, Russia 2 Lomonosov Moscow State University,
+Russia 3 Moscow Institute of Physics and Technology, Russia 4 National Research University Higher School of Economics, Russia.
+Correspondence to: Dmitry Baranchuk
+<dmitry.baranchuk@graphics.cs.msu.ru>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+The current approaches for efficient NNS mostly belong to
+three separate lines of research. The first family of methods, based on partition trees (Bentley, 1975; Sproull, 1991;
+McCartin-Lim et al., 2012; Dasgupta & Freund, 2008; Dasgupta & Sinha, 2013), hierarchically split the search space
+into a large number of regions, corresponding to tree leaves,
+and query visits only a limited number of promising regions
+when searching. The second, locality-sensitive hashing
+methods (Indyk & Motwani, 1998; Datar et al., 2004; Andoni & Indyk, 2008; Andoni et al., 2015) map the database
+points into a number of buckets using several hash functions such that the probability of collision is much higher
+for nearby points than for points that are further apart. At
+the search stage, a query is also hashed, and distances to
+all the points from the corresponding buckets are evaluated.
+Finally, similarity graphs methods (Navarro, 2002; Malkov
+& Yashunin, 2016; Fu & Cai, 2016; Fu et al., 2017) represent the database as a graph, and on the search stage, a
+query traverses the graph via greedy exploration. The empirical performance of similarity graphs was shown to be
+much higher compared to LSH-based and tree-based methods(Malkov & Yashunin, 2016), and our paper falls in this
+line of work on NNS.
+In more details, the typical search process in similarity
+graphs performs as follows. The database is organized in
+a graph, where each vertex corresponds to some datapoint,
+and the vertices, corresponding to the neighboring datapoints, are connected by edges. The search algorithm picks
+a vertex (random or predefined) and iteratively explores the
+graph from there. On each iteration, the query tries to greedily improve its position via moving to an adjacent vertex
+that is closest to the query. The routing process stops when
+there are no closer adjacent vertices, or the runtime budget
+is exceeded.
+It was shown(Navarro, 2002) that if the similarity graph
+contains all the edges from the Delaunay graph, constructed
+for the database S, then the greedy routing, described above,
+is guaranteed to find the exact nearest neighbor. However,
+for high-dimensional data, both storage and traversal of
+the full Delaunay graph would be infeasible, due to a very
+high number of edges(Beaumont et al., 2007). Hence, the
+state-of-the-art practical methods use approximate Delaunay graphs, restricting maximal vertex degrees by a fixed
+value. Unfortunately, this approximation often results in
+
+

@@ -1,0 +1,74 @@
+Discrete-Continuous Mixtures in Probabilistic Programming:
+Generalized Semantics and Inference Algorithms
+
+Yi Wu 1 Siddharth Srivastava 2 Nicholas Hay 3 Simon S. Du 4 Stuart Russell 1
+
+Abstract
+Despite the recent successes of probabilistic programming languages (PPLs) in AI applications,
+PPLs offer only limited support for random variables whose distributions combine discrete and
+continuous elements. We develop the notion of
+measure-theoretic Bayesian networks (MTBNs)
+and use it to provide more general semantics for
+PPLs with arbitrarily many random variables defined over arbitrary measure spaces. We develop
+two new general sampling algorithms that are
+provably correct under the MTBN framework:
+the lexicographic likelihood weighting (LLW)
+for general MTBNs and the lexicographic particle filter (LPF), a specialized algorithm for statespace models. We further integrate MTBNs into
+a widely used PPL system, BLOG, and verify
+the effectiveness of the new inference algorithms
+through representative examples.
+
+1. Introduction
+As originally defined by Pearl (1988), Bayesian networks
+express joint distributions over finite sets of random variables as products of conditional distributions. Probabilistic
+programming languages (PPLs) (Koller et al., 1997; Milch
+et al., 2005a; Goodman et al., 2008; Wood et al., 2014b)
+apply the same idea to potentially infinite sets of variables
+with general dependency structures. Thanks to their expressive power, PPLs have been used to solve many real-world
+applications, including Captcha (Le et al., 2017), seismic
+monitoring (Arora et al., 2013), 3D pose estimation (Kulkarni et al., 2015), generating design suggestions (Ritchie et al.,
+2015), concept learning (Lake et al., 2015), and cognitive
+science applications (Stuhlmüller & Goodman, 2014).
+In practical applications, we often have to deal with a mix1
+
+University of California, Berkeley 2 Arizona State University
+3
+Vicarious Inc. 4 Carnegie Mellon University. Correspondence to:
+Yi Wu <jxwuyi@gmail.com>.
+th
+
+Proceedings of the 35 International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+ture of continuous and discrete random variables. Existing
+PPLs support both discrete and continuous random variables, but not discrete-continuous mixtures, i.e., variables
+whose distributions combine discrete and continuous elements. Such variables are fairly common in practical applications: sensors that have thresholded limits, e.g. thermometers, weighing scales, speedometers, pressure gauges; or a
+hybrid sensor that can report a either real value or an error
+condition. The occurrence of such variables has been noted
+in many other applications from a wide range of scientific
+domains (Kharchenko et al., 2014; Pierson & Yau, 2015;
+Gao et al., 2017).
+Many PPLs have a restricted syntax that forces the expressed random variables to be either discrete or continuous, including WebPPL (Goodman & Stuhlmüller, 2014),
+Edward (Tran et al., 2016), Figaro (Pfeffer, 2009) and
+Stan (Carpenter et al., 2016). Even for PPLs whose syntax allows for mixtures of discrete and continuous variables, such as BLOG (Milch et al., 2005a), Church (Goodman, 2013), Venture (Mansinghka et al., 2014) and Anglican (Wood et al., 2014a), the underlying semantics of
+these PPLs implicitly assumes the random variables are not
+mixtures. Moreover, the inference algorithms associated
+with the semantics inherit the same assumption and can produce incorrect results when discrete-continuous mixtures
+are used.
+Consider the following GPA example: a two-variable Bayes
+net Nationality → GPA where the nationality follows a
+binary distribution
+P (Nationality = USA) = P (Nationality = India) = 0.5
+and the conditional probabilities are discrete-continuous
+mixtures
+GPA|Nationality = USA
+∼0.01 · 1 {GPA = 4} + 0.99 · Unif(0, 4),
+GPA|Nationality = India
+∼0.01 · 1 {GPA = 10} + 0.99 · Unif(0, 10).
+This is a typical scenario in practice because many top
+students have perfect GPAs. Now suppose we observe a
+student with a GPA of 4.0. Where do they come from? If the
+student is Indian, the probability of any singleton set {g}
+
+

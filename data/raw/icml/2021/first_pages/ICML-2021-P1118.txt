@@ -1,0 +1,115 @@
+Learning Binary Decision Trees by Argmin Differentiation
+
+Valentina Zantedeschi 1 2 Matt J. Kusner 2 Vlad Niculae 3
+quadratic program
+(relaxed from MIP)
+
+Abstract
+We address the problem of learning binary decision trees that partition data for some downstream
+task. We propose to learn discrete parameters
+(i.e., for tree traversals and node pruning) and continuous parameters (i.e., for tree split functions
+and prediction functions) simultaneously using
+argmin differentiation. We do so by sparsely relaxing a mixed-integer program for the discrete
+parameters, to allow gradients to pass through
+the program to continuous parameters. We derive customized algorithms to efficiently compute
+the forward and backward passes. This means
+that our tree learning procedure can be used as
+an (implicit) layer in arbitrary deep networks,
+and can be optimized with arbitrary loss functions. We demonstrate that our approach produces binary trees that are competitive with existing single tree and ensemble approaches, in
+both supervised and unsupervised settings. Further, apart from greedy approaches (which do not
+have competitive accuracies), our method is faster
+to train than all other tree-learning baselines we
+compare with. The code for reproducing the results is available at https://github.com/
+vzantedeschi/LatentTrees.
+
+1. Introduction
+Learning discrete structures from unstructured data is
+extremely useful for a wide variety of real-world problems (Gilmer et al., 2017; Kool et al., 2018; Yang et al.,
+2018). One of the most computationally-efficient, easilyvisualizable discrete structures that are able to represent
+complex functions are binary trees. For this reason, there
+has been a massive research effort on how to learn such
+binary trees since the early days of machine learning (Payne
+
+sparse
+approximate
+traversal
+
+<latexit sha1_base64="/uolw8bO9HYZd9ZCmupHYTPZevs=">AAAB8XicbVDLSgMxFL1TX7W+qi7dBIvgqsyIqMuiG5cV7APbUjLpnTY0kxmSjFiG/oUbF4q49W/c+Tdm2llo64HA4Zx7ybnHjwXXxnW/ncLK6tr6RnGztLW9s7tX3j9o6ihRDBssEpFq+1Sj4BIbhhuB7VghDX2BLX98k/mtR1SaR/LeTGLshXQoecAZNVZ66IbUjPwgfZr2yxW36s5AlomXkwrkqPfLX91BxJIQpWGCat3x3Nj0UqoMZwKnpW6iMaZsTIfYsVTSEHUvnSWekhOrDEgQKfukITP190ZKQ60noW8ns4R60cvE/7xOYoKrXsplnBiUbP5RkAhiIpKdTwZcITNiYgllitushI2ooszYkkq2BG/x5GXSPKt6F1X37rxSu87rKMIRHMMpeHAJNbiFOjSAgYRneIU3RzsvzrvzMR8tOPnOIfyB8/kD/t+RIQ==</latexit>
+
+x
+
+L
+<latexit sha1_base64="kcvgC8ugYuFJmF+MDLQC/qPDzbg=">AAAB8nicbVBNS8NAFHypX7V+VT16CRbBU0lE1GPBiwcPFWwtpKFstpt26WY37L4IJRT8E148KOLVX+PNf+Om7UFbBxaGmbe8eROlghv0vG+ntLK6tr5R3qxsbe/s7lX3D9pGZZqyFlVC6U5EDBNcshZyFKyTakaSSLCHaHRd+A+PTBuu5D2OUxYmZCB5zClBKwXdhOCQEpHfTnrVmlf3pnCXiT8nNZij2at+dfuKZgmTSAUxJvC9FMOcaORUsEmlmxmWEjoiAxZYKknCTJhPI0/cE6v03Vhp+yS6U/X3j5wkxoyTyE4WEc2iV4j/eUGG8VWYc5lmyCSdLYoz4aJyi/vdPteMohhbQqjmNqtLh0QTiralii3BXzx5mbTP6v5F3bs7rzXaT7M6ynAEx3AKPlxCA26gCS2goOAZXuHNQefFeXc+ZqMlZ17hIfyB8/kDrq+R+w==</latexit>
+
+<latexit sha1_base64="KfHZ/vZU/ghOuUfMAZ7veSeA2o0=">AAACFHicbVDLSsNAFL3xWesr6tLNYBEEoSQi6rKgCxcuKtgHNKVMppN26GQSZiZCCfkIN/6KGxeKuHXhzr9x0gbU1gMDh3PuvXPv8WPOlHacL2thcWl5ZbW0Vl7f2Nzatnd2mypKJKENEvFItn2sKGeCNjTTnLZjSXHoc9ryR5e537qnUrFI3OlxTLshHggWMIK1kXr2sRdITFLkxVhqhjnyQqyHBPP0JsvSHzUesqxnV5yqMwGaJ25BKlCg3rM/vX5EkpAKTThWquM6se6m+UzCaVb2EkVjTEZ4QDuGChxS1U0nR2Xo0Ch9FETSPKHRRP3dkeJQqXHom8p8ZTXr5eJ/XifRwUU3ZSJONBVk+lGQcKQjlCeE+kxSovnYEEwkM7siMsQmJW1yLJsQ3NmT50nzpOqeVZ3b00rtqoijBPtwAEfgwjnU4Brq0AACD/AEL/BqPVrP1pv1Pi1dsIqePfgD6+Mb0CefUQ==</latexit>
+
+<latexit sha1_base64="Uqv3aHgXEQ95kPVKMcPv/8Nm1a4=">AAACFXicbVDLSsNAFJ34rPUVdelmsAgupCQi6rKgC5cV+oKmlMl00g6dScLMjVBCfsKNv+LGhSJuBXf+jZM2oLYeGDicc++de48fC67Bcb6speWV1bX10kZ5c2t7Z9fe22/pKFGUNWkkItXxiWaCh6wJHATrxIoR6QvW9sfXud++Z0rzKGzAJGY9SYYhDzglYKS+feoFitAUezFRwInAniQwUjJtZFn6I8KIAcn6dsWpOlPgReIWpIIK1Pv2pzeIaCJZCFQQrbuuE0MvzadSwbKyl2gWEzomQ9Y1NCSS6V46vSrDx0YZ4CBS5oWAp+rvjpRIrSfSN5X5znrey8X/vG4CwVUv5WGcAAvp7KMgERginEeEB1wxCmJiCKGKm10xHRETE5ggyyYEd/7kRdI6q7oXVefuvFK7KeIooUN0hE6Qiy5RDd2iOmoiih7QE3pBr9aj9Wy9We+z0iWr6DlAf2B9fAPdMp/n</latexit>
+
+@T
+@✓
+
+<latexit sha1_base64="hxsSdnqbSGvySGW8u8orzT09OVI=">AAACE3icbVDLSgMxFL3js9bXqEs3wSKIizIjoi4LunBZoS9oh5JJM21oMjMkGaEM8w9u/BU3LhRx68adf2OmHVBbDwROzrk3uff4MWdKO86XtbS8srq2Xtoob25t7+zae/stFSWS0CaJeCQ7PlaUs5A2NdOcdmJJsfA5bfvj69xv31OpWBQ29CSmnsDDkAWMYG2kvn3aCyQmKerFWGqGuSEjlqU/V4H1SIq0kWV9u+JUnSnQInELUoEC9b792RtEJBE01IRjpbquE2svzV8mnGblXqJojMkYD2nX0BALqrx0ulOGjo0yQEEkzQk1mqq/O1IslJoI31TmI6p5Lxf/87qJDq68lIVxomlIZh8FCUc6QnlAaMAkJZpPDMFEMjMrIiNsQtImxrIJwZ1feZG0zqruRdW5O6/Uboo4SnAIR3ACLlxCDW6hDk0g8ABP8AKv1qP1bL1Z77PSJavoOYA/sD6+AStEnv4=</latexit>
+
+@
+@T
+
+@L
+@
+
+loss
+
+T
+<latexit sha1_base64="gFwm1lp4VT4b3MHxJlFWEATOP38=">AAAB8XicbVDLSgMxFL1TX7W+qi7dBIvgqsyIqMuCG5cV+sJ2KJk004bmMSQZoQwFP8KNC0Xc+jfu/BszbRfaeiBwOOeGe+6JEs6M9f1vr7C2vrG5Vdwu7ezu7R+UD49aRqWa0CZRXOlOhA3lTNKmZZbTTqIpFhGn7Wh8m/vtR6oNU7JhJwkNBR5KFjOCrZMeegLbkRZZY9ovV/yqPwNaJcGCVGCBer/81RsokgoqLeHYmG7gJzbMsLaMcDot9VJDE0zGeEi7jkosqAmzWeIpOnPKAMVKuyctmqm/f2RYGDMRkZvME5plLxf/87qpjW/CjMkktVSS+aI45cgqlJ+PBkxTYvnEEUw0c1kRGWGNiXUllVwJwfLJq6R1UQ2uqv79ZaXWeprXUYQTOIVzCOAaanAHdWgCAQnP8ApvnvFevHfvYz5a8BYVHsMfeJ8/F2+RqA==</latexit>
+
+pruning
+
+<latexit sha1_base64="t6ghLLy6KojtrKpYcBxtbbT/ZDo=">AAAB63icbVDLSgNBEOyNrxhfUY9eBoPgKeyKqMeAF48RzAOSJcxOZrND5rHMzAphCfgFXjwo4tUf8ubfOJvkoIkFDUVVN91dUcqZsb7/7ZXW1jc2t8rblZ3dvf2D6uFR26hME9oiiivdjbChnEnassxy2k01xSLitBONbwu/80i1YUo+2ElKQ4FHksWMYFtI/TRhg2rNr/szoFUSLEgNFmgOql/9oSKZoNISjo3pBX5qwxxrywin00o/MzTFZIxHtOeoxIKaMJ/dOkVnThmiWGlX0qKZ+nsix8KYiYhcp8A2McteIf7n9TIb34Q5k2lmqSTzRXHGkVWoeBwNmabE8okjmGjmbkUkwRoT6+KpuBCC5ZdXSfuiHlzV/fvLWqP9NI+jDCdwCucQwDU04A6a0AICCTzDK7x5wnvx3r2PeWvJW0R4DH/gff4AQTKO2A==</latexit>
+
+✓
+<latexit sha1_base64="hwin3Z6g6hg5j5UN3Mq6qYtCJIE=">AAAB7XicbVDLSgNBEOz1GeMr6tHLYBA8hV0R9Rjw4jGC2QSSJcxOJsmY2ZllplcIS8BP8OJBEa/+jzf/xsnjoIkFDUVVN91dcSqFRd//9lZW19Y3Ngtbxe2d3b390sFhaHVmGK8zLbVpxtRyKRSvo0DJm6nhNIklb8TDm4nfeOTGCq3ucZTyKKF9JXqCUXRS2MYBR9oplf2KPwVZJsGclGGOWqf01e5qliVcIZPU2lbgpxjl1KBgko+L7czylLIh7fOWo4om3Eb59NoxOXVKl/S0caWQTNXfEzlNrB0lsetMKA7sojcR//NaGfauo1yoNEOu2GxRL5MENZm8TrrCcIZy5AhlRrhbCRtQQxm6gIouhGDx5WUSnleCy4p/d1Guhk+zOApwDCdwBgFcQRVuoQZ1YPAAz/AKb572Xrx372PWuuLNIzyCP/A+fwDRoY/B</latexit>
+
+splitting
+parameters
+
+diﬀerentiable
+functions
+(optional)
+
+Figure 1: A schematic of the approach.
+
+& Meisel, 1977; Breiman et al., 1984; Bennett, 1992; Bennett & Blue, 1996). Learning binary trees has historically
+been done in one of three ways. The first is via greedy
+optimization, which includes popular decision-tree methods
+such as classification and regression trees (CART, Breiman
+et al., 1984) and ID3 trees (Quinlan, 1986), among many
+others. These methods optimize a splitting criterion for each
+tree node, based on the data routed to it. The second set
+of approaches are based on probabilistic relaxations (İrsoy
+et al., 2012; Yang et al., 2018; Hazimeh et al., 2020), optimizing all splitting parameters at once via gradient-based
+methods, by relaxing hard branching decisions into branching probabilities. The third approach optimizes trees using
+mixed-integer programming (MIP, Bennett, 1992; Bennett
+& Blue, 1996). This jointly optimizes all continuous and
+discrete parameters to find globally-optimal trees.1
+
+1
+Inria, Lille - Nord Europe research centre 2 University College
+London, Centre for Artificial Intelligence 3 Informatics Institute,
+University of Amsterdam. Correspondence to: V Zantedeschi
+<vzantedeschi@gmail.com>, M Kusner <m.kusner@ucl.ac.uk>,
+V Niculae <v.niculae@uva.nl>.
+
+Each of these approaches has their shortcomings. First,
+greedy optimization is generally suboptimal: tree splitting
+criteria are even intentionally crafted to be different than
+the global tree loss, as the global loss may not encourage
+tree growth (Breiman et al., 1984). Second, probabilistic
+relaxations: (a) are rarely sparse, so inputs contribute to all
+branches even if they are projected to hard splits after train-
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+1
+Here we focus on learning single trees instead of tree ensembles; our work easily extends to ensembles.
+
+

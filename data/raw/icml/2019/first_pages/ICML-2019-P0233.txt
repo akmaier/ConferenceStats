@@ -1,0 +1,74 @@
+Amortized Monte Carlo Integration
+
+Adam Goliński * 1 2 Frank Wood 3 Tom Rainforth * 1
+
+Abstract
+Current approaches to amortizing Bayesian inference focus solely on approximating the posterior distribution. Typically, this approximation is, in turn, used to calculate expectations for
+one or more target functions—a computational
+pipeline which is inefficient when the target function(s) are known upfront. In this paper, we address this inefficiency by introducing AMCI, a
+method for amortizing Monte Carlo integration
+directly. AMCI operates similarly to amortized
+inference but produces three distinct amortized
+proposals, each tailored to a different component
+of the overall expectation calculation. At runtime, samples are produced separately from each
+amortized proposal, before being combined to an
+overall estimate of the expectation. We show that
+while existing approaches are fundamentally limited in the level of accuracy they can achieve,
+AMCI can theoretically produce arbitrarily small
+errors for any integrable target function using
+only a single sample from each proposal at runtime. We further show that it is able to empirically outperform the theoretically optimal selfnormalized importance sampler on a number of
+example problems. Furthermore, AMCI allows
+not only for amortizing over datasets but also
+amortizing over target functions.
+
+1. Introduction
+At its core, Bayesian modeling is rooted in the calculation of expectations: the eventual aim of modeling is typically to make a decision or to construct predictions for
+unseen data, both of which take the form of an expectation under the posterior (Robert, 2007). This aim can
+*
+
+Equal contribution 1 Department of Statistics, University of
+Oxford, United Kingdom 2 Department of Engineering Science,
+University of Oxford, United Kingdom 3 Department of Computer
+Science, University of British Columbia, Vancouver, Canada.
+Correspondence to: Adam Goliński <adamg@robots.ox.ac.uk>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+thus be summarized
+
+ in the form of one or more expectations Ep(x|y) f (x) , where f (x) is a target function and
+p(x|y) is the posterior distribution on x for some data y,
+which we typically only know up to a normalizing constant
+p(y). More generally, expectations with respect to distributions with unknown normalization constant are ubiquitous
+throughout the sciences (Robert & Casella, 2013).
+Sometimes f (x) is not known up front. Here it is typically
+convenient to first approximate p(x|y), e.g. in the form of
+Monte Carlo (MC) samples, and then later use this approximation to calculate estimates, rather than addressing the
+target expectations directly.
+However, it is often the case in practice that a particular
+target function, or class of target functions, is known a priori. For example, in decision-based settings f (x) takes the
+form of a loss function, while any posterior predictive distribution constitutes a set of expectations with respect to
+the posterior, parameterized by the new input. Though often overlooked, it is well established that in such targetaware settings the aforementioned pipeline of first approximating p(x|y)
+ and
+ then using this as a basis for calculating Ep(x|y) f (x) is suboptimal as it ignores relevant information in f (x) (Hesterberg, 1988; Wolpert, 1991; Oh &
+Berger, 1992; Evans & Swartz, 1995; Meng & Wong, 1996;
+Chen & Shao, 1997; Gelman & Meng, 1998; LacosteJulien et al., 2011; Owen, 2013; Rainforth et al., 2018b).
+As we will later show, the potential gains in such scenarios
+can be arbitrarily large.
+In this paper, we extend these ideas to amortized inference settings (Stuhlmüller et al., 2013; Kingma & Welling,
+2014; Ritchie et al., 2016; Paige & Wood, 2016; Le et al.,
+2017; 2018a; Webb et al., 2018), wherein one looks to
+amortize the cost of inference across different possible
+datasets by learning an artifact that assists the inference
+process at runtime for a given dataset. Existing approaches
+do not operate in a target-aware fashion, such that even if
+the inference network learns proposals that perfectly match
+the true posterior for every possible dataset, the resulting
+estimator is still sub-optimal.
+To address this, we introduce AMCI, a framework for
+performing Amortized Monte Carlo Integration. Though
+still based on learning amortized proposals distributions,
+AMCI varies from standard amortized inference ap-
+
+

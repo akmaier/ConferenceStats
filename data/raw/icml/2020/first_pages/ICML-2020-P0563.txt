@@ -1,0 +1,78 @@
+AR-DAE: Towards Unbiased Neural Entropy Gradient Estimation
+
+Jae Hyun Lim 1 2 Aaron Courville 1 2 3 4 Christopher Pal 1 5 4 Chin-Wei Huang 1 2
+
+Abstract
+Entropy is ubiquitous in machine learning, but it
+is in general intractable to compute the entropy of
+the distribution of an arbitrary continuous random
+variable. In this paper, we propose the amortized
+residual denoising autoencoder (AR-DAE) to approximate the gradient of the log density function,
+which can be used to estimate the gradient of
+entropy. Amortization allows us to significantly
+reduce the error of the gradient approximator by
+approaching asymptotic optimality of a regular
+DAE, in which case the estimation is in theory
+unbiased. We conduct theoretical and experimental analyses on the approximation error of the
+proposed method, as well as extensive studies on
+heuristics to ensure its robustness. Finally, using
+the proposed gradient approximator to estimate
+the gradient of entropy, we demonstrate state-ofthe-art performance on density estimation with
+variational autoencoders and continuous control
+with soft actor-critic.
+
+1. Introduction
+Entropy is an information theoretic measurement of uncertainty that has found many applications in machine learning.
+For example, it can be used to incentivize exploration in
+reinforcement learning (RL) (Haarnoja et al., 2017; 2018);
+prevent mode-collapse of generative adversarial networks
+(GANs) (Balaji et al., 2019; Dieng et al., 2019); and calibrate the uncertainty of the variational distribution in approximate Bayesian inference. However, it is in general
+intractable to compute the entropy of an arbitrary random
+variable.
+In most applications, one actually does not care about the
+quantity of entropy itself, but rather how to manipulate and
+1
+Mila 2 Université de Montréal 3 CIFAR fellow 4 Canada CIFAR AI Chair 5 Polytechnique Montréal. Correspondence to: Jae
+Hyun Lim <jae.hyun.lim@umontreal.ca>, Chin-Wei Huang <chinwei.huang@umontreal.ca>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+control this quantity as part of the optimization objective. In
+light of this, we propose to approximately estimate the gradient of entropy so as to maximize or minimize the entropy
+of a data sampler. More concretely, we approximate the
+gradient of the log probability density function of the data
+sampler. This is sufficient since the gradient of its entropy
+can be shown to be the expected value of the path derivative (Roeder et al., 2017). We can then plug in a gradient
+approximator to enable stochastic backpropagation.
+We propose to use the denoising autoencoder (DAE, Vincent et al. (2008)) to approximate the gradient of the log
+density function, which is also known as denoising score
+matching (Vincent, 2011). It has been shown that the optimal reconstruction function of the DAE converges to the
+gradient of the log density as the noise level σ approaches
+zero (Alain & Bengio, 2014). In fact, such an approach
+has been successfully applied to recover the gradient field
+of the density function of high-dimensional data such as
+natural images (Song & Ermon, 2019), which convincingly
+shows DAEs can accurately approximate the gradient. However, in the case of entropy maximization (or minimization),
+the non-stationarity of the sampler’s distribution poses a
+problem for optimization. On the one hand, the log density
+gradient is recovered only asymptotically as σ → 0. On the
+other hand, the training signal vanishes while a smaller noise
+perturbation is applied, which makes it hard to reduce the
+approximation error due to suboptimal optimization. The
+fact that the sampler’s distribution is changing makes it even
+harder to select a noise level that is sufficiently small. Our
+work aims at resolving this no-win situation.
+In this work, we propose the amortized residual denoising
+autoencoder (AR-DAE), which is a conditional DAE of a
+residual form that takes in σ as input. We condition the
+DAE on σ = 0 at inference time to approximate the log density gradient while sampling non-zero σ at training, which
+allows us to train with σ sampled from a distribution that
+covers a wide range of values. If AR-DAE is optimal, we
+expect to continuously generalize to σ = 0 to recover the
+log density gradient, which can be used as an unbiased estimate of the entropy gradient. We perform ablation studies
+on the approximation error using a DAE, and show that
+our method provides significantly more accurate approximation than the baselines. Finally, we apply our method to
+improve distribution-free inference for variational autoen-
+
+

@@ -1,0 +1,82 @@
+Predicting Choice with Set-Dependent Aggregation
+
+Nir Rosenfeld 1 Kojin Oshiba 1 Yaron Singer 1
+
+Abstract
+Providing users with alternatives to choose from
+is an essential component of many online platforms, making the accurate prediction of choice
+vital to their success. A renewed interest in learning choice models has led to improved modeling
+power, but most current methods are either limited in the type of choice behavior they capture,
+cannot be applied to large-scale data, or both.
+Here we propose a learning framework for predicting choice that is accurate, versatile, and theoretically grounded. Our key modeling point is that to
+account for how humans choose, predictive models must be expressive enough to accommodate
+complex choice patterns but structured enough
+to retain statistical efficiency. Building on recent
+results in economics, we derive a class of models
+that achieves this balance, and propose a neural
+implementation that allows for scalable end-toend training. Experiments on three large choice
+datasets demonstrate the utility of our approach.
+
+1. Introduction
+One of the most prevalent activities of online users is choosing. In almost any online platform, users constantly face
+choices: what to purchase, who to follow, where to dine,
+what to watch, and even simply where to click. As the
+prominence of online services becomes ever more reliant on
+such choices, the accurate prediction of choice is quickly becoming vital to their success. The availability of large-scale
+choice data has spurred hopes of feasible individual-level
+prediction, and many recent works have been devoted to the
+modeling and prediction of choice (Benson et al., 2016; Ragain & Ugander, 2016; Kleinberg et al., 2017b;a; Mottini &
+Acuna-Agost, 2017; Shah & Wainwright, 2017; Negahban
+et al., 2018; Chierichetti et al., 2018; Overgoor et al., 2018).
+In a typical choice scenario, a user is presented with a set
+1
+School of Engineering and Applied Sciences, Harvard University. Correspondence to: Nir Rosenfeld <nirr@seas.harvard.edu>.
+th
+
+Proceedings of the 37 International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+of items s = {x(1) , . . . , x(n) }, x(i) ∈ X = Rd , called the
+choice set, with s ∈ S ⊆ 2X . From the alternatives in s, the
+user chooses an item y ∈ s; in economics this is known as
+the problem of discrete choice (Luce, 1959). We follow the
+standard machine learning setup and assume choice sets s
+and choices y are drawn i.i.d. from an unknown joint distribution D. Given a set of m examples T = {(si , yi )}m
+i=1 ,
+our goal is to learn a choice predictor h(s) that generalizes
+well to unseen sets, i.e., has low expected error w.r.t. D.
+A natural way to predict choice is to learn an item score
+function f (x) from a class of score functions F and use it
+to model the predicted
+probability of choosing x from s as
+P
+0
+Ps (x) = ef (x) / x0 ∈s ef (x ) . If the learned f ∈ F scores
+chosen items higher than their alternatives, then Ps (x) will
+provide useful predictions. While this approach seems appealing, it is in fact constrained by an undesired artifact
+known as the Independence of Irrelevant Alternatives (IIA):
+Definition 1. (Luce, 1959) P is said to satisfy IIA if for all
+s ∈ S and for any a, b ∈ s, it holds that
+P{a,b} (a)/P{a,b} (b) = Ps (a)/Ps (b)
+IIA states that the likelihood of choosing a over b should
+not depend on what other alternatives are available. This
+means that the prediction rule hf (s) = argmaxx∈s Ps (x)
+considers items with no regard of context, i.e., the alternatives available in s. IIA therefore imposes a rigid constraint
+on the types of choice behavior that can be expressed by
+the model—a fundamental limitation of this approach that
+cannot be mitigated simply by increasing the complexity of
+functions in F (e.g., adding layers or clever non-linearities).
+From a practical point of view, this is discouraging, as there
+is ample empirical evidence that real choice data exhibits
+regular and consistent violations of IIA (see Rieskamp et al.
+(2006) for an extensive survey). This has led to a surge
+of interest in machine learning models that go beyond IIA
+(Oh & Shah, 2014; Osogami & Otsuka, 2014; Benson et al.,
+2016; Ragain & Ugander, 2016; Otsuka & Osogami, 2016;
+Ragain & Ugander, 2018; Chierichetti et al., 2018; Seshadri
+et al., 2019; Pfannschmidt et al., 2019).
+The naı̈ve way to avoid IIA is to directly model all possible subsets, but this is likely to make learning intractable
+(McFadden et al., 1977; Seshadri et al., 2019). A common
+approach for resolving this difficulty is to impose structure,
+
+

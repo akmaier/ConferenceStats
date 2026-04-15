@@ -1,0 +1,78 @@
+How to Leverage Unlabeled Data in Offline Reinforcement Learning
+
+Tianhe Yu * 1 2 Aviral Kumar * 3 2 Yevgen Chebotar 2 Karol Hausman 2 Chelsea Finn 1 2 Sergey Levine 3 2
+
+Abstract
+Offline reinforcement learning (RL) can learn control policies from static datasets but, like standard
+RL methods, it requires reward annotations for
+every transition. In many cases, labeling large
+datasets with rewards may be costly, especially
+if those rewards must be provided by human labelers, while collecting diverse unlabeled data
+might be comparatively inexpensive. How can we
+best leverage such unlabeled data in offline RL?
+One natural solution is to learn a reward function
+from the labeled data and use it to label the unlabeled data. In this paper, we find that, perhaps
+surprisingly, a much simpler method that simply
+applies zero rewards to unlabeled data leads to effective data sharing both in theory and in practice,
+without learning any reward model at all. While
+this approach might seem strange (and incorrect)
+at first, we provide extensive theoretical and empirical analysis that illustrates how it trades off
+reward bias, sample complexity and distributional
+shift, often leading to good results. We characterize conditions under which this simple strategy
+is effective, and further show that extending it
+with a simple reweighting approach can further
+alleviate the bias introduced by using incorrect
+reward labels. Our empirical evaluation confirms
+these findings in simulated robotic locomotion,
+navigation, and manipulation settings.
+
+1
+
+Introduction
+
+Offline reinforcement learning (RL) provides the promise of
+a fully data-driven framework for learning performant policies. To avoid costly active data collection and exploration,
+offline RL methods utilize a previously collected dataset to
+extract the best possible behavior, making it feasible to use
+RL to solve real-world problems where active exploration is
+*
+
+Equal contribution 1 Stanford University 2 Google Research 3 UC Berkeley. Correspondence to: Tianhe Yu <tianheyu@cs.stanford.edu>, Aviral Kumar <aviralk@berkeley.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+expensive, dangerous, or otherwise infeasible (Zhan et al.,
+2021; de Lima & Krohling, 2021; Wang et al., 2018; Kalashnikov et al., 2018). However, this concept is only viable
+when a significant amount of data for the target task is available in advance. A more realistic scenario might allow for a
+much smaller amount of task-specific data, combined with
+a large amount of task-agnostic data, that is not labeled
+with task rewards and some of which may not be relevant.
+For example, if our goal is to train a robot to perform a
+new manipulation task (e.g., cutting an onion), we might
+have some data of the robot (suboptimally) attempting that
+task, perhaps collected under human teleoperation and manually labeled with rewards, combined with background data,
+some of which might be structurally related (e.g., picking
+up an onion, or cutting a carrot). This scenario presents several questions: How do we decide which prior data should
+be included when learning the new task? And how do we
+determine reward labels to use for this prior data?
+Prior methods have attempted to answer these two questions,
+typically in isolation. For the first question, it has been noted
+that a naı̈ve strategy of sharing all of the prior data can be
+highly suboptimal (Kalashnikov et al., 2021), even when
+it is annotated with reward labels, and some works have
+proposed both manual (Kalashnikov et al., 2021) and automated (Yu et al., 2021a; Eysenbach et al., 2020) data sharing
+strategies that prioritize the most structurally similar prior
+data. However, these methods assume that shared data can
+automatically be relabeled with the reward function for the
+task, but the assumption that we have access to the functional form of this reward is a strong one: for example, in
+many real-world settings, computing the reward might require human labeling (Cabi et al., 2019; Finn et al., 2016b).
+Prior works use learned classifiers for reward labeling (Fu
+et al., 2018b; Xie et al., 2018; Singh et al., 2019), or other automated mechanisms (Konyushkova et al., 2020). But these
+mechanisms themselves add complexity and potential brittleness to the pipeline. Thus, we aim to study the possibility
+of tackling this problem with a simple method that determines which rewards to use for shared data, with minimal
+supervision and no additional modeling and learning.
+In this paper, we make the potentially surprising observation
+that prior data such as data from other tasks can be utilized
+with naı̈ve constant reward labels in offline RL, which corresponds to zero reward or whatever is the minimum reward
+
+

@@ -1,0 +1,64 @@
+Kinematic State Abstraction and Provably Efficient Rich-Observation
+Reinforcement Learning
+Dipendra Misra 1 Mikael Henaff 1 Akshay Krishnamurthy 1 John Langford 1
+
+Abstract
+We present an algorithm, HOMER, for exploration
+and reinforcement learning in rich observation environments that are summarizable by an unknown
+latent state space. The algorithm interleaves representation learning to identify a new notion of
+kinematic state abstraction with strategic exploration to reach new states using the learned abstraction. The algorithm provably explores the environment with sample complexity polynomial in
+the number of latent states and time horizon. Crucially, the observation space could be infinitely
+large. This guarantee enables efficient global policy optimization for any reward function. On the
+computational side, we show that HOMER can be
+implemented efficiently whenever certain supervised learning problems are tractable. Empirically,
+we evaluate HOMER on a challenging exploration
+problem, where we show that the algorithm is exponentially more sample efficient than standard
+reinforcement learning baselines.
+
+1. Introduction
+Modern reinforcement learning applications call for agents
+that operate directly from rich sensory information such
+as megapixel camera images. This rich information enables representation of detailed, high-quality policies and
+obviates the need for hand-engineered features. However,
+exploration in such settings is notoriously difficult and, in
+fact, statistically intractable in general (Jaksch et al., 2010;
+Lattimore & Hutter, 2012; Krishnamurthy et al., 2016). Despite this, many environments are highly structured and do
+admit sample efficient algorithms (Jiang et al., 2017); indeed, we may be able to summarize the environment with
+a simple state space and extract these states from raw observations. With such structure, we can leverage techniques
+*
+
+1
+
+Equal contribution Microsoft Research, New York, NY. Correspondence to: Dipendra Misra <dimisra@microsoft.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+from the well-studied tabular setting to explore the environment (Hazan et al., 2018), efficiently recover the underlying dynamics (Strehl & Littman, 2008), and optimize any
+reward function (Kearns & Singh, 2002; Brafman & Tennenholtz, 2002; Strehl et al., 2006; Dann et al., 2017; Azar
+et al., 2017; Jin et al., 2018). But can we learn to decode a
+simpler state from raw observations alone?
+The main difficulty is that learning a state decoder, or a
+compact representation, is intrinsically coupled with exploration. On one hand, we cannot learn a high-quality decoder
+without gathering comprehensive information from the environment, which may require a sophisticated exploration
+strategy. On the other hand, we cannot tractably explore the
+environment without an accurate decoder. These interlocking problems constitute a central challenge in reinforcement
+learning, and a provably effective solution remains elusive
+despite decades of research (Mccallum, 1996; Ravindran,
+2004; Jong & Stone, 2005; Li et al., 2006; Bellemare et al.,
+2016; Nachum et al., 2019).
+In this paper, we provide a solution for a significant subclass of problems known as Block Markov Decision Processes (MDPs) (Du et al., 2019), in which the agent operates
+directly on rich observations that are generated from a small
+number of unobserved latent states. Our algorithm, HOMER,
+learns a new reward-free state abstraction called kinematic
+inseparability, which it uses to drive exploration of the environment. Informally, kinematic inseparability aggregates
+observations that have the same forward and backward dynamics. When observations have shared backward dynamics, a single policy simultaneously maximizes the probability of reaching them, which is useful for exploration. Shared
+forward dynamics is naturally useful for recovering the latent state space and model. Most importantly, we show that
+kinematic inseparability can be recovered from a bottleneck
+in a regressor trained on a contrastive estimation problem
+derived from raw observations.
+HOMER performs strategic exploration by training policies to
+visit each kinematically inseparable abstract state, resulting
+in a policy cover. These policies are constructed via a reduction to contextual bandits (Bagnell et al., 2004), using a
+synthetic reward function that incentivizes reaching an abstract state. Crucially, HOMER interleaves learning the state
+
+

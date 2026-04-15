@@ -1,0 +1,81 @@
+Representation Tradeoffs for Hyperbolic Embeddings
+
+Frederic Sala 1 Christopher De Sa 2 Albert Gu 1 Christopher Ré 1
+
+Abstract
+
+for trees—even using an unbounded number of dimensions.
+
+Hyperbolic embeddings offer excellent quality
+with few dimensions when embedding hierarchical data structures. We give a combinatorial construction that embeds trees into hyperbolic space
+with arbitrarily low distortion without optimization. On WordNet, this algorithm obtains a meanaverage-precision of 0.989 with only two dimensions, outperforming existing work by 0.11 points.
+We provide bounds characterizing the precisiondimensionality tradeoff inherent in any hyperbolic
+embedding. To embed general metric spaces, we
+propose a hyperbolic generalization of multidimensional scaling (h-MDS). We show how to perform exact recovery of hyperbolic points from
+distances, provide a perturbation analysis, and
+give a recovery result that enables us to reduce dimensionality. Finally, we extract lessons from the
+algorithms and theory above to design a scalable
+PyTorch-based implementation that can handle
+incomplete information.
+
+Many graphs, such as complex networks (Krioukov et al.,
+2010), the Internet (Krioukov et al., 2009), and social networks (Verbeek & Suri, 2016), are known to have tree-like or
+hyperbolic structure and thus befit hyperbolic embeddings.
+Indeed, recent works show that hyperbolic representations
+are suitable for many hierarchies (e.g. the question answering (Q/A) system HyperQA in Tay et al. (2018), vertex
+classifiers in Chamberlain et al. (2017), and link prediction
+(Nickel & Kiela, 2017)). However, the optimization problems underlying the embedding techniques in these works
+are challenging, motivating us to seek fundamental insights
+and to understand the subtle tradeoffs involved.
+
+1. Introduction
+Recently, hyperbolic embeddings have been proposed as
+a way to capture hierarchy information for network and
+natural language processing tasks (Nickel & Kiela, 2017;
+Chamberlain et al., 2017). This approach is an exciting way
+to fuse structural information (for example, from knowledge
+graphs or synonym hierarchies) with the continuous representations favored by modern machine learning methods.
+To understand the intuition behind hyperbolic embeddings’
+superior capacity, note that trees can be embedded with
+arbitrarily low distortion into the Poincaré disk, a twodimensional model of hyperbolic space (Sarkar, 2011). In
+contrast, Bourgain’s theorem (Linial et al., 1995) shows that
+Euclidean space cannot achieve comparably low distortion
+1
+
+Department of Computer Science, Stanford University
+Department of Computer Science, Cornell University. Correspondence to: Frederic Sala <fredsala@stanford.edu>.
+2
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+We begin by considering the case where we are given an
+input graph that is a tree or nearly tree-like, and our goal is
+to produce a low-dimensional hyperbolic embedding that
+preserves all distances. This leads to a simple combinatorial
+strategy that directly places points instead of minimizing a
+surrogate loss function. It is both fast (nearly linear time)
+and has formal quality guarantees. The approach proceeds
+in two phases: we (1) produce an embedding of a graph into
+a weighted tree, and (2) embed that tree into the hyperbolic
+disk. In particular, we consider an extension of an elegant
+embedding of trees into the Poincaré disk by Sarkar (2011)
+and work on low-distortion graph embeddings into tree
+metrics (Abraham et al., 2007). For trees, this approach has
+nearly perfect quality. On the WordNet hypernym graph
+reconstruction, it obtains a nearly perfect mean average
+precision (MAP) of 0.989 using just 2 dimensions. The best
+published numbers for WordNet in Nickel & Kiela (2017)
+range between 0.823 and 0.87 for 5 to 200 dimensions.
+We analyze this construction to extract fundamental tradeoffs. One tradeoff involves the embedding dimension, the
+properties of the graph, and the number of bits of precision used to represent components of embedded points—an
+important hidden cost. We show that for a fixed precision,
+the dimension required scales linearly with the length of
+the longest path. On the other hand, the dimension scales
+logarithmically with the maximum degree of the tree. This
+suggests that hyperbolic embeddings should have high quality on hierarchies like WordNet but require large dimensions
+or high precision on graphs with long chains.
+To understand how hyperbolic embeddings perform for met-
+
+

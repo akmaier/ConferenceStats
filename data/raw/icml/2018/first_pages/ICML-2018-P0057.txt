@@ -1,0 +1,93 @@
+Understanding and Simplifying One-Shot Architecture Search
+Gabriel Bender 1 Pieter-Jan Kindermans 1 Barret Zoph 1 Vijay Vasudevan 1 Quoc Le 1
+
+Abstract
+There is growing interest in automating neural
+network architecture design. Existing architecture
+search methods can be computationally expensive, requiring thousands of different architectures
+to be trained from scratch. Recent work has explored weight sharing across models to amortize
+the cost of training. Although previous methods
+reduced the cost of architecture search by orders
+of magnitude, they remain complex, requiring hypernetworks or reinforcement learning controllers.
+We aim to understand weight sharing for one-shot
+architecture search. With careful experimental
+analysis, we show that it is possible to efficiently
+identify promising architectures from a complex
+search space without either hypernetworks or RL.
+
+1. Introduction
+Designing neural networks is a labor-intensive process that
+requires a large amount of trial and error by experts. There
+is growing interest in automating the search for good neural
+network architectures (Zoph & Le, 2016; Baker et al., 2016;
+Real et al., 2017). For instance, Zoph et al. (2017) show that
+one can find an architecture that simultaneously achieves
+state-of-the-art performance on the CIFAR-10, ImageNet,
+and COCO datasets. However these search methods are
+incredibly resource-hungry. Zoph et al. (2017) used 450
+GPUs for four days in order to run a single experiment. They
+proposed an RL-based approach in which a neural network
+(the controller) enumerates a set of architectures to evaluate.
+Each architecture is trained from scratch on CIFAR-10 for a
+fixed number of epochs and then evaluated on a validation
+set. The weights of the controller are subsequently updated
+based on the validation accuracies of the trained models.
+Training thousands of models is difficult or impossible for
+a typical machine learning practitioner. To address this
+weakness of architecture search, new methods have been
+1
+Google Brain, Mountain View, CA. Correspondence to:
+Gabriel Bender <gbender@google.com>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+Input
+Legend
+3x3
+
+5x5
+Sum
+
+Max Pool
+
+Edge on
+Edge oﬀ
+
+Figure 1. Example building block used in a one-shot model. The
+search space contains three different operations; the one-shot
+model adds their outputs together. Some of the operations are
+removed or zeroed out at evaluation time.
+
+proposed (Brock et al., 2017; Pham et al., 2018; Elsken
+et al., 2017; Liu et al., 2017a; Cai et al., 2017; Liu et al.,
+2017b). One promising direction is sharing weights between
+models (Brock et al., 2017; Pham et al., 2018): rather than
+training thousands of separate models from scratch, one
+can train a single large network capable of emulating any
+architecture in the search space.
+A simple example is shown in Figure 1, where we have
+the option of applying either a 3x3 convolution, a 5x5 convolution, or a max-pooling layer at a particular position
+in the network. Instead of training three separate models,
+we can train a single model containing all three operations
+(the one-shot model). We selectively zero out two of the
+three operations’ outputs at evaluation time in order to determine which operation leads to the best prediction accuracy.
+In more complex examples, a search space may include
+choices at many different positions within a network. The
+size of the search space grows exponentially with the number of choices, while the size of the one-shot model grows
+only linearly. The same weights are used to evaluate many
+different architectures, reducing the resources required to
+run an architecture search by orders of magnitude.
+Despite the improvements in efficiency, it is natural to wonder whether there are inherent limits to weight sharing across
+models. Why should a heterogeneous set of architectures
+be able to share a single set of weights? One-shot models
+are typically only used to rank architectures in the search
+space; the best-performing architectures are retrained from
+scratch after the search is completed. But even with that restriction, the idea that a single fixed set of weights can work
+well across a wide range of architectures is counterintuitive.
+SMASH (Brock et al., 2017) tries to address this concern
+by using a hypernetwork to generate a large fraction of the
+weights in each candidate architecture. Efficient Neural
+
+

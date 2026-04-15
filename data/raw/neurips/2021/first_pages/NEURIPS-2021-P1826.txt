@@ -1,0 +1,55 @@
+Efficient Combination of Rematerialization and
+Offloading for Training DNNs
+
+Olivier Beaumont
+
+Lionel Eyraud-Dubois
+
+Alena Shilova
+
+Inria Bordeaux
+{olivier.beaumont, lionel.eyraud-dubois, alena.shilova}@inria.fr
+
+Abstract
+Rematerialization and offloading are two well known strategies to save memory
+during the training phase of deep neural networks, allowing data scientists to
+consider larger models, batch sizes or higher resolution data. Rematerialization
+trades memory for computation time, whereas Offloading trades memory for data
+movements. As these two resources are independent, it is appealing to consider
+the simultaneous combination of both strategies to save even more memory. We
+precisely model the costs and constraints corresponding to Deep Learning frameworks such as PyTorch or Tensorflow, we propose optimal algorithms to find a
+valid sequence of memory-constrained operations and finally, we evaluate the performance of proposed algorithms on realistic networks and computation platforms.
+Our experiments show that the possibility to offload can remove one third of the
+overhead of rematerialization, and that together they can reduce the memory used
+for activations by a factor 4 to 6, with an overhead below 20%.
+
+1
+
+Introduction
+
+A general trend in machine learning, especially in NLP today, is to increase the size of models to
+improve accuracy. For example, NLP models like BERT [7] or GPT-3 [30] have billions of parameters
+and vision networks like EfficientNet [35], AmoebaNet [34] or SENET [15] routinely have a hundred
+million parameters, which raises difficult memory issues on architectures like GPUs. Moreover, it
+was observed [29] that a sufficiently large batch-size is required to obtain good and fast convergence.
+In this paper we focus on the strategies for reducing the memory usage of activations that can be
+implemented when considering a single computation node, typically a single GPU. These techniques
+can of course be combined with the different possible parallelizations of the training phase, like data
+parallelism [39, 27, 11], model parallelism [25, 37, 26], filter or kernel [9] or image parallelisms [8].
+The combination with parallel strategies is however out of the scope of the present paper and our
+goal here is to model, analyze the complexity and understand how to benefit simultaneously from
+rematerialization and offloading.
+Rematerialization [14, 5, 20, 3] is a technique that consists in deleting from memory some of the
+activations computed during the forward phase as soon as they are no longer needed for the forward
+phase. As these activations are required again during the backward phase, they are then recomputed
+from other activations kept in memory. The idea is therefore to trade additional computations for
+lower memory requirements. The objective, in the context of rematerialization, is to compute a
+sequence of valid operations (i.e. such that the inputs of any operation are actually in memory at
+the time of the operation) consisting of elementary forward, backward and delete operations, and
+which has a minimum execution time among all sequences that satisfy a given memory constraint.
+Offloading [32, 2, 23, 4] is a technique that has the same objective, i.e. to produce a sequence of
+operations satisfying a given memory constraint. However, in the case of offloading, each computation
+operation is executed exactly once.The idea here is therefore to trade transfers on the PCI bus between
+35th Conference on Neural Information Processing Systems (NeurIPS 2021)
+
+

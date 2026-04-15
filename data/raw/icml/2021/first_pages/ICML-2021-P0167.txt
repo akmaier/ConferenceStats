@@ -1,0 +1,76 @@
+Self-supervised and Supervised Joint Training for
+Resource-rich Machine Translation
+
+Yong Cheng 1 Wei Wang
+
+†
+
+Lu Jiang 1 2 Wolfgang Macherey 1
+
+Abstract
+Self-supervised pre-training of text representations has been successfully applied to lowresource Neural Machine Translation (NMT).
+However, it usually fails to achieve notable gains
+on resource-rich NMT. In this paper, we propose
+a joint training approach, F2 -XEnDec, to combine self-supervised and supervised learning to
+optimize NMT models. To exploit complementary self-supervised signals for supervised learning, NMT models are trained on examples that
+are interbred from monolingual and parallel sentences through a new process called crossover
+encoder-decoder. Experiments on two resourcerich translation benchmarks, WMT’14 EnglishGerman and WMT’14 English-French, demonstrate that our approach achieves substantial improvements over several strong baseline methods
+and obtains a new state of the art of 46.19 BLEU
+on English-French when incorporating back translation. Results also show that our approach is
+capable of improving model robustness to input
+perturbations such as code-switching noise which
+frequently appears on social media.
+
+1. Introduction
+Self-supervised pre-training of text representations (Peters
+et al., 2018; Radford et al., 2018) has achieved tremendous
+success in natural language processing applications. Inspired by BERT (Devlin et al., 2019), recent works attempt
+to leverage sequence-to-sequence model pre-training for
+Neural Machine Translation (NMT) (Lewis et al., 2019;
+Song et al., 2019; Liu et al., 2020b). Generally, these methods comprise two stages: pre-training and finetuning. During the pre-training stage, the model is learned with a self1
+
+Google Research, Google LLC, USA 2 Language Technologies
+Institute, Carnegie Mellon University, Pittsburgh, Pennsylvania. †
+Work done while at Google Research. Correspondence to: Yong
+Cheng <chengyong@google.com>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+supervised task on abundant unlabeled data (i.e. monolingual sentences). In the second stage, the full or partial model
+is finetuned on a downstream translation task of labeled data
+(i.e. parallel sentences). Studies have demonstrated the benefit of pre-training for the low-resource translation task in
+which the labeled data is limited (Lewis et al., 2019; Song
+et al., 2019). All these successes share the same setup:
+pre-training on abundant unlabeled data and finetuning on
+limited labeled data.
+In many NMT applications, we are confronted with a different setup where abundant labeled data, e.g., millions of
+parallel sentences, are available for finetuning. For these
+resource-rich translation tasks, the two-stage approach is
+less effective and, even worse, sometimes can undermine
+the performance if improperly utilized (Zhu et al., 2020), in
+part due to the catastrophic forgetting (French, 1999). More
+recently, several mitigation techniques have been proposed
+for the two-stage approach (Edunov et al., 2019; Yang et al.,
+2019; Zhu et al., 2020), such as freezing the pre-trained
+representations during finetuning. However, these strategies
+hinder uncovering the full potential of self-supervised learning since the learned representations are either held fixed or
+slightly tuned in the supervised learning.
+In this paper, we study resource-rich machine translation
+through a different perspective of joint training where, in
+contrast to the conventional two-stage approaches, we train
+NMT models in a single stage using the self-supervised
+objective (on monolingual sentences) in addition to the supervised objective (on parallel sentences). The challenge for
+this single-stage training paradigm is that self-supervised
+learning is less useful in joint training because it provides a
+much weaker learning signal that can be easily dominated by
+the supervised learning signal in joint training. As a result,
+conventional approaches such as combining self-supervised
+and supervised learning objectives perform not much better
+than the supervised learning objective by itself.
+This paper aims at exploiting the complementary signals
+in self-supervised learning to facilitate supervised learning.
+Inspired by chromosomal crossovers (Rieger et al., 2012),
+we propose an essential new task called crossover encoderdecoder (or XEnDec) which takes two training examples
+as inputs (called parents), shuffles their source sentences,
+
+

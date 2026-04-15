@@ -1,0 +1,94 @@
+A Tree-Structured Decoder for Image-to-Markup Generation
+
+Jianshu Zhang 1 2 Jun Du 1 Yongxin Yang 3 Yi-Zhe Song 3 Si Wei 2 Lirong Dai 1
+
+Abstract
+Recent encoder-decoder approaches typically employ string decoders to convert images into serialized strings for image-to-markup. However,
+for tree-structured representational markup, string
+representations can hardly cope with the structural complexity. In this work, we first show
+via a set of toy problems that string decoders
+struggle to decode tree structures, especially as
+structural complexity increases, we then propose
+a tree-structured decoder that specifically aims
+at generating a tree-structured markup. Our decoders works sequentially, where at each step a
+child node and its parent node are simultaneously
+generated to form a sub-tree. This sub-tree is consequently used to construct the final tree structure
+in a recurrent manner. Key to the success of our
+tree decoder is twofold, (i) it strictly respects the
+parent-child relationship of trees, and (ii) it explicitly outputs trees as oppose to a linear string.
+Evaluated on both math formula recognition and
+chemical formula recognition, the proposed tree
+decoder is shown to greatly outperform strong
+string decoder baselines.
+
+1. Introduction
+Attention-based encoder-decoder models have been proven
+to be effective in sequence-to-sequence learning tasks such
+as speech recognition (Bahdanau et al., 2016), machine
+translation (Bahdanau et al., 2015), and image-to-sequence
+learning tasks like scene text recognition (Cheng et al.,
+2017), image captioning (Xu et al., 2015). These encoderdecoder models typically employ an RNN-based string decoder to generate the target sequence using features extracted by an upstream encoder. This choice is intuitive
+1
+
+NEL-SLIP Lab, University of Science and Technology
+of China, Hefei, Anhui, China 2 iFLYTEK Research, Hefei,
+Anhui, China 3 SketchX Lab, University of Surrey, Guildford, Surrey, United Kingdom. Correspondence to: Jun Du
+<jundu@ustc.edu.cn>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+A
+
+B
+
+C
+
+A
+
+B
+
+E
+
+D
+
+C
+
+E
+
+D
+
+F
+
+G
+
+Figure 1. Full arrow indicates the decoding way of tree decoder
+and dotted arrow indicates the decoding way of string decoder for
+generating node “E”. Left tree has string markup as “A ( B ( C D )
+E )” and sub-trees (child node - parent node) as “A-Root B-A C-B
+D-B E-A”, right tree has string markup as “A ( B ( C D ( F G ) ) E
+)” and sub-trees as “A-Root B-A C-B D-B F-D G-D E-A”.
+
+since target sequences in these tasks exhibit no internal
+structure – they are essentially one-dimensional linear text.
+Nonetheless, many research problems naturally dictate the
+generation of both the text itself and the inherent structural
+relationships directly from images (Zanibbi et al., 2002;
+Harada et al., 2011; Xu et al., 2017; Sharma et al., 2018).
+These problems are typically referred to as image-to-markup
+generation (Deng et al., 2017): given an image x, the task
+is to generate a set of markups M = {T , S}, where T is
+the text description and S is the associated structure. The
+underlying structural complexity of image markups is application dependent, yet trees have been commonly identified
+as a flexible representation – trees with branching factor of
+1 is sufficient to tackle one-dimensional text sequence learning (Shi et al., 2018), whereas trees with larger branching
+factor and depth are typically required for problems such
+as math formula and chemical formula recognition (Staker
+et al., 2019; Wu et al., 2020).
+Although string decoders can be used to tackle different
+structures by generating serialized sequences of target trees,
+by default they do not respect the structural integrity of trees.
+This is because string decoders typically work by serializing
+the structure by traversing in a depth-first order, yet with no
+specific design considerations to ensure the inherent parentchild relationships during traversal. This is best explained in
+
+

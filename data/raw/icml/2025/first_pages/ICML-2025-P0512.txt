@@ -1,0 +1,68 @@
+HashAttention: Semantic Sparsity for Faster Inference
+
+Aditya Desai 1 Shuo Yang 1 Alejandro Cuadron 2 Matei Zaharia 1 Joseph E. Gonzalez 1 Ion Stoica 1
+
+Abstract
+Leveraging long contexts is crucial for advanced
+AI systems, but attention computation poses a
+scalability challenge. While scaled dot-product
+attention (SDPA) exhibits token sparsity, i.e. only
+a few pivotal tokens significantly contribute to
+output, exploiting this sparsity remains challenging. Existing methods either suffer from quality degradation or require substantial additional
+resources. We show that identifying pivotal tokens is a Maximum Inner Product Search (MIPS)
+problem. However, existing MIPS solutions are
+not well-suited for SDPA, as they are not GPUfriendly and often underperform due to the separated query and key distributions. This paper introduces HashAttention, framing pivotal token identification as a recommendation problem. Given a
+query, HashAttention encodes keys and queries
+in Hamming space, capturing the required semantic similarity, using learned mapping functions.
+HashAttention efficiently identifies pivotal tokens
+for a given query using bitwise operations and
+computes attention using only these tokens, improving the overall attention efficiency. Trained
+on generic data, HashAttention reduces tokens
+used by up to 16× with minimal quality loss,
+requiring only 32 bits of auxiliary memory per
+token. Sparsity can be further improved to 32×
+through task-specific fine-tuning. On A100 GPU,
+at 32× sparsity, incorporating HashAttention reduces attention latency by up to 4.3× in GPTFAST and 2.54× in FlashDecode, and achieves
+up to 3.12× higher throughput for GPT-FAST.
+
+Figure 1. Quality vs. Throughput (on A100 GPU) vs. Auxiliary
+memory at different sparsity rates for Double Sparsity (16 channels,
+2bit and 4 bit quantization) and HashAttention implemented in
+GPT-FAST (batch=1) framework on RULER@32K using Llama3.1-8B-Instruct. The impact of auxiliary memory is excluded
+from throughput computation due to the relatively small scale of
+the problem (batch=1 and 32K context length). Also, throughput is overestimated for Double sparsity by excluding quantization/dequantization in throughput computation.
+
+to engaging in extended conversations (Touvron et al., 2023;
+Achiam et al., 2023; Liu et al., 2024b). It is commonplace
+for LLM models to preprocess and store huge amounts
+of text in the form of KV Cache, which is later used to
+process various prompts. However, the Scaled Dot Product
+Attention (SDPA), which is fundamental to the transformer
+architecture that has driven the Generative AI revolution
+(Vaswani, 2017; Brown et al., 2020), does not scale well
+with context length. Generating a single token requires
+SDPA to access the entire context KV Cache, which can be
+hundreds of GB. For instance, a KV Cache of 512K tokens
+is 64GB (0.125 MB per token) for the LLama3.1-8B model.
+
+1. Introduction
+
+Luckily, sparsity naturally arises in SDPA. Due to the softmax kernel, only a few pivotal tokens significantly contribute to the final attention computation(Bricken & Pehlevan, 2021; Deng et al., 2024). Efficiently identifying these
+pivotal tokens provides a pathway to achieving efficient attention. Various approaches to identifying pivotal tokens
+have been explored in the literature. Heuristic-based methods, such as fixed sparsity patterns(Xiao et al., 2023), ignore
+the dynamic nature of contextual sparsity in attention, resulting in suboptimal attention quality. KV cache discard strate-
+
+The ability to refer to long contexts efficiently is crucial for
+modern AI applications, from processing lengthy documents
+1
+
+Department of Electrical Engineering and Computer Sciences,
+UC Berkeley 2 Department of Computer Sciences, ETH Zurich.
+Correspondence to: Aditya Desai <apdesai@berkeley.edu>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

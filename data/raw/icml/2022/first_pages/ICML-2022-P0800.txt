@@ -1,0 +1,80 @@
+DeepSpeed-MoE: Advancing Mixture-of-Experts Inference and Training to
+Power Next-Generation AI Scale
+Samyam Rajbhandari 1 Conglong Li 1 Zhewei Yao 1 Minjia Zhang 1 Reza Yazdani Aminabadi 1
+Ammar Ahmad Awan 1 Jeff Rasley 1 Yuxiong He 1
+
+Abstract
+As the training of giant dense models hits the
+boundary on the availability and capability of
+the hardware resources today, Mixture-of-Experts
+(MoE) models have become one of the most
+promising model architectures due to their significant training cost reduction compared to qualityequivalent dense models. Their training cost saving is demonstrated from encoder-decoder models
+(prior works) to a 5x saving for auto-aggressive
+language models (this work). However, due to the
+much larger model size and unique architecture,
+how to provide fast MoE model inference remains
+challenging and unsolved, limiting their practical
+usage. To tackle this, we present DeepSpeedMoE, an end-to-end MoE training and inference
+solution, including novel MoE architecture designs and model compression techniques that reduce MoE model size by up to 3.7x, and a highly
+optimized inference system that provides 7.3x
+better latency and cost compared to existing MoE
+inference solutions. DeepSpeed-MoE offers an
+unprecedented scale and efficiency to serve massive MoE models with up to 4.5x faster and 9x
+cheaper inference compared to quality-equivalent
+dense models. We hope our innovations and systems help open a promising path to new directions
+in the large model landscape, a shift from dense
+to sparse MoE models, where training and deploying higher-quality models with fewer resources
+becomes more widely possible.
+
+1. Introduction
+In the last three years, the largest trained model has increased in size by over 1000x, from a few hundred million
+1
+
+Microsoft.
+Correspondence to:
+handari
+<samyamr@microsoft.com>,
+<yuxhe@microsoft.com>.
+
+Samyam RajbYuxiong
+He
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+parameters to half a trillion parameters (Megatron-Turing
+NLG 530B (Smith et al., 2022)). Improvements in model
+quality with size suggest that this trend will continue, with
+larger model sizes bringing better model quality.
+However, sustaining the growth in model size is getting
+more and more difficult due to the increasing compute requirements. For example, the largest single dense model in
+existence as of Dec 2021, the Megatron-Turing NLG 530B
+model, took around 3 months to train on over 2000 A100
+GPUs on the NVIDIA Selene Supercomputer, consuming
+over 3 million GPU hours (Microsoft & Nvidia, 2021). Another 3 to 5 times of increase in dense model size would be
+infeasible within a reasonable timeframe. Given the exorbitant compute resources required to train the state-of-art
+models, a natural question to ask is: “Is it possible to make
+non-trivial improvement to model quality without increasing the compute cost?” Or equivalently, “Is it possible to
+produce model with similar quality using 3 to 5 times less
+resources?”
+There have been numerous efforts to reduce the compute
+requirements to train large models without sacrificing model
+quality. To this end, architectures based on Mixture-ofExperts (MoE) (Shazeer et al., 2017; Lepikhin et al., 2020;
+Fedus et al., 2021a) have paved a promising path, enabling
+sub-linear compute requirements with respect to the model
+parameters and allowing for improved model quality without
+increasing training cost. However, MoE based models have
+their own set of challenges that limit their use in a wide
+range of real world scenarios:
+• Limited Scope The scope of MoE based models in the
+NLP area is primarily limited to encoder-decoder models
+and sequence-to-sequence tasks, with limited work done
+in exploring its application in other domains. Application
+of MoE to auto-regressive natural language generation
+(NLG) like GPT-3 and MT-NLG 530B, where the compute cost of training state-of-art language models can
+be orders of magnitude higher than for encoder-decoder
+models, is less explored.
+• Massive Memory Requirements While MoE models
+require less compute to achieve the same model qualAuthor contributions listed at Appendix A.
+
+

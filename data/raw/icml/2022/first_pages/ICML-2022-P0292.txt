@@ -1,0 +1,78 @@
+Scaling Structured Inference with Randomization
+
+Yao Fu 1 John P. Cunningham 2 3 Mirella Lapata 1
+
+Abstract
+Deep discrete structured models have seen considerable progress recently, but traditional inference using dynamic programming (DP) typically
+works with a small number of states (less than
+hundreds), which severely limits model capacity.
+At the same time, across machine learning, there
+is a recent trend of using randomized truncation
+techniques to accelerate computations involving
+large sums. Here, we propose a family of randomized dynamic programming (RDP) algorithms for
+scaling structured models to tens of thousands of
+latent states. Our method is widely applicable to
+classical DP-based inference (partition function,
+marginal, reparameterization, entropy) and different graph structures (chains, trees, and more
+general hypergraphs). It is also compatible with
+automatic differentiation: it can be integrated
+with neural networks seamlessly and learned with
+gradient-based optimizers. Our core technique
+approximates the sum-product by restricting and
+reweighting DP on a small subset of nodes, which
+reduces computation by orders of magnitude. We
+further achieve low bias and variance via RaoBlackwellization and importance sampling. Experiments over different graphs demonstrate the
+accuracy and efficiency of our approach. RDP can
+also be used to learn a structured variational autoencoder with a scaled inference network which
+outperforms baselines in terms of test likelihood
+and successfully prevents collapse.
+
+1. Introduction
+Deep discrete structured models (Martins et al., 2019; Rush,
+2020) have enjoyed great progress recently, improving per1
+
+School of Informatics, University of Edinburgh 2 Statistics
+Department, Columbia University 3 Zuckerman Institute, Columbia
+University. Correspondence to: Yao Fu <yao.fu@ed.ac.uk>,
+John P. Cunningham <jpc2181@columbia.edu>, Mirella Lapata
+<mlap@inf.ed.ac.uk>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+formance and interpretability in a range of tasks including
+sequence tagging (Ma & Hovy, 2016), parsing (Zhang et al.,
+2020; Yang et al., 2021), and text generation (Wiseman
+et al., 2018). However, their capacity is limited by issues of
+scaling (Sun et al., 2019; Chiu & Rush, 2020; Yang et al.,
+2021; Chiu et al., 2021). Traditional dynamic programming
+based inference for exponential families has limited scalability with large combinatorial spaces. When integrating
+exponential families with neural networks (e.g., a VAE with
+a CRF inference network, detailed later), the small latent
+combinatorial space severely restricts model capacity. Existing work has already observed improved performance
+by scaling certain types of structures (Yang et al., 2021; Li
+et al., 2020; Chiu & Rush, 2020), and researchers are eager
+to know if there are general techniques for scaling classical
+structured models.
+Challenges in scaling structured models primarily come
+from memory complexity. For example, consider linearchain CRFs (Sutton & McCallum, 2006), the classical sequence model that uses the Forward algorithm, a dynamic
+programming algorithm, for computing the partition function exactly. This algorithm requires O(T N 2 ) computation where N is the number of latent states and T is the
+length of the sequence. It is precisely the N 2 term that is
+problematic in terms of memory and computation. This
+limitation is more severe under automatic differentiation
+(AD) frameworks as all intermediate DP computations are
+stored for gradient construction. Generally, DP-based inference algorithms are not optimized for modern computational
+hardware like GPUs and typically work under small-data
+regimes, with N in the range [10, 100] (Ma & Hovy, 2016;
+Wiseman et al., 2018). With larger N , inference becomes
+intractable since the computation graph does not easily fit
+into GPU memory (Sun et al., 2019).
+Aligning with a recent trend of exploiting randomization
+techniques for machine learning problems (Oktay et al.,
+2020; Potapczynski et al., 2021; Beatson & Adams, 2019),
+this work proposes a randomization framework for scaling
+structured models, which encompasses a family of randomized dynamic programming algorithms with a wide coverage
+of different structures and inference (Table 1). Within our
+randomization framework, instead of summing over all possible combinations of latent states, we only sum over paths
+with the most probable states and sample a subset of less
+
+

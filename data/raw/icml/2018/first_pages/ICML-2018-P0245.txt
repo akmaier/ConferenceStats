@@ -1,0 +1,77 @@
+Fast Decoding in Sequence Models Using Discrete Latent Variables
+
+Łukasz Kaiser 1 Aurko Roy 1 Ashish Vaswani 1 Niki Parmar 1 Samy Bengio 1 Jakob Uszkoreit 1
+Noam Shazeer 1
+
+Abstract
+Autoregressive sequence models based on deep
+neural networks, such as RNNs, Wavenet and the
+Transformer attain state-of-the-art results on many
+tasks. However, they are difficult to parallelize
+and are thus slow at processing long sequences.
+RNNs lack parallelism both during training and
+decoding, while architectures like WaveNet and
+Transformer are much more parallelizable during
+training, yet still operate sequentially during decoding. We present a method to extend sequence
+models using discrete latent variables that makes
+decoding much more parallelizable. We first autoencode the target sequence into a shorter sequence
+of discrete latent variables, which at inference
+time is generated autoregressively, and finally decode the output sequence from this shorter latent
+sequence in parallel. To this end, we introduce
+a novel method for constructing a sequence of
+discrete latent variables and compare it with previously introduced methods. Finally, we evaluate our model end-to-end on the task of neural machine translation, where it is an order of
+magnitude faster at decoding than comparable
+autoregressive models. While lower in BLEU
+than purely autoregressive models, our model
+achieves higher scores than previously proposed
+non-autoregressive translation models.
+
+1. Introduction
+Neural networks have been applied successfully to a variety
+of tasks involving natural language. In particular, recurrent neural networks (RNNs) with long short-term memory (LSTM) cells (Hochreiter & Schmidhuber, 1997) in a
+sequence-to-sequence configuration (Sutskever et al., 2014)
+have proven successful at tasks including machine trans1
+
+Google Brain, Mountain View, California, USA. Correspondence to: Łukasz Kaiser <lukaszkaiser@google.com>, Aurko
+Roy <aurkor@google.com>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+lation (Sutskever et al., 2014; Bahdanau et al., 2014; Cho
+et al., 2014), parsing (Vinyals et al., 2015), and many others.
+RNNs are inherently sequential, however, and thus tend to
+be slow to execute on modern hardware optimized for parallel execution. Recently, a number of more parallelizable
+sequence models were proposed and architectures such as
+WaveNet (van den Oord et al., 2016), ByteNet (Kalchbrenner et al., 2016) and the Transformer (Vaswani et al., 2017)
+can indeed be trained faster due to improved parallelism.
+When actually generating sequential output, however, their
+autoregressive nature still fundamentally prevents these
+models from taking full advantage of parallel computation.
+When generating a sequence y1 . . . yn in a canonical order,
+say from left to right, predicting the symbol yt first requires
+generating all symbols y1 . . . yt−1 as the model predicts
+P (yt |yt−1 yt−2 . . . y1 ).
+During training, the ground truth is known so the conditioning on previous symbols can be parallelized. But during
+decoding, this is a fundamental limitation as at least n sequential steps need to be made to generate y1 . . . yn .
+To overcome this limitation, we propose to introduce a sequence of discrete latent variables l1 . . . lm , with m < n,
+that summarizes the relevant information from the sequence
+y1 . . . yn . We will still generate l1 . . . lm autoregressively,
+but it will be much faster as m < n (in our experiments we
+mostly use m = n8 ). Then, we reconstruct each position in
+the sequence y1 . . . yn from l1 . . . lm in parallel.
+For the above strategy to work, we need to autoencode the
+target sequence y1 . . . yn into a shorter sequence l1 . . . lm .
+Autoencoders have a long history in deep learning (Hinton
+& Salakhutdinov, 2006; Salakhutdinov & Hinton, 2009a;
+Vincent et al., 2010; Kingma & Welling, 2013). Autoencoders mostly operate on continuous representations, either
+by imposing a bottleneck (Hinton & Salakhutdinov, 2006),
+requiring them to remove added noise (Vincent et al., 2010),
+or adding a variational component (Kingma & Welling,
+2013). In our case though, we prefer the sequence l1 . . . lm
+to be discrete, as we use standard autoregressive models to
+predict it. Despite some success (Bowman et al., 2016; Yang
+et al., 2017), predicting continuous latent representations
+does not work as well as the discrete case in our setting.
+
+

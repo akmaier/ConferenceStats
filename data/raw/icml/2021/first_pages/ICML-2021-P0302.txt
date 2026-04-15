@@ -1,0 +1,78 @@
+GNNAutoScale: Scalable and Expressive Graph Neural Networks
+via Historical Embeddings
+
+Matthias Fey 1 Jan Eric Lenssen 1 Frank Weichert 1 Jure Leskovec 2
+
+Abstract
+We present GNNAutoScale (GAS), a framework
+for scaling arbitrary message-passing GNNs to
+large graphs. GAS prunes entire sub-trees of the
+computation graph by utilizing historical embeddings from prior training iterations, leading to
+constant GPU memory consumption in respect to
+input node size without dropping any data. While
+existing solutions weaken the expressive power
+of message passing due to sub-sampling of edges
+or non-trainable propagations, our approach is
+provably able to maintain the expressive power of
+the original GNN. We achieve this by providing
+approximation error bounds of historical embeddings and show how to tighten them in practice.
+Empirically, we show that the practical realization
+of our framework, PyGAS, an easy-to-use extension for P Y T ORCH G EOMETRIC, is both fast and
+memory-efficient, learns expressive node representations, closely resembles the performance of
+their non-scaling counterparts, and reaches stateof-the-art performance on large-scale graphs.
+
+1. Introduction
+Graph Neural Networks (GNNs) capture local graph structure and feature information in a trainable fashion to derive
+powerful node representations suitable for a given task at
+hand (Hamilton, 2020; Ma & Tang, 2020). As such, numerous GNNs have been proposed in the past that integrate ideas
+such as maximal expressiveness (Xu et al., 2019), anisotropy
+and attention (Veličković et al., 2018), non-linearities (Wang
+et al., 2019), or multiple aggregations (Corso et al., 2020)
+into their message passing formulation. However, one of the
+challenges that have so far precluded their wide adoption
+in industrial and social applications is the difficulty to scale
+them to large graphs (Frasca et al., 2020).
+1
+Department of Computer Science, TU Dortmund University
+Department of Computer Science, Stanford University. Correspondence to: Matthias Fey <matthias.fey@udo.edu>.
+2
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+While the full-gradient in a GNN is straightforward to compute, assuming one has access to all hidden node embeddings in all layers, this is not feasible in large-scale graphs
+due to GPU memory limitations (Ma & Tang, 2020). Therefore, it is desirable to approximate its full-batch gradient
+stochastically by considering only a mini-batch B ⊆ V of
+nodes for loss computation. However, this stochastic gradient is still expensive to obtain due to the exponentially
+increasing dependency of nodes over layers; a phenomenon
+framed as neighbor explosion (Hamilton et al., 2017). Due
+to neighbor explosion and since the whole computation
+graph needs to be stored on the GPU, deeper architectures
+can not be applied to large graphs. Therefore, a scalable
+solution needs to make the memory consumption constant
+or sub-linear in respect to the number of input nodes.
+Recent works aim to alleviate this problem by proposing
+various sampling techniques based on the concept of dropping edges (Ma & Tang, 2020; Rong et al., 2020): Nodewise sampling (Hamilton et al., 2017; Chen et al., 2018b;
+Markowitz et al., 2021) recursively samples a fixed number
+of 1-hop neighbors; Layer-wise sampling techniques independently sample nodes for each layer, leading to a constant
+sample size in each layer (Chen et al., 2018a; Zou et al.,
+2019; Huang et al., 2018); In subgraph sampling (Chiang
+et al., 2019; Zeng et al., 2020b;a), a full GNN is run on an
+entire subgraph G[B] induced by a sampled batch of nodes
+B ⊆ V. These techniques get rid of the neighbor explosion
+problem by sampling the graph but may fail to preserve the
+edges that present a meaningful topological structure. Further, existing approaches are either still restricted to shallow
+networks, non-exchangeable GNN operators or operators
+with reduced expressiveness. In particular, they consider
+only specific GNN operators and it is an open question
+whether these techniques can be successfully applied to
+the wide range of GNN architectures available (Veličković
+et al., 2018; Xu et al., 2019; Corso et al., 2020; Chen et al.,
+2020b). Another line of work is based on the idea of decoupling propagations from predictions, either as a pre- (Wu
+et al., 2019; Klicpera et al., 2019a; Frasca et al., 2020; Yu
+et al., 2020) or post-processing step (Huang et al., 2021).
+While this scheme enjoys fast training and inference time,
+it cannot be applied to any GNN, in particular because the
+propagation is non-trainable, and therefore reduces model
+
+

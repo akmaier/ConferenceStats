@@ -1,0 +1,46 @@
+Batch Renormalization: Towards Reducing
+Minibatch Dependence in Batch-Normalized Models
+
+Sergey Ioffe
+Google
+sioffe@google.com
+
+Abstract
+Batch Normalization is quite effective at accelerating and improving the training
+of deep models. However, its effectiveness diminishes when the training minibatches are small, or do not consist of independent samples. We hypothesize that
+this is due to the dependence of model layer inputs on all the examples in the
+minibatch, and different activations being produced between training and inference. We propose Batch Renormalization, a simple and effective extension to
+ensure that the training and inference models generate the same outputs that depend on individual examples rather than the entire minibatch. Models trained with
+Batch Renormalization perform substantially better than batchnorm when training
+with small or non-i.i.d. minibatches. At the same time, Batch Renormalization retains the benefits of batchnorm such as insensitivity to initialization and training
+efficiency.
+
+1
+
+Introduction
+
+Batch Normalization (“batchnorm” [6]) has recently become a part of the standard toolkit for training deep networks. By normalizing activations, batch normalization helps stabilize the distributions
+of internal activations as the model trains. Batch normalization also makes it possible to use significantly higher learning rates, and reduces the sensitivity to initialization. These effects help accelerate
+the training, sometimes dramatically so. Batchnorm has been successfully used to enable state-ofthe-art architectures such as residual networks [5].
+Batchnorm works on minibatches in stochastic gradient training, and uses the mean and variance
+of the minibatch to normalize the activations. Specifically, consider a particular node in the deep
+network, producing a scalar value for each input example. Given a minibatch B of m examples,
+consider the values of this node, x1 . . . xm . Then batchnorm takes the form:
+xi − µB
+x
+bi ←
+σB
+where µB is the sample mean of x1 . . . xm , and σB2 is the sample variance (in practice, a small 
+is added to it for numerical stability). It is clear that the normalized activations corresponding to
+an input example will depend on the other examples in the minibatch. This is undesirable during
+inference, and therefore the mean and variance computed over all training data can be used instead.
+In practice, the model usually maintains moving averages of minibatch means and variances, and
+during inference uses those in place of the minibatch statistics.
+While it appears to make sense to replace the minibatch statistics with whole-data ones during
+inference, this changes the activations in the network. In particular, this means that the upper layers
+(whose inputs are normalized using the minibatch) are trained on representations different from
+those computed in inference (when the inputs are normalized using the population statistics). When
+the minibatch size is large and its elements are i.i.d. samples from the training distribution, this
+31st Conference on Neural Information Processing Systems (NIPS 2017), Long Beach, CA, USA.
+
+

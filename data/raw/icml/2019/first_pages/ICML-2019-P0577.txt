@@ -1,0 +1,87 @@
+Replica Conditional Sequential Monte Carlo
+
+Alexander Y. Shestopaloff 1 2 Arnaud Doucet 3 2
+
+Abstract
+We propose a Markov chain Monte Carlo
+(MCMC) scheme to perform state inference in
+non-linear non-Gaussian state-space models. Current state-of-the-art methods to address this problem rely on particle MCMC techniques and its
+variants, such as the iterated conditional Sequential Monte Carlo (cSMC) scheme, which uses
+a Sequential Monte Carlo (SMC) type proposal
+within MCMC. A deficiency of standard SMC
+proposals is that they only use observations up to
+time t to propose states at time t when an entire
+observation sequence is available. More sophisticated SMC based on lookahead techniques could
+be used but they can be difficult to put in practice.
+We propose here replica cSMC where we build
+SMC proposals for one replica using information
+from the entire observation sequence by conditioning on the states of the other replicas. This
+approach is easily parallelizable and we demonstrate its excellent empirical performance when
+compared to the standard iterated cSMC scheme
+at fixed computational complexity.
+
+1. Introduction
+We consider discrete-time state-space models. They can
+be described by a latent Markov process (Xt )t≥1 and an
+observation process (Yt )t≥1 , (Xt , Yt ) being X × Y-valued,
+which satisfy X1 ∼ µ(·) and
+Xt+1 |{Xt = x} ∼ f (·|x)
+
+Yt |{Xt = x} ∼ g(·|x)
+(1)
+for t ≥ 1. Our goal is to sample from posterior distribution
+of the latent states X1:T := (X1 , ..., XT ) given a realization
+of the observations Y1:T = y1:T . This distribution admits a
+1
+School of Mathematics, University of Edinburgh, Edinburgh,
+UK 2 The Alan Turing Institute, London, UK 3 Department of
+Statistics, University of Oxford, Oxford, UK. Correspondence
+to: Alexander Y. Shestopaloff <ashestopaloff@turing.ac.uk>.
+
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+density given by
+p(x1:T |y1:T ) ∝ µ(x1 )g(y1 |x1 )
+
+T
+Y
+
+f (xt |xt−1 )g(yt |xt ).
+
+t=2
+
+(2)
+This sampling problem is now commonly addressed using an MCMC scheme known as the iterated cSMC sampler (Andrieu et al., 2010) and extensions of it; see, e.g.,
+(Shestopaloff & Neal, 2018). This algorithm relies on a
+SMC-type proposal mechanism. A limitation of these algorithms is that they typically use data only up to time t
+to propose candidate states at time t, whereas the entire
+sequence y1:T is observed in the context we are interested
+in. To address these issues, various lookahead techniques
+have been proposed in the SMC literature; see (Chen et al.,
+2013) for a review. Alternative approaches relying on a
+parametric approximation of the backward information filter used for smoothing in state-space models (Briers et al.,
+2010) have also been recently proposed in (Scharth & Kohn,
+2016; Guarniero et al., 2017; Ruiz & Kappen, 2017; Heng
+et al., 2017). When applicable, these iterative methods have
+demonstrated good performance. However, it is unclear
+how these ideas could be adapted to the MCMC framework
+investigated here. Additionally these methods are difficult
+to put in practice for multimodal posterior distributions.
+In this paper, we propose a novel approach which allows
+us to build proposals for cSMC that allows considering all
+observed data in a proposal, based on conditioning on replicas of the state variables. Our approach is based purely on
+Monte Carlo sampling, bypassing any need for approximating functions in the estimate of the backward information
+filter.
+The rest of this paper is organized as follows. In Section
+2, we review the iterated cSMC algorithm and outline its
+limitations. Section 3 introduces the replica iterated cSMC
+methodology. In Section 4, we demonstrate the methodology on a linear Gaussian model, two non-Gaussian state
+space models from (Shestopaloff & Neal, 2018) as well as
+the Lorenz-96 model from (Heng et al., 2017).
+
+2. Iterated cSMC
+The iterated cSMC sampler is an MCMC method for sampling from a target distribution of density π (x1:T ) :=
+
+

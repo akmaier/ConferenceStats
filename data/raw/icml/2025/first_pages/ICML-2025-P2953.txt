@@ -1,0 +1,78 @@
+Efficient Long Context Fine-tuning with Chunk Flow
+
+Xiulong Yuan * 1 Hongtao Xu * 2 1 3 Wenting Shen 1 Ang Wang 1 Xiafei Qiu 1 Jie Zhang 1 Yuqiong Liu 1
+Bowen Yu 1 Junyang Lin 1 Mingzhen Li 3 Weile Jia 3 Yong Li 1 Wei Lin 1
+
+1. Introduction
+
+Abstract
+Long context fine-tuning of large language models(LLMs) involves training on datasets that are
+predominantly composed of short sequences and
+a small proportion of longer sequences. However,
+existing approaches overlook this long-tail distribution and employ training strategies designed
+specifically for long sequences. Moreover, these
+approaches also fail to address the challenges
+posed by variable sequence lengths during distributed training, such as load imbalance in data
+parallelism and severe pipeline bubbles in pipeline
+parallelism. These issues lead to suboptimal training performance and poor GPU resource utilization. To tackle these problems, we propose a
+chunk-centric training method named ChunkFlow.
+ChunkFlow reorganizes input sequences into uniformly sized chunks by consolidating short sequences and splitting longer ones. This approach
+achieves optimal computational efficiency and balance among training inputs. Additionally, ChunkFlow incorporates a state-aware chunk scheduling
+mechanism to ensure that the peak memory usage during training is primarily determined by the
+chunk size rather than the maximum sequence
+length in the dataset. Integrating this scheduling mechanism with existing pipeline scheduling
+algorithms further enhances the performance of
+distributed training. Experimental results demonstrate that, compared with Megatron-LM, ChunkFlow can be up to 4.53x faster in the long context
+fine-tuning of LLMs. Furthermore, we believe
+that ChunkFlow serves as an effective solution for
+a broader range of scenarios, such as long context continual pre-training, where datasets contain
+variable-length sequences.
+
+The ability of large language models (LLMs) to handle long
+contexts is crucial for tasks involving extensive inputs, such
+as comprehensive document analysis, extensive dialogue
+management, code generation from complex specifications,
+and detailed question answering over lengthy texts (Bai
+et al., 2024; OpenAI, 2024; Anthropic, 2025). Mainstream
+models like Llama can support context lengths of up to 128K
+tokens, while Google’s Gemini can manage sequences up
+to 1M tokens(Gemini Team, 2024; Meta, 2024). However,
+given the significant costs associated with directly training
+models on long contexts, current practices typically involve
+an initial pre-training phase using shorter contexts (e.g.,
+Llama with a context length of 8K), followed by a continual
+training stage to progressively extend their context lengths.
+Finally, Long context fine-tuning(Long SFT), which is the
+focus of this paper, is employed to further enhance the
+model’s effectiveness in processing long contexts (Alibaba,
+2025b; Meta, 2024).
+To improve models’ ability to handle long sequences without compromising their performance on short ones, Long
+SFT is typically conducted on datasets predominantly comprising short sequences with a small percentage of long
+ones (Xiong et al., 2024). For instance, Llama3 was finetuned using 99.89% short sequences (averaging under 1K
+tokens) and 0.11% long sequences (averaging around 37K
+tokens) (Meta, 2024). Current training methods, however,
+often prioritize long sequences at the expense of the unique
+characteristics of the long-tail distribution. This approach
+results in suboptimal training efficiency and inefficient GPU
+resource utilization (Zhao et al., 2024). The micro-batch size
+for each training step is usually determined by the memory
+requirements of long sequences, leading to significant underutilization of GPU memory when processing mostly shorter
+sequences. Additionally, handling long sequences typically
+demands more GPUs than processing primarily short sequences. Existing methods allocate GPU resources based
+solely on the needs of long sequences, resulting in finer
+partitioning of computations. Consequently, this not only diminishes the training efficiency for short sequences but also
+exacerbates resource utilization issues. Moreover, variable
+sequence lengths in fine-tuning datasets also pose significant challenges in distributed training. For example, when
+
+*
+
+Equal contribution 1 Alibaba Group 2 School of Advanced Interdisciplinary Sciences, University of Chinese Academy of Sciences
+3
+State Key Lab of Processors, Institute of Computing Technology, CAS. Correspondence to: Yong Li <jiufeng.ly@alibabainc.com>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+
+1
+
+

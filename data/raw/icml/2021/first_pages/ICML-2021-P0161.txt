@@ -1,0 +1,80 @@
+Overcoming Catastrophic Forgetting by Bayesian Generative Regularization
+
+Patrick H. Chen 1 Wei Wei 2 Cho-jui, Hsieh 1 Bo Dai 3
+
+Abstract
+The streaming update of Bayesian posterior calculation provides us a natural way for continual
+learning. However, the naïve mean-field posterior
+parametrization for variational approximation is
+inappropiate in neural network, and thus, lock the
+full ability for preventing catastrophic forgetting.
+To resolve this issue, we introduce a generative
+regularization for all given classification models,
+which is implemented by leveraging energy-based
+models with contrastive loss, to obtain the sufficient features for valid decomposition in posterior approxiamtion. By combining discriminative
+and generative loss together, we empirically show
+that the proposed method outperforms state-ofthe-art methods on a variety of tasks, avoiding
+catastrophic forgetting in continual learning. In
+particular, the proposed method outperforms baseline methods over 15% on the Fashion-MNIST
+dataset and 10% on the CUB dataset.
+
+1. Introduction
+Many real-world machine learning applications require classification models to learn a sequence of tasks in an incremental way. For each task, learning system could only access
+part of whole data and the previously seen data can not be
+assessed. For example, previous customer data usually can
+not be accessed due to increasingly more strict data regulations on the user privacy, such as GDPR (Voigt & Von dem
+Bussche, 2017). The labelled data of an existing task can be
+depleted when new tasks emerge (Sutton et al., 2014; Kirkpatrick et al., 2017). Thus, an intelligent agent for continual
+learning must not only adapt to newly incoming tasks but
+also perform well on entire set of all the existing tasks in an
+incremental way that avoids revisiting all previous data at
+each stage. Previous studies (McCloskey & Cohen, 1989;
+Ratcliff, 1990) found that conventional deep learning mod1
+
+Department of Computer Science, UCLA, California, USA
+Google Cloud, Sunnyvale, California, USA 3 Google Brain, Mountain View, California, USA. Correspondence to: Patrick H. Chen
+<patrickchen@g.ucla.edu>.
+2
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+els fail to tackle continual learning with the phenomenon of
+catastrophic forgetting, where deep neural networks tend
+to lose the information of previous tasks (i.e. classification
+accuracy drops significantly) after a new task is introduced.
+Apparently, in order to achieve continual learning, catastrophic forgetting is an important issue to be addressed.
+A common strategy is to fix parameters used in the previous tasks. When new tasks arrive, based on different
+criteria, each method can reuse part of the fixed parameters
+(Fernando et al., 2017), expand some model components
+(Rusu et al., 2016; Yoon et al., 2018), or search for the
+best new model architecture to process new task (Li et al.,
+2019). Alternatively, instead of fixing a model, memorybased methods store a subset of previous data and constrain
+the update of models by leveraging the distilled knowledge
+from previous tasks (Castro et al., 2018; Hou et al., 2018;
+Javed & Shafait, 2018; Li & Hoiem, 2017; Rebuffi et al.,
+2017; Shin et al., 2017). These methods demonstrate the
+capability of alleviating the forgetting in practice on several datasets, however, without investigating and explaining
+the potential cause of catastrophic forgetting. More importantly, model adaption methods come at the cost that the
+model size expands correspondingly to the number of new
+tasks; while keeping data directly violates GDPR regulation.
+These drawbacks make existing methods not applicable for
+large-scale real-world applications. Therefore, there is a
+need to investigate the cause of catastrophic forgetting for
+a principled algorithm under the memoryless, fixed model
+setup.
+Most of the existing literature views the incremental training
+as a moving path in parameter space, then the catastrophic
+forgetting happens when the update direction obtained based
+on partial data leads an inappropriate solution. Therefore, it
+is natural to design the search and update directions in training to avoid the catastrophic forgetting (Kirkpatrick et al.,
+2017; Nguyen et al., 2018; Zenke et al., 2017; Smola et al.,
+2003). Variational Continual Learning (VCL) (Nguyen et al.,
+2018), as a representative algorithm, exploits the equivalent
+streaming update form of Bayesian posterior calculation,
+which by nature only uses part of data, and therefore can
+combat forgetting. In practice, the exact posterior is intractable, especially in the Bayesian neural network, then,
+variational methods are used for approximation. The VCL
+achieves good empirical performance on various bench-
+
+

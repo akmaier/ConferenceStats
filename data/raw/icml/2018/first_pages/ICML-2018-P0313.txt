@@ -1,0 +1,82 @@
+Asynchronous Decentralized Parallel Stochastic Gradient Descent
+
+Xiangru Lian 1 * Wei Zhang 2 * Ce Zhang 3 Ji Liu 4 1
+
+Abstract
+Most commonly used distributed machine learning
+systems are either synchronous or centralized asynchronous. Synchronous algorithms like AllReduceSGD perform poorly in a heterogeneous environment, while asynchronous algorithms using a parameter server suffer from 1) communication bottleneck at parameter servers when workers are many,
+and 2) significantly worse convergence when the
+traffic to parameter server is congested. Can we
+design an algorithm that is robust in a heterogeneous environment, while being communication efficient and maintaining the best-possible convergence
+rate? In this paper, we propose an asynchronous
+decentralized stochastic gradient decent algorithm
+(AD-PSGD) satisfying all above expectations. Our
+theoretical analysis
+√ shows AD-PSGD converges at
+the optimal O(1/ K) rate as SGD and has linear
+speedup w.r.t. number of workers. Empirically, ADPSGD outperforms the best of decentralized parallel SGD (D-PSGD), asynchronous parallel SGD (APSGD), and standard data parallel SGD (AllReduceSGD), often by orders of magnitude in a heterogeneous environment. When training ResNet-50 on ImageNet with up to 128 GPUs, AD-PSGD converges
+(w.r.t epochs) similarly to the AllReduce-SGD, but
+each epoch can be up to 4-8× faster than its synchronous counterparts in a network-sharing HPC environment.
+
+1
+
+Introduction
+
+It often takes hours to train large deep learning tasks such
+as ImageNet, even with hundreds of GPUs (Goyal et al.,
+2017). At this scale, how workers communicate becomes a
+crucial design choice. Most existing systems such as Ten*
+
+Equal contribution 1 Department of Computer Science, University of Rochester 2 IBM T. J. Watson Research Center
+3
+Department of Computer Science, ETH Zurich 4 Tencent AI
+lab, Seattle, USA. Correspondence to: Xiangru Lian <admin@mail.xrlian.com>.
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+Figure 1. Centralized network and decentralized network.
+
+S-PSGD (Ghadimi et al., 2016)
+A-PSGD (Lian et al., 2015)
+AllReduce-SGD (Luehr, 2016)
+D-PSGD (Lian et al., 2017)
+AD-PSGD (this paper)
+
+Communication complexitya
+(n.t./n.h.)
+Long (O(n)/O(n))
+Long (O(n)/O(n))
+Medium (O(1)/O(n))
+Short (O(deg(G))/O(deg(G)))
+Short (O(deg(G))/O(deg(G)))
+
+Idle time
+Long
+Short
+Long
+Long
+Short
+
+a
+n.t. means number of gradients/models transferred at the busiest worker per n (minibatches of) stochastic gradients updated.
+n.h. means number of handshakes at the busiest worker per n
+(minibatches of) stochastic gradients updated.
+
+Table 1. Comparison of different distributed machine learning algorithms on a network graph G. Long idle time means in each iteration the whole system needs to wait for the slowest worker. Short
+idle time means the corresponding algorithm breaks this synchronization per iteration. Note that if G is a ring network as required
+in AllReduce-SGD, O(deg(G)) = O(1).
+
+sorFlow (Abadi et al., 2016), MXNet (Chen et al., 2015),
+and CNTK (Seide and Agarwal, 2016) support two communication modes: (1) synchronous communication via parameter servers or AllReduce, or (2) asynchronous communication via parameter servers. When there are stragglers
+(i.e., slower workers) in the system, which is common especially at the scale of hundreds devices, asynchronous approaches are more robust. However, most asynchronous
+implementations have a centralized design, as illustrated in
+Figure 1(a) — a central server holds the shared model for
+all other workers. Each worker calculates its own gradients
+and updates the shared model asynchronously. The parameter server may become a communication bottleneck and
+slow down the convergence. We focus on the question: Can
+we remove the central server bottleneck in asynchronous
+distributed learning systems while maintaining the best possible convergence rate?
+Recent work (Lian et al., 2017) shows that synchronous de-
+
+

@@ -1,0 +1,80 @@
+Sparsified Linear Programming for Zero-Sum Equilibrium Finding
+
+Brian Hu Zhang 1 Tuomas Sandholm 1 2 3 4
+
+Abstract
+Computational equilibrium finding in large zerosum extensive-form imperfect-information games
+has led to significant recent AI breakthroughs.
+The fastest algorithms for the problem are
+new forms of counterfactual regret minimization (Brown & Sandholm, 2019). In this paper we
+present a totally different approach to the problem,
+which is competitive and often orders of magnitude better than the prior state of the art. The
+equilibrium-finding problem can be formulated
+as a linear program (LP) (Koller et al., 1994), but
+solving it as an LP has not been scalable due to the
+memory requirements of LP solvers, which can
+often be quadratically worse than CFR-based algorithms. We give an efficient practical algorithm
+that factors a large payoff matrix into a product
+of two matrices that are typically dramatically
+sparser. This allows us to express the equilibriumfinding problem as a linear program with size only
+a logarithmic factor worse than CFR, and thus allows linear program solvers to run on such games.
+With experiments on poker endgames, we demonstrate in practice, for the first time, that modern
+linear program solvers are competitive against
+even game-specific modern variants of CFR in
+solving large extensive-form games, and can be
+used to compute exact solutions unlike iterative
+algorithms like CFR.
+
+1. Introduction
+Imperfect-information games model strategic interactions
+between agents that do not have perfect knowledge of their
+current situation, such as auctions, negotiations, and recreational games such as poker and battleship. Linear pro1
+
+Department of Computer Science, Carnegie Mellon University, Pittsburgh, PA, USA 2 Strategic Machine, Inc. 3 Strategy
+Robot, Inc. 4 Optimized Markets, Inc.. Correspondence to: Brian
+Hu Zhang <bhzhang@cs.cmu.edu>, Tuomas Sandholm <sandholm@cs.cmu.edu>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+gramming (LP) can be used to solve—that is, to find a Nash
+equilibrium in—imperfect-information two-player zero-sum
+perfect-recall games (Koller et al., 1994). However, due
+mostly to memory usage (see e.g., Zinkevich et al., 2007
+or Brown & Sandholm, 2019), it has generally been thought
+of as impractical for solving large games. Thus, a series of
+other techniques has been developed for solving such games.
+Most prominent among these is the counterfactual regret
+minimization (CFR) family of algorithms (Zinkevich et al.,
+2007). These algorithms work by iteratively improving both
+player’s strategies until their time averages converge to an
+equilibrium. They have a worst-case bound of O(1/ε2 )
+iterations needed to reach accuracy ε, and more recent improvements, most notably CFR+ (Tammelin, 2014) and
+discounted CFR (DCFR) (Brown & Sandholm, 2019) mean
+that algorithms from the CFR family remain the state of
+the art in practice for solving large games, and have been
+used as an important part of the computational pipelines to
+achieve superhuman performance in benchmark cases such
+as heads-up limit (Bowling et al., 2015) and no-limit (Brown
+& Sandholm, 2017) Texas hold’em.
+Several families of algorithms have theoretically faster convergence rates than those of the CFR family. First-order
+methods (Hoda et al., 2010; Kroer et al., 2015) have a theoretically better convergence guarantee of O(1/ε) (or even
+log(1/ε) with a condition number (Gilpin et al., 2012)), but
+in practice perform worse than the newest algorithms in
+the CFR family (Kroer et al., 2018; Brown & Sandholm,
+2019). Standard algorithms for LP are known that converge
+at rate O(log(1/ε)), but for the most part, these algorithms
+require storage of the whole payoff matrix explicitly, which
+the CFR family does not, and often require superlinear time
+per iteration (with respect to the number of nonzero entries
+of the LP constraint matrix), which is prohibitive when the
+game is extremely large.
+In this paper we investigate how to reduce the space requirements of LP solvers by factoring the possibly dense payoff
+matrix of an extensive-form game. A long body of work
+investigates the problem of decomposing, or factoring, a
+given matrix A as the product of other matrices, with some
+objective in mind. Studied objectives include the speedup of
+certain operations, as in the LU or Cholesky factorizations,
+and approximation of the matrix A in a certain norm, as in
+the singular value decomposition (SVD). Our objective in
+
+

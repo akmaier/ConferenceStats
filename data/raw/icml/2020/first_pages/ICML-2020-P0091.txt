@@ -1,0 +1,79 @@
+Modulating Surrogates for Bayesian Optimization
+
+Erik Bodin 1 Markus Kaiser 2 3 Ieva Kazlauskaite 4 Zhenwen Dai 5 Neill D. F. Campbell 4 Carl Henrik Ek 6
+
+Abstract
+Bayesian optimization (BO) methods often rely
+on the assumption that the objective function is
+well-behaved, but in practice, this is seldom true
+for real-world objectives even if noise-free observations can be collected. Common approaches,
+which try to model the objective as precisely as
+possible, often fail to make progress by spending too many evaluations modeling irrelevant details. We address this issue by proposing surrogate
+models that focus on the well-behaved structure
+in the objective function, which is informative
+for search, while ignoring detrimental structure
+that is challenging to model from few observations. First, we demonstrate that surrogate models
+with appropriate noise distributions can absorb
+challenging structures in the objective function
+by treating them as irreducible uncertainty. Secondly, we show that a latent Gaussian process is
+an excellent surrogate for this purpose, comparing with Gaussian processes with standard noise
+distributions. We perform numerous experiments
+on a range of BO benchmarks and find that our
+approach improves reliability and performance
+when faced with challenging objective functions.
+
+1. Introduction
+Bayesian optimization (BO) (Snoek et al., 2012) is a method
+for finding the optimum of functions that are unknown and
+expensive to evaluate. By fitting a surrogate model to the
+samples of an unknown objective, the BO procedure iteratively picks the new samples of the objective believed to be
+the most informative about where the optimum is located.
+Model misspecification has significant negative implications
+1
+
+University of Bristol, United Kingdom 2 Siemens AG, Germany 3 Technical University of Munich, Germany 4 University
+of Bath, United Kingdom 5 Spotify Research, United Kingdom
+6
+University of Cambridge, United Kingdom. Correspondence to:
+Erik Bodin <erik.bodin@bristol.ac.uk>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+for any machine learning tasks. This is especially true for
+sequential decision making tasks such as BO, where the
+model is used not only to locate the optimum based on the
+collected data but also to decide where to collect data for
+future decisions. If the surrogate model is misspecified, it is
+likely to acquire samples that are less informative about the
+optimum, which will lead to a less efficient optimization.
+Therefore the quality of the surrogate model is essential to
+achieve both efficient and reliable results.
+Many works have been done towards avoiding model
+misspecification in the surrogate model for BO, such as
+handling non-stationary objective functions with warpings (Snoek et al., 2014), tree-structured dependencies in
+the search space (Jenatton et al., 2017), and searching the
+optimum from piecewise comparisons (González et al.,
+2017). Comparing with the Gaussian process (GP) regression model in the standard BO setting, these methods avoid
+model misspecification in real-world problems by using
+more sophisticated surrogate models that are suitable for
+the corresponding problems. Bayesian inference with more
+sophisticated surrogate models will often require additional
+data to reduce uncertainty and confirm beliefs, because it
+considers more possibilities. Importantly the ultimate goal
+of BO is to find the optimum, not to model the unknown objective as precisely as possible. In practice, this means that
+using a surrogate with high complexity might perform worse
+compared to a simpler class even if the former contains the
+true objective function.
+Instead of building a complex surrogate model with minimal
+model misspecification, we propose an alternative approach
+which allows trading off accuracy in modeling the objective with efficiency of capturing informative structures from
+small amounts of data. For example, we observe that structures such as local oscillations and discontinuities are less
+important to capture for the purposes of BO. Such details often require a lot of data to be closely captured in a surrogate
+model but do not help the search for the optimum, unless
+the search reaches the last stage of pinpointing the exact location of the optimum. To ignore these details, we associate
+an independent random input variable with every evaluation
+of the unknown function. As the random variables associated with new evaluations are conditionally independent
+of the posterior random variables associated with observed
+data given the function, this is referred to as irreducible
+
+

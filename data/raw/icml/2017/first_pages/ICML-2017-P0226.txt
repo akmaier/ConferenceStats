@@ -1,0 +1,78 @@
+Gram-CTC: Automatic Unit Selection and Target Decomposition for Sequence
+Labelling
+
+Hairong Liu* 1 Zhenyao Zhu* 1 Xiangang Li 1 Sanjeev Satheesh 1
+
+Abstract
+Most existing sequence labelling models rely on
+a fixed decomposition of a target sequence into
+a sequence of basic units. These methods suffer
+from two major drawbacks: 1) the set of basic
+units is fixed, such as the set of words, characters or phonemes in speech recognition, and 2)
+the decomposition of target sequences is fixed.
+These drawbacks usually result in sub-optimal
+performance of modeling sequences. In this paper, we extend the popular CTC loss criterion
+to alleviate these limitations, and propose a new
+loss function called Gram-CTC. While preserving the advantages of CTC, Gram-CTC automatically learns the best set of basic units (grams), as
+well as the most suitable decomposition of target sequences. Unlike CTC, Gram-CTC allows
+the model to output variable number of characters at each time step, which enables the model
+to capture longer term dependency and improves
+the computational efficiency. We demonstrate
+that the proposed Gram-CTC improves CTC in
+terms of both performance and efficiency on the
+large vocabulary speech recognition task at multiple scales of data, and that with Gram-CTC we
+can outperform the state-of-the-art on a standard
+speech benchmark.
+
+1. Introduction
+In recent years, there has been an explosion of interest in
+sequence labelling tasks. Connectionist Temporal Classification (CTC) loss (Graves et al., 2006) and Sequenceto-sequence (seq2seq) models (Cho et al., 2014; Sutskever
+et al., 2014) present powerful approaches to multiple applications, such as Automatic Speech Recognition (ASR)
+(Chan et al., 2016a; Hannun et al., 2014; Bahdanau et al.,
+*
+Equal contribution 1 Baidu Silicon Valley AI Lab, 1195
+Bordeaux Dr, Sunnyvale, CA 94089, USA. Correspondence to:
+Hairong Liu <liuhairong@baidu.com>.
+
+Proceedings of the 34th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+2016), machine translation (Sébastien et al., 2015), and
+parsing (Vinyals et al., 2015). These methods are based on
+1) a fixed and carefully chosen set of basic units, such as
+words (Sutskever et al., 2014), phonemes (Chorowski et al.,
+2015) or characters (Chan et al., 2016a), and 2) a fixed
+and pre-determined decomposition of target sequences into
+these basic units. While these two preconditions greatly
+simplify the problems, especially the training processes,
+they are also strict and unnecessary constraints, which usually lead to suboptimal solutions. CTC models are especially harmed by fixed basic units in target space, because
+they build on the independence assumption between successive outputs in that space - an assumption which is often
+violated in practice.
+The problem with fixed set of basic units is obvious: it is
+really hard, if not impossible, to determine the optimal set
+of basic units beforehand. For example, in English ASR,
+if we use words as basic units, we will need to deal with
+the large vocabulary-sized softmax, as well as rare words
+and data sparsity problem. On the other hand, if we use
+characters as basic units, the model is forced to learn the
+complex rules of English spelling and pronunciation. For
+example, the "oh" sound can be spelled in any of following ways, depending on the word it occurs in - { o, oa,
+oe, ow, ough, eau, oo, ew }. While CTC can easily model
+commonly co-occuring grams together, it is impossible to
+give roughly equal probability to many possible spellings
+when transcribing unseen words. Most speech recognition
+systems model phonemes, sub-phoneme units and senones
+e.g, (Xiong et al., 2016a) to get around these problems.
+Similarly, state-of-the-art neural machine translation systems use pre-segmented word pieces e.g, (Wu et al., 2016a)
+aiming to find the best of both worlds.
+In reality, groups of characters are typically cohesive units
+for many tasks. For the ASR task, words can be decomposed into groups of characters that can be associated with
+sound (such as ‘tion’ and ‘eaux’). For the machine translation task, there may be values in decomposing words as
+root words and extensions (so that meaning may be shared
+explicitly between ‘paternal’ and ‘paternity’). Since this
+information is already available in the training data, it is
+perhaps, better to let the model figure it out by itself. At
+the same time, it raises another import question: how to de-
+
+

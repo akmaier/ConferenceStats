@@ -1,0 +1,81 @@
+Revisiting Fundamentals of Experience Replay
+
+William Fedus * 1 2 Prajit Ramachandran * 1 Rishabh Agarwal 1 Yoshua Bengio 2 3 Hugo Larochelle 1 4
+Mark Rowland 5 Will Dabney 5
+
+Abstract
+Experience replay is central to off-policy algorithms in deep reinforcement learning (RL), but
+there remain significant gaps in our understanding.
+We therefore present a systematic and extensive
+analysis of experience replay in Q-learning methods, focusing on two fundamental properties: the
+replay capacity and the ratio of learning updates to
+experience collected (replay ratio). Our additive
+and ablative studies upend conventional wisdom
+around experience replay — greater capacity is
+found to substantially increase the performance
+of certain algorithms, while leaving others unaffected. Counterintuitively we show that theoretically ungrounded, uncorrected n-step returns are
+uniquely beneficial while other techniques confer
+limited benefit for sifting through larger memory.
+Separately, by directly controlling the replay ratio we contextualize previous observations in the
+literature and empirically measure its importance
+across a variety of deep RL algorithms. Finally,
+we conclude by testing a set of hypotheses on the
+nature of these performance benefits.
+
+1. Introduction
+Experience replay is the fundamental data-generating mechanism in off-policy deep reinforcement learning (Lin, 1992).
+It has been shown to improve sample efficiency and stability
+by storing a fixed number of the most recently collected
+transitions for training. However, the interactions of experience replay with modern algorithmic components of
+deep RL agents are still poorly understood. This lack of
+understanding impedes progress, as researchers are unable
+to measure the full impact of algorithmic changes without
+extensive tuning. We therefore present a large-scale study
+*
+
+Equal contribution 1 Google Brain 2 MILA, Université de
+Montréal 3 CIFAR Director 4 CIFAR Fellow 5 DeepMind. Correspondence to: William Fedus <liamfedus@google.com>.
+Proceedings of the 37 th International Conference on Machine
+Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by
+the author(s).
+
+to understand the interplay of learning algorithms and datagenerating mechanisms in order to inform the design of
+better algorithms.
+Earlier works investigating replay buffers have often focused on individual hyperparameters, such as the capacity
+of the replay buffer (Zhang & Sutton, 2017), which has
+typically been preserved since the seminal work in this field
+of Mnih et al. (2013; 2015). We begin by identifying that
+several such hyperparameters, such as buffer capacity and
+rate of data throughput, are interlinked in the manner that
+they affect experience replay, modifying both the amount
+of data available to an agent and the typical age of that
+data. This motivates a comprehensive set of experiments to
+understand the relative effects of modifying each property
+independently. We then make the surprising discovery that
+these effects depend critically on the presence of a particular algorithmic component, n-step returns, which has not
+previously been linked to experience replay. We conclude
+by examining several hypotheses to uncover why this link
+exists.
+
+2. Background
+We consider a Markov decision process (S, A, P, R, γ), and
+denote the sequence of states, actions, and rewards experienced by an agent by (St )t≥0 , (At )t≥0 , and (Rt )t≥0 , respectively. The central task of reinforcement learning is to
+find a policy π : S → ∆A that maximizes the expected
+return
+
+
+X
+Qπ (s, a) = Eπ 
+γ t Rt S0 = s, A0 = a ,
+t≥0
+
+for each initial state-action pair (s, a) ∈ S × A. This problem is well studied, and a wide range of methods based
+on value iteration, policy iteration, and policy gradients
+have been built up over the course of decades (Bellman,
+1957; Puterman, 1994; Bertsekas & Tsitsiklis, 1996; Kaelbling et al., 1996; Szepesvári, 2010; Sutton & Barto, 2018;
+Franois-Lavet et al., 2018). A prototypical method based on
+value iteration is Q-learning (Watkins & Dayan, 1992); in its
+most basic form, it maintains an estimate Q : S × A → R
+of the optimal value function, and given a sequence of transition tuples (st , at , rt , st+1 )t≥0 , updates Q(st , at ) towards
+
+

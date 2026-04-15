@@ -1,0 +1,75 @@
+Low-Precision Reinforcement Learning:
+Running Soft Actor-Critic in Half Precision
+
+Johan Bjorck 1 Xiangyu Chen 1 Christopher De Sa 1 Carla P. Gomes 1 Kilian Q. Weinberger 1
+
+Abstract
+Low-precision training has become a popular approach to reduce compute requirements, memory
+footprint, and energy consumption in supervised
+learning. In contrast, this promising approach
+has not yet enjoyed similarly widespread adoption within the reinforcement learning (RL) community, partly because RL agents can be notoriously hard to train even in full precision. In this
+paper we consider continuous control with the
+state-of-the-art SAC agent and demonstrate that a
+naı̈ve adaptation of low-precision methods from
+supervised learning fails. We propose a set of six
+modifications, all straightforward to implement,
+that leaves the underlying agent and its hyperparameters unchanged but improves the numerical stability dramatically. The resulting modified
+SAC agent has lower memory and compute requirements while matching full-precision rewards,
+demonstrating that low-precision training can substantially accelerate state-of-the-art RL without
+parameter tuning.
+
+1. Introduction
+Reinforcement learning (RL) is a promising paradigm for
+constructing autonomous agents for transportation (Kendall
+et al., 2019), robotics (Zhu et al., 2020), scientific applications (Bellemare et al., 2020) and beyond (Silver et al.,
+2016). To enable such impressive feats, RL often requires large amounts of computation and samples from
+the underlying environments (Silver et al., 2016; Jaderberg
+et al., 2019; Berner et al., 2019). Consequently, many approaches for scaling RL have been proposed, including
+distributed (Horgan et al., 2018; Wijmans et al., 2019) and
+asynchronous training (Mnih et al., 2016), GPU-accelerated
+environments (Dalton et al., 2019) and many others (Petrenko et al., 2020; Liu et al., 2020a). Within supervised
+1
+
+Department of Computer Science, Cornell University, USA.
+Correspondence to: Johan Bjorck <njb225@cornell.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+learning, an emerging trend for accelerating deep learning
+is low-precision training, where one uses fewer than 32
+bits to represent individual parameters, activations, and gradients (Gupta et al., 2015). This speeds up computations
+and decreases latency, memory footprint, and energy consumption (De Sa et al., 2017; Reuther et al., 2019; Gong
+et al., 2018). Such benefits can accelerate RL research, allow longer deployment before recharging batteries (Tomy
+et al., 2019), lower latency in high-speed applications (Liu
+et al., 2020b), and is especially relevant in RL from raw
+pixel observations which can be compute-intensive (Zhan
+et al., 2020). Despite such upsides, the RL community has
+not adopted low-precision training, in part as RL agents are
+notoriously hard to train even in full precision (Henderson
+et al., 2017; Engstrom et al., 2020; Jordan et al., 2020).
+The goal of this paper is to demonstrate the feasibility of
+RL in low precision without changing hyperparameters or
+the underlying RL algorithm. Specifically, we focus on
+continuous control environments (Tassa et al., 2020) and
+consider the state-of-the-art soft actor-critic (SAC) algorithm (Haarnoja et al., 2018). We demonstrate that strategies developed for supervised learning, such as loss scaling
+and mixed-precision (Micikevicius et al., 2017), fail in this
+context. To enable RL in low precision, we propose a set
+of six methods that improve the numerical stability without
+changing the underlying agent. Some of these are novel, for
+example, we propose to store the square root of the second
+moment in Adam to decrease the needed dynamic range.
+Others have more of an engineering flavor, e.g. reordering
+arithmetic operations, but are nonetheless crucially needed
+for performant agents.
+We experimentally verify that with these methods it is possible to train SAC agents in low precision with comparable
+performance to full-precision agents, thus demonstrating
+the feasibility of low-precision RL. We further benchmark
+compute time and memory consumption and find dramatic
+improvements in both aspects. We perform experiments
+on RL from both environment state representations and
+pixel observations, and also perform ablation experiments
+and simulate various numerical formats with qtorch (Zhang
+et al., 2019). Finally, we release our code to encourage
+future work on RL in low precision. Debugging numerical
+
+

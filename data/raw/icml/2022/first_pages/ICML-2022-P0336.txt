@@ -1,0 +1,80 @@
+Retrieval Augmented Reinforcement Learning
+
+Anirudh Goyal 1 Abram L. Friesen * 2 Theophane Weber * 2 Andrea Banino * 2 Nan Rosemary Ke * 2
+Adria Puigdomenech Badia 2 Arthur Guez 2 Mehdi Mirza 2 Peter C. Humphreys 2 Ksenia Konyushkova 2
+Laurent Sifre 2 Michal Valko 2 Simon Osindero 2 Timothy Lillicrap 2 Nicolas Heess 2 Charles Blundell 2
+
+Abstract
+Most deep reinforcement learning (RL) algorithms distill experience into parametric behavior
+policies or value functions via gradient updates.
+While effective, this approach has several disadvantages: (1) it is computationally expensive, (2)
+it can take many updates to integrate experiences
+into the parametric model, (3) experiences that are
+not fully integrated do not appropriately influence
+the agent’s behavior, and (4) behavior is limited
+by the capacity of the model. In this paper we
+explore an alternative paradigm in which we train
+a network to map a dataset of past experiences to
+optimal behavior. Specifically, we augment an RL
+agent with a retrieval process (parameterized as a
+neural network) that has direct access to a dataset
+of experiences. This dataset can come from the
+agent’s past experiences, expert demonstrations,
+or any other relevant source. The retrieval process is trained to retrieve information from the
+dataset that may be useful in the current context,
+to help the agent achieve its goal faster and more
+efficiently. The proposed method facilitates learning agents that at test time can condition their
+behavior on the entire dataset and not only the current state, or current trajectory. We integrate our
+method into two different RL agents: an offline
+DQN agent and an online R2D2 agent. In offline
+multi-task problems, we show that the retrievalaugmented DQN agent avoids task interference
+and learns faster than the baseline DQN agent. On
+Atari, we show that retrieval-augmented R2D2
+learns significantly faster than the baseline R2D2
+agent and achieves higher scores. We run extensive ablations to measure the contributions of the
+components of our proposed method.
+*
+
+1
+Equal contribution
+Mila, Université de Montréal
+DeepMind. Correspondence to: Anirudh Goyal <anirudhgoyal9119@gmail.com>.
+2
+
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+1. Introduction
+A host is preparing a holiday meal for friends. They remember that the last time they went to the grocery store
+during the holiday season, all of the fresh produce was sold
+out. Thinking back to this past experience, they decide to
+go early! The hypothetical host is employing case-based
+reasoning (e.g., Kolodner, 1992; Leake, 1996). Here, an
+agent recalls a situation similar to the current one and uses
+information from the previous experience to solve the current task. This may involve adapting old solutions to meet
+new demands, or using previous experiences to make sense
+of new situations.
+In contrast, a dominant paradigm in modern reinforcement
+learning (RL) is to learn general purpose behaviour rules
+from the agent’s past experience. These rules are typically
+represented in the weights of a parametric policy or value
+function network model. Most deep RL algorithms integrate
+information across trajectories by iteratively updating network parameters using gradients that are computed along
+individual trajectories (collected online or stored in an experience replay dataset, Lin, 1992). For example, many
+off-policy algorithms reuse past experience by “replaying”
+trajectory snippets in order to compute weight updates for a
+value function represented by a deep network (Ernst et al.,
+2005; Riedmiller, 2005; Mnih et al., 2015b; Heess et al.,
+2015; Lillicrap et al., 2015).
+This paradigm has clear advantages but at least two interrelated limitations. First, after learning, an agent’s past
+experiences no longer play a direct role in the agent’s behavior, even if they are relevant to the current situation.
+This occurs because detailed information in the agent’s past
+experience is lost due to practical constraints on network
+capacity. Second, since the information provided by individual trajectories first needs to be distilled into a general
+purpose parametric rule, an agent may not be able to exploit the specific guidance that a handful of individual past
+experiences could provide, nor rapidly incorporate novel
+experience that becomes available—it may take many replays through related traces in the past experiences for this
+to occur (Weisz et al., 2021).
+In this work, we develop an algorithm that overcomes these
+
+

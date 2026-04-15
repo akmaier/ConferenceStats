@@ -1,0 +1,78 @@
+Offline Reinforcement Learning
+with Fisher Divergence Critic Regularization
+
+Ilya Kostrikov 1 2 Jonathan Tompson 2 Rob Fergus 1 3 Ofir Nachum 2
+
+Abstract
+Many modern approaches to offline Reinforcement Learning (RL) utilize behavior regularization, typically augmenting a model-free actor
+critic algorithm with a penalty measuring divergence of the policy from the offline data. In this
+work, we propose an alternative approach to encouraging the learned policy to stay close to the
+data, namely parameterizing the critic as the logbehavior-policy, which generated the offline data,
+plus a state-action value offset term, which can
+be learned using a neural network. Behavior regularization then corresponds to an appropriate regularizer on the offset term. We propose using a
+gradient penalty regularizer for the offset term
+and demonstrate its equivalence to Fisher divergence regularization, suggesting connections to
+the score matching and generative energy-based
+model literature. We thus term our resulting algorithm Fisher-BRC (Behavior Regularized Critic).
+On standard offline RL benchmarks, Fisher-BRC
+achieves both improved performance and faster
+convergence over existing state-of-the-art methods.1
+
+1. Introduction
+Reinforcement learning (RL) describes the field of machine
+learning concerned with learning a policy to solve a task
+through stochastic trial-and-error experience in an environment. The default setting typically assumed in RL is of
+online access to the environment; i.e., the learned policy
+may collect new trial-and-error experience directly from
+the environment. However, in many practical scenarios,
+1
+
+New York University, USA 2 Google Research, USA
+Google DeepMind, USA. Correspondence to: Ilya Kostrikov
+<kostrikov@cs.nyu.edu>.
+
+where deploying a new policy to interact with the live environment is expensive or associated with risks or safety
+concerns (Thomas, 2015), it is more common to have only
+offline access to the environment. That is, the trial-and-error
+experience available for learning a task-solving policy is
+a static, offline dataset of experience collected by some
+other behavior policy. This setting is known as offline RL
+and has attracted a significant amount of interest in recent
+years (Levine et al., 2020; Lange et al., 2012).
+Many of the recent approaches to offline RL utilize some
+form of behavior regularization, in which the learned policy
+is compelled to stay close to the data-generating behavior
+policy (Wu et al., 2019). For example, in model-free actor critic algorithms, behavior regularization is typically
+done by augmenting the actor loss with a penalty measuring the divergence of the learned policy from the behavior
+policy (Jaques et al., 2019; Kumar et al., 2019; Wu et al.,
+2019), reminiscent of KL-control methods in related literature (Kappen et al., 2012; Jaques et al., 2017). While
+straightforward, a disadvantage of this approach is that it
+does little to regularize the critic itself, and thus, it is common for the critic to take on wildly extrapolated values on
+actions unseen in the training data, which may dominate any
+behavior regularization applied to the actor, as we demonstrate in this work.
+In this work, we propose an alternative approach to encouraging the learned policy to stay close to the offline data.
+Focusing on the critic, we propose parameterizing the critic
+values as the logits of the behavior policy plus an additional
+offset term. When the actor (the learned policy) is then
+trained to choose actions which maximize the critic value,
+it will be compelled to stay close to the behavior policy
+as long as the offset term is suitably ‘small’. Thus, behavior regularization in this setting corresponds to augmenting
+the standard Bellman error critic loss with an appropriate
+regularization on the offset term.
+
+3
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+1
+Code to reproduce our results is available at
+https://github.com/google-research/
+google-research/tree/master/fisher_brc.
+
+What should this regularization term be? After noting that,
+in continuous control, the offset term’s effect on the learned
+policy is via the gradients of the offset with respect to actions, we propose regularizing the offset term with a gradient
+penalty. While this may appear heuristic at first, we present
+mathematical derivations establishing a connection between
+
+

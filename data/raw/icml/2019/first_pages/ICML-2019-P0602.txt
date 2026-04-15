@@ -1,0 +1,79 @@
+Learning Optimal Linear Regularizers
+
+Matthew Streeter 1
+
+Abstract
+We present algorithms for efficiently learning regularizers that improve generalization. Our approach is based on the insight that regularizers
+can be viewed as upper bounds on the generalization gap, and that reducing the slack in the
+bound can improve performance on test data. For
+a broad class of regularizers, the hyperparameters
+that give the best upper bound can be computed using linear programming. Under certain Bayesian
+assumptions, solving the LP lets us “jump” to the
+optimal hyperparameters given very limited data.
+This suggests a natural algorithm for tuning regularization hyperparameters, which we show to be
+effective on both real and synthetic data.
+
+1. Introduction
+Most machine learning models are obtained by minimizing
+a loss function, but optimizing the training loss is rarely the
+ultimate goal. Instead, the model is ultimately judged based
+on information that is unavailable during training, such as
+performance on held-out test data. The ultimate value of a
+model therefore depends critically on the loss function one
+chooses to minimize.
+Traditional loss functions used in statistical learning are
+the sum of two terms: the empirical training loss and a
+regularization penalty. A common regularization penalty is
+the `1 or `2 norm of the model parameters. More recently, it
+has become common to regularize implicitly by perturbing
+the examples, as in dropout (Srivastava et al., 2014), or
+perturbing the labels, as in label smoothing (Szegedy et al.,
+2016), or by modifying the training algorithm, as in early
+stopping (Caruana et al., 2001).
+The best choice of regularizer is usually not obvious a priori.
+Typically one chooses a regularizer that has worked well
+on similar problems, and then fine-tunes it by searching for
+the hyperparameter values that give the best performance
+1
+
+Google Research. Correspondence to: Matthew Streeter
+<mstreeter@google.com>.
+Proceedings of the 36 th International Conference on Machine
+Learning, Long Beach, California, PMLR 97, 2019. Copyright
+2019 by the author(s).
+
+on a held-out validation set. Though this approach can be
+effective, it tends to require a large number of training runs,
+and to mitigate this the number of hyperparameters must be
+kept fairly small in practice.
+In this work, we seek to recast the problem of choosing regularization hyperparameters as a supervised learning problem
+which can be solved more efficiently than is possible with
+a purely black-box approach. Specifically, we show that
+the optimal regularizer is by definition the one that provides
+the tightest possible bound on the generalization gap (i.e.,
+difference between test and training loss), for a suitable notion of “tightness”. We then present an algorithm that can
+find approximately optimal regularization hyperparameters
+efficiently via linear programming. Our method applies to
+explicit regularizers such as L2, but also in an approximate
+way to implicit regularizers such as dropout.
+Our algorithm takes as input a small set of models for which
+we have computed both training and validation loss, and
+produces a set of recommended regularization hyperparameters as output. Under certain Bayesian assumptions, we
+show that our algorithm returns the optimal regularization
+hyperparameters, requiring data from as few as two training
+runs as input. Building on this linear programming algorithm, we present a hyperparameter tuning algorithm and
+show that it outperforms state-of-the-art alternatives on real
+problems where these assumptions do not hold.
+1.1. Definitions and Notation
+We consider a general learning problem with an arbitrary
+loss function. Our goal is to choose a model θ from a set
+Θ, so as to minimize the expected value of a non-negative
+loss `(z, θ), where z is an example drawn from an unknown
+distribution D. That is, we wish to minimize
+L(θ) = Ez∼D [`(z, θ)] .
+In a typical supervised learning problem, θ is a parameter
+vector, z is a (feature vector, label) pair, and ` is a loss function such as log loss or squared error. In an unsupervised
+problem, z might be an unlabeled image or a text fragment.
+We assume as input a set {zi | 1 ≤ i ≤ n} of training examples. Where noted, we assume each zi is sampled indepen-
+
+

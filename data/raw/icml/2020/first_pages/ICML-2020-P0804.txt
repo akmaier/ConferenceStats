@@ -1,0 +1,83 @@
+Lookahead-Bounded Q-Learning
+
+Ibrahim El Shar 1 Daniel R. Jiang 1
+
+Abstract
+We introduce the lookahead-bounded Q-learning
+(LBQL) algorithm, a new, provably convergent
+variant of Q-learning that seeks to improve the
+performance of standard Q-learning in stochastic
+environments through the use of “lookahead” upper and lower bounds. To do this, LBQL employs
+previously collected experience and each iteration’s state-action values as dual feasible penalties to construct a sequence of sampled information relaxation problems. The solutions to
+these problems provide estimated upper and lower
+bounds on the optimal value, which we track via
+stochastic approximation. These quantities are
+then used to constrain the iterates to stay within
+the bounds at every iteration. Numerical experiments on benchmark problems show that LBQL
+exhibits faster convergence and more robustness
+to hyperparameters when compared to standard
+Q-learning and several related techniques. Our
+approach is particularly appealing in problems
+that require expensive simulations or real-world
+interactions.
+
+1
+
+Introduction
+
+Since its introduction by Watkins (1989), Q-learning has
+become one of the most widely-used reinforcement learning
+(RL) algorithms (Sutton & Barto, 2018), due to its conceptual simplicity, ease of implementation, and convergence
+guarantees (Jaakkola et al., 1994; Tsitsiklis, 1994; Bertsekas
+& Tsitsiklis, 1996). However, practical, real-world applications of Q-learning are diffcult due to the often high cost of
+obtaining data and experience from real environments, along
+with other issues such as overestimation bias (Szepesvári,
+1998; Even-Dar & Mansour, 2003; Lee & Powell, 2019).
+In this paper, we address these challenges for a specifc
+class of problems with partially known transition models.
+We write the system dynamics as st+1 = f (st , at , wt+1 ),
+1
+Department of Industrial Engineering, University of Pittsburgh,
+PA, USA. Correspondence to: Ibrahim El Shar <ije8@pitt.edu>.
+
+Proceedings of the 37 th International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+where st and at are the current state and action, st+1 is the
+next state, wt+1 is random noise, and f is the transition
+function. We focus on problems where f is known, but the
+noise wt+1 can only be observed through interactions with
+the environment. This type of model is the norm in the control (Bertsekas & Tsitsiklis, 1996) and operations research
+(Powell, 2007) communities. In this work, we propose
+and analyze a new RL algorithm called lookahead-bounded
+Q-learning (LBQL), which exploits knowledge of the transition function f to improve the effciency of Q-learning and
+address overestimation bias. It does so by making better use
+of the observed data through estimating upper and lower
+bounds using a technique called information relaxation (IR)
+(Brown et al., 2010).
+Indeed, there are abundant real-world examples that fall into
+this subclass of problems, as we now illustrate with a few
+examples. In inventory control, the transition from one inventory state to the next is a well-specifed function f given
+knowledge of a stochastic demand wt+1 (Kunnumkal &
+Topaloglu, 2008). For vehicle routing, f is often simply the
+routing decision itself, while wt+1 are exogenous demands
+that require observation (Secomandi, 2001). In energy operations, a typical setting is to optimize storage that behaves
+through linear transitions f together with unpredictable renewable supply, wt+1 (Kim & Powell, 2011). In portfolio
+optimization, f is the next portfolio, and wt+1 represents
+random prices (Rogers, 2002). In Section 5 of this paper,
+we discuss in detail another application domain that follows
+this paradigm: repositioning and spatial dynamic pricing
+for car sharing (He et al., 2019; Bimpikis et al., 2019).
+Although we specialize to problems with partially known
+transition dynamics, this should not be considered restrictive: in fact, our proposed algorithm can be integrated with
+the framework of model-based RL to handle the standard
+model-free RL setting, where f is constantly being learned.
+We leave this extension to future work.
+Main Contributions. We make the following methodological and empirical contributions in this paper.
+1. We propose a novel algorithm that takes advantage
+of IR theory and Q-learning to generate upper and
+lower bounds on the optimal value. This allows our
+algorithm to mitigate the effects of maximization bias,
+while making better use of the collected experience and
+
+

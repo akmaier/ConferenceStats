@@ -1,0 +1,82 @@
+On Breaking Deep Generative Model-based Defenses and Beyond
+
+Yanzhi Chen 1 Renjie Xie 2 Zhanxing Zhu 3
+
+Abstract
+Deep neural networks have been proven to be
+vulnerable to the so-called adversarial attacks.
+Recently there have been efforts to defend such
+attacks with deep generative models. These defenses often predict by inverting the deep generative models rather than simple feedforward propagation. Such defenses are difficult to attack due
+to the obfuscated gradients caused by inversion.
+In this work, we propose a new white-box attack
+to break these defenses. The idea is to view the
+inversion phase as a dynamical system, through
+which we extract the gradient w.r.t the image by
+backtracking its trajectory. An amortized strategy
+is also developed to accelerate the attack. Experiments show that our attack better breaks stateof-the-art defenses (e.g DefenseGAN, ABS) than
+other attacks (e.g BPDA). Additionally, our empirical results provide insights for understanding the
+weaknesses of deep generative model defenses.
+
+1. Introduction
+How to make deep neural network (DNN) more robust?
+This has been a hot research problem with a long history
+and has been recently re-emphasized due to the discovery
+of adversarial samples (Szegedy et al., 2014; Goodfellow
+et al., 2014). In short, adversarial samples are synthetic images that are perceptually similar to natural images, but can
+dramatically yield sub-optimal or even completely wrong
+decisions in a DNN. Such samples clearly reflect the frangibility of DNN and call for robustification solutions.
+Many efforts have been devoted to defend DNN from adversarial samples. This includes regularization (Lyu et al.,
+2015; Ross & Doshi-Velez, 2018; Zhang et al., 2019), adversarial training (Goodfellow et al., 2014; Madry et al.,
+1
+School of Informatics, The University of Edinburgh, UK
+School of Information Engineering, Southeast University, China
+3
+School of Mathematical Sciences, Peking University, China. Correspondence to: Zhanxing Zhu <zhanxing.zhu@pku.edu.cn>.
+2
+
+th
+
+Proceedings of the 37 International Conference on Machine
+Learning, Online, PMLR 119, 2020. Copyright 2020 by the author(s).
+
+2018), feature denoising (Liao et al., 2018; Xie et al., 2019),
+randomized smoothing (Salman et al., 2019; Cohen et al.,
+2019), etc. Recently, a new line of research has focused on
+the use of deep generative model in defense (Samangouei
+et al., 2018; Schott et al., 2019; Ghosh et al., 2019). These
+defenses do not perform prediction by feedforward propagation. Rather, they first invert the generative model G to find
+the most plausible latent representation z∗ that could have
+generated the image x (e.g by solving an optimization problem), then use z∗ to predict. Compared to other defenses,
+deep generative model-based defenses are attractive as they
+provide a natural way to realize the on-manifold conjecture.
+However, they also bring new challenges to how to correctly
+evaluate their robustness, as the gradients in these defenses
+are obfuscated (Athalye et al., 2018) due to the inversion.
+In this work, we propose a new white-box attack to break
+deep generative model-based defenses. We find that existing
+attacks for breaking these defenses like Backward Pass Differential Approximation (BPDA, (Athalye et al., 2018)) are
+indeed sub-optimal and might overestimate the robustness.
+We then develop a new attack based on a novel gradient
+estimation mechanism. Our contributions are two-folds:
+• We develop a new white-box attack for breaking deep
+generative model defenses. Compared to BPDA, our
+attack can find adversarial samples with lower distortion
+and higher efficiency. Our attack can be applied to a
+wide range of deep generative model defenses including
+DefenseGAN (Samangouei et al., 2018), ABS (Schott
+et al., 2019) and (Ghosh et al., 2019; Lin et al., 2019).
+• With our attack, we also analyze factors that cause deep
+generative model defenses to fail. For example, we find
+that there are ‘holes’ in the latent space of these defenses
+that can generate samples outside of the data distribution
+or even belonging to unseen classes, which make them
+vulnerable. The detection of these holes are difficult. We
+also provide some suggestions to improve these defenses.
+
+2. Background
+Throughout this paper, we denote the normal image by
+x ∈ X , the class label by y ∈ Y and the classifier by F :
+X 7→ Y. In this work, we mainly consider the case where
+the classifier F (or part of F ) is a deep neural network.
+
+

@@ -1,0 +1,73 @@
+Dropout Inference in Bayesian Neural Networks with Alpha-divergences
+
+Yingzhen Li 1 Yarin Gal 1 2
+
+Abstract
+To obtain uncertainty estimates with real-world
+Bayesian deep learning models, practical inference approximations are needed. Dropout variational inference (VI) for example has been used
+for machine vision and medical applications,
+but VI can severely underestimates model uncertainty. Alpha-divergences are alternative divergences to VI’s KL objective, which are able
+to avoid VI’s uncertainty underestimation. But
+these are hard to use in practice: existing techniques can only use Gaussian approximating distributions, and require existing models to be
+changed radically, thus are of limited use for
+practitioners. We propose a re-parametrisation
+of the alpha-divergence objectives, deriving a
+simple inference technique which, together with
+dropout, can be easily implemented with existing models by simply changing the loss of the
+model. We demonstrate improved uncertainty estimates and accuracy compared to VI in dropout
+networks. We study our model’s epistemic uncertainty far away from the data using adversarial
+images, showing that these can be distinguished
+from non-adversarial images by examining our
+model’s uncertainty.
+
+1. Introduction
+Deep learning models have been used to obtain state-ofthe-art results on many tasks (Krizhevsky et al., 2012;
+Szegedy et al., 2014; Sutskever et al., 2014; Sundermeyer
+et al., 2012; Mikolov et al., 2010; Kalchbrenner & Blunsom, 2013), and in many pipelines these models have replaced the more traditional Bayesian probabilistic models
+(Sennrich et al., 2016). But unlike deep learning models,
+Bayesian probabilistic models can capture parameter uncertainty and its induced effects over predictions, capturing
+the models’ ignorance about the world, and able to convey
+their increased uncertainty on out-of-data examples. This
+1
+University of Cambridge, UK 2 The Alan Turing Institute,
+UK. Correspondence to: Yingzhen Li <yl494@cam.ac.uk>.
+
+Proceedings of the 34 th International Conference on Machine
+Learning, Sydney, Australia, PMLR 70, 2017. Copyright 2017
+by the author(s).
+
+information can be used, for example, to identify when a vision model is given an adversarial image (studied below),
+or to tackle many problems in AI safety (Amodei et al.,
+2016). With model uncertainty at hand, applications as farreaching as safety in self-driving cars can be explored, using models which can propagate their uncertainty up the
+decision making pipeline (Gal, 2016). With deterministic
+deep learning models this invaluable uncertainty information is often lost.
+Bayesian deep learning – an approach to combining
+Bayesian probability theory together with deep learning –
+allows us to use state-of-the-art models and at the same
+time obtain model uncertainty (Gal, 2016; Gal & Ghahramani, 2016a). Originating in the 90s (Neal, 1995; MacKay,
+1992; Denker & LeCun, 1991), Bayesian neural networks
+(BNNs) in particular have started gaining in popularity
+again (Graves, 2011; Blundell et al., 2015; HernandezLobato & Adams, 2015). BNNs are standard neural networks (NNs) with prior probability distributions placed
+over their weights. Given observed data, inference is
+then performed to find what are the more likely and less
+likely weights to explain the data. But as easy it is to
+formulate BNNs, is as difficult to perform inference in
+them. Many approximations have been proposed over the
+years (Denker & LeCun, 1991; Neal, 1995; Graves, 2011;
+Blundell et al., 2015; Hernandez-Lobato & Adams, 2015;
+Hernández-Lobato et al., 2016), some more practical and
+some less practical. A practical approximation for inference in Bayesian neural networks should be able to scale
+well to large data and complex models (such as convolutional neural networks (CNNs) (Rumelhart et al., 1985;
+LeCun et al., 1989)). Much more importantly perhaps, it
+would be impractical to change existing model architectures that have been well studied, and it is often impractical
+to work with complex and cumbersome techniques which
+are difficult to explain to non-experts. Many existing approaches to obtain model confidence often do not scale to
+complex models or large amounts of data, and require us to
+develop new models for existing tasks for which we already
+have well performing tools (Gal, 2016).
+One possible solution for practical inference in BNNs is
+variational inference (VI) (Jordan et al., 1999), a ubiquitous
+technique for approximate inference. Dropout variational
+distributions in particular (a mixture of two Gaussians with
+
+

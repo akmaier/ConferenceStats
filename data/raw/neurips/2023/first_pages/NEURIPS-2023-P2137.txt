@@ -1,0 +1,53 @@
+Training Transformers with 4-bit Integers
+
+Haocheng Xi2∗ , Changhao Li1 , Jianfei Chen1† , and Jun Zhu1
+Dept. of Comp. Sci. and Tech., Institute for AI, BNRist Center, THBI Lab,
+Tsinghua-Bosch Joint ML Center, Tsinghua University
+2
+Institute for Interdisciplinary Information Sciences, Tsinghua University
+{xihc20,lichangh20}@mails.tsinghua.edu.cn, {jianfeic,dcszj}@tsinghua.edu.cn
+1
+
+Abstract
+Quantizing the activation, weight, and gradient to 4-bit is promising to accelerate
+neural network training. However, existing 4-bit training methods require custom
+numerical formats which are not supported by contemporary hardware. In this
+work, we propose a training method for transformers with all matrix multiplications
+implemented with the INT4 arithmetic. Training with an ultra-low INT4 precision
+is challenging. To achieve this, we carefully analyze the specific structures of activation and gradients in transformers to propose dedicated quantizers for them. For
+forward propagation, we identify the challenge of outliers and propose a Hadamard
+quantizer to suppress the outliers. For backpropagation, we leverage the structural sparsity of gradients by proposing bit splitting and leverage score sampling
+techniques to quantize gradients accurately. Our algorithm achieves competitive accuracy on a wide range of tasks including natural language understanding, machine
+translation, and image classification. Unlike previous 4-bit training methods, our
+algorithm can be implemented on the current generation of GPUs. Our prototypical
+linear operator implementation is up to 2.2 times faster than the FP16 counterparts
+and speeds up the training by 17.8% on average for sufficiently large models. Our
+code is available at https://github.com/xijiu9/Train_Transformers_with_INT4.
+
+1
+
+Introduction
+
+Training neural networks is computationally demanding. Training with low-precision arithmetic
+(a.k.a., fully quantized training or FQT) is promising to improve computational and memory efficiency.
+FQT methods add some quantizers and dequantizers in the original full-precision computational
+graph, and replace expensive floating-point operations with cheap low-precision ones.
+Research in FQT aims to reduce the training numerical precision, without sacrificing much convergence speed or accuracy. The required numerical precision has been reduced from FP16 [33] to
+FP8 [54, 46], INT32+INT8 [3] and INT8+INT5 [7]. FP8 training is implemented in Nvidia’s H100
+GPU with Transformer Engine [35], achieving impressive speedup for the training of large-scale
+transformers. Recently, the training numerical precision has been pushed down to 4 bits. Sun et
+al. [47] successfully trained several modern networks with INT4 activation/weights and FP4 gradients;
+and Chmiel et al. [8] propose a custom 4-bit logarithmic numerical format to further improve the
+accuracy. However, these 4-bit training methods cannot be directly utilized for acceleration as they
+require custom numerical formats that are not supported on contemporary hardware.
+There are significant optimization challenges to train neural networks at an extremely low 4-bit level.
+First, the non-differentiable quantizers in forward propagation make the loss landscape rugged, where
+gradient-based optimizers can easily stuck at local optima [31]. Second, gradients are only computed
+* This work was done during an internship in the Department of Computer Science and Technology, Tsinghua
+University
+†
+Corresponding author.
+
+37th Conference on Neural Information Processing Systems (NeurIPS 2023).
+
+

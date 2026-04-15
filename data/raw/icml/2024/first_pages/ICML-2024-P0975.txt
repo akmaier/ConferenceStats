@@ -1,0 +1,81 @@
+Scaling Beyond the GPU Memory Limit
+for Large Mixture-of-Experts Model Training
+
+Yechan Kim * 1 Hwijoon Lim * 2 Dongsu Han 1 2
+
+Abstract
+
+Parameters in MoE models can easily exceed billions, requiring a significant amount of memory for training. To train
+such models, expert parallelism (Fedus et al., 2022; Lepikhin et al., 2020) has become a de facto standard, wherein
+each GPU exclusively handles one or more experts. This
+assigns experts across GPUs while replicating non-expert
+parameters on each GPU, allowing multiple experts to run
+concurrently within a single GPU.
+
+Mixture-of-Experts (MoE) is a powerful technique for enhancing the performance of neural
+networks while decoupling computational complexity from the number of parameters. However, despite this, scaling the number of experts
+requires adding more GPUs. In addition, the load
+imbalance in token load across experts causes unnecessary computation or straggler problems. We
+present ES-MoE, a novel method for efficient scaling MoE training. It offloads expert parameters
+to host memory and leverages pipelined expert
+processing to overlap GPU-CPU communication
+with GPU computation. It dynamically balances
+token loads across GPUs, improving computational efficiency. ES-MoE accelerates MoE training on a limited number of GPUs without degradation in model performance. We validate our
+approach on GPT-based MoE models, demonstrating 67× better scalability and up to 17.5× better
+throughput over existing frameworks.1
+
+1
+
+Recent research has been pushing MoE models beyond 128
+experts to improve model accuracy (Puigcerver et al., 2023;
+Clark et al., 2022; Koishekenov et al., 2022; Rajbhandari
+et al., 2022; Fedus et al., 2022). However, scaling MoE
+models requires additional GPUs due to the increased memory footprint, even though the computational complexity
+remains the same. Thus, existing solutions for training large
+MoE models (e.g., FairSeq, DeepSpeed-MoE, Tutel) demand a large array of GPUs, limiting the ability of many
+researchers to train or even refine these models. For example, training MoE-L with 8 experts is feasible with four
+A100 GPUs, but scaling it to 128 experts demands 52 GPUs,
+which is a significant hurdle to most academic researchers.
+To address the problem, ES-MoE improves the scalability of MoE models beyond the GPU memory limit and
+enhances the training efficiency of large MoE models. It
+is the first work to target the settings where the memory
+footprint of MoE expert models exceeds the GPU memory
+capacity. Our approach involves offloading expert parameters and optimizer states to the host, which reduces the
+GPU memory footprint, allowing it to process larger minibatches within limited GPU memory for greater throughput.
+It facilitates the flexible assignment of experts to GPUs, providing the chance to balance the computational load across
+GPUs. However, realizing the idea involves handling new
+challenges:
+
+Introduction
+
+Mixture-of-Experts (MoE) (Shazeer et al., 2017; Du et al.,
+2022; Riquelme et al., 2021; Jiang et al., 2023) integrate
+multiple smaller sub-models or “experts” within a comprehensive ensemble model. The key enabling factor behind
+their success lies in the incorporation of learnable gating
+networks, which efficiently allocate input tokens to different
+experts. It improves the performance and scalability of models without increasing the computational complexity (Clark
+et al., 2022; Hwang et al., 2022), effectively decoupling the
+computational cost from the parameter size.
+*
+Equal contribution 1 Kim Jaechul Graduate School of AI,
+KAIST, Daejeon, Republic of Korea 2 School of Electrical Engineering, KAIST, Daejeon, Republic of Korea. Correspondence
+to: Dongsu Han <dhan.ee@kaist.ac.kr>.
+
+• Unlike traditional systems in which an expert is statically
+assigned to a GPU, ES-MoE adopts dynamic scheduling
+wherein experts are placed on GPUs based on the output
+of the gating network. This prevents prefetching the
+experts onto GPUs, potentially causing the pipeline stalls.
+• With optimizer states stored in CPU memory, transferring
+them back to GPU is expensive. Thus, model optimization must operate on the CPU, which takes more time.
+
+Proceedings of the 41 st International Conference on Machine
+Learning, Vienna, Austria. PMLR 235, 2024. Copyright 2024 by
+the author(s).
+1
+The source code is available at https://github.com
+/kaist-ina/es-moe.
+
+1
+
+

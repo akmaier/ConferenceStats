@@ -1,0 +1,74 @@
+PLATON: Pruning Large Transformer Models with
+Upper Confidence Bound of Weight Importance
+
+Qingru Zhang 1 Simiao Zuo 1 Chen Liang 1 Alexander Bukharin 1
+Pengcheng He 2 Weizhu Chen 2 Tuo Zhao 1
+
+Abstract
+Large Transformer-based models have exhibited
+superior performance in various natural language
+processing and computer vision tasks. However, these models contain enormous amounts
+of parameters, which restrict their deployment
+to real-world applications. To reduce the model
+size, researchers prune these models based on the
+weights’ importance scores. However, such scores
+are usually estimated on mini-batches during training, which incurs large variability/uncertainty due
+to mini-batch sampling and complicated training
+dynamics. As a result, some crucial weights could
+be pruned by commonly used pruning methods
+because of such uncertainty, which makes training unstable and hurts generalization. To resolve
+this issue, we propose PLATON, which captures
+the uncertainty of importance scores by upper
+confidence bound (UCB) of importance estimation. In particular, for the weights with low importance scores but high uncertainty, PLATON
+tends to retain them and explores their capacity.
+We conduct extensive experiments with several
+Transformer-based models on natural language
+understanding, question answering and image
+classification to validate the effectiveness of PLATON. Results demonstrate that PLATON manifests notable improvement under different sparsity
+levels. Our code is publicly available at https:
+//github.com/QingruZhang/PLATON.
+
+1. Introduction
+Large Transformer-based models have exhibited superior
+performance in various tasks, such as natural language pro1
+
+Georgia Institute of Technology, Atlanta, USA 2 Microsoft
+Azure AI, Bellevue, USA. Correspondence to: Qingru Zhang <qingru.zhang@gatech.edu>, Tuo Zhao <tourzhao@gatech.edu>.
+Proceedings of the 39 th International Conference on Machine
+Learning, Baltimore, Maryland, USA, PMLR 162, 2022. Copyright 2022 by the author(s).
+
+cessing (Devlin et al., 2019; Liu et al., 2019b; He et al.,
+2021b; Radford et al., 2019; Brown et al., 2020) and computer vision (Dosovitskiy et al., 2020). These models advance start-of-the-art results in natural language understanding (e.g, GLUE, Wang et al. 2019), question answering (e.g.
+SQuAD, Rajpurkar et al. 2016b) and image classification
+(e.g., ImageNet, Deng et al. 2009). However, they typically
+incur massive memory footprint, e.g., BERT models (Devlin
+et al., 2019) contain up to 345 million parameters; Vision
+transformer models (ViT, Dosovitskiy et al. 2020) consist
+of up to 300 million parameters and GPT-3 models (Brown
+et al., 2020) comprise up to 175 billion parameters. Consequently, it becomes very challenging and expensive to
+deploy these models to real-world applications due to memory and energy consumption requirements. Moreover, these
+models’ significant inference latency raises a barrier for their
+practicality, especially for high throughput environments
+such as e-commerce search platforms.
+Confronting the abovementioned challenges, pruning methods are widely applied at only a small expense of model
+performance. These methods prune the parameters based
+on certain importance scores to significantly reduce model
+sizes (Han et al., 2015b; 2016; Zhu & Gupta, 2018). Popular
+importance scores are based on the parameters’ magnitude
+(Han et al., 2015b;a; Paganini & Forde, 2020) or sensitivity
+(Molchanov et al., 2017; 2019; Ding et al., 2019; Sanh et al.,
+2020; Liang et al., 2021). Parameters with low importance
+scores are considered redundant and expected to be pruned.
+Existing pruning methods mainly fall into two categories:
+one-shot pruning (Lee et al., 2019; Frankle & Carbin, 2019;
+Chen et al., 2020; Liang et al., 2021; Zafrir et al., 2021) and
+iterative pruning (Han et al., 2015b; Zhu & Gupta, 2018;
+Paganini & Forde, 2020; Louizos et al., 2018; Sanh et al.,
+2020). One-shot pruning specifies the sparsity pattern of a
+fully-trained dense model based on the weights’ importance
+scores, and then trains a sparse model via “rewinding” (i.e.,
+prune the fully-trained model and then re-train the pruned
+model). Such an approach has been widely utilized in exploring the Lottery Ticket Hypothesis (Frankle & Carbin,
+2019; Chen et al., 2020; Liang et al., 2021). However, determining the sparsity pattern based on fully-trained models
+
+

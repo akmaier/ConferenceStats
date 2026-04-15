@@ -1,0 +1,67 @@
+Asynchronous SGD Beats Minibatch SGD
+Under Arbitrary Delays
+
+Konstantin Mishchenko
+
+Francis Bach
+
+Mathieu Even
+
+Blake Woodworth
+
+DI ENS, Ecole normale supérieure,
+Université PSL, CNRS, INRIA
+75005 Paris, France
+
+Abstract
+The existing analysis of asynchronous stochastic gradient descent (SGD) degrades
+dramatically when any delay is large, giving the impression that performance
+depends primarily on the delay. On the contrary, we prove much better guarantees
+for the same asynchronous SGD algorithm regardless of the delays in the gradients,
+depending instead just on the number of parallel devices used to implement the
+algorithm. Our guarantees are strictly better than the existing analyses, and we
+also argue that asynchronous SGD outperforms synchronous minibatch SGD in the
+settings we consider. For our analysis, we introduce a novel recursion based on
+“virtual iterates” and delay-adaptive stepsizes, which allow us to derive state-of-theart guarantees for both convex and non-convex objectives.
+
+1
+
+Introduction
+
+We consider solving stochastic optimization problems of the form
+minx∈Rd {F (x) := Eξ∼D f (x; ξ)},
+
+(1)
+
+which includes machine learning (ML) training objectives, where f (x; ξ) represents the loss of a
+model parameterized by x on the datum ξ. Depending on the application, D could represent a
+finite dataset of size n or a population distribution. In recent years, such stochastic optimization
+problems have continued to grow rapidly in size, both in terms of the dimension d of the optimization
+variable—i.e., the number of model parameters in ML—and in terms of the quantity of data—i.e., the
+number of samples ξ1 , . . . , ξn ∼ D being used. With d and n regularly reaching the tens or hundreds
+of billions, it is increasingly necessary to use parallel optimization algorithms to handle the large
+scale and to benefit from data stored on different machines.
+There are many ways of employing parallelism to solve (1), but the most popular approaches in
+practice are first-order methods based on stochastic gradient descent (SGD). At each iteration, SGD
+employs stochastic estimates of ∇F to update the parameters as xk = xk−1 − γk ∇f (xk−1 ; ξk−1 )
+for an i.i.d. sample ξk−1 ∼ D. Given M machines capable of computing these stochastic gradient
+estimates ∇f (x; ξ) in parallel, one approach to parallelizing SGD is what we call “Minibatch SGD.”
+This refers to a synchronous, parallel algorithm that dispatches the current parameters xk−1 to
+each of the M machines, waits while they compute and communicate back their gradient estimates
+PM
+1
+1
+M
+m
+gk−1
+, . . . , gk−1
+, and then takes a minibatch SGD step xk = xk−1 − γk · M
+m=1 gk−1 . This is a
+natural idea with long history [16, 18, 55] and it is a commonly used in practice [e.g., 22]. However,
+since Minibatch SGD waits for all M of the machines to finish computing their gradient estimates
+before updating, it proceeds only at the speed of the slowest machine.
+There are several possible sources of delays: nodes may have heterogeneous hardware with different
+computational throughputs [23, 25], network latency can slow the communication of gradients, and
+36th Conference on Neural Information Processing Systems (NeurIPS 2022).
+
+
