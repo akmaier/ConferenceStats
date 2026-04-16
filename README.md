@@ -222,6 +222,23 @@ To run the optional local-LLM country pass yourself for one dataset:
 make llm-country CONFERENCE_SLUG=cvpr YEAR=2016
 ```
 
+For the remaining hard cases, there is also a full title-page fallback that prompts Qwen with the entire first-page text for papers that still have `UNKNOWN` countries:
+
+```bash
+make llm-title-page-country CONFERENCE_SLUG=cvpr YEAR=2016
+```
+
+That target writes:
+
+- `data/intermediate/<conference_slug>/<year>/paper_country_llm_review.csv`
+- `data/intermediate/<conference_slug>/<year>/paper_country_llm_responses.jsonl`
+
+It only applies updates to author rows whose country is still `UNKNOWN`. To probe a smaller subset first, set `TITLE_PAGE_LLM_PAPER_LIMIT`, for example:
+
+```bash
+make llm-title-page-country CONFERENCE_SLUG=icml YEAR=2017 TITLE_PAGE_LLM_PAPER_LIMIT=25
+```
+
 To fetch CVPR proceedings metadata plus PDF first pages for one year:
 
 ```bash

@@ -5,6 +5,7 @@ OUTPUT_DIR ?= output
 CONFERENCE_SLUG ?= cvpr
 YEAR ?= 2015
 LLM_MIN_CONFIDENCE ?= medium
+TITLE_PAGE_LLM_PAPER_LIMIT ?= 0
 DATASET_NORMALIZED_DIR ?= data/normalized/$(CONFERENCE_SLUG)/$(YEAR)
 DATASET_INTERMEDIATE_DIR ?= data/intermediate/$(CONFERENCE_SLUG)/$(YEAR)
 DATASET_RAW_DIR ?= data/raw/$(CONFERENCE_SLUG)/$(YEAR)
@@ -24,7 +25,7 @@ FIRST_PAGE_WORKERS ?= 4
 PROCEEDINGS_PAPER_LIMIT ?= 0
 AAAI_TRACK_LIMIT ?= 0
 
-.PHONY: validate stats overview render all llm-country icml-first-pages icml-first-pages-range icml-first-pages-range-sample icml-prepare-llm icml-llm-country neurips-first-pages neurips-first-pages-range neurips-first-pages-range-sample neurips-prepare-llm neurips-llm-country aaai-first-pages aaai-first-pages-range aaai-first-pages-range-sample aaai-prepare-llm aaai-llm-country cvpr-first-pages cvpr-first-pages-range cvpr-first-pages-range-sample cvpr-first-pages-status-range cvpr-prepare-llm cvpr-prepare-llm-range iccv-eccv-show-target iccv-eccv-first-pages iccv-eccv-first-pages-range iccv-eccv-first-pages-sample-2015-2016 iccv-eccv-first-pages-sample-remaining iccv-eccv-prepare-llm iccv-eccv-llm-country clean
+.PHONY: validate stats overview render all llm-country llm-title-page-country icml-first-pages icml-first-pages-range icml-first-pages-range-sample icml-prepare-llm icml-llm-country neurips-first-pages neurips-first-pages-range neurips-first-pages-range-sample neurips-prepare-llm neurips-llm-country aaai-first-pages aaai-first-pages-range aaai-first-pages-range-sample aaai-prepare-llm aaai-llm-country cvpr-first-pages cvpr-first-pages-range cvpr-first-pages-range-sample cvpr-first-pages-status-range cvpr-prepare-llm cvpr-prepare-llm-range iccv-eccv-show-target iccv-eccv-first-pages iccv-eccv-first-pages-range iccv-eccv-first-pages-sample-2015-2016 iccv-eccv-first-pages-sample-remaining iccv-eccv-prepare-llm iccv-eccv-llm-country clean
 
 validate:
 	$(PYTHON) scripts/validate_collection.py --input-dir "$(INPUT_DIR)"
@@ -68,6 +69,18 @@ llm-country:
 		--use-local-llm \
 		--llm-review-csv "$(DATASET_INTERMEDIATE_DIR)/author_country_llm_review.csv" \
 		--llm-min-confidence "$(LLM_MIN_CONFIDENCE)"
+
+llm-title-page-country:
+	$(PYTHON) scripts/fill_unknown_countries_from_title_page_llm.py \
+		--authors-csv "$(DATASET_NORMALIZED_DIR)/authors.csv" \
+		--paper-authors-csv "$(DATASET_NORMALIZED_DIR)/paper_authors.csv" \
+		--first-pages-dir "$(DATASET_RAW_DIR)/first_pages" \
+		--output-authors-csv "$(DATASET_NORMALIZED_DIR)/authors.csv" \
+		--output-countries-csv "$(DATASET_INTERMEDIATE_DIR)/author_countries.csv" \
+		--output-review-csv "$(DATASET_INTERMEDIATE_DIR)/paper_country_llm_review.csv" \
+		--output-jsonl "$(DATASET_INTERMEDIATE_DIR)/paper_country_llm_responses.jsonl" \
+		--min-confidence "$(LLM_MIN_CONFIDENCE)" \
+		--paper-limit "$(TITLE_PAGE_LLM_PAPER_LIMIT)"
 
 icml-first-pages:
 	url="$$( $(PYTHON) scripts/get_conference_field.py --conference-slug icml --year "$(YEAR)" --field proceedings_url )"; \
