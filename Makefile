@@ -24,7 +24,7 @@ FIRST_PAGE_WORKERS ?= 4
 PROCEEDINGS_PAPER_LIMIT ?= 0
 AAAI_TRACK_LIMIT ?= 0
 
-.PHONY: validate stats overview all llm-country icml-first-pages icml-first-pages-range icml-first-pages-range-sample icml-prepare-llm icml-llm-country neurips-first-pages neurips-first-pages-range neurips-first-pages-range-sample neurips-prepare-llm neurips-llm-country aaai-first-pages aaai-first-pages-range aaai-first-pages-range-sample aaai-prepare-llm aaai-llm-country cvpr-first-pages cvpr-first-pages-range cvpr-first-pages-range-sample cvpr-first-pages-status-range cvpr-prepare-llm cvpr-prepare-llm-range iccv-eccv-show-target iccv-eccv-first-pages iccv-eccv-first-pages-range iccv-eccv-first-pages-sample-2015-2016 iccv-eccv-first-pages-sample-remaining iccv-eccv-prepare-llm iccv-eccv-llm-country clean
+.PHONY: validate stats overview render all llm-country icml-first-pages icml-first-pages-range icml-first-pages-range-sample icml-prepare-llm icml-llm-country neurips-first-pages neurips-first-pages-range neurips-first-pages-range-sample neurips-prepare-llm neurips-llm-country aaai-first-pages aaai-first-pages-range aaai-first-pages-range-sample aaai-prepare-llm aaai-llm-country cvpr-first-pages cvpr-first-pages-range cvpr-first-pages-range-sample cvpr-first-pages-status-range cvpr-prepare-llm cvpr-prepare-llm-range iccv-eccv-show-target iccv-eccv-first-pages iccv-eccv-first-pages-range iccv-eccv-first-pages-sample-2015-2016 iccv-eccv-first-pages-sample-remaining iccv-eccv-prepare-llm iccv-eccv-llm-country clean
 
 validate:
 	$(PYTHON) scripts/validate_collection.py --input-dir "$(INPUT_DIR)"
@@ -40,10 +40,25 @@ overview:
 	$(PYTHON) scripts/build_overview_table.py \
 		--input-csv "$(OUTPUT_DIR)/country_stats.csv" \
 		--country "$(COUNTRY)" \
-		--output-csv "$(OUTPUT_DIR)/country_overview.csv" \
-		--output-md "$(OUTPUT_DIR)/country_overview.md"
+		--output-csv-all "$(OUTPUT_DIR)/country_overview_all_papers.csv" \
+		--output-md-all "$(OUTPUT_DIR)/country_overview_all_papers.md" \
+		--output-csv-known "$(OUTPUT_DIR)/country_overview_known_country_papers.csv" \
+		--output-md-known "$(OUTPUT_DIR)/country_overview_known_country_papers.md"
 
-all: stats overview
+render:
+	$(PYTHON) scripts/render_country_outputs.py \
+		--country "$(COUNTRY)" \
+		--stats-csv "$(OUTPUT_DIR)/country_stats.csv" \
+		--stats-table-png "$(OUTPUT_DIR)/country_stats_table.png" \
+		--stats-graph-png "$(OUTPUT_DIR)/country_stats_graph.png" \
+		--overview-all-csv "$(OUTPUT_DIR)/country_overview_all_papers.csv" \
+		--overview-all-table-png "$(OUTPUT_DIR)/country_overview_all_papers_table.png" \
+		--overview-all-graph-png "$(OUTPUT_DIR)/country_overview_all_papers_graph.png" \
+		--overview-known-csv "$(OUTPUT_DIR)/country_overview_known_country_papers.csv" \
+		--overview-known-table-png "$(OUTPUT_DIR)/country_overview_known_country_papers_table.png" \
+		--overview-known-graph-png "$(OUTPUT_DIR)/country_overview_known_country_papers_graph.png"
+
+all: stats overview render
 
 llm-country:
 	$(PYTHON) scripts/infer_countries.py \
@@ -352,4 +367,9 @@ iccv-eccv-llm-country:
 
 clean:
 	rm -f "$(OUTPUT_DIR)/country_stats.csv" "$(OUTPUT_DIR)/country_stats.md" \
-		"$(OUTPUT_DIR)/country_overview.csv" "$(OUTPUT_DIR)/country_overview.md"
+		"$(OUTPUT_DIR)/country_overview.csv" "$(OUTPUT_DIR)/country_overview.md" \
+		"$(OUTPUT_DIR)/country_overview_all_papers.csv" "$(OUTPUT_DIR)/country_overview_all_papers.md" \
+		"$(OUTPUT_DIR)/country_overview_known_country_papers.csv" "$(OUTPUT_DIR)/country_overview_known_country_papers.md" \
+		"$(OUTPUT_DIR)/country_stats_table.png" "$(OUTPUT_DIR)/country_stats_graph.png" \
+		"$(OUTPUT_DIR)/country_overview_all_papers_table.png" "$(OUTPUT_DIR)/country_overview_all_papers_graph.png" \
+		"$(OUTPUT_DIR)/country_overview_known_country_papers_table.png" "$(OUTPUT_DIR)/country_overview_known_country_papers_graph.png"

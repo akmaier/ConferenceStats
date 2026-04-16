@@ -23,6 +23,7 @@ The scripts assume these command-line tools are available:
 - `make`
 - `curl`
 - `pdftotext`
+- `matplotlib` for PNG table/graph rendering
 
 On macOS with Homebrew, install the non-Python tools with:
 
@@ -50,11 +51,17 @@ If `python3` is missing on macOS, install it with:
 brew install python
 ```
 
+Install the Python plotting dependency with:
+
+```bash
+python3 -m pip install matplotlib
+```
+
 ## Workflow Overview
 
 ### Step 1: Collect conference/year data
 
-Use [get_conference_stats.md](/Users/maier/Documents/code/ConferenceStats/get_conference_stats.md) as the collection workflow.
+Use [get_conference_stats.md](get_conference_stats.md) as the collection workflow.
 
 This step is intended to be performed by agents in parallel, one conference/year at a time. Each agent should:
 
@@ -71,8 +78,10 @@ This step is intended to be performed by agents in parallel, one conference/year
 This step reads normalized CSVs and computes, for each conference/year:
 
 - total accepted papers
+- papers with at least one known country assignment
 - number of papers with at least one author from a target country
-- percentage share of papers with that country's participation
+- percentage share over all papers
+- percentage share over papers with any known country signal
 
 Run:
 
@@ -84,6 +93,8 @@ Outputs:
 
 - `output/country_stats.csv`
 - `output/country_stats.md`
+- `output/country_stats_table.png` after `make render` or `make all`
+- `output/country_stats_graph.png` after `make render` or `make all`
 
 ### Step 3: Build overview table
 
@@ -97,14 +108,113 @@ make overview COUNTRY=China
 
 Outputs:
 
-- `output/country_overview.csv`
-- `output/country_overview.md`
+- `output/country_overview_all_papers.csv`
+- `output/country_overview_all_papers.md`
+- `output/country_overview_all_papers_table.png` after `make render` or `make all`
+- `output/country_overview_all_papers_graph.png` after `make render` or `make all`
+- `output/country_overview_known_country_papers.csv`
+- `output/country_overview_known_country_papers.md`
+- `output/country_overview_known_country_papers_table.png` after `make render` or `make all`
+- `output/country_overview_known_country_papers_graph.png` after `make render` or `make all`
 
-To run both steps together:
+To run stats, build both overview variants, and render the PNG artifacts together:
 
 ```bash
 make all COUNTRY=China
 ```
+
+If you only want to regenerate the PNG artifacts after editing the CSV files, run:
+
+```bash
+make render COUNTRY=China
+```
+
+## Unknown-Country Denominator Problem
+
+The repository now computes two related metrics for each conference/year:
+
+- `share_percent_all_papers`: papers with at least one author from the target country divided by all accepted papers
+- `share_percent_known_country_papers`: papers with at least one author from the target country divided only by papers where at least one author country could be identified
+
+This matters because the parsing quality is not uniform across conference families. `CVPR` and `ICCV` use comparatively regular first-page layouts, while `ICML`, `NeurIPS`, and older `ECCV` volumes often hide affiliations in footers, dense numbered notes, or Springer/PMLR-specific layouts. When a paper's author countries remain fully `UNKNOWN`, counting that paper in the denominator depresses the country share.
+
+Examples from the current `China` run:
+
+| Conference | Year | Share % (All Papers) | Share % (Known-Country Papers Only) | Papers With Known Country | Total Papers |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| ICML | 2015 | 1.11 | 12.50 | 24 | 270 |
+| NeurIPS | 2015 | 2.73 | 6.63 | 166 | 403 |
+| ECCV | 2018 | 2.44 | 19.79 | 96 | 778 |
+| ICML | 2024 | 21.53 | 26.92 | 2088 | 2610 |
+| NeurIPS | 2024 | 27.95 | 42.09 | 2984 | 4493 |
+
+For interpretation:
+
+- use the `all papers` denominator when you want a conservative lower bound
+- use the `known-country papers only` denominator when comparing against earlier estimated charts that implicitly ignored unresolved papers
+- compare both before drawing strong conclusions from `ICML`, `NeurIPS`, or early `ECCV`
+
+The repository also renders the known-country overview as both a table and a graph:
+
+![Known-country overview table](output/country_overview_known_country_papers_table.png)
+
+![Known-country overview graph](output/country_overview_known_country_papers_graph.png)
+
+## Parsing Limits
+
+The first-page extraction and affiliation pipeline are deliberately script-first, but they are not uniformly reliable across publishers.
+
+The main failure modes are:
+
+- `PMLR/ICML`: affiliations often sit in footer footnotes, numbered notes, or correspondence blocks below the abstract
+- `NeurIPS`: proceedings switched in `2025` to OpenReview, which introduces rate limits and a different metadata surface than `2015-2024`
+- `Springer/ECCV`: OCR and HTML structure vary across volumes, and older years often have weak country coverage
+- `AAAI`: proceedings are split across track pages that must be discovered before the papers can be enumerated
+- all families: multi-affiliation authors, merged affiliation strings, email/handle fragments, and country names omitted from the first page
+
+As a result, the current pipeline is best understood as:
+
+- strong on reproducible retrieval and normalization
+- good on `CVPR` and `ICCV`
+- improving but still incomplete on `ICML`, `NeurIPS`, and early `ECCV`
+
+This is why the repository now reports both denominator variants instead of hiding parsing uncertainty inside a single percentage.
+
+## Prompting Statistics
+
+The script-building phase for this repository was itself prompt-heavy, and it is useful to make that overhead explicit.
+
+Overall prompt statistics:
+
+- `80` prompts in total
+- `1871` words across all prompts
+- average prompt length: about `23.4` words
+- rough token estimate: about `31` tokens per prompt on average
+
+Time spent writing:
+
+- at `40` words per minute, the total active writing effort is about `47` minutes
+- that is roughly `35` seconds per prompt on average
+- the distribution is highly skewed: a few long setup prompts dominate, while many later prompts are only a few words
+
+Interaction overhead:
+
+- `26` out of `80` prompts were mainly coordination or execution triggers
+- that is about `32.5%` of the interaction
+
+Examples of avoidable overhead:
+
+- `please do so`
+- `yes`
+- `proceed`
+- `commit`
+- `push`
+
+Interpretation:
+
+- the workflow shows a typical pattern for complex tool-building sessions: one large specification phase followed by many short control prompts
+- average prompt length is therefore less informative than the prompt mix
+- the biggest efficiency gain would likely come from reducing the roughly one-third interaction overhead by batching actions, defining longer-running plans, and allowing the agent to proceed without repeated confirmations
 
 To run the optional local-LLM country pass yourself for one dataset:
 
@@ -217,6 +327,7 @@ scripts/
   affiliation_pipeline.py
   compute_country_stats.py
   build_overview_table.py
+  render_country_outputs.py
   collect_cvf_openaccess.py
   collect_pmlr_proceedings.py
   collect_neurips_proceedings.py
@@ -293,7 +404,7 @@ For multi-volume proceedings such as `MICCAI` and some `ECCV` editions, `proceed
 Example workflow:
 
 1. Add all desired conference/year rows to `config/conferences.csv`.
-2. Run the step-1 workflow in [get_conference_stats.md](/Users/maier/Documents/code/ConferenceStats/get_conference_stats.md).
+2. Run the step-1 workflow in [get_conference_stats.md](get_conference_stats.md).
 3. Validate the resulting normalized datasets with:
 
 ```bash
@@ -406,13 +517,13 @@ For large conferences, step 1 should be run as a loop:
 
 For author rows where `institution` is known but `country` remains `UNKNOWN`, the repository can use a local Ollama model as a conservative follow-up pass.
 
-Project-level config lives in [local_llm.json](/Users/maier/Documents/code/ConferenceStats/config/local_llm.json). The default setup uses:
+Project-level config lives in [local_llm.json](config/local_llm.json). The default setup uses:
 
 - provider: `ollama`
 - base URL: `http://localhost:11434`
 - model: `qwen3:14b`
 
-Use the shared client in [local_llm.py](/Users/maier/Documents/code/ConferenceStats/scripts/local_llm.py) so all scripts talk to the same local model configuration.
+Use the shared client in [local_llm.py](scripts/local_llm.py) so all scripts talk to the same local model configuration.
 
 The recommended project-wide setup is:
 

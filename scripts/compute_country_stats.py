@@ -61,6 +61,14 @@ def country_matches(author_country: str, target_country: str) -> bool:
     return normalized_target in author_countries
 
 
+def has_known_country(author_country: str) -> bool:
+    return any(
+        normalize_country_name(part) != "UNKNOWN"
+        for part in author_country.split("|")
+        if part.strip()
+    )
+
+
 def find_dataset_roots(input_dir: Path):
     for conference_dir in sorted(p for p in input_dir.iterdir() if p.is_dir()):
         for year_dir in sorted(p for p in conference_dir.iterdir() if p.is_dir()):
@@ -91,6 +99,7 @@ def compute_stats_for_dataset(dataset_dir: Path, target_country: str):
     year = paper_rows[0]["year"] if paper_rows else dataset_dir.name
 
     matching_paper_ids = set()
+    papers_with_known_country_ids = set()
     for link in link_rows:
         author = authors_by_id.get(link["author_id"])
         if author is None:
@@ -103,20 +112,33 @@ def compute_stats_for_dataset(dataset_dir: Path, target_country: str):
                 f"{dataset_dir / 'paper_authors.csv'} references unknown paper_id "
                 f"{link['paper_id']}"
             )
+        if has_known_country(author["country"]):
+            papers_with_known_country_ids.add(link["paper_id"])
         if country_matches(author["country"], target_country):
             matching_paper_ids.add(link["paper_id"])
 
     total_papers = len(paper_rows)
+    papers_with_known_country = len(papers_with_known_country_ids)
     papers_with_country = len(matching_paper_ids)
-    share_percent = (papers_with_country / total_papers * 100.0) if total_papers else 0.0
+    share_percent_all_papers = (
+        papers_with_country / total_papers * 100.0 if total_papers else 0.0
+    )
+    share_percent_known_country_papers = (
+        papers_with_country / papers_with_known_country * 100.0
+        if papers_with_known_country
+        else 0.0
+    )
 
     return {
         "conference": conference,
         "year": year,
         "country": target_country,
         "total_papers": str(total_papers),
+        "papers_with_known_country": str(papers_with_known_country),
         "papers_with_country": str(papers_with_country),
-        "share_percent": f"{share_percent:.2f}",
+        "papers_with_unknown_only": str(total_papers - papers_with_known_country),
+        "share_percent_all_papers": f"{share_percent_all_papers:.2f}",
+        "share_percent_known_country_papers": f"{share_percent_known_country_papers:.2f}",
     }
 
 
@@ -126,8 +148,11 @@ def write_csv(path: Path, rows):
         "year",
         "country",
         "total_papers",
+        "papers_with_known_country",
         "papers_with_country",
-        "share_percent",
+        "papers_with_unknown_only",
+        "share_percent_all_papers",
+        "share_percent_known_country_papers",
     ]
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
@@ -141,12 +166,12 @@ def write_markdown(path: Path, rows, country: str):
     lines = [
         f"# Country Statistics: {country}",
         "",
-        "| Conference | Year | Total Papers | Papers With Country | Share % |",
-        "| --- | ---: | ---: | ---: | ---: |",
+        "| Conference | Year | Total Papers | Papers With Known Country | Papers With Country | Unknown-Only Papers | Share % (All Papers) | Share % (Known-Country Papers) |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for row in rows:
         lines.append(
-            "| {conference} | {year} | {total_papers} | {papers_with_country} | {share_percent} |".format(
+            "| {conference} | {year} | {total_papers} | {papers_with_known_country} | {papers_with_country} | {papers_with_unknown_only} | {share_percent_all_papers} | {share_percent_known_country_papers} |".format(
                 **row
             )
         )
