@@ -1,5 +1,10 @@
 # ConferenceStats
 
+This repository already led to two follow-on articles based on the data and workflow from commit [40cc027f62e1b5d05f015de50bcba7bdbfb0d779](https://github.com/akmaier/ConferenceStats/commit/40cc027f62e1b5d05f015de50bcba7bdbfb0d779):
+
+- [I Didn’t Read 88,000 Papers. I Built an Agentic Pipeline Instead](https://akmaier.substack.com/p/i-didnt-read-88000-papers-i-built)
+- [The AI Science Separation](https://www.thewirechina.com/2026/04/19/the-ai-science-separation/)
+
 This repository is organized around a three-step workflow for building conference-level country contribution statistics over time.
 
 The goal is to collect structured metadata for every conference and year, normalize it into a consistent CSV format, and then compute overview statistics such as the percentage of papers with at least one author from a specific country.
