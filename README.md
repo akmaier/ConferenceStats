@@ -147,11 +147,11 @@ Examples from the current `China` run:
 
 | Conference | Year | Share % (All Papers) | Share % (Known-Country Papers Only) | Papers With Known Country | Total Papers |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| ICML | 2015 | 1.11 | 12.50 | 24 | 270 |
-| NeurIPS | 2015 | 2.73 | 6.63 | 166 | 403 |
-| ECCV | 2018 | 2.44 | 19.79 | 96 | 778 |
-| ICML | 2024 | 21.53 | 26.92 | 2088 | 2610 |
-| NeurIPS | 2024 | 27.95 | 42.09 | 2984 | 4493 |
+| ICML | 2015 | 7.78 | 7.92 | 265 | 270 |
+| NeurIPS | 2015 | 3.97 | 4.12 | 388 | 403 |
+| ECCV | 2018 | 2.70 | 21.00 | 100 | 778 |
+| ICML | 2024 | 27.74 | 28.31 | 2557 | 2610 |
+| NeurIPS | 2024 | 33.63 | 35.02 | 4315 | 4493 |
 
 For interpretation:
 
